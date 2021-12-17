@@ -1,0 +1,12 @@
+[package]
+name = "pyroscope"
+version = "0.1.0"
+edition = "2021"
+license = "Apache"
+homepage = "https://pyroscope.io"
+documentation  = "https://pyroscope.io/docs/"
+repository = "https://github.com/omarabid/pyroscope.git"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
