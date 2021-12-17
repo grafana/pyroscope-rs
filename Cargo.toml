@@ -1,5 +1,6 @@
 [package]
 name = "pyroscope"
+description = "Pyroscope Profiler"
 version = "0.1.0"
 edition = "2021"
 license = "Apache"
