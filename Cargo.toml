@@ -12,3 +12,10 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = {version = "1.13", features = ["macros", "sync", "rt-multi-thread"]}
+pprof = { path = "/home/omarabid/Documents/Projects/Pyroscope/pprof-rs-oa", features = [
+  "pyroscope",
+  "criterion",
+  "flamegraph",
+] }
+libc = "^0.2.66"

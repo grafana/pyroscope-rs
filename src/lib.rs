@@ -1,3 +1,5 @@
+pub mod pyroscope;
+
 #[cfg(test)]
 mod tests {
     #[test]
