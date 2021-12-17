@@ -6,6 +6,7 @@ license = "Apache"
 homepage = "https://pyroscope.io"
 documentation  = "https://pyroscope.io/docs/"
 repository = "https://github.com/omarabid/pyroscope.git"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
