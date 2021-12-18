@@ -14,7 +14,7 @@ readme = "README.md"
 [dependencies]
 tokio = {version = "1.13", features = ["macros", "sync", "rt-multi-thread"]}
 reqwest = {version = "0.11",  default-features = false}
-pprof = { path = "/home/omarabid/Documents/Projects/Pyroscope/pprof-rs-oa", features = [
+pprof = { git = "https://github.com/omarabid/pprof-rs-2", branch="support-pyroscope", features = [
   "pyroscope",
   "criterion",
   "flamegraph",
