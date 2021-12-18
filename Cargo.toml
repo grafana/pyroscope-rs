@@ -1,7 +1,7 @@
 [package]
 name = "pyroscope"
 description = "Pyroscope Profiler"
-version = "0.1.0"
+version = "0.0.1-alpha"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
@@ -12,3 +12,11 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = {version = "1.13", features = ["macros", "sync", "rt-multi-thread"]}
+reqwest = {version = "0.11",  default-features = false}
+pprof = { git = "https://github.com/omarabid/pprof-rs-2", branch="support-pyroscope", features = [
+  "pyroscope",
+  "criterion",
+  "flamegraph",
+] }
+libc = "^0.2.66"
