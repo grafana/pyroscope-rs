@@ -1,6 +1,7 @@
 extern crate pyroscope;
 
 use pyroscope::pyroscope::PyroscopeAgent;
+use pyroscope::error::Result;
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -10,7 +11,7 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()>{
     let mut agent =
         PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
             .frequency(100)
@@ -45,5 +46,5 @@ async fn main() {
     }
     agent.stop().await?;
 
-    return;
+    Ok(())
 }

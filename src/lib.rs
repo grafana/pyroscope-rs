@@ -1,3 +1,3 @@
 pub mod pyroscope;
-mod error;
+pub mod error;
 mod utils;
