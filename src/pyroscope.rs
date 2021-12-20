@@ -1,37 +1,3 @@
-// Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
-
-//! this mod could help you to upload profiler data to the pyroscope
-//!
-//! To enable this mod, you need to enable the features: "pyroscope" and
-//! "default-tls" (or "rustls-tls"). To start profiling, you can create a
-//! `PyroscopeAgent`:
-//!
-//! ```ignore
-//! let guard =  
-//!   PyroscopeAgentBuilder::new("http://localhost:4040".to_owned(), "fibonacci".to_owned())
-//!     .frequency(99)
-//!     .tags([
-//!         ("TagA".to_owned(), "ValueA".to_owned()),
-//!         ("TagB".to_owned(), "ValueB".to_owned()),
-//!     ]
-//!     .iter()
-//!     .cloned()
-//!     .collect())
-//!     .build().unwrap();
-//! ```
-//!
-//! This guard will collect profiling data and send profiling data to the
-//! pyroscope server every 10 seconds. This interval is not configurable now
-//! (both server side and client side).
-//!
-//! If you need to stop the profiling, you can call `stop()` on the guard:
-//!
-//! ```ignore
-//! guard.stop().await
-//! ```
-//!
-//! It will return the error if error occurs while profiling.
-
 use std::collections::HashMap;
 
 use pprof::ProfilerGuardBuilder;
