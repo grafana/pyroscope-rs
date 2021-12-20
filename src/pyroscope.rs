@@ -51,7 +51,7 @@ pub struct PyroscopeAgentBuilder {
 }
 
 impl PyroscopeAgentBuilder {
-    pub fn new<S1: AsRef<str>, S2: AsRef<str>>(url: S1, application_name: S2) -> Self {
+    pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
             inner_builder: ProfilerGuardBuilder::default(),
             url: url.as_ref().to_owned(),
