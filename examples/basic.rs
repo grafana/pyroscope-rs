@@ -24,26 +24,26 @@ async fn main() {
                 .collect(),
             )
             .build()
-            .unwrap();
+            ?;
 
-    agent.start().unwrap();
+    agent.start()?;
     for s in &[1, 10, 40, 50] {
         let result = fibonacci(44);
         println!("fibonacci({}) -> {}", *s, result);
     }
-    agent.stop().await.unwrap();
+    agent.stop().await?;
 
     for s in &[1, 10, 40, 50] {
         let result = fibonacci(44);
         println!("fibonacci({}) -> {}", *s, result);
     }
 
-    agent.start().unwrap();
+    agent.start()?;
     for s in &[1, 10, 40, 50] {
         let result = fibonacci(44);
         println!("fibonacci({}) -> {}", *s, result);
     }
-    agent.stop().await.unwrap();
+    agent.stop().await?;
 
     return;
 }
