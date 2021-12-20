@@ -20,3 +20,6 @@ pprof = { git = "https://github.com/omarabid/pprof-rs-2", branch="support-pyrosc
   "flamegraph",
 ] }
 libc = "^0.2.66"
+
+[dev-dependencies]
+tokio = { version = "1.13", features = ["full"] }
