@@ -68,7 +68,7 @@ pub fn merge_tags_with_app_name(application_name: String, tags: HashMap<String, 
 mod tests {
     use std::collections::HashMap;
 
-    use crate::pyroscope::merge_tags_with_app_name;
+    use crate::utils::merge_tags_with_app_name;
 
     #[test]
     fn merge_tags_with_app_name_with_tags() {
@@ -77,7 +77,7 @@ mod tests {
         tags.insert("region".to_string(), "us-west-1".to_string());
         tags.insert("__name__".to_string(), "reserved".to_string());
         assert_eq!(
-            merge_tags_with_app_name("my.awesome.app.cpu".to_string(), tags),
+            merge_tags_with_app_name("my.awesome.app.cpu".to_string(), tags).unwrap(),
             "my.awesome.app.cpu{env=staging,region=us-west-1}".to_string()
         )
     }
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn merge_tags_with_app_name_without_tags() {
         assert_eq!(
-            merge_tags_with_app_name("my.awesome.app.cpu".to_string(), HashMap::default()),
+            merge_tags_with_app_name("my.awesome.app.cpu".to_string(), HashMap::default()).unwrap(),
             "my.awesome.app.cpu".to_string()
         )
     }
