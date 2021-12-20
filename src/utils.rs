@@ -48,7 +48,7 @@ pub async fn pyroscope_ingest<S: AsRef<str>, N: AsRef<str>>(
             Ok(())
         }
 
-pub fn merge_tags_with_app_name(application_name: String, tags: HashMap<String, String>) -> String {
+pub fn merge_tags_with_app_name(application_name: String, tags: HashMap<String, String>) -> Result<String> {
     let mut tags_vec = tags
         .into_iter()
         .filter(|(k, _)| k != "__name__")
@@ -58,9 +58,9 @@ pub fn merge_tags_with_app_name(application_name: String, tags: HashMap<String, 
     let tags_str = tags_vec.join(",");
 
     if !tags_str.is_empty() {
-        format!("{}{{{}}}", application_name, tags_str,)
+        Ok(format!("{}{{{}}}", application_name, tags_str,))
     } else {
-        application_name
+        Ok(application_name)
     }
 }
 

@@ -116,7 +116,7 @@ impl PyroscopeAgent {
     }
     
     pub fn start(&mut self) -> Result<()> {
-        let application_name = merge_tags_with_app_name(self.application_name.clone(), self.tags.clone());
+        let application_name = merge_tags_with_app_name(self.application_name.clone(), self.tags.clone())?;
         let (stopper, mut stop_signal) = mpsc::channel::<()>(1);
 
         // Since Pyroscope only allow 10s intervals, it might not be necessary
