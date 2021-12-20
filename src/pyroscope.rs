@@ -103,6 +103,10 @@ pub struct PyroscopeAgent {
 }
 
 impl PyroscopeAgent {
+    pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
+       PyroscopeAgentBuilder::new(url, application_name) 
+    }
+
     pub async fn stop(&mut self) -> Result<()> {
         self.stopper.take().unwrap().send(()).await.unwrap();
         self.handler.take().unwrap().await.unwrap()?;
