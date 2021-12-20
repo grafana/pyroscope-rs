@@ -79,7 +79,38 @@ impl PyroscopeAgentBuilder {
     }
 
     pub fn build(self) -> Result<PyroscopeAgent> {
-        let application_name = merge_tags_with_app_name(self.application_name, self.tags);
+        Ok(PyroscopeAgent { 
+            inner_builder: self.inner_builder,
+            url: self.url,
+            application_name: self.application_name,
+            tags: self.tags,
+            stopper: None,
+            handler: None,
+        })
+    }
+}
+
+pub struct PyroscopeAgent {
+    inner_builder: ProfilerGuardBuilder,
+
+    url: String,
+    application_name: String,
+    tags: HashMap<String, String>,
+
+    stopper: Option<mpsc::Sender<()>>,
+    handler: Option<tokio::task::JoinHandle<Result<()>>>,
+}
+
+impl PyroscopeAgent {
+    pub async fn stop(&mut self) -> Result<()> {
+        self.stopper.take().unwrap().send(()).await.unwrap();
+        self.handler.take().unwrap().await.unwrap()?;
+
+        Ok(())
+    }
+    
+    pub fn start(&mut self) -> Result<()> {
+        let application_name = merge_tags_with_app_name(self.application_name.clone(), self.tags.clone());
         let (stopper, mut stop_signal) = mpsc::channel::<()>(1);
 
         // Since Pyroscope only allow 10s intervals, it might not be necessary
@@ -87,16 +118,18 @@ impl PyroscopeAgentBuilder {
         let upload_interval = std::time::Duration::from_secs(10);
         let mut interval = tokio::time::interval(upload_interval);
 
+        let tmp = self.inner_builder.clone();
+        let url_tmp = self.url.clone();
         let handler = tokio::spawn(async move {
             loop {
-                match self.inner_builder.clone().build() {
+                match tmp.clone().build() {
                     Ok(guard) => {
                         tokio::select! {
                             _ = interval.tick() => {
-                                pyroscope_ingest(guard.report().build()?, &self.url, &application_name).await?;
+                                pyroscope_ingest(guard.report().build()?, &url_tmp, &application_name).await?;
                             }
                             _ = stop_signal.recv() => {
-                                pyroscope_ingest(guard.report().build()?, &self.url, &application_name).await?;
+                                pyroscope_ingest(guard.report().build()?, &url_tmp, &application_name).await?;
 
                                 break Ok(())
                             }
@@ -111,21 +144,8 @@ impl PyroscopeAgentBuilder {
             }
         });
 
-        Ok(PyroscopeAgent { stopper, handler })
-    }
-}
-
-pub struct PyroscopeAgent {
-    stopper: mpsc::Sender<()>,
-
-    handler: tokio::task::JoinHandle<Result<()>>,
-}
-
-impl PyroscopeAgent {
-    pub async fn stop(self) -> Result<()> {
-        self.stopper.send(()).await.unwrap();
-
-        self.handler.await.unwrap()?;
+        self.stopper = Some(stopper);
+        self.handler = Some(handler);
 
         Ok(())
     }
