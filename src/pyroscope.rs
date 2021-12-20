@@ -35,13 +35,14 @@
 use std::collections::HashMap;
 
 use pprof::ProfilerGuardBuilder;
-use pprof::Result;
 
 use tokio::sync::mpsc;
 
 use libc::c_int;
+
 use crate::utils::pyroscope_ingest;
 use crate::utils::merge_tags_with_app_name;
+use crate::error::Result;
 
 pub struct PyroscopeAgentBuilder {
     inner_builder: ProfilerGuardBuilder,
@@ -108,8 +109,8 @@ impl PyroscopeAgent {
     }
 
     pub async fn stop(&mut self) -> Result<()> {
-        self.stopper.take().unwrap().send(()).await.unwrap();
-        self.handler.take().unwrap().await.unwrap()?;
+        self.stopper.take().unwrap().send(()).await?;
+        self.handler.take().unwrap().await??;
 
         Ok(())
     }
@@ -131,19 +132,21 @@ impl PyroscopeAgent {
                     Ok(guard) => {
                         tokio::select! {
                             _ = interval.tick() => {
-                                pyroscope_ingest(guard.report().build()?, &url_tmp, &application_name).await?;
+                                let report = guard.report().build()?;
+                                pyroscope_ingest(report, &url_tmp, &application_name).await?;
                             }
                             _ = stop_signal.recv() => {
-                                pyroscope_ingest(guard.report().build()?, &url_tmp, &application_name).await?;
+                                let report = guard.report().build()?;
+                                pyroscope_ingest(report, &url_tmp, &application_name).await?;
 
                                 break Ok(())
                             }
                         }
                     }
-                    Err(err) => {
+                    Err(_err) => {
                         // TODO: this error will only be caught when this
                         // handler is joined. Find way to report error earlier
-                        break Err(err);
+                        break Err(crate::error::PyroscopeError {msg: String::from("Tokio Task Error")});
                     }
                 }
             }

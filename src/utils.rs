@@ -1,4 +1,4 @@
-use pprof::Result;
+use crate::error::Result;
 
 use pprof::report::Report;
 use std::collections::HashMap;
@@ -23,7 +23,7 @@ pub async fn pyroscope_ingest<S: AsRef<str>, N: AsRef<str>>(
                 .timing
                 .start_time
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                ?
                 .as_secs();
             let s_start = start - start.checked_rem(10).unwrap();
             // This assumes that the interval between start and until doesn't
