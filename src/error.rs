@@ -1,8 +1,16 @@
+// Copyright 2021 Developers of Pyroscope.
+
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
+// except according to those terms.
+
 use std::fmt;
 use thiserror::Error;
 
+/// Result Alias with PyroscopeError
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
+/// Error type of Pyroscope
 #[derive(Error, Debug)]
 pub struct PyroscopeError {
   pub msg: String,

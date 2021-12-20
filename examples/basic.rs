@@ -1,7 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::pyroscope::PyroscopeAgent;
-use pyroscope::error::Result;
+use pyroscope::{PyroscopeAgent, Result};
 
 fn fibonacci(n: u64) -> u64 {
     match n {
