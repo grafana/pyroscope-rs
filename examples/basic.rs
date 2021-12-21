@@ -26,25 +26,24 @@ async fn main() -> Result<()>{
             .build()
             ?;
 
-    println!("start");
     agent.start()?;
     for s in &[1, 10, 40, 50] {
         let result = fibonacci(44);
-        //println!("fibonacci({}) -> {}", *s, result);
+        println!("fibonacci({}) -> {}", *s, result);
     }
     agent.stop().await?;
 
-    //for s in &[1, 10, 40, 50] {
-        //let result = fibonacci(44);
-        //println!("fibonacci({}) -> {}", *s, result);
-    //}
+    for s in &[1, 10, 40, 50] {
+        let result = fibonacci(44);
+        println!("fibonacci({}) -> {}", *s, result);
+    }
 
-    //agent.start()?;
-    //for s in &[1, 10, 40, 50] {
-        //let result = fibonacci(44);
-        //println!("fibonacci({}) -> {}", *s, result);
-    //}
-    //agent.stop().await?;
+    agent.start()?;
+    for s in &[1, 10, 40, 50] {
+        let result = fibonacci(44);
+        println!("fibonacci({}) -> {}", *s, result);
+    }
+    agent.stop().await?;
 
     Ok(())
 }
