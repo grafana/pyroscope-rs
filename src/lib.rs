@@ -11,7 +11,7 @@
 //!
 //! ## Configure Pyroscope Agent
 //!
-//! ```
+//! ```ignore
 //! let mut agent =
 //!     PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
 //!        .frequency(100)
@@ -32,18 +32,18 @@
 //! 
 //! To start profiling code and sending data.
 //!
-//! ```
+//! ```ignore
 //!  agent.start()?;
 //! ```
 //!
 //! To stop profiling code. You can restart the profiling at a later point.
 //!
-//! ```
+//! ```ignore
 //!  agent.stop().await?;
 //! ```
 
 // Re-exports structs
-pub use pyroscope::PyroscopeAgent;
+pub use crate::pyroscope::PyroscopeAgent;
 pub use error::{Result, PyroscopeError};
 
 // Public modules
