@@ -30,7 +30,7 @@ impl From<reqwest::Error> for PyroscopeError {
     }
 }
 
-impl From<pprof::error::Error> for PyroscopeError {
+impl From<pprof::Error> for PyroscopeError {
     fn from(_err: pprof::Error) -> Self {
         PyroscopeError {
             msg: String::from("pprof Error"),
@@ -58,6 +58,14 @@ impl From<std::time::SystemTimeError> for PyroscopeError {
     fn from(_err: std::time::SystemTimeError) -> Self {
         PyroscopeError {
             msg: String::from("SystemTime Error"),
+        }
+    }
+}
+
+impl From<std::io::Error> for PyroscopeError {
+    fn from(_err: std::io::Error) -> Self {
+        PyroscopeError {
+            msg: String::from("IO Error"),
         }
     }
 }
