@@ -56,8 +56,17 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    pub fn tags(self, tags: HashMap<String, String>) -> Self {
-        Self { tags, ..self }
+    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+        let ntags: HashMap<String, String> = tags
+            .to_owned()
+            .iter()
+            .cloned()
+            .map(|(a, b)| (a.to_owned(), b.to_owned()))
+            .collect();
+        Self {
+            tags: ntags,
+            ..self
+        }
     }
 
     pub fn build(self) -> Result<PyroscopeAgent> {
@@ -105,19 +114,25 @@ impl PyroscopeAgent {
         Ok(())
     }
 
-    pub fn add_tags(&mut self, tags: HashMap<String, String>) -> Result<()> {
+    pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
+        let ntags: HashMap<String, String> = tags
+            .to_owned()
+            .iter()
+            .cloned()
+            .map(|(a, b)| (a.to_owned(), b.to_owned()))
+            .collect();
         let itags = Arc::clone(&self.tags);
         let mut lock = itags.lock()?;
-        lock.extend(tags);
+        lock.extend(ntags);
 
         Ok(())
     }
 
-    pub fn remove_tags(&mut self, tags: Vec<String>) -> Result<()> {
+    pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
         let itags = Arc::clone(&self.tags);
         let mut lock = itags.lock()?;
         tags.iter().for_each(|key| {
-            lock.remove(key);
+            lock.remove(key.to_owned());
         });
 
         Ok(())
