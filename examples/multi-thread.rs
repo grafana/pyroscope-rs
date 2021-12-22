@@ -31,10 +31,7 @@ fn main() -> Result<()> {
                 let mut agent = PyroscopeAgent::builder("http://localhost:4040", "MultiThread")
                     .frequency(100)
                     .tags(
-                        [("Thread".to_owned(), "Thread 1".to_owned())]
-                            .iter()
-                            .cloned()
-                            .collect(),
+                        &[("Thread", "Thread 1")]
                     )
                     .build()
                     .unwrap();
@@ -57,10 +54,7 @@ fn main() -> Result<()> {
                 let mut agent = PyroscopeAgent::builder("http://localhost:4040", "MultiThread")
                     .frequency(100)
                     .tags(
-                        [("Thread".to_owned(), "Thread 2".to_owned())]
-                            .iter()
-                            .cloned()
-                            .collect(),
+                        &[("Thread", "Thread 2")]
                     )
                     .build()
                     .unwrap();

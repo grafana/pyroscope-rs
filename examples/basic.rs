@@ -21,13 +21,10 @@ async fn main() -> Result<()>{
         PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
             .frequency(100)
             .tags(
-                [
-                    ("TagA".to_owned(), "ValueA".to_owned()),
-                    ("TagB".to_owned(), "ValueB".to_owned()),
+                &[
+                    ("TagA", "ValueA"),
+                    ("TagB", "ValueB"),
                 ]
-                .iter()
-                .cloned()
-                .collect(),
             )
             .build()
             ?;

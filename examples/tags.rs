@@ -20,10 +20,7 @@ async fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
         .frequency(100)
         .tags(
-            [("Hostname".to_owned(), "pyroscope".to_owned())]
-                .iter()
-                .cloned()
-                .collect(),
+            &[("Hostname", "pyroscope")]
         )
         .build()?;
 
@@ -31,24 +28,19 @@ async fn main() -> Result<()> {
 
 
     agent.add_tags(
-        [("series".to_owned(), "Number 1".to_owned()), ("order".to_owned(), "first".to_owned())]
-            .iter()
-            .cloned()
-            .collect(),
+        &[("series", "Number 1"), ("order", "first")]
     )?;
+
     let result = fibonacci(47);
     println!("fibonacci {}", result);
-    agent.remove_tags(vec!["order".to_owned()])?;
+    agent.remove_tags(&["order"])?;
 
     agent.add_tags(
-        [("series".to_owned(), "Number 2".to_owned())]
-            .iter()
-            .cloned()
-            .collect(),
+        &[("series", "Number 2")]
     )?;
     let result = fibonacci(47);
     println!("fibonacci {}", result);
-    agent.remove_tags(vec!["series".to_owned()])?;
+    agent.remove_tags(&["series"])?;
 
     agent.stop().await?;
 
