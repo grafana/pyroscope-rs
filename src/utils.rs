@@ -16,28 +16,12 @@ pub async fn pyroscope_ingest<S: AsRef<str>, N: AsRef<str>>(
     url: S,
     application_name: N,
 ) -> Result<()> {
-    //let mut buffer = Vec::new();
-
-            //report.fold(true, &mut buffer)?;
-
-            if buffer.is_empty() {
+                if buffer.is_empty() {
                 return Ok(());
             }
 
             let client = reqwest::Client::new();
             // TODO: handle the error of this request
-
-            //let start: u64 = report
-                //.timing
-                //.start_time
-                //.duration_since(std::time::UNIX_EPOCH)
-                //?
-                //.as_secs();
-
-            //let new_start = std::time::SystemTime::now()
-                //.duration_since(std::time::UNIX_EPOCH)
-                //?
-                //.as_secs() - 10u64;
 
             let s_start = start - start.checked_rem(10).unwrap();
             // This assumes that the interval between start and until doesn't

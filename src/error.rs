@@ -69,3 +69,11 @@ impl From<std::io::Error> for PyroscopeError {
         }
     }
 }
+
+impl<T> From<std::sync::PoisonError<T>> for PyroscopeError {
+    fn from(_err: std::sync::PoisonError<T>) -> Self {
+        PyroscopeError {
+            msg: String::from("Poison/Mutex Error"),
+        }
+    }
+}

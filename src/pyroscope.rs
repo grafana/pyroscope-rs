@@ -84,7 +84,7 @@ pub struct PyroscopeAgent {
 
     url: String,
     application_name: String,
-    pub tags: Arc<Mutex<HashMap<String, String>>>,
+    tags: Arc<Mutex<HashMap<String, String>>>,
     sample_rate: libc::c_int,
 
     stopper: Option<mpsc::Sender<()>>,
@@ -107,7 +107,7 @@ impl PyroscopeAgent {
 
     pub fn add_tags(&mut self, tags: HashMap<String, String>) -> Result<()> {
         let itags = Arc::clone(&self.tags);
-        let mut lock = itags.lock().unwrap();
+        let mut lock = itags.lock()?;
         lock.extend(tags);
 
         Ok(())
@@ -115,7 +115,7 @@ impl PyroscopeAgent {
 
     pub fn remove_tags(&mut self, tags: Vec<String>) -> Result<()> {
         let itags = Arc::clone(&self.tags);
-        let mut lock = itags.lock().unwrap();
+        let mut lock = itags.lock()?;
         tags.iter().for_each(|key| {
             lock.remove(key);
         });
@@ -150,7 +150,7 @@ impl PyroscopeAgent {
                                     .duration_since(std::time::UNIX_EPOCH)
                                     ?
                                     .as_secs() - 10u64;
-                                let t = new_tags.lock().unwrap().clone();
+                                let t = new_tags.lock()?.clone();
                                 let merged = merge_tags_with_app_name(application_name.clone(), t)?;
                                 pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
                             }
@@ -162,7 +162,7 @@ impl PyroscopeAgent {
                                     .duration_since(std::time::UNIX_EPOCH)
                                     ?
                                     .as_secs() - 10u64;
-                                let t = new_tags.lock().unwrap().clone();
+                                let t = new_tags.lock()?.clone();
                                 let merged = merge_tags_with_app_name(application_name.clone(), t)?;
                                 pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
 
