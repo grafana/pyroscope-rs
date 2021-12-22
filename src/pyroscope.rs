@@ -5,6 +5,7 @@
 // except according to those terms.
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
 use pprof::ProfilerGuardBuilder;
@@ -13,10 +14,10 @@ use tokio::sync::mpsc;
 
 use libc::c_int;
 
-use crate::utils::pyroscope_ingest;
-use crate::utils::merge_tags_with_app_name;
-use crate::utils::fold;
 use crate::error::Result;
+use crate::utils::fold;
+use crate::utils::merge_tags_with_app_name;
+use crate::utils::pyroscope_ingest;
 
 pub struct PyroscopeAgentBuilder {
     inner_builder: ProfilerGuardBuilder,
@@ -60,11 +61,11 @@ impl PyroscopeAgentBuilder {
     }
 
     pub fn build(self) -> Result<PyroscopeAgent> {
-        Ok(PyroscopeAgent { 
+        Ok(PyroscopeAgent {
             inner_builder: self.inner_builder,
             url: self.url,
             application_name: self.application_name,
-            tags: self.tags,
+            tags: Arc::new(Mutex::new(self.tags)),
             sample_rate: self.sample_rate,
             stopper: None,
             handler: None,
@@ -83,7 +84,7 @@ pub struct PyroscopeAgent {
 
     url: String,
     application_name: String,
-    tags: HashMap<String, String>,
+    pub tags: Arc<Mutex<HashMap<String, String>>>,
     sample_rate: libc::c_int,
 
     stopper: Option<mpsc::Sender<()>>,
@@ -94,7 +95,7 @@ pub struct PyroscopeAgent {
 
 impl PyroscopeAgent {
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
-       PyroscopeAgentBuilder::new(url, application_name) 
+        PyroscopeAgentBuilder::new(url, application_name)
     }
 
     pub async fn stop(&mut self) -> Result<()> {
@@ -103,9 +104,28 @@ impl PyroscopeAgent {
 
         Ok(())
     }
-    
+
+    pub fn add_tags(&mut self, tags: HashMap<String, String>) -> Result<()> {
+        let itags = Arc::clone(&self.tags);
+        let mut lock = itags.lock().unwrap();
+        lock.extend(tags);
+
+        Ok(())
+    }
+
+    pub fn remove_tags(&mut self, tags: Vec<String>) -> Result<()> {
+        let itags = Arc::clone(&self.tags);
+        let mut lock = itags.lock().unwrap();
+        tags.iter().for_each(|key| {
+            lock.remove(key);
+        });
+
+        Ok(())
+    }
+
     pub fn start(&mut self) -> Result<()> {
-        let application_name = merge_tags_with_app_name(self.application_name.clone(), self.tags.clone())?;
+        let application_name = self.application_name.clone();
+        let new_tags = Arc::clone(&self.tags);
         let (stopper, mut stop_signal) = mpsc::channel::<()>(1);
 
         // Since Pyroscope only allow 10s intervals, it might not be necessary
@@ -116,6 +136,7 @@ impl PyroscopeAgent {
         let tmp = self.inner_builder.clone();
         let url_tmp = self.url.clone();
         let sample_rate = self.sample_rate.clone();
+
         let handler = tokio::spawn(async move {
             loop {
                 match tmp.clone().build() {
@@ -129,7 +150,9 @@ impl PyroscopeAgent {
                                     .duration_since(std::time::UNIX_EPOCH)
                                     ?
                                     .as_secs() - 10u64;
-                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, &application_name).await?;
+                                let t = new_tags.lock().unwrap().clone();
+                                let merged = merge_tags_with_app_name(application_name.clone(), t)?;
+                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
                             }
                             _ = stop_signal.recv() => {
                                 let mut buffer = Vec::new();
@@ -139,7 +162,9 @@ impl PyroscopeAgent {
                                     .duration_since(std::time::UNIX_EPOCH)
                                     ?
                                     .as_secs() - 10u64;
-                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, &application_name).await?;
+                                let t = new_tags.lock().unwrap().clone();
+                                let merged = merge_tags_with_app_name(application_name.clone(), t)?;
+                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
 
                                 break Ok(())
                             }
@@ -148,7 +173,9 @@ impl PyroscopeAgent {
                     Err(_err) => {
                         // TODO: this error will only be caught when this
                         // handler is joined. Find way to report error earlier
-                        break Err(crate::error::PyroscopeError {msg: String::from("Tokio Task Error")});
+                        break Err(crate::error::PyroscopeError {
+                            msg: String::from("Tokio Task Error"),
+                        });
                     }
                 }
             }
