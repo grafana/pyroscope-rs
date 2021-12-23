@@ -18,7 +18,7 @@ use crate::error::Result;
 use crate::utils::fold;
 use crate::utils::merge_tags_with_app_name;
 use crate::utils::pyroscope_ingest;
-use crate::backends::backend::Backend;
+use crate::backends::Backend;
 use crate::backends::pprof::Pprof;
 
 pub struct PyroscopeAgentBuilder {
@@ -45,9 +45,9 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    pub fn backend(self, backend: Box<dyn Backend>) -> Self {
+    pub fn backend<T: 'static>(self, backend: T) -> Self where T: Backend {
         Self {
-            backend,
+            backend: Box::new(backend),
             ..self
         }
     }
@@ -83,6 +83,7 @@ impl PyroscopeAgentBuilder {
     pub fn build(self) -> Result<PyroscopeAgent> {
         Ok(PyroscopeAgent {
             inner_builder: self.inner_builder,
+            backend: self.backend,
             url: self.url,
             application_name: self.application_name,
             tags: Arc::new(Mutex::new(self.tags)),
@@ -101,6 +102,7 @@ pub struct Timer {
 
 pub struct PyroscopeAgent {
     inner_builder: ProfilerGuardBuilder,
+    backend: Box<dyn Backend>,
 
     url: String,
     application_name: String,
@@ -119,6 +121,7 @@ impl PyroscopeAgent {
     }
 
     pub async fn stop(&mut self) -> Result<()> {
+        self.backend.stop()?;
         self.stopper.take().unwrap().send(()).await?;
         self.handler.take().unwrap().await??;
 
@@ -150,6 +153,7 @@ impl PyroscopeAgent {
     }
 
     pub fn start(&mut self) -> Result<()> {
+        self.backend.start()?;
         let application_name = self.application_name.clone();
         let new_tags = Arc::clone(&self.tags);
         let (stopper, mut stop_signal) = mpsc::channel::<()>(1);
