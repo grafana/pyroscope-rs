@@ -18,9 +18,12 @@ use crate::error::Result;
 use crate::utils::fold;
 use crate::utils::merge_tags_with_app_name;
 use crate::utils::pyroscope_ingest;
+use crate::backends::backend::Backend;
+use crate::backends::pprof::Pprof;
 
 pub struct PyroscopeAgentBuilder {
     inner_builder: ProfilerGuardBuilder,
+    backend: Box<dyn Backend>,
 
     url: String,
     application_name: String,
@@ -35,9 +38,17 @@ impl PyroscopeAgentBuilder {
             url: url.as_ref().to_owned(),
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
+            backend: Box::new(Pprof::new()), // Default Backend
             // TODO: This is set by default in pprof, probably should find a
             // way to force this to 100 at initialization.
             sample_rate: 99,
+        }
+    }
+
+    pub fn backend(self, backend: Box<dyn Backend>) -> Self {
+        Self {
+            backend,
+            ..self
         }
     }
 
