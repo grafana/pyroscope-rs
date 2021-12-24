@@ -8,7 +8,7 @@ use crate::Result;
 ///! Backend Trait
 
 pub trait Backend {
-    fn initialize(&mut self) -> Result<()>;
+    fn initialize(&mut self, sample_rate: i32) -> Result<()>;
     fn start(&mut self) -> Result<()>;
     fn stop(&mut self) -> Result<()>;
     fn report(&mut self) -> Result<()>;
