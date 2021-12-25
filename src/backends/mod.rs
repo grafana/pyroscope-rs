@@ -7,7 +7,19 @@ use crate::Result;
 
 ///! Backend Trait
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum State {
+    Uninitialized,
+    Ready,
+    Running,
+}
+
+impl Default for State {
+    fn default() -> Self { State::Uninitialized }
+}
+
 pub trait Backend {
+    fn get_state(&self) -> State;
     fn initialize(&mut self, sample_rate: i32) -> Result<()>;
     fn start(&mut self) -> Result<()>;
     fn stop(&mut self) -> Result<()>;
