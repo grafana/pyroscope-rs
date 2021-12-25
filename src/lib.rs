@@ -49,6 +49,7 @@ pub use error::{Result, PyroscopeError};
 // Public modules
 pub mod pyroscope;
 pub mod error;
+pub mod backends;
 
 // Private modules
 mod utils;

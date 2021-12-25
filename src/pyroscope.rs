@@ -18,14 +18,17 @@ use crate::error::Result;
 use crate::utils::fold;
 use crate::utils::merge_tags_with_app_name;
 use crate::utils::pyroscope_ingest;
+use crate::backends::Backend;
+use crate::backends::pprof::Pprof;
 
 pub struct PyroscopeAgentBuilder {
     inner_builder: ProfilerGuardBuilder,
+    backend: Arc<Mutex<dyn Backend>>,
 
     url: String,
     application_name: String,
     tags: HashMap<String, String>,
-    sample_rate: libc::c_int,
+    sample_rate: i32,
 }
 
 impl PyroscopeAgentBuilder {
@@ -35,13 +38,21 @@ impl PyroscopeAgentBuilder {
             url: url.as_ref().to_owned(),
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
+            backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
             // TODO: This is set by default in pprof, probably should find a
             // way to force this to 100 at initialization.
             sample_rate: 99,
         }
     }
 
-    pub fn frequency(self, frequency: c_int) -> Self {
+    pub fn backend<T: 'static>(self, backend: T) -> Self where T: Backend {
+        Self {
+            backend: Arc::new(Mutex::new(backend)),
+            ..self
+        }
+    }
+
+    pub fn frequency(self, frequency: i32) -> Self {
         Self {
             inner_builder: self.inner_builder.frequency(frequency),
             sample_rate: frequency,
@@ -70,8 +81,15 @@ impl PyroscopeAgentBuilder {
     }
 
     pub fn build(self) -> Result<PyroscopeAgent> {
+        // Initiliaze the backend
+        let a = Arc::clone(&self.backend);
+        let mut lock = a.lock()?;
+        lock.initialize(self.sample_rate)?;
+
+        // Return PyroscopeAgent
         Ok(PyroscopeAgent {
             inner_builder: self.inner_builder,
+            backend: self.backend,
             url: self.url,
             application_name: self.application_name,
             tags: Arc::new(Mutex::new(self.tags)),
@@ -90,6 +108,7 @@ pub struct Timer {
 
 pub struct PyroscopeAgent {
     inner_builder: ProfilerGuardBuilder,
+    backend: Arc<Mutex<dyn Backend>>,
 
     url: String,
     application_name: String,
@@ -108,6 +127,11 @@ impl PyroscopeAgent {
     }
 
     pub async fn stop(&mut self) -> Result<()> {
+        // Stop Backend
+        let a = Arc::clone(&self.backend);
+        let mut lock = a.lock()?;
+        lock.stop()?;
+
         self.stopper.take().unwrap().send(()).await?;
         self.handler.take().unwrap().await??;
 
@@ -139,6 +163,11 @@ impl PyroscopeAgent {
     }
 
     pub fn start(&mut self) -> Result<()> {
+        // Start Backend
+        let a = Arc::clone(&self.backend);
+        let mut lock = a.lock()?;
+        lock.start()?;
+
         let application_name = self.application_name.clone();
         let new_tags = Arc::clone(&self.tags);
         let (stopper, mut stop_signal) = mpsc::channel::<()>(1);
