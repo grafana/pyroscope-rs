@@ -62,11 +62,11 @@ impl Backend for Pprof<'_> {
             });
         }
 
-        // Set State to Ready
-        self.state = State::Ready;
-
         // drop the guard
         drop(self.guard.take());
+
+        // Set State to Ready
+        self.state = State::Ready;
 
         Ok(())
     }
