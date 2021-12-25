@@ -11,7 +11,7 @@ pub trait Backend {
     fn initialize(&mut self, sample_rate: i32) -> Result<()>;
     fn start(&mut self) -> Result<()>;
     fn stop(&mut self) -> Result<()>;
-    fn report(&mut self) -> Result<()>;
+    fn report(&mut self) -> Result<Vec<u8>>;
 }
 
 pub mod pprof;
