@@ -6,33 +6,26 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime};
-
-use pprof::ProfilerGuardBuilder;
 
 use tokio::sync::mpsc;
 
 use crate::error::Result;
-use crate::utils::fold;
-use crate::utils::merge_tags_with_app_name;
-use crate::utils::pyroscope_ingest;
 use crate::backends::Backend;
 use crate::backends::pprof::Pprof;
 
 pub struct PyroscopeAgentBuilder {
-    inner_builder: ProfilerGuardBuilder,
     backend: Arc<Mutex<dyn Backend>>,
 
     url: String,
     application_name: String,
     tags: HashMap<String, String>,
+
     sample_rate: i32,
 }
 
 impl PyroscopeAgentBuilder {
     pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
-            inner_builder: ProfilerGuardBuilder::default(),
             url: url.as_ref().to_owned(),
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
@@ -52,7 +45,6 @@ impl PyroscopeAgentBuilder {
 
     pub fn frequency(self, frequency: i32) -> Self {
         Self {
-            inner_builder: self.inner_builder.frequency(frequency),
             sample_rate: frequency,
             ..self
         }
@@ -60,7 +52,6 @@ impl PyroscopeAgentBuilder {
 
     pub fn blocklist<T: AsRef<str>>(self, blocklist: &[T]) -> Self {
         Self {
-            inner_builder: self.inner_builder.blocklist(blocklist),
             ..self
         }
     }
@@ -86,37 +77,22 @@ impl PyroscopeAgentBuilder {
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
-            inner_builder: self.inner_builder,
             backend: self.backend,
             url: self.url,
             application_name: self.application_name,
             tags: Arc::new(Mutex::new(self.tags)),
             sample_rate: self.sample_rate,
-            stopper: None,
-            handler: None,
-            timer: None,
         })
     }
 }
 
-pub struct Timer {
-    start_time: SystemTime,
-    duration: Duration,
-}
-
 pub struct PyroscopeAgent {
-    inner_builder: ProfilerGuardBuilder,
     backend: Arc<Mutex<dyn Backend>>,
 
     url: String,
     application_name: String,
     tags: Arc<Mutex<HashMap<String, String>>>,
     sample_rate: i32,
-
-    stopper: Option<mpsc::Sender<()>>,
-    handler: Option<tokio::task::JoinHandle<Result<()>>>,
-
-    timer: Option<Timer>,
 }
 
 impl PyroscopeAgent {
@@ -124,14 +100,11 @@ impl PyroscopeAgent {
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
-    pub async fn stop(&mut self) -> Result<()> {
+    pub fn stop(&mut self) -> Result<()> {
         // Stop Backend
         let a = Arc::clone(&self.backend);
         let mut lock = a.lock()?;
         lock.stop()?;
-
-        self.stopper.take().unwrap().send(()).await?;
-        self.handler.take().unwrap().await??;
 
         Ok(())
     }
@@ -165,66 +138,6 @@ impl PyroscopeAgent {
         let a = Arc::clone(&self.backend);
         let mut lock = a.lock()?;
         lock.start()?;
-
-        let application_name = self.application_name.clone();
-        let new_tags = Arc::clone(&self.tags);
-        let (stopper, mut stop_signal) = mpsc::channel::<()>(1);
-
-        // Since Pyroscope only allow 10s intervals, it might not be necessary
-        // to make this customizable at this point
-        let upload_interval = std::time::Duration::from_secs(10);
-        let mut interval = tokio::time::interval(upload_interval);
-
-        let tmp = self.inner_builder.clone();
-        let url_tmp = self.url.clone();
-        let sample_rate = self.sample_rate.clone();
-
-        let handler = tokio::spawn(async move {
-            loop {
-                match tmp.clone().build() {
-                    Ok(guard) => {
-                        tokio::select! {
-                            _ = interval.tick() => {
-                                let mut buffer = Vec::new();
-                                let report = guard.report().build()?;
-                                fold(&report, true, &mut buffer)?;
-                                let start = std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    ?
-                                    .as_secs() - 10u64;
-                                let t = new_tags.lock()?.clone();
-                                let merged = merge_tags_with_app_name(application_name.clone(), t)?;
-                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
-                            }
-                            _ = stop_signal.recv() => {
-                                let mut buffer = Vec::new();
-                                let report = guard.report().build()?;
-                                fold(&report, true, &mut buffer)?;
-                                let start = std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    ?
-                                    .as_secs() - 10u64;
-                                let t = new_tags.lock()?.clone();
-                                let merged = merge_tags_with_app_name(application_name.clone(), t)?;
-                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
-
-                                break Ok(())
-                            }
-                        }
-                    }
-                    Err(_err) => {
-                        // TODO: this error will only be caught when this
-                        // handler is joined. Find way to report error earlier
-                        break Err(crate::error::PyroscopeError {
-                            msg: String::from("Tokio Task Error"),
-                        });
-                    }
-                }
-            }
-        });
-
-        self.stopper = Some(stopper);
-        self.handler = Some(handler);
 
         Ok(())
     }
