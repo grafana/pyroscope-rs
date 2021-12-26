@@ -19,7 +19,6 @@ pub struct PyroscopeAgentBuilder {
     url: String,
     application_name: String,
     tags: HashMap<String, String>,
-
     sample_rate: i32,
 }
 
@@ -30,10 +29,7 @@ impl PyroscopeAgentBuilder {
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
             backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
-
-            // TODO: This is set by default in pprof, probably should find a
-            // way to force this to 100 at initialization.
-            sample_rate: 99,
+            sample_rate: 100i32,
         }
     }
 
@@ -52,23 +48,24 @@ impl PyroscopeAgentBuilder {
     }
 
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
-        let ntags: HashMap<String, String> = tags
+        // Convert &[(&str, &str)] to HashMap(String, String)
+        let tags_hashmap: HashMap<String, String> = tags
             .to_owned()
             .iter()
             .cloned()
             .map(|(a, b)| (a.to_owned(), b.to_owned()))
             .collect();
+
         Self {
-            tags: ntags,
+            tags: tags_hashmap,
             ..self
         }
     }
 
     pub fn build(self) -> Result<PyroscopeAgent> {
         // Initiliaze the backend
-        let a = Arc::clone(&self.backend);
-        let mut lock = a.lock()?;
-        lock.initialize(self.sample_rate)?;
+        let backend = Arc::clone(&self.backend);
+        backend.lock()?.initialize(self.sample_rate)?;
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
@@ -95,44 +92,55 @@ impl PyroscopeAgent {
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
+    pub fn start(&mut self) -> Result<()> {
+        // Create a clone of Backend
+        let backend = Arc::clone(&self.backend);
+        // Call start()
+        backend.lock()?.start()?;
+
+        Ok(())
+    }
+
     pub fn stop(&mut self) -> Result<()> {
-        // Stop Backend
-        let a = Arc::clone(&self.backend);
-        let mut lock = a.lock()?;
-        lock.stop()?;
+        // Create a clone of Backend
+        let backend = Arc::clone(&self.backend);
+        // Call stop()
+        backend.lock()?.stop()?;
 
         Ok(())
     }
 
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
-        let ntags: HashMap<String, String> = tags
+        // Convert &[(&str, &str)] to HashMap(String, String)
+        let tags_hashmap: HashMap<String, String> = tags
             .to_owned()
             .iter()
             .cloned()
             .map(|(a, b)| (a.to_owned(), b.to_owned()))
             .collect();
-        let itags = Arc::clone(&self.tags);
-        let mut lock = itags.lock()?;
-        lock.extend(ntags);
+
+        // Create a clone of tags
+        let tags_arc = Arc::clone(&self.tags);
+        // Extend tags with tags_hashmap
+        tags_arc.lock()?.extend(tags_hashmap);
 
         Ok(())
     }
 
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
-        let itags = Arc::clone(&self.tags);
-        let mut lock = itags.lock()?;
+        // Create a clone of tags
+        let tags_arc = Arc::clone(&self.tags);
+        // Get a lock of tags
+        let mut tags_lock = tags_arc.lock()?;
+
+        // Iterate through every tag
         tags.iter().for_each(|key| {
-            lock.remove(key.to_owned());
+            // Remove tag
+            tags_lock.remove(key.to_owned());
         });
 
-        Ok(())
-    }
-
-    pub fn start(&mut self) -> Result<()> {
-        // Start Backend
-        let a = Arc::clone(&self.backend);
-        let mut lock = a.lock()?;
-        lock.start()?;
+        // Drop lock
+        drop(tags_lock);
 
         Ok(())
     }

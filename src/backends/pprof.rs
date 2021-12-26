@@ -81,7 +81,6 @@ impl Backend for Pprof<'_> {
         let mut buffer = Vec::new();
         let report = self.guard.as_ref().unwrap().report().build()?;
         fold(&report, true, &mut buffer)?;
-        std::thread::sleep(std::time::Duration::from_millis(3000));
 
         // Restart Profiler
         self.stop()?;
