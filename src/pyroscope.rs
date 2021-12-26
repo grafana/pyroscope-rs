@@ -12,8 +12,6 @@ use pprof::ProfilerGuardBuilder;
 
 use tokio::sync::mpsc;
 
-use libc::c_int;
-
 use crate::error::Result;
 use crate::utils::fold;
 use crate::utils::merge_tags_with_app_name;
@@ -113,7 +111,7 @@ pub struct PyroscopeAgent {
     url: String,
     application_name: String,
     tags: Arc<Mutex<HashMap<String, String>>>,
-    sample_rate: libc::c_int,
+    sample_rate: i32,
 
     stopper: Option<mpsc::Sender<()>>,
     handler: Option<tokio::task::JoinHandle<Result<()>>>,
