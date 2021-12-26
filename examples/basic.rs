@@ -15,8 +15,7 @@ fn fibonacci(n: u64) -> u64 {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()>{
+fn main() -> Result<()>{
     let mut agent =
         PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
             .frequency(100)
@@ -34,7 +33,7 @@ async fn main() -> Result<()>{
         let result = fibonacci(44);
         println!("fibonacci({}) -> {}", *s, result);
     }
-    agent.stop().await?;
+    agent.stop()?;
 
     for s in &[1, 10, 40, 50] {
         let result = fibonacci(44);
@@ -46,7 +45,10 @@ async fn main() -> Result<()>{
         let result = fibonacci(44);
         println!("fibonacci({}) -> {}", *s, result);
     }
-    agent.stop().await?;
+    let backend = std::sync::Arc::clone(&agent.backend);
+    let report = backend.lock().unwrap().report()?;
+    println!("{}", std::str::from_utf8(&report).unwrap()); 
+    agent.stop()?;
 
     Ok(())
 }
