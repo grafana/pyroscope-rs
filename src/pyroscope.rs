@@ -30,6 +30,7 @@ impl PyroscopeAgentBuilder {
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
             backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
+
             // TODO: This is set by default in pprof, probably should find a
             // way to force this to 100 at initialization.
             sample_rate: 99,
@@ -46,12 +47,6 @@ impl PyroscopeAgentBuilder {
     pub fn frequency(self, frequency: i32) -> Self {
         Self {
             sample_rate: frequency,
-            ..self
-        }
-    }
-
-    pub fn blocklist<T: AsRef<str>>(self, blocklist: &[T]) -> Self {
-        Self {
             ..self
         }
     }
@@ -87,7 +82,7 @@ impl PyroscopeAgentBuilder {
 }
 
 pub struct PyroscopeAgent {
-    backend: Arc<Mutex<dyn Backend>>,
+    pub backend: Arc<Mutex<dyn Backend>>,
 
     url: String,
     application_name: String,
