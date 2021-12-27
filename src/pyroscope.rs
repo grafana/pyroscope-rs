@@ -74,6 +74,7 @@ impl PyroscopeAgentBuilder {
         // Create Tags Arc<Mutex<>>
         let tags = Arc::new(Mutex::new(self.tags));
 
+        // Initialize Scheduler
         let scheduler = PyroscopeScheduler::initialize(
             self.url.to_owned(),
             self.application_name.to_owned(),
@@ -109,6 +110,14 @@ impl PyroscopeAgent {
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
+    pub fn terminate(self) -> Result<()> {
+        self.scheduler.tx.send(Event::Terminate).unwrap();
+
+        self.scheduler.thread_handle.join();
+
+        Ok(())
+    }
+
     pub fn start(&mut self) -> Result<()> {
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);
@@ -132,6 +141,9 @@ impl PyroscopeAgent {
     }
 
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
+        // Stop Agent
+        self.stop()?;
+
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
             .to_owned()
@@ -145,10 +157,16 @@ impl PyroscopeAgent {
         // Extend tags with tags_hashmap
         tags_arc.lock()?.extend(tags_hashmap);
 
+        // Restart Agent
+        self.start()?;
+
         Ok(())
     }
 
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
+        // Stop Agent
+        self.stop()?;
+
         // Create a clone of tags
         let tags_arc = Arc::clone(&self.tags);
         // Get a lock of tags
@@ -162,6 +180,9 @@ impl PyroscopeAgent {
 
         // Drop lock
         drop(tags_lock);
+
+        // Restart Agent
+        self.start()?;
 
         Ok(())
     }

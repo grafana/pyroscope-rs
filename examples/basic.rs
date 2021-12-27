@@ -29,23 +29,22 @@ fn main() -> Result<()>{
             ?;
 
     agent.start()?;
-    for s in &[1, 10, 40, 50] {
-        let result = fibonacci(44);
-        println!("fibonacci({}) -> {}", *s, result);
-    }
+        let result = fibonacci(20);
     agent.stop()?;
 
-    for s in &[1, 10, 40, 50] {
-        let result = fibonacci(44);
-        println!("fibonacci({}) -> {}", *s, result);
-    }
+    agent.terminate()?;
 
-    agent.start()?;
-    for s in &[1, 10, 40, 50] {
-        let result = fibonacci(44);
-        println!("fibonacci({}) -> {}", *s, result);
-    }
-    agent.stop()?;
+    //for s in &[1, 10, 40, 50] {
+        //let result = fibonacci(44);
+        //println!("fibonacci({}) -> {}", *s, result);
+    //}
+
+    //agent.start()?;
+    //for s in &[1, 10, 40, 50] {
+        //let result = fibonacci(44);
+        //println!("fibonacci({}) -> {}", *s, result);
+    //}
+    //agent.stop()?;
 
     Ok(())
 }
