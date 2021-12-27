@@ -9,8 +9,8 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::mpsc;
 
-use crate::backends::Backend;
 use crate::backends::pprof::Pprof;
+use crate::backends::Backend;
 use crate::error::Result;
 use crate::scheduler::{Event, PyroscopeScheduler};
 
@@ -71,7 +71,16 @@ impl PyroscopeAgentBuilder {
         let backend = Arc::clone(&self.backend);
         backend.lock()?.initialize(self.sample_rate)?;
 
-        let scheduler = PyroscopeScheduler::initialize();
+        // Create Tags Arc<Mutex<>>
+        let tags = Arc::new(Mutex::new(self.tags));
+
+        let scheduler = PyroscopeScheduler::initialize(
+            self.url.to_owned(),
+            self.application_name.to_owned(),
+            Arc::clone(&tags),
+            self.sample_rate.to_owned(),
+            Arc::clone(&backend),
+        );
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
@@ -79,7 +88,7 @@ impl PyroscopeAgentBuilder {
             scheduler,
             url: self.url,
             application_name: self.application_name,
-            tags: Arc::new(Mutex::new(self.tags)),
+            tags: Arc::clone(&tags),
             sample_rate: self.sample_rate,
         })
     }
@@ -106,17 +115,7 @@ impl PyroscopeAgent {
         // Call start()
         backend.lock()?.start()?;
 
-        self.scheduler
-            .tx
-            .send((
-                Event::Start,
-                self.sample_rate,
-                self.url.to_owned(),
-                self.application_name.to_owned(),
-                Arc::clone(&self.tags),
-                Arc::clone(&self.backend),
-            ))
-            .unwrap();
+        self.scheduler.tx.send(Event::Start).unwrap();
 
         Ok(())
     }
@@ -127,7 +126,7 @@ impl PyroscopeAgent {
         // Call stop()
         backend.lock()?.stop()?;
 
-        //self.scheduler.tx.send(Event::Stop).unwrap();
+        self.scheduler.tx.send(Event::Stop).unwrap();
 
         Ok(())
     }

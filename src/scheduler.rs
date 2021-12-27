@@ -9,8 +9,8 @@ use crate::PyroscopeAgent;
 use crate::Result;
 
 use std::collections::HashMap;
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender, Receiver};
 
 use std::thread::{spawn, JoinHandle};
 
@@ -20,37 +20,40 @@ pub enum Event {
     Report,
 }
 
-type A = (
-    Event,
-    i32,
-    String,
-    String,
-    Arc<Mutex<HashMap<String, String>>>,
-    Arc<Mutex<dyn Backend>>,
-);
-
 pub struct PyroscopeScheduler {
     pub thread_handle: JoinHandle<()>,
-    pub tx: Sender<A>,
+    pub tx: Sender<Event>,
+
+    url: String,
+    application_name: String,
+    tags: Arc<Mutex<HashMap<String, String>>>,
+    sample_rate: i32,
+    backend: Arc<Mutex<dyn Backend>>,
 }
 
 impl PyroscopeScheduler {
-    pub fn initialize() -> Self {
+    pub fn initialize(
+        url: String,
+        application_name: String,
+        tags: Arc<Mutex<HashMap<String, String>>>,
+        sample_rate: i32,
+        backend: Arc<Mutex<dyn Backend>>,
+    ) -> Self {
         // Create streaming channel
-        let (tx, rx): (Sender<A>, Receiver<A>) = std::sync::mpsc::channel();
+        let (tx, rx): (Sender<Event>, Receiver<Event>) = std::sync::mpsc::channel();
+
+        let backend_arc = Arc::clone(&backend);
 
         // Execute Thread
         let thread_handle = spawn(move || loop {
             match rx.recv() {
-                Ok((Event::Start, sample_rate, url, application_name, tags, backend)) => {
+                Ok(Event::Start) => {
                     println!("Profiling Started");
-                    let report = backend.lock().unwrap().report().unwrap();
-                    println!("{}", std::str::from_utf8(&report).unwrap()); 
                 }
-                Ok((Event::Stop, sample_rate, url, application_name, tags, backend)) => {
+                Ok(Event::Stop) => {
                     println!("Profiling Stopped");
                 }
-                Ok((Event::Report, sample_rate, url, application_name, tags, backend)) => {
+                Ok(Event::Report) => {
                     println!("Send Report to Pyroscope");
                 }
 
@@ -58,6 +61,14 @@ impl PyroscopeScheduler {
             }
         });
 
-        Self { thread_handle, tx }
+        Self {
+            thread_handle,
+            tx,
+            url,
+            application_name,
+            tags,
+            sample_rate,
+            backend,
+        }
     }
 }

@@ -45,9 +45,6 @@ fn main() -> Result<()>{
         let result = fibonacci(44);
         println!("fibonacci({}) -> {}", *s, result);
     }
-    let backend = std::sync::Arc::clone(&agent.backend);
-    let report = backend.lock().unwrap().report()?;
-    println!("{}", std::str::from_utf8(&report).unwrap()); 
     agent.stop()?;
 
     Ok(())
