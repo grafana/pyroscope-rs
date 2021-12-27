@@ -9,9 +9,10 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::mpsc;
 
-use crate::error::Result;
 use crate::backends::Backend;
 use crate::backends::pprof::Pprof;
+use crate::error::Result;
+use crate::scheduler::{Event, PyroscopeScheduler};
 
 pub struct PyroscopeAgentBuilder {
     backend: Arc<Mutex<dyn Backend>>,
@@ -33,7 +34,10 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    pub fn backend<T: 'static>(self, backend: T) -> Self where T: Backend {
+    pub fn backend<T: 'static>(self, backend: T) -> Self
+    where
+        T: Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -67,9 +71,12 @@ impl PyroscopeAgentBuilder {
         let backend = Arc::clone(&self.backend);
         backend.lock()?.initialize(self.sample_rate)?;
 
+        let scheduler = PyroscopeScheduler::initialize();
+
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
             backend: self.backend,
+            scheduler,
             url: self.url,
             application_name: self.application_name,
             tags: Arc::new(Mutex::new(self.tags)),
@@ -80,6 +87,7 @@ impl PyroscopeAgentBuilder {
 
 pub struct PyroscopeAgent {
     pub backend: Arc<Mutex<dyn Backend>>,
+    scheduler: PyroscopeScheduler,
 
     url: String,
     application_name: String,
@@ -98,6 +106,18 @@ impl PyroscopeAgent {
         // Call start()
         backend.lock()?.start()?;
 
+        self.scheduler
+            .tx
+            .send((
+                Event::Start,
+                self.sample_rate,
+                self.url.to_owned(),
+                self.application_name.to_owned(),
+                Arc::clone(&self.tags),
+                Arc::clone(&self.backend),
+            ))
+            .unwrap();
+
         Ok(())
     }
 
@@ -106,6 +126,8 @@ impl PyroscopeAgent {
         let backend = Arc::clone(&self.backend);
         // Call stop()
         backend.lock()?.stop()?;
+
+        //self.scheduler.tx.send(Event::Stop).unwrap();
 
         Ok(())
     }

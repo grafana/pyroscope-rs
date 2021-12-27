@@ -18,7 +18,7 @@ impl Default for State {
     fn default() -> Self { State::Uninitialized }
 }
 
-pub trait Backend {
+pub trait Backend: Send {
     fn get_state(&self) -> State;
     fn initialize(&mut self, sample_rate: i32) -> Result<()>;
     fn start(&mut self) -> Result<()>;

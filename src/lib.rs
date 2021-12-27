@@ -53,3 +53,4 @@ pub mod backends;
 
 // Private modules
 mod utils;
+mod scheduler;
