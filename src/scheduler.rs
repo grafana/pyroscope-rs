@@ -9,12 +9,13 @@ use crate::PyroscopeAgent;
 use crate::Result;
 
 use std::collections::HashMap;
-use std::sync::mpsc::{Receiver, Sender ,SyncSender};
+use std::sync::mpsc::{Receiver, Sender, SyncSender};
 use std::sync::{Arc, Mutex};
 
 use std::thread::{spawn, JoinHandle};
 use std::time;
 
+#[derive(Debug)]
 pub enum Event {
     Start,
     Stop,
@@ -22,10 +23,10 @@ pub enum Event {
     Terminate,
 }
 
-pub struct Timer{
-   tx: Sender<Event>,
-   running: Arc<Mutex<bool>>,
-   handle: Option<JoinHandle<()>>
+pub struct Timer {
+    tx: Sender<Event>,
+    running: Arc<Mutex<bool>>,
+    handle: Option<JoinHandle<()>>,
 }
 
 impl Timer {
@@ -43,8 +44,11 @@ impl Timer {
                     drop(a);
                     break;
                 }
+
                 drop(a);
-                std::thread::sleep(time::Duration::from_millis(500));
+
+                std::thread::sleep(time::Duration::from_millis(10000));
+
                 tx.send(Event::Report).unwrap();
             }
             return;
@@ -58,7 +62,8 @@ impl Timer {
         *a = false;
         drop(a);
 
-        self.handle.take().unwrap().join();
+        drop(self.handle.take().unwrap());
+        println!("{:?}", self.handle);
 
         Ok(())
     }
@@ -87,32 +92,70 @@ impl PyroscopeScheduler {
         let (tx, rx): (Sender<Event>, Receiver<Event>) = std::sync::mpsc::channel();
 
         // Initialize timer
-        let mut timer = Timer{
-            tx: tx.clone(), running: Arc::new(Mutex::new(false)), handle: None,
+        let mut timer = Timer {
+            tx: tx.clone(),
+            running: Arc::new(Mutex::new(false)),
+            handle: None,
         };
 
         let backend_arc = Arc::clone(&backend);
+        let tags_arc = Arc::clone(&tags);
         let tx_thread = tx.clone();
 
         // Execute Thread
-        let thread_handle = spawn(move || loop {
-            match rx.recv() {
-                Ok(Event::Start) => {
-                    println!("Profiling Started");
-                    timer.start().unwrap();
-                }
-                Ok(Event::Stop) => {
-                    println!("Profiling Stopped");
-                    timer.stop().unwrap();
-                }
-                Ok(Event::Report) => {
-                    println!("Send Report to Pyroscope");
-                }
-                Ok(Event::Terminate) => {
-                    println!("Terminated");
-                    return;
-                }
-                _ => {
+        let thread_handle = spawn(move || {
+            loop {
+                match rx.recv() {
+                    Ok(Event::Start) => {
+                        // Start Timer
+                        timer.start().unwrap();
+                        println!(
+                            "Start Timer: {}",
+                            std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs()
+                        );
+                    }
+
+                    Ok(Event::Stop) => {
+                        // Stop Timer
+                        timer.stop().unwrap();
+                        println!(
+                            "Stop Timer : {}",
+                            std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs()
+                        );
+
+                        // Send Last Report
+                        tx_thread.send(Event::Report).unwrap();
+                    }
+
+                    // Send Report to Pyroscope API
+                    Ok(Event::Report) => {
+                        println!("Send Report to Pyroscope");
+                        println!("{:?}", tags_arc);
+                    }
+
+                    // Gracefully terminate the Scheduler
+                    Ok(Event::Terminate) => {
+                        println!("Terminate called");
+
+                        // Drop Thread Transmitter
+                        drop(tx_thread);
+                        // Drop Timer
+                        drop(timer);
+                        // Clear the Receiver Backlog
+                        for x in rx.iter() {
+                            println!("{:?}", x);
+                        }
+
+                        // Exit the Thread
+                        return;
+                    }
+                    _ => {}
                 }
             }
         });

@@ -111,8 +111,13 @@ impl PyroscopeAgent {
     }
 
     pub fn terminate(self) -> Result<()> {
+        // Send Termination Signal
         self.scheduler.tx.send(Event::Terminate).unwrap();
 
+        // Drop Scheduler Transmitter
+        drop(self.scheduler.tx);
+
+        // Wait for the main Thread to drop
         self.scheduler.thread_handle.join();
 
         Ok(())
@@ -135,6 +140,7 @@ impl PyroscopeAgent {
         // Call stop()
         backend.lock()?.stop()?;
 
+        // Send Stop Event to Scheduler
         self.scheduler.tx.send(Event::Stop).unwrap();
 
         Ok(())
