@@ -5,14 +5,17 @@
 // except according to those terms.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
+use std::thread::JoinHandle;
 
-use tokio::sync::mpsc;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::{Receiver, Sender};
 
 use crate::backends::pprof::Pprof;
 use crate::backends::Backend;
 use crate::error::Result;
-use crate::scheduler::{Event, PyroscopeScheduler};
+//use crate::scheduler::{Event, PyroscopeScheduler};
+use crate::timer::Timer;
 
 pub struct PyroscopeAgentBuilder {
     backend: Arc<Mutex<dyn Backend>>,
@@ -75,29 +78,40 @@ impl PyroscopeAgentBuilder {
         let tags = Arc::new(Mutex::new(self.tags));
 
         // Initialize Scheduler
-        let scheduler = PyroscopeScheduler::initialize(
-            self.url.to_owned(),
-            self.application_name.to_owned(),
-            Arc::clone(&tags),
-            self.sample_rate.to_owned(),
-            Arc::clone(&backend),
-        );
+        //let scheduler = PyroscopeScheduler::initialize(
+        //self.url.to_owned(),
+        //self.application_name.to_owned(),
+        //Arc::clone(&tags),
+        //self.sample_rate.to_owned(),
+        //Arc::clone(&backend),
+        //);
+
+        // Start Timer
+        let mut timer = Timer::default().initialize();
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
             backend: self.backend,
-            scheduler,
+            //scheduler,
             url: self.url,
             application_name: self.application_name,
             tags: Arc::clone(&tags),
             sample_rate: self.sample_rate,
+            timer,
+            tx: None,
+            handle: None,
+            running: Arc::new((Mutex::new(false), Condvar::new())),
         })
     }
 }
 
 pub struct PyroscopeAgent {
     pub backend: Arc<Mutex<dyn Backend>>,
-    scheduler: PyroscopeScheduler,
+    //scheduler: PyroscopeScheduler,
+    timer: Timer,
+    tx: Option<Sender<u64>>,
+    handle: Option<JoinHandle<()>>,
+    running: Arc<(Mutex<bool>, Condvar)>,
 
     url: String,
     application_name: String,
@@ -107,18 +121,19 @@ pub struct PyroscopeAgent {
 
 impl PyroscopeAgent {
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
+        // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
     pub fn terminate(self) -> Result<()> {
         // Send Termination Signal
-        self.scheduler.tx.send(Event::Terminate).unwrap();
+        //self.scheduler.tx.send(Event::Terminate).unwrap();
 
         // Drop Scheduler Transmitter
-        drop(self.scheduler.tx);
+        //drop(self.scheduler.tx);
 
         // Wait for the main Thread to drop
-        self.scheduler.thread_handle.join();
+        //self.scheduler.thread_handle.join();
 
         Ok(())
     }
@@ -129,19 +144,54 @@ impl PyroscopeAgent {
         // Call start()
         backend.lock()?.start()?;
 
-        self.scheduler.tx.send(Event::Start).unwrap();
+        // set running to true
+        let pair = Arc::clone(&self.running);
+        let (lock, cvar) = &*pair;
+        let mut running = lock.lock().unwrap();
+        *running = true;
+
+        //self.scheduler.tx.send(Event::Start).unwrap();
+        let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
+        self.timer.attach_listener(tx.clone()).unwrap();
+        self.tx = Some(tx.clone());
+
+        self.handle = Some(std::thread::spawn(move || {
+            while let Ok(time) = rx.recv() {
+                println!("Timer Notification: {}", time);
+                let a = backend.lock().unwrap().report().unwrap();
+                println!("{:?}", a);
+                if time == 0 {
+                    println!("Thread Terminated");
+
+                    let (lock, cvar) = &*pair;
+                    let mut running = lock.lock().unwrap();
+                    *running = false;
+                    cvar.notify_one();
+
+                    return;
+                }
+            }
+        }));
 
         Ok(())
     }
 
     pub fn stop(&mut self) -> Result<()> {
+        // get tx and send termination signal
+        self.tx.take().unwrap().send(0);
+
+        // Wait for the Thread to finish
+        let pair = Arc::clone(&self.running);
+        let (lock, cvar) = &*pair;
+        cvar.wait_while(lock.lock().unwrap(), |running| {*running}).unwrap();
+
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);
         // Call stop()
         backend.lock()?.stop()?;
 
         // Send Stop Event to Scheduler
-        self.scheduler.tx.send(Event::Stop).unwrap();
+        //self.scheduler.tx.send(Event::Stop).unwrap();
 
         Ok(())
     }
@@ -149,6 +199,9 @@ impl PyroscopeAgent {
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         // Stop Agent
         self.stop()?;
+
+        // Restart Agent
+        self.start()?;
 
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
@@ -162,9 +215,6 @@ impl PyroscopeAgent {
         let tags_arc = Arc::clone(&self.tags);
         // Extend tags with tags_hashmap
         tags_arc.lock()?.extend(tags_hashmap);
-
-        // Restart Agent
-        self.start()?;
 
         Ok(())
     }

@@ -6,6 +6,7 @@
 
 use crate::backends::Backend;
 use crate::PyroscopeAgent;
+use crate::timer::Timer;
 use crate::Result;
 
 use std::collections::HashMap;
@@ -14,6 +15,7 @@ use std::sync::{Arc, Mutex};
 
 use std::thread::{spawn, JoinHandle};
 use std::time;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum Event {
@@ -21,52 +23,6 @@ pub enum Event {
     Stop,
     Report,
     Terminate,
-}
-
-pub struct Timer {
-    tx: Sender<Event>,
-    running: Arc<Mutex<bool>>,
-    handle: Option<JoinHandle<()>>,
-}
-
-impl Timer {
-    pub fn start(&mut self) -> Result<()> {
-        let tx = self.tx.clone();
-        let running = Arc::clone(&self.running);
-
-        let thread_handle = spawn(move || {
-            let mut a = running.lock().unwrap();
-            *a = true;
-            drop(a);
-            loop {
-                let mut a = running.lock().unwrap();
-                if *a == false {
-                    drop(a);
-                    break;
-                }
-
-                drop(a);
-
-                std::thread::sleep(time::Duration::from_millis(10000));
-
-                tx.send(Event::Report).unwrap();
-            }
-            return;
-        });
-        self.handle = Some(thread_handle);
-        Ok(())
-    }
-    pub fn stop(&mut self) -> Result<()> {
-        let running = Arc::clone(&self.running);
-        let mut a = running.lock().unwrap();
-        *a = false;
-        drop(a);
-
-        drop(self.handle.take().unwrap());
-        println!("{:?}", self.handle);
-
-        Ok(())
-    }
 }
 
 pub struct PyroscopeScheduler {
@@ -92,11 +48,7 @@ impl PyroscopeScheduler {
         let (tx, rx): (Sender<Event>, Receiver<Event>) = std::sync::mpsc::channel();
 
         // Initialize timer
-        let mut timer = Timer {
-            tx: tx.clone(),
-            running: Arc::new(Mutex::new(false)),
-            handle: None,
-        };
+        //let mut timer = Timer::default().initialize();
 
         let backend_arc = Arc::clone(&backend);
         let tags_arc = Arc::clone(&tags);
@@ -107,8 +59,6 @@ impl PyroscopeScheduler {
             loop {
                 match rx.recv() {
                     Ok(Event::Start) => {
-                        // Start Timer
-                        timer.start().unwrap();
                         println!(
                             "Start Timer: {}",
                             std::time::SystemTime::now()
@@ -119,8 +69,6 @@ impl PyroscopeScheduler {
                     }
 
                     Ok(Event::Stop) => {
-                        // Stop Timer
-                        timer.stop().unwrap();
                         println!(
                             "Stop Timer : {}",
                             std::time::SystemTime::now()
@@ -146,10 +94,11 @@ impl PyroscopeScheduler {
                         // Drop Thread Transmitter
                         drop(tx_thread);
                         // Drop Timer
-                        drop(timer);
+//                        drop(timer);
                         // Clear the Receiver Backlog
                         for x in rx.iter() {
                             println!("{:?}", x);
+                        println!("{:?}", tags_arc);
                         }
 
                         // Exit the Thread

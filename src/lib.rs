@@ -50,6 +50,7 @@ pub use error::{Result, PyroscopeError};
 pub mod pyroscope;
 pub mod error;
 pub mod backends;
+pub mod timer;
 
 // Private modules
 mod utils;
