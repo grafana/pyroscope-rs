@@ -23,7 +23,6 @@ pub struct PyroscopeConfig {
     pub application_name: String,
     pub tags: HashMap<String, String>,
     pub sample_rate: i32,
-
     // TODO
     // log_level
     // auth_token
@@ -132,6 +131,14 @@ pub struct PyroscopeAgent {
     pub config: PyroscopeConfig,
 }
 
+impl Drop for PyroscopeAgent {
+    fn drop(&mut self) {
+        // Stop Timer
+        self.timer.drop_listeners().unwrap(); // Drop listeners
+        self.timer.handle.take().unwrap().join().unwrap(); // Wait for the Timer thread to finish
+    }
+}
+
 impl PyroscopeAgent {
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
@@ -153,7 +160,7 @@ impl PyroscopeAgent {
         drop(cvar);
         drop(running);
 
-        //self.scheduler.tx.send(Event::Start).unwrap();
+        // TODO: move this channel to PyroscopeAgent
         let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
         self.timer.attach_listener(tx.clone()).unwrap();
         self.tx = Some(tx.clone());

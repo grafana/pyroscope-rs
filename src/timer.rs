@@ -6,10 +6,12 @@
 
 use crate::Result;
 
-use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::{Duration};
+use std::sync::{
+    mpsc::Sender,
+    Arc, Mutex,
+};
+use std::time::Duration;
+use std::{thread, thread::JoinHandle};
 
 ///
 /// Custom Timer that sends a notification every 10th second
@@ -17,12 +19,19 @@ use std::time::{Duration};
 #[derive(Debug, Default)]
 pub struct Timer {
     txs: Arc<Mutex<Vec<Sender<u64>>>>,
+    pub handle: Option<JoinHandle<()>>,
 }
 
 impl Timer {
+    /// Initialize Timer and run a thread to send events to attached listeners
     pub fn initialize(self) -> Self {
         let txs = Arc::clone(&self.txs);
-        thread::spawn(move || {
+
+        // Add tx
+        // txs.lock().unwrap().push(tx);
+
+        // Spawn a Thread
+        let handle = Some(thread::spawn(move || {
             // Get the current time
             let now = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -36,23 +45,48 @@ impl Timer {
             thread::sleep(Duration::from_secs(rem));
 
             loop {
+                // Exit thread if there are no listeners
+                if txs.lock().unwrap().len() == 0 {
+                    return;
+                }
+
+                // Get current time
                 let current = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_secs();
 
+                // Iterate through Senders
                 txs.lock().unwrap().iter().for_each(|tx| {
+                    // Send event to attached Sender
                     tx.send(current).unwrap();
                 });
+
+                // Sleep for 10s
                 thread::sleep(Duration::from_millis(10000));
             }
-        });
-        self
+        }));
+
+        Self { handle, ..self }
     }
 
+    /// Attach an mpsc::Sender to Timer
+    ///
+    /// Timer will dispatch an event with the timestamp of the current instant,
+    /// every 10th second to all attached senders
     pub fn attach_listener(&mut self, tx: Sender<u64>) -> Result<()> {
+        // Push Sender to a Vector of Sender(s)
         let txs = Arc::clone(&self.txs);
         txs.lock().unwrap().push(tx);
+
+        Ok(())
+    }
+
+    /// Clear the listeners (txs) from Timer
+    pub fn drop_listeners(&mut self) -> Result<()> {
+        let txs = Arc::clone(&self.txs);
+        txs.lock().unwrap().clear();
+
         Ok(())
     }
 }
