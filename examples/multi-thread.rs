@@ -4,76 +4,49 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//
-// Caution: This is not functional
-//
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
 
 use std::thread;
-use std::time::Duration;
 
-fn fibonacci(n: u64) -> u64 {
+fn fibonacci1(n: u64) -> u64 {
     match n {
         0 | 1 => 1,
-        n => fibonacci(n - 1) + fibonacci(n - 2),
+        n => fibonacci1(n - 1) + fibonacci1(n - 2),
+    }
+}
+
+fn fibonacci2(n: u64) -> u64 {
+    match n {
+        0 | 1 => 1,
+        n => fibonacci2(n - 1) + fibonacci2(n - 2),
     }
 }
 
 fn main() -> Result<()> {
+    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "MultiThread")
+        .sample_rate(100)
+        .build()
+        ?;
+
+    // Start Agent
+    agent.start()?;
+
     let handle_1 = thread::spawn(|| {
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async {
-                let mut agent = PyroscopeAgent::builder("http://localhost:4040", "MultiThread")
-                    .frequency(100)
-                    .tags(
-                        &[("Thread", "Thread 1")]
-                    )
-                    .build()
-                    .unwrap();
-
-                agent.start().unwrap();
-
-                let n = fibonacci(48);
-                println!("Thread 1: {}", n);
-
-                agent.stop().await.unwrap();
-            })
+        fibonacci1(45);
     });
 
     let handle_2 = thread::spawn(|| {
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async {
-                let mut agent = PyroscopeAgent::builder("http://localhost:4040", "MultiThread")
-                    .frequency(100)
-                    .tags(
-                        &[("Thread", "Thread 2")]
-                    )
-                    .build()
-                    .unwrap();
-
-                agent.start().unwrap();
-
-                let n = fibonacci(39);
-                println!("Thread 2: {}", n);
-
-                agent.stop().await.unwrap();
-            })
+        fibonacci2(45);
     });
 
-    let handle_3 = thread::spawn(|| {
-        let n = fibonacci(50);
-        println!("Thread 3: {}", n);
-    });
+    // Wait for the threads to complete
+    handle_1.join().unwrap();
+    handle_2.join().unwrap();
 
-    handle_3.join().unwrap();
+    // Stop Agent
+    agent.stop()?;
 
     Ok(())
 }

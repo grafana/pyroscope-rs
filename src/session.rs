@@ -26,12 +26,6 @@ impl Session {
         // Start of the session
         let from = until.checked_sub(10u64).unwrap();
 
-        println!("From: {}", from);
-        println!("Until: {}", until);
-
-        dbg!(config.clone());
-        dbg!(report.len());
-
         Self {
             config,
             report,

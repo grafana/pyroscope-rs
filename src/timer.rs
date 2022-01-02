@@ -9,7 +9,7 @@ use crate::Result;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 
 ///
 /// Custom Timer that sends a notification every 10th second
@@ -42,7 +42,7 @@ impl Timer {
                     .as_secs();
 
                 txs.lock().unwrap().iter().for_each(|tx| {
-                    tx.send(current);
+                    tx.send(current).unwrap();
                 });
                 thread::sleep(Duration::from_millis(10000));
             }

@@ -23,7 +23,7 @@ fn main() -> Result<()> {
     // Start Agent
     agent.start()?;
 
-    let result = fibonacci(47);
+    let _result = fibonacci(47);
 
     // Stop Agent
     agent.stop()?;

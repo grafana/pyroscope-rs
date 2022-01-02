@@ -15,8 +15,8 @@ fn main() {
     let (tx2, rx2): (Sender<u64>, Receiver<u64>) = channel();
 
     // Attach tx to Timer
-    timer.attach_listener(tx);
-    timer.attach_listener(tx2);
+    timer.attach_listener(tx).unwrap();
+    timer.attach_listener(tx2).unwrap();
 
     // Listen to the Timer events
     std::thread::spawn(move || {
@@ -29,5 +29,5 @@ fn main() {
         while let Ok(time) = rx2.recv() {
             println!("Thread 2 Notification: {}", time);
         }
-    }).join();
+    }).join().unwrap();
 }
