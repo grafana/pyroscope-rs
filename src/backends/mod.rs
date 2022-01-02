@@ -5,6 +5,8 @@
 // except according to those terms.
 use crate::Result;
 
+use std::fmt::Debug;
+
 ///! Backend Trait
 
 #[derive(Clone, Copy, PartialEq)]
@@ -18,7 +20,7 @@ impl Default for State {
     fn default() -> Self { State::Uninitialized }
 }
 
-pub trait Backend: Send {
+pub trait Backend: Send + Debug {
     fn get_state(&self) -> State;
     fn initialize(&mut self, sample_rate: i32) -> Result<()>;
     fn start(&mut self) -> Result<()>;
