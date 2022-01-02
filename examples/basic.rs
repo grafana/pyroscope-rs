@@ -17,33 +17,17 @@ fn fibonacci(n: u64) -> u64 {
 
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
-        .frequency(100)
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
 
+    // Start Agent
     agent.start()?;
-    let result = fibonacci(45);
 
-agent.add_tags(
-        &[("series", "Number 1"), ("order", "first")]
-    )?;
+    let result = fibonacci(47);
 
-    let result = fibonacci(45);
+    // Stop Agent
     agent.stop()?;
 
-    agent.terminate()?;
-
-    //for s in &[1, 10, 40, 50] {
-    //let result = fibonacci(44);
-    //println!("fibonacci({}) -> {}", *s, result);
-    //}
-
-    //agent.start()?;
-    //for s in &[1, 10, 40, 50] {
-    //let result = fibonacci(44);
-    //println!("fibonacci({}) -> {}", *s, result);
-    //}
-    //agent.stop()?;
 
     Ok(())
 }
