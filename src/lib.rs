@@ -55,4 +55,3 @@ pub mod session;
 
 // Private modules
 mod utils;
-mod scheduler;

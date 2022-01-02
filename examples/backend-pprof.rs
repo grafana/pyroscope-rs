@@ -6,7 +6,7 @@
 
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::Result;
 use pyroscope::backends::pprof::{Pprof};
 use pyroscope::backends::Backend;
 
@@ -19,7 +19,7 @@ fn fibonacci(n: u64) -> u64 {
 
 fn main() -> Result<()>{
     
-    let mut backend = pyroscope::backends::pprof::Pprof::default();
+    let mut backend = Pprof::default();
     backend.initialize(100)?;
     backend.start()?;
 

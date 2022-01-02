@@ -106,7 +106,7 @@ impl PyroscopeAgentBuilder {
         backend.lock()?.initialize(self.config.sample_rate)?;
 
         // Start Timer
-        let mut timer = Timer::default().initialize();
+        let timer = Timer::default().initialize();
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
@@ -164,7 +164,7 @@ impl PyroscopeAgent {
             while let Ok(time) = rx.recv() {
                 let report = backend.lock().unwrap().report().unwrap();
                 // start a new session
-                Session::new(time, config.clone(), report).send();
+                Session::new(time, config.clone(), report).send().unwrap();
 
                 if time == 0 {
                     let (lock, cvar) = &*pair;
@@ -182,7 +182,7 @@ impl PyroscopeAgent {
 
     pub fn stop(&mut self) -> Result<()> {
         // get tx and send termination signal
-        self.tx.take().unwrap().send(0);
+        self.tx.take().unwrap().send(0).unwrap();
 
         // Wait for the Thread to finish
         let pair = Arc::clone(&self.running);
