@@ -14,7 +14,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::backends::pprof::Pprof;
 use crate::backends::Backend;
 use crate::error::Result;
-//use crate::scheduler::{Event, PyroscopeScheduler};
 use crate::timer::Timer;
 
 #[derive(Clone, Debug)]
@@ -23,6 +22,12 @@ pub struct PyroscopeConfig {
     application_name: String,
     tags: HashMap<String, String>,
     sample_rate: i32,
+
+    // TODO
+    // log_level
+    // auth_token
+    // upstream_request_timeout = 10s
+    // no_logging
 }
 
 impl PyroscopeConfig {
@@ -59,24 +64,13 @@ impl PyroscopeConfig {
 
 pub struct PyroscopeAgentBuilder {
     backend: Arc<Mutex<dyn Backend>>,
-
-    //url: String,
-    //application_name: String,
-    //tags: HashMap<String, String>,
-    //sample_rate: i32,
-
     config: PyroscopeConfig,
 }
 
 impl PyroscopeAgentBuilder {
     pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
-            //url: url.as_ref().to_owned(),
-            //application_name: application_name.as_ref().to_owned(),
-            //tags: HashMap::new(),
             backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
-            //sample_rate: 100i32,
-
             config: PyroscopeConfig::new(url, application_name),
         }
     }
@@ -99,14 +93,6 @@ impl PyroscopeAgentBuilder {
     }
 
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
-        // Convert &[(&str, &str)] to HashMap(String, String)
-        //let tags_hashmap: HashMap<String, String> = tags
-            //.to_owned()
-            //.iter()
-            //.cloned()
-            //.map(|(a, b)| (a.to_owned(), b.to_owned()))
-            //.collect();
-
         Self {
             config: self.config.tags(tags),
             ..self
@@ -118,29 +104,12 @@ impl PyroscopeAgentBuilder {
         let backend = Arc::clone(&self.backend);
         backend.lock()?.initialize(self.config.sample_rate)?;
 
-        // Create Tags Arc<Mutex<>>
- //       let tags = Arc::new(Mutex::new(self.tags));
-
-        // Initialize Scheduler
-        //let scheduler = PyroscopeScheduler::initialize(
-        //self.url.to_owned(),
-        //self.application_name.to_owned(),
-        //Arc::clone(&tags),
-        //self.sample_rate.to_owned(),
-        //Arc::clone(&backend),
-        //);
-
         // Start Timer
         let mut timer = Timer::default().initialize();
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
             backend: self.backend,
-            //scheduler,
-            //url: self.url,
-            //application_name: self.application_name,
-            //tags: Arc::clone(&tags),
-            //sample_rate: self.sample_rate,
             config: self.config,
             timer,
             tx: None,
@@ -153,7 +122,6 @@ impl PyroscopeAgentBuilder {
 #[derive(Debug)]
 pub struct PyroscopeAgent {
     pub backend: Arc<Mutex<dyn Backend>>,
-    //scheduler: PyroscopeScheduler,
     timer: Timer,
     tx: Option<Sender<u64>>,
     handle: Option<JoinHandle<()>>,
@@ -161,29 +129,12 @@ pub struct PyroscopeAgent {
 
     // Session Data
     pub config: PyroscopeConfig,
-    //url: String,
-    //application_name: String,
-    //tags: Arc<Mutex<HashMap<String, String>>>,
-    //sample_rate: i32,
 }
 
 impl PyroscopeAgent {
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
-    }
-
-    pub fn terminate(self) -> Result<()> {
-        // Send Termination Signal
-        //self.scheduler.tx.send(Event::Terminate).unwrap();
-
-        // Drop Scheduler Transmitter
-        //drop(self.scheduler.tx);
-
-        // Wait for the main Thread to drop
-        //self.scheduler.thread_handle.join();
-
-        Ok(())
     }
 
     pub fn start(&mut self) -> Result<()> {
@@ -205,6 +156,8 @@ impl PyroscopeAgent {
         let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
         self.timer.attach_listener(tx.clone()).unwrap();
         self.tx = Some(tx.clone());
+
+        let config = self.config.clone();
 
         self.handle = Some(std::thread::spawn(move || {
             while let Ok(time) = rx.recv() {
@@ -242,13 +195,9 @@ impl PyroscopeAgent {
         // Call stop()
         backend.lock()?.stop()?;
 
-        // Send Stop Event to Scheduler
-        //self.scheduler.tx.send(Event::Stop).unwrap();
-
         Ok(())
     }
 
-    
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         // Stop Agent
         //self.stop()?;
@@ -266,11 +215,6 @@ impl PyroscopeAgent {
 
         self.config.tags.extend(tags_hashmap);
 
-        // Create a clone of tags
-        //let tags_arc = Arc::clone(&self.tags);
-        // Extend tags with tags_hashmap
-        //tags_arc.lock()?.extend(tags_hashmap);
-
         Ok(())
     }
 
@@ -278,19 +222,11 @@ impl PyroscopeAgent {
         // Stop Agent
         //self.stop()?;
 
-        // Create a clone of tags
-        //let tags_arc = Arc::clone(&self.tags);
-        // Get a lock of tags
-        //let mut tags_lock = tags_arc.lock()?;
-
         // Iterate through every tag
         tags.iter().for_each(|key| {
             // Remove tag
             self.config.tags.remove(key.to_owned());
         });
-
-        // Drop lock
-        //drop(tags_lock);
 
         // Restart Agent
         //self.start()?;
