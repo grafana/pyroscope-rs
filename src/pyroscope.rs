@@ -5,226 +5,231 @@
 // except according to those terms.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime};
+use std::sync::{Arc, Condvar, Mutex};
+use std::thread::JoinHandle;
 
-use pprof::ProfilerGuardBuilder;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::{Receiver, Sender};
 
-use tokio::sync::mpsc;
-
-use crate::error::Result;
-use crate::utils::fold;
-use crate::utils::merge_tags_with_app_name;
-use crate::utils::pyroscope_ingest;
-use crate::backends::Backend;
 use crate::backends::pprof::Pprof;
+use crate::backends::Backend;
+use crate::error::Result;
+use crate::session::Session;
+use crate::timer::Timer;
+
+#[derive(Clone, Debug)]
+pub struct PyroscopeConfig {
+    pub url: String,
+    pub application_name: String,
+    pub tags: HashMap<String, String>,
+    pub sample_rate: i32,
+
+    // TODO
+    // log_level
+    // auth_token
+    // upstream_request_timeout = 10s
+    // no_logging
+}
+
+impl PyroscopeConfig {
+    pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
+        Self {
+            url: url.as_ref().to_owned(),
+            application_name: application_name.as_ref().to_owned(),
+            tags: HashMap::new(),
+            sample_rate: 100i32,
+        }
+    }
+
+    pub fn sample_rate(self, sample_rate: i32) -> Self {
+        Self {
+            sample_rate,
+            ..self
+        }
+    }
+    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+        // Convert &[(&str, &str)] to HashMap(String, String)
+        let tags_hashmap: HashMap<String, String> = tags
+            .to_owned()
+            .iter()
+            .cloned()
+            .map(|(a, b)| (a.to_owned(), b.to_owned()))
+            .collect();
+
+        Self {
+            tags: tags_hashmap,
+            ..self
+        }
+    }
+}
 
 pub struct PyroscopeAgentBuilder {
-    inner_builder: ProfilerGuardBuilder,
     backend: Arc<Mutex<dyn Backend>>,
-
-    url: String,
-    application_name: String,
-    tags: HashMap<String, String>,
-    sample_rate: i32,
+    config: PyroscopeConfig,
 }
 
 impl PyroscopeAgentBuilder {
     pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
-            inner_builder: ProfilerGuardBuilder::default(),
-            url: url.as_ref().to_owned(),
-            application_name: application_name.as_ref().to_owned(),
-            tags: HashMap::new(),
             backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
-            // TODO: This is set by default in pprof, probably should find a
-            // way to force this to 100 at initialization.
-            sample_rate: 99,
+            config: PyroscopeConfig::new(url, application_name),
         }
     }
 
-    pub fn backend<T: 'static>(self, backend: T) -> Self where T: Backend {
+    pub fn backend<T: 'static>(self, backend: T) -> Self
+    where
+        T: Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
         }
     }
 
-    pub fn frequency(self, frequency: i32) -> Self {
+    pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
-            inner_builder: self.inner_builder.frequency(frequency),
-            sample_rate: frequency,
-            ..self
-        }
-    }
-
-    pub fn blocklist<T: AsRef<str>>(self, blocklist: &[T]) -> Self {
-        Self {
-            inner_builder: self.inner_builder.blocklist(blocklist),
+            config: self.config.sample_rate(sample_rate),
             ..self
         }
     }
 
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
-        let ntags: HashMap<String, String> = tags
-            .to_owned()
-            .iter()
-            .cloned()
-            .map(|(a, b)| (a.to_owned(), b.to_owned()))
-            .collect();
         Self {
-            tags: ntags,
+            config: self.config.tags(tags),
             ..self
         }
     }
 
     pub fn build(self) -> Result<PyroscopeAgent> {
         // Initiliaze the backend
-        let a = Arc::clone(&self.backend);
-        let mut lock = a.lock()?;
-        lock.initialize(self.sample_rate)?;
+        let backend = Arc::clone(&self.backend);
+        backend.lock()?.initialize(self.config.sample_rate)?;
+
+        // Start Timer
+        let mut timer = Timer::default().initialize();
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
-            inner_builder: self.inner_builder,
             backend: self.backend,
-            url: self.url,
-            application_name: self.application_name,
-            tags: Arc::new(Mutex::new(self.tags)),
-            sample_rate: self.sample_rate,
-            stopper: None,
-            handler: None,
-            timer: None,
+            config: self.config,
+            timer,
+            tx: None,
+            handle: None,
+            running: Arc::new((Mutex::new(false), Condvar::new())),
         })
     }
 }
 
-pub struct Timer {
-    start_time: SystemTime,
-    duration: Duration,
-}
-
+#[derive(Debug)]
 pub struct PyroscopeAgent {
-    inner_builder: ProfilerGuardBuilder,
-    backend: Arc<Mutex<dyn Backend>>,
+    pub backend: Arc<Mutex<dyn Backend>>,
+    timer: Timer,
+    tx: Option<Sender<u64>>,
+    handle: Option<JoinHandle<()>>,
+    running: Arc<(Mutex<bool>, Condvar)>,
 
-    url: String,
-    application_name: String,
-    tags: Arc<Mutex<HashMap<String, String>>>,
-    sample_rate: i32,
-
-    stopper: Option<mpsc::Sender<()>>,
-    handler: Option<tokio::task::JoinHandle<Result<()>>>,
-
-    timer: Option<Timer>,
+    // Session Data
+    pub config: PyroscopeConfig,
 }
 
 impl PyroscopeAgent {
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
+        // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
-    pub async fn stop(&mut self) -> Result<()> {
-        // Stop Backend
-        let a = Arc::clone(&self.backend);
-        let mut lock = a.lock()?;
-        lock.stop()?;
+    pub fn start(&mut self) -> Result<()> {
+        // Create a clone of Backend
+        let backend = Arc::clone(&self.backend);
+        // Call start()
+        backend.lock()?.start()?;
 
-        self.stopper.take().unwrap().send(()).await?;
-        self.handler.take().unwrap().await??;
+        // set running to true
+        let pair = Arc::clone(&self.running);
+        let (lock, cvar) = &*pair;
+        let mut running = lock.lock().unwrap();
+        *running = true;
+        drop(lock);
+        drop(cvar);
+        drop(running);
+
+        //self.scheduler.tx.send(Event::Start).unwrap();
+        let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
+        self.timer.attach_listener(tx.clone()).unwrap();
+        self.tx = Some(tx.clone());
+
+        let config = self.config.clone();
+
+        self.handle = Some(std::thread::spawn(move || {
+            while let Ok(time) = rx.recv() {
+                let report = backend.lock().unwrap().report().unwrap();
+                // start a new session
+                Session::new(time, config.clone(), report).send();
+
+                if time == 0 {
+                    let (lock, cvar) = &*pair;
+                    let mut running = lock.lock().unwrap();
+                    *running = false;
+                    cvar.notify_one();
+
+                    return;
+                }
+            }
+        }));
+
+        Ok(())
+    }
+
+    pub fn stop(&mut self) -> Result<()> {
+        // get tx and send termination signal
+        self.tx.take().unwrap().send(0);
+
+        // Wait for the Thread to finish
+        let pair = Arc::clone(&self.running);
+        let (lock, cvar) = &*pair;
+        cvar.wait_while(lock.lock().unwrap(), |running| *running)
+            .unwrap();
+
+        // Create a clone of Backend
+        let backend = Arc::clone(&self.backend);
+        // Call stop()
+        backend.lock()?.stop()?;
 
         Ok(())
     }
 
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
-        let ntags: HashMap<String, String> = tags
+        // Stop Agent
+        self.stop()?;
+
+        // Convert &[(&str, &str)] to HashMap(String, String)
+        let tags_hashmap: HashMap<String, String> = tags
             .to_owned()
             .iter()
             .cloned()
             .map(|(a, b)| (a.to_owned(), b.to_owned()))
             .collect();
-        let itags = Arc::clone(&self.tags);
-        let mut lock = itags.lock()?;
-        lock.extend(ntags);
+
+        self.config.tags.extend(tags_hashmap);
+
+        // Restart Agent
+        self.start()?;
 
         Ok(())
     }
 
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
-        let itags = Arc::clone(&self.tags);
-        let mut lock = itags.lock()?;
+        // Stop Agent
+        self.stop()?;
+
+        // Iterate through every tag
         tags.iter().for_each(|key| {
-            lock.remove(key.to_owned());
+            // Remove tag
+            self.config.tags.remove(key.to_owned());
         });
 
-        Ok(())
-    }
-
-    pub fn start(&mut self) -> Result<()> {
-        // Start Backend
-        let a = Arc::clone(&self.backend);
-        let mut lock = a.lock()?;
-        lock.start()?;
-
-        let application_name = self.application_name.clone();
-        let new_tags = Arc::clone(&self.tags);
-        let (stopper, mut stop_signal) = mpsc::channel::<()>(1);
-
-        // Since Pyroscope only allow 10s intervals, it might not be necessary
-        // to make this customizable at this point
-        let upload_interval = std::time::Duration::from_secs(10);
-        let mut interval = tokio::time::interval(upload_interval);
-
-        let tmp = self.inner_builder.clone();
-        let url_tmp = self.url.clone();
-        let sample_rate = self.sample_rate.clone();
-
-        let handler = tokio::spawn(async move {
-            loop {
-                match tmp.clone().build() {
-                    Ok(guard) => {
-                        tokio::select! {
-                            _ = interval.tick() => {
-                                let mut buffer = Vec::new();
-                                let report = guard.report().build()?;
-                                fold(&report, true, &mut buffer)?;
-                                let start = std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    ?
-                                    .as_secs() - 10u64;
-                                let t = new_tags.lock()?.clone();
-                                let merged = merge_tags_with_app_name(application_name.clone(), t)?;
-                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
-                            }
-                            _ = stop_signal.recv() => {
-                                let mut buffer = Vec::new();
-                                let report = guard.report().build()?;
-                                fold(&report, true, &mut buffer)?;
-                                let start = std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    ?
-                                    .as_secs() - 10u64;
-                                let t = new_tags.lock()?.clone();
-                                let merged = merge_tags_with_app_name(application_name.clone(), t)?;
-                                pyroscope_ingest(start, sample_rate, buffer, &url_tmp, merged).await?;
-
-                                break Ok(())
-                            }
-                        }
-                    }
-                    Err(_err) => {
-                        // TODO: this error will only be caught when this
-                        // handler is joined. Find way to report error earlier
-                        break Err(crate::error::PyroscopeError {
-                            msg: String::from("Tokio Task Error"),
-                        });
-                    }
-                }
-            }
-        });
-
-        self.stopper = Some(stopper);
-        self.handler = Some(handler);
+        // Restart Agent
+        self.start()?;
 
         Ok(())
     }

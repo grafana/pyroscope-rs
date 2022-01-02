@@ -17,6 +17,12 @@ pub struct Pprof<'a> {
     state: State,
 }
 
+impl std::fmt::Debug for Pprof<'_> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(fmt, "Pprof Backend")
+    }
+}
+
 impl Backend for Pprof<'_> {
     fn get_state(&self) -> State {
         self.state
@@ -81,7 +87,6 @@ impl Backend for Pprof<'_> {
         let mut buffer = Vec::new();
         let report = self.guard.as_ref().unwrap().report().build()?;
         fold(&report, true, &mut buffer)?;
-        std::thread::sleep(std::time::Duration::from_millis(3000));
 
         // Restart Profiler
         self.stop()?;

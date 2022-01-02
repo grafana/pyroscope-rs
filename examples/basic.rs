@@ -15,38 +15,19 @@ fn fibonacci(n: u64) -> u64 {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()>{
-    let mut agent =
-        PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
-            .frequency(100)
-            .tags(
-                &[
-                    ("TagA", "ValueA"),
-                    ("TagB", "ValueB"),
-                ]
-            )
-            .build()
-            ?;
+fn main() -> Result<()> {
+    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
+        .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
+        .build()?;
 
+    // Start Agent
     agent.start()?;
-    for s in &[1, 10, 40, 50] {
-        let result = fibonacci(44);
-        println!("fibonacci({}) -> {}", *s, result);
-    }
-    agent.stop().await?;
 
-    for s in &[1, 10, 40, 50] {
-        let result = fibonacci(44);
-        println!("fibonacci({}) -> {}", *s, result);
-    }
+    let result = fibonacci(47);
 
-    agent.start()?;
-    for s in &[1, 10, 40, 50] {
-        let result = fibonacci(44);
-        println!("fibonacci({}) -> {}", *s, result);
-    }
-    agent.stop().await?;
+    // Stop Agent
+    agent.stop()?;
+
 
     Ok(())
 }
