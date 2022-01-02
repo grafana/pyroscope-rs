@@ -14,14 +14,15 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::backends::pprof::Pprof;
 use crate::backends::Backend;
 use crate::error::Result;
+use crate::session::Session;
 use crate::timer::Timer;
 
 #[derive(Clone, Debug)]
 pub struct PyroscopeConfig {
-    url: String,
-    application_name: String,
-    tags: HashMap<String, String>,
-    sample_rate: i32,
+    pub url: String,
+    pub application_name: String,
+    pub tags: HashMap<String, String>,
+    pub sample_rate: i32,
 
     // TODO
     // log_level
@@ -161,12 +162,11 @@ impl PyroscopeAgent {
 
         self.handle = Some(std::thread::spawn(move || {
             while let Ok(time) = rx.recv() {
-                println!("Timer Notification: {}", time);
-                let a = backend.lock().unwrap().report().unwrap();
-                println!("{:?}", a);
-                if time == 0 {
-                    println!("Thread Terminated");
+                let report = backend.lock().unwrap().report().unwrap();
+                // start a new session
+                Session::new(time, config.clone(), report).send();
 
+                if time == 0 {
                     let (lock, cvar) = &*pair;
                     let mut running = lock.lock().unwrap();
                     *running = false;
@@ -200,10 +200,7 @@ impl PyroscopeAgent {
 
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         // Stop Agent
-        //self.stop()?;
-
-        // Restart Agent
-        //self.start()?;
+        self.stop()?;
 
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
@@ -215,12 +212,15 @@ impl PyroscopeAgent {
 
         self.config.tags.extend(tags_hashmap);
 
+        // Restart Agent
+        self.start()?;
+
         Ok(())
     }
 
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
         // Stop Agent
-        //self.stop()?;
+        self.stop()?;
 
         // Iterate through every tag
         tags.iter().for_each(|key| {
@@ -229,7 +229,7 @@ impl PyroscopeAgent {
         });
 
         // Restart Agent
-        //self.start()?;
+        self.start()?;
 
         Ok(())
     }
