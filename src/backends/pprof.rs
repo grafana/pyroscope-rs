@@ -27,6 +27,7 @@ impl Backend for Pprof<'_> {
     fn get_state(&self) -> State {
         self.state
     }
+
     fn initialize(&mut self, sample_rate: i32) -> Result<()> {
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
@@ -45,6 +46,7 @@ impl Backend for Pprof<'_> {
 
         Ok(())
     }
+
     fn start(&mut self) -> Result<()> {
         // Check if Backend is Ready
         if self.state != State::Ready {
@@ -60,6 +62,7 @@ impl Backend for Pprof<'_> {
 
         Ok(())
     }
+
     fn stop(&mut self) -> Result<()> {
         // Check if Backend is Running
         if self.state != State::Running {
@@ -76,6 +79,7 @@ impl Backend for Pprof<'_> {
 
         Ok(())
     }
+
     fn report(&mut self) -> Result<Vec<u8>> {
         // Check if Backend is Running
         if self.state != State::Running {
@@ -97,9 +101,7 @@ impl Backend for Pprof<'_> {
 }
 
 fn fold<W>(report: &Report, with_thread_name: bool, mut writer: W) -> Result<()>
-where
-    W: std::io::Write,
-{
+where W: std::io::Write {
     for (key, value) in report.data.iter() {
         if with_thread_name {
             if !key.thread_name.is_empty() {

@@ -13,7 +13,7 @@ pub type Result<T> = std::result::Result<T, PyroscopeError>;
 /// Error type of Pyroscope
 #[derive(Error, Debug)]
 pub struct PyroscopeError {
-  pub msg: String,
+    pub msg: String,
 }
 
 impl fmt::Display for PyroscopeError {

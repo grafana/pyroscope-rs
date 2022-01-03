@@ -46,6 +46,7 @@ impl PyroscopeConfig {
             ..self
         }
     }
+
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
@@ -76,9 +77,7 @@ impl PyroscopeAgentBuilder {
     }
 
     pub fn backend<T: 'static>(self, backend: T) -> Self
-    where
-        T: Backend,
-    {
+    where T: Backend {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -135,7 +134,7 @@ impl Drop for PyroscopeAgent {
     fn drop(&mut self) {
         // Stop Timer
         self.timer.drop_listeners().unwrap(); // Drop listeners
-        self.timer.handle.take().unwrap().join().unwrap(); // Wait for the Timer thread to finish
+        self.timer.handle.take().unwrap().join().unwrap().unwrap(); // Wait for the Timer thread to finish
     }
 }
 
@@ -196,8 +195,7 @@ impl PyroscopeAgent {
         // Wait for the Thread to finish
         let pair = Arc::clone(&self.running);
         let (lock, cvar) = &*pair;
-        cvar.wait_while(lock.lock()?, |running| *running)
-            ?;
+        cvar.wait_while(lock.lock()?, |running| *running)?;
 
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);

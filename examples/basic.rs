@@ -28,6 +28,5 @@ fn main() -> Result<()> {
     // Stop Agent
     agent.stop()?;
 
-
     Ok(())
 }

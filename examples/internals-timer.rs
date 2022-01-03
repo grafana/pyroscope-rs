@@ -1,7 +1,13 @@
+// Copyright 2021 Developers of Pyroscope.
+
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
+// except according to those terms.
+
 extern crate pyroscope;
 
 use std::sync::mpsc::channel;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 
 use pyroscope::timer::Timer;
 
@@ -29,5 +35,7 @@ fn main() {
         while let Ok(time) = rx2.recv() {
             println!("Thread 2 Notification: {}", time);
         }
-    }).join().unwrap();
+    })
+    .join()
+    .unwrap();
 }

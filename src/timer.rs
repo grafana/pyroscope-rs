@@ -6,16 +6,11 @@
 
 use crate::Result;
 
-use std::sync::{
-    mpsc::Sender,
-    Arc, Mutex,
-};
+use std::sync::{mpsc::Sender, Arc, Mutex};
 use std::time::Duration;
 use std::{thread, thread::JoinHandle};
 
-///
 /// Custom Timer that sends a notification every 10th second
-///
 #[derive(Debug, Default)]
 pub struct Timer {
     txs: Arc<Mutex<Vec<Sender<u64>>>>,
@@ -34,8 +29,7 @@ impl Timer {
         let handle = Some(thread::spawn(move || {
             // Get the current time
             let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                ?
+                .duration_since(std::time::UNIX_EPOCH)?
                 .as_secs();
 
             // Calculate number of seconds until 10th second
@@ -52,8 +46,7 @@ impl Timer {
 
                 // Get current time
                 let current = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    ?
+                    .duration_since(std::time::UNIX_EPOCH)?
                     .as_secs();
 
                 // Iterate through Senders

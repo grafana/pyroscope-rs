@@ -3,11 +3,12 @@
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
+
 use crate::Result;
 
 use std::fmt::Debug;
 
-///! Backend Trait
+/// ! Backend Trait
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum State {
@@ -17,7 +18,9 @@ pub enum State {
 }
 
 impl Default for State {
-    fn default() -> Self { State::Uninitialized }
+    fn default() -> Self {
+        State::Uninitialized
+    }
 }
 
 pub trait Backend: Send + Debug {

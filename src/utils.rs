@@ -8,7 +8,9 @@ use crate::error::Result;
 
 use std::collections::HashMap;
 
-pub fn merge_tags_with_app_name(application_name: String, tags: HashMap<String, String>) -> Result<String> {
+pub fn merge_tags_with_app_name(
+    application_name: String, tags: HashMap<String, String>,
+) -> Result<String> {
     let mut tags_vec = tags
         .into_iter()
         .filter(|(k, _)| k != "__name__")

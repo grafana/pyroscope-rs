@@ -18,9 +18,7 @@ fn fibonacci(n: u64) -> u64 {
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.tags")
         .sample_rate(100)
-        .tags(
-            &[("Hostname", "pyroscope")]
-        )
+        .tags(&[("Hostname", "pyroscope")])
         .build()?;
 
     // Start Agent
@@ -30,9 +28,7 @@ fn main() -> Result<()> {
     let _result = fibonacci(47);
 
     // Add Tags
-    agent.add_tags(
-        &[("series", "Number 2")]
-    )?;
+    agent.add_tags(&[("series", "Number 2")])?;
 
     // Do more calculation
     let _result = fibonacci(47);
