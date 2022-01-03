@@ -124,7 +124,7 @@ pub struct PyroscopeAgent {
     pub backend: Arc<Mutex<dyn Backend>>,
     timer: Timer,
     tx: Option<Sender<u64>>,
-    handle: Option<JoinHandle<()>>,
+    handle: Option<JoinHandle<Result<()>>>,
     running: Arc<(Mutex<bool>, Condvar)>,
 
     // Session Data
@@ -154,7 +154,7 @@ impl PyroscopeAgent {
         // set running to true
         let pair = Arc::clone(&self.running);
         let (lock, cvar) = &*pair;
-        let mut running = lock.lock().unwrap();
+        let mut running = lock.lock()?;
         *running = true;
         drop(lock);
         drop(cvar);
@@ -162,26 +162,28 @@ impl PyroscopeAgent {
 
         // TODO: move this channel to PyroscopeAgent
         let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
-        self.timer.attach_listener(tx.clone()).unwrap();
+        self.timer.attach_listener(tx.clone())?;
         self.tx = Some(tx.clone());
 
         let config = self.config.clone();
 
         self.handle = Some(std::thread::spawn(move || {
             while let Ok(time) = rx.recv() {
-                let report = backend.lock().unwrap().report().unwrap();
+                let report = backend.lock()?.report()?;
                 // start a new session
-                Session::new(time, config.clone(), report).send().unwrap();
+                Session::new(time, config.clone(), report)?.send()?;
 
                 if time == 0 {
                     let (lock, cvar) = &*pair;
-                    let mut running = lock.lock().unwrap();
+                    let mut running = lock.lock()?;
                     *running = false;
                     cvar.notify_one();
 
-                    return;
+                    return Ok(());
                 }
             }
+
+            return Ok(());
         }));
 
         Ok(())
@@ -189,13 +191,13 @@ impl PyroscopeAgent {
 
     pub fn stop(&mut self) -> Result<()> {
         // get tx and send termination signal
-        self.tx.take().unwrap().send(0).unwrap();
+        self.tx.take().unwrap().send(0)?;
 
         // Wait for the Thread to finish
         let pair = Arc::clone(&self.running);
         let (lock, cvar) = &*pair;
-        cvar.wait_while(lock.lock().unwrap(), |running| *running)
-            .unwrap();
+        cvar.wait_while(lock.lock()?, |running| *running)
+            ?;
 
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);

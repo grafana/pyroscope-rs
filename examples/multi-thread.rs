@@ -25,7 +25,7 @@ fn fibonacci2(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "MultiThread")
+    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
         .sample_rate(100)
         .build()
         ?;

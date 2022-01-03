@@ -16,7 +16,7 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
+    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.basic")
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
 

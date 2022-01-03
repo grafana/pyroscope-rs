@@ -1,3 +1,5 @@
+use std::{thread, thread::JoinHandle};
+
 use crate::pyroscope::PyroscopeConfig;
 use crate::utils::merge_tags_with_app_name;
 use crate::Result;
@@ -11,12 +13,11 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Self {
+    pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
         // Session interrupted (0 signal), determine the time
         if until == 0 {
             let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .duration_since(std::time::UNIX_EPOCH)?
                 .as_secs();
             until = now
                 .checked_add(10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap())
@@ -26,18 +27,18 @@ impl Session {
         // Start of the session
         let from = until.checked_sub(10u64).unwrap();
 
-        Self {
+        Ok(Self {
             config,
             report,
             from,
             until,
-        }
+        })
     }
 
     pub fn send(self) -> Result<()> {
-        std::thread::spawn(move || {
+        let _handle: JoinHandle<Result<()>> = thread::spawn(move || {
             if self.report.is_empty() {
-                return;
+                return Ok(());
             }
 
             let client = reqwest::blocking::Client::new();
@@ -50,8 +51,7 @@ impl Session {
             let application_name = merge_tags_with_app_name(
                 self.config.application_name.clone(),
                 self.config.tags.clone(),
-            )
-            .unwrap();
+            )?;
 
             client
                 .post(format!("{}/ingest", url))
@@ -65,10 +65,9 @@ impl Session {
                     ("spyName", "pprof-rs"),
                 ])
                 .body(self.report)
-                .send()
-                .unwrap();
+                .send()?;
 
-            return;
+            return Ok(());
         });
 
         Ok(())

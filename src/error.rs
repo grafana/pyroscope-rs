@@ -77,3 +77,11 @@ impl<T> From<std::sync::PoisonError<T>> for PyroscopeError {
         }
     }
 }
+
+impl<T> From<std::sync::mpsc::SendError<T>> for PyroscopeError {
+    fn from(_err: std::sync::mpsc::SendError<T>) -> Self {
+        PyroscopeError {
+            msg: String::from("mpsc Send Error"),
+        }
+    }
+}

@@ -19,7 +19,7 @@ use std::{thread, thread::JoinHandle};
 #[derive(Debug, Default)]
 pub struct Timer {
     txs: Arc<Mutex<Vec<Sender<u64>>>>,
-    pub handle: Option<JoinHandle<()>>,
+    pub handle: Option<JoinHandle<Result<()>>>,
 }
 
 impl Timer {
@@ -35,7 +35,7 @@ impl Timer {
             // Get the current time
             let now = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                ?
                 .as_secs();
 
             // Calculate number of seconds until 10th second
@@ -46,18 +46,18 @@ impl Timer {
 
             loop {
                 // Exit thread if there are no listeners
-                if txs.lock().unwrap().len() == 0 {
-                    return;
+                if txs.lock()?.len() == 0 {
+                    return Ok(());
                 }
 
                 // Get current time
                 let current = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
+                    ?
                     .as_secs();
 
                 // Iterate through Senders
-                txs.lock().unwrap().iter().for_each(|tx| {
+                txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
                     tx.send(current).unwrap();
                 });
@@ -77,7 +77,7 @@ impl Timer {
     pub fn attach_listener(&mut self, tx: Sender<u64>) -> Result<()> {
         // Push Sender to a Vector of Sender(s)
         let txs = Arc::clone(&self.txs);
-        txs.lock().unwrap().push(tx);
+        txs.lock()?.push(tx);
 
         Ok(())
     }
@@ -85,7 +85,7 @@ impl Timer {
     /// Clear the listeners (txs) from Timer
     pub fn drop_listeners(&mut self) -> Result<()> {
         let txs = Arc::clone(&self.txs);
-        txs.lock().unwrap().clear();
+        txs.lock()?.clear();
 
         Ok(())
     }

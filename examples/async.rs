@@ -24,7 +24,7 @@ fn fibonacci2(n: u64) -> u64 {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "async")
+    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.async")
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
 
