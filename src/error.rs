@@ -38,22 +38,6 @@ impl From<pprof::Error> for PyroscopeError {
     }
 }
 
-impl From<tokio::task::JoinError> for PyroscopeError {
-    fn from(_err: tokio::task::JoinError) -> Self {
-        PyroscopeError {
-            msg: String::from("Tokio handler join error"),
-        }
-    }
-}
-
-impl<T> From<tokio::sync::mpsc::error::SendError<T>> for PyroscopeError {
-    fn from(_err: tokio::sync::mpsc::error::SendError<T>) -> Self {
-        PyroscopeError {
-            msg: String::from("pprof Error"),
-        }
-    }
-}
-
 impl From<std::time::SystemTimeError> for PyroscopeError {
     fn from(_err: std::time::SystemTimeError) -> Self {
         PyroscopeError {
