@@ -5,17 +5,16 @@ Pyroscope Profiler
 """
 keywords = ["pyroscope", "profiler"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.0.1-alpha"
+version = "0.2.0-alpha"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
-documentation  = "https://pyroscope.io/docs/"
+documentation  = "https://docs.rs/pyroscope"
 repository = "https://github.com/omarabid/pyroscope.git"
 readme = "README.md"
 
 [dependencies]
 thiserror ="1.0"
-tokio = {version = "1.13", features = ["macros", "sync", "rt-multi-thread"]}
 reqwest = {version = "0.11",  features = ["blocking"]}
 pprof = {  version="0.6.2"}
 libc = "^0.2.66"
