@@ -1,6 +1,6 @@
 // Copyright 2021 Developers of Pyroscope.
 
-// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// Licensed under the Apache License, Version 2.0 <LICENSE or
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
@@ -100,6 +100,7 @@ impl Backend for Pprof<'_> {
     }
 }
 
+// Copyright: https://github.com/YangKeao
 fn fold<W>(report: &Report, with_thread_name: bool, mut writer: W) -> Result<()>
 where W: std::io::Write {
     for (key, value) in report.data.iter() {
