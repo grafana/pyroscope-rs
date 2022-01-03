@@ -12,11 +12,8 @@
 //!
 //! ```ignore
 //! let mut agent =
-//!     PyroscopeAgent::builder("http://localhost:4040", "fibonacci")
-//!        .sample_rate(100)
-//!     .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
-//!     .build()
-//!    ?;
+//!     PyroscopeAgent::builder("http://localhost:4040", "myapp")
+//!     .build()?;
 //! ```
 //!
 //! ## Start/Stop profiling

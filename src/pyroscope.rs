@@ -17,11 +17,14 @@ use crate::error::Result;
 use crate::session::Session;
 use crate::timer::Timer;
 
+/// Represent PyroscopeAgent Configuration
 #[derive(Clone, Debug)]
 pub struct PyroscopeConfig {
     pub url: String,
+    /// Application Name
     pub application_name: String,
     pub tags: HashMap<String, String>,
+    /// Sample rate used in Hz
     pub sample_rate: i32,
     // TODO
     // log_level
@@ -31,6 +34,8 @@ pub struct PyroscopeConfig {
 }
 
 impl PyroscopeConfig {
+    /// Create a new PyroscopeConfig object. url and application_name are required.
+    /// tags and sample_rate are optional.
     pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
             url: url.as_ref().to_owned(),
@@ -40,6 +45,7 @@ impl PyroscopeConfig {
         }
     }
 
+    /// Set the Sample rate
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             sample_rate,
@@ -47,6 +53,7 @@ impl PyroscopeConfig {
         }
     }
 
+    /// Set Tags
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
@@ -63,12 +70,20 @@ impl PyroscopeConfig {
     }
 }
 
+/// PyroscopeAgent Builder
+///
+/// Alternatively, you can use PyroscopeAgent::build() which is a short-hand
+/// for calling PyroscopeAgentBuilder::new()
 pub struct PyroscopeAgentBuilder {
+    /// Profiler backend
     backend: Arc<Mutex<dyn Backend>>,
+    /// Configuration Object
     config: PyroscopeConfig,
 }
 
 impl PyroscopeAgentBuilder {
+    /// Create a new PyroscopeConfig object. url and application_name are required.
+    /// tags and sample_rate are optional.
     pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
             backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
@@ -76,6 +91,7 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    /// Set the agent backend. Default is pprof.
     pub fn backend<T: 'static>(self, backend: T) -> Self
     where T: Backend {
         Self {
@@ -84,6 +100,7 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    /// Set the Sample rate. Default value is 100.
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             config: self.config.sample_rate(sample_rate),
@@ -91,6 +108,7 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    /// Set tags. Default is empty.
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         Self {
             config: self.config.tags(tags),
@@ -98,6 +116,7 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    /// Initialize the backend, timer and return a PyroscopeAgent object.
     pub fn build(self) -> Result<PyroscopeAgent> {
         // Initiliaze the backend
         let backend = Arc::clone(&self.backend);
@@ -118,6 +137,7 @@ impl PyroscopeAgentBuilder {
     }
 }
 
+/// PyroscopeAgent
 #[derive(Debug)]
 pub struct PyroscopeAgent {
     pub backend: Arc<Mutex<dyn Backend>>,
@@ -131,6 +151,7 @@ pub struct PyroscopeAgent {
 }
 
 impl Drop for PyroscopeAgent {
+    /// Properly shutdown the agent.
     fn drop(&mut self) {
         // Stop Timer
         self.timer.drop_listeners().unwrap(); // Drop listeners
@@ -139,11 +160,13 @@ impl Drop for PyroscopeAgent {
 }
 
 impl PyroscopeAgent {
+    /// Short-hand for PyroscopeAgentBuilder::build()
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
+    /// Start profiling and sending data. The agent will keep running until stopped.
     pub fn start(&mut self) -> Result<()> {
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);
@@ -188,6 +211,7 @@ impl PyroscopeAgent {
         Ok(())
     }
 
+    /// Stop the agent.
     pub fn stop(&mut self) -> Result<()> {
         // get tx and send termination signal
         self.tx.take().unwrap().send(0)?;
@@ -205,6 +229,7 @@ impl PyroscopeAgent {
         Ok(())
     }
 
+    /// Add tags. This will restart the agent.
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         // Stop Agent
         self.stop()?;
@@ -225,6 +250,7 @@ impl PyroscopeAgent {
         Ok(())
     }
 
+    /// Remove tags. This will restart the agent.
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
         // Stop Agent
         self.stop()?;

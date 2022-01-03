@@ -10,10 +10,19 @@ use std::sync::{mpsc::Sender, Arc, Mutex};
 use std::time::Duration;
 use std::{thread, thread::JoinHandle};
 
-/// Custom Timer that sends a notification every 10th second
+/// A thread that sends a notification every 10th second
+///
+/// Timer will send an event to attached listeners (mpsc::Sender) every 10th
+/// second (...10, ...20, ...)
+///
+/// The Timer thread will run continously until all Senders are dropped.
+
 #[derive(Debug, Default)]
 pub struct Timer {
+    /// A vector to store listeners (mpsc::Sender)
     txs: Arc<Mutex<Vec<Sender<u64>>>>,
+
+    /// Thread handle
     pub handle: Option<JoinHandle<Result<()>>>,
 }
 
@@ -75,7 +84,7 @@ impl Timer {
         Ok(())
     }
 
-    /// Clear the listeners (txs) from Timer
+    /// Clear the listeners (txs) from Timer. This will shutdown the Timer thread
     pub fn drop_listeners(&mut self) -> Result<()> {
         let txs = Arc::clone(&self.txs);
         txs.lock()?.clear();

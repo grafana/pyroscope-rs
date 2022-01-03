@@ -8,8 +8,7 @@ use crate::Result;
 
 use std::fmt::Debug;
 
-/// ! Backend Trait
-
+/// Backend State 
 #[derive(Clone, Copy, PartialEq)]
 pub enum State {
     Uninitialized,
@@ -23,6 +22,7 @@ impl Default for State {
     }
 }
 
+/// Backend Trait
 pub trait Backend: Send + Debug {
     fn get_state(&self) -> State;
     fn initialize(&mut self, sample_rate: i32) -> Result<()>;

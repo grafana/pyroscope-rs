@@ -9,6 +9,7 @@ use crate::error::Result;
 use std::collections::HashMap;
 
 // Copyright: https://github.com/cobbinma - https://github.com/YangKeao/pprof-rs/pull/14
+/// Format application_name with tags.
 pub fn merge_tags_with_app_name(
     application_name: String, tags: HashMap<String, String>,
 ) -> Result<String> {

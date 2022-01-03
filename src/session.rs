@@ -10,6 +10,7 @@ use crate::pyroscope::PyroscopeConfig;
 use crate::utils::merge_tags_with_app_name;
 use crate::Result;
 
+/// Pyroscope Session
 #[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
