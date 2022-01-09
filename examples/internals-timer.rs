@@ -26,14 +26,26 @@ fn main() {
 
     // Listen to the Timer events
     std::thread::spawn(move || {
-        while let Ok(time) = rx.recv() {
-            println!("Thread 1 Notification: {}", time);
+        while let result = rx.recv() {
+            match result {
+                Ok(time) => println!("Thread 2 Notification: {}", time),
+                Err(err) => {
+                    println!("Error Thread 1");
+                    break;
+                }
+            }
         }
     });
 
     std::thread::spawn(move || {
-        while let Ok(time) = rx2.recv() {
-            println!("Thread 2 Notification: {}", time);
+        while let result = rx2.recv() {
+            match result {
+                Ok(time) => println!("Thread 2 Notification: {}", time),
+                Err(err) => {
+                    println!("Error Thread 2");
+                    break;
+                }
+            }
         }
     })
     .join()
