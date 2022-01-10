@@ -23,11 +23,23 @@ impl Timer {
         self
     }
 
+    /// Attach an mpsc::Sender to Timer
+    ///
+    /// Timer will dispatch an event with the timestamp of the current instant,
+    /// every 10th second to all attached senders
     pub fn attach_listener(&mut self, tx: Sender<u64>) -> Result<()> {
+        // Push Sender to a Vector of Sender(s)
+        let txs = Arc::clone(&self.txs);
+        txs.lock()?.push(tx);
+
         Ok(())
     }
 
+    /// Clear the listeners (txs) from Timer. This will shutdown the Timer thread
     pub fn drop_listeners(&mut self) -> Result<()> {
+        let txs = Arc::clone(&self.txs);
+        txs.lock()?.clear();
+
         Ok(())
     }
 }
