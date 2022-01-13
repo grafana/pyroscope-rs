@@ -28,7 +28,7 @@ fn main() {
     std::thread::spawn(move || {
         while let result = rx.recv() {
             match result {
-                Ok(time) => println!("Thread 2 Notification: {}", time),
+                Ok(time) => println!("Thread 1 Notification: {}", time),
                 Err(err) => {
                     println!("Error Thread 1");
                     break;
