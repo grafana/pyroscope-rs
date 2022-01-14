@@ -13,7 +13,7 @@ use pyroscope::timer::Timer;
 
 fn main() {
     // Initialize the Timer
-    let mut timer = Timer::default().initialize();
+    let mut timer = Timer::default().initialize().unwrap();
 
     // Create a streaming channel
     let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
@@ -23,6 +23,14 @@ fn main() {
     // Attach tx to Timer
     timer.attach_listener(tx).unwrap();
     timer.attach_listener(tx2).unwrap();
+
+    // Show current time
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    println!("Current Time: {}", now);
 
     // Listen to the Timer events
     std::thread::spawn(move || {

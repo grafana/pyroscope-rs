@@ -123,7 +123,7 @@ impl PyroscopeAgentBuilder {
         backend.lock()?.initialize(self.config.sample_rate)?;
 
         // Start Timer
-        let timer = Timer::default().initialize();
+        let timer = Timer::default().initialize()?;
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {

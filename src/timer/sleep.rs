@@ -28,7 +28,7 @@ pub struct Timer {
 
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
-    pub fn initialize(self) -> Self {
+    pub fn initialize(self) -> Result<Self> {
         let txs = Arc::clone(&self.txs);
 
         // Add tx
@@ -69,7 +69,7 @@ impl Timer {
             }
         }));
 
-        Self { handle, ..self }
+        Ok(Self { handle, ..self })
     }
 
     /// Attach an mpsc::Sender to Timer
