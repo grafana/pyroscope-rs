@@ -4,6 +4,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::utils::{epoll_create1, epoll_ctl, epoll_wait, read, timerfd_create, timerfd_settime};
 use crate::Result;
 
 use std::sync::{mpsc::Sender, Arc, Mutex};
@@ -57,8 +58,7 @@ impl Timer {
         let clockid: libc::clockid_t = libc::CLOCK_REALTIME;
         let clock_flags: libc::c_int = libc::TFD_NONBLOCK;
 
-        // TODO: handler error (-1)
-        let tfd = unsafe { libc::timerfd_create(clockid, clock_flags) };
+        let tfd = timerfd_create(clockid, clock_flags).unwrap();
 
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -92,15 +92,13 @@ impl Timer {
 
         let set_flags = libc::TFD_TIMER_ABSTIME;
 
-        // TODO: handler error (-1)
-        let sfd = unsafe { libc::timerfd_settime(tfd, set_flags, &mut new_value, &mut old_value) };
+        timerfd_settime(tfd, set_flags, &mut new_value, &mut old_value).unwrap();
 
         Ok(tfd)
     }
 
     fn create_epollfd(timer_fd: libc::c_int) -> Result<libc::c_int> {
-        // TODO: handler error (-1)
-        let epoll_fd = unsafe { libc::epoll_create1(0) };
+        let epoll_fd = epoll_create1(0).unwrap();
 
         let mut event = libc::epoll_event {
             events: libc::EPOLLIN as u32,
@@ -109,8 +107,7 @@ impl Timer {
 
         let epoll_flags = libc::EPOLL_CTL_ADD;
 
-        // TODO: handler error (-1)
-        let ctl_fd = unsafe { libc::epoll_ctl(epoll_fd, epoll_flags, timer_fd, &mut event) };
+        epoll_ctl(epoll_fd, epoll_flags, timer_fd, &mut event).unwrap();
 
         Ok(epoll_fd)
     }
@@ -118,13 +115,12 @@ impl Timer {
     fn epoll_wait(timer_fd: libc::c_int, epoll_fd: libc::c_int) -> Result<()> {
         let mut events = Vec::with_capacity(1);
 
-        // TODO: handler error (-1)
-        let wait = unsafe { libc::epoll_wait(epoll_fd, events.as_mut_ptr(), 1, -1) };
+        epoll_wait(epoll_fd, events.as_mut_ptr(), 1, -1).unwrap();
+
         let mut buffer: u64 = 0;
         let bufptr: *mut _ = &mut buffer;
 
-        // TODO: handler error (-1)
-        let read = unsafe { libc::read(timer_fd, bufptr as *mut libc::c_void, 8) };
+        read(timer_fd, bufptr as *mut libc::c_void, 8).unwrap();
 
         Ok(())
     }
