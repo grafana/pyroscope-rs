@@ -19,8 +19,8 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn initialize(self) -> Self {
-        self
+    pub fn initialize(self) -> Result<Self> {
+        Ok(self)
     }
 
     /// Attach an mpsc::Sender to Timer
