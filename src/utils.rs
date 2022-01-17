@@ -5,7 +5,6 @@
 // except according to those terms.
 
 use crate::error::Result;
-use crate::PyroscopeError;
 
 use std::collections::HashMap;
 
@@ -54,62 +53,4 @@ mod tests {
             "my.awesome.app.cpu".to_string()
         )
     }
-}
-
-/// Wrapper for libc functions.
-///
-/// Error wrapper for some libc functions used by the library. This only does
-/// Error (-1 return) wrapping. Alternatively, the nix crate could be used
-/// instead of expanding this wrappers (if more functions and types are used
-/// from libc)
-
-/// Error Wrapper for libc return. Only check for errors.
-fn check_err<T: Ord + Default>(num: T) -> Result<T> {
-    if num < T::default() {
-        return Err(PyroscopeError::from(std::io::Error::last_os_error()));
-    }
-    Ok(num)
-}
-
-/// libc::timerfd wrapper
-pub fn timerfd_create(clockid: libc::clockid_t, clock_flags: libc::c_int) -> Result<i32> {
-    check_err(unsafe { libc::timerfd_create(clockid, clock_flags) }).map(|timer_fd| timer_fd as i32)
-}
-
-/// libc::timerfd_settime wrapper
-pub fn timerfd_settime(
-    timer_fd: i32, set_flags: libc::c_int, new_value: &mut libc::itimerspec,
-    old_value: &mut libc::itimerspec,
-) -> Result<()> {
-    check_err(unsafe { libc::timerfd_settime(timer_fd, set_flags, new_value, old_value) })?;
-    Ok(())
-}
-
-/// libc::epoll_create1 wrapper
-pub fn epoll_create1(epoll_flags: libc::c_int) -> Result<i32> {
-    check_err(unsafe { libc::epoll_create1(epoll_flags) }).map(|epoll_fd| epoll_fd as i32)
-}
-
-/// libc::epoll_ctl wrapper
-pub fn epoll_ctl(epoll_fd: i32, epoll_flags: libc::c_int, timer_fd: i32, event: &mut libc::epoll_event) -> Result<()> {
-    check_err(unsafe {
-        libc::epoll_ctl(epoll_fd, epoll_flags, timer_fd, event)
-    })?;
-    Ok(())
-}
-
-/// libc::epoll_wait wrapper
-pub fn epoll_wait(epoll_fd: i32, events: *mut libc::epoll_event, maxevents: libc::c_int, timeout: libc::c_int) -> Result<()> {
-    check_err(unsafe {
-        libc::epoll_wait(epoll_fd, events, maxevents, timeout)
-    })?;
-    Ok(())
-}
-
-/// libc::read wrapper
-pub fn read(timer_fd: i32, bufptr: *mut libc::c_void, count: libc::size_t) -> Result<()> {
-    check_err(unsafe {
-        libc::read(timer_fd, bufptr, count)
-    })?;
-    Ok(())
 }
