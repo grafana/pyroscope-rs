@@ -5,6 +5,7 @@
 // except according to those terms.
 
 use crate::error::Result;
+use crate::PyroscopeError;
 
 use std::collections::HashMap;
 
@@ -35,6 +36,7 @@ mod tests {
     use crate::utils::merge_tags_with_app_name;
 
     #[test]
+
     fn merge_tags_with_app_name_with_tags() {
         let mut tags = HashMap::new();
         tags.insert("env".to_string(), "staging".to_string());
@@ -53,4 +55,11 @@ mod tests {
             "my.awesome.app.cpu".to_string()
         )
     }
+}
+/// Error Wrapper for libc return. Only check for errors.
+pub fn check_err<T: Ord + Default>(num: T) -> Result<T> {
+    if num < T::default() {
+        return Err(PyroscopeError::from(std::io::Error::last_os_error()));
+    }
+    Ok(num)
 }
