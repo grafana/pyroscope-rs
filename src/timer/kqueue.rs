@@ -7,7 +7,10 @@
 use crate::utils::check_err;
 use crate::Result;
 
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::sync::{
+    mpsc::{channel, Receiver, Sender},
+    Arc, Mutex,
+};
 use std::{thread, thread::JoinHandle};
 
 #[derive(Debug, Default)]
@@ -54,8 +57,8 @@ impl Timer {
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
                     match tx.send(current) {
-                        Ok(_) => {},
-                        Err(_) => {},
+                        Ok(_) => {}
+                        Err(_) => {}
                     }
                 });
 

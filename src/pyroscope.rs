@@ -182,7 +182,6 @@ impl PyroscopeAgent {
         drop(cvar);
         drop(running);
 
-        // TODO: move this channel to PyroscopeAgent
         let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
         self.timer.attach_listener(tx.clone())?;
         self.tx = Some(tx.clone());
