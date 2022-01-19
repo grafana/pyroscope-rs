@@ -182,7 +182,6 @@ impl PyroscopeAgent {
         drop(cvar);
         drop(running);
 
-        // TODO: move this channel to PyroscopeAgent
         let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
         self.timer.attach_listener(tx.clone())?;
         self.tx = Some(tx.clone());
@@ -219,7 +218,7 @@ impl PyroscopeAgent {
         // Wait for the Thread to finish
         let pair = Arc::clone(&self.running);
         let (lock, cvar) = &*pair;
-        cvar.wait_while(lock.lock()?, |running| *running)?;
+        let _guard = cvar.wait_while(lock.lock()?, |running| *running)?;
 
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);
