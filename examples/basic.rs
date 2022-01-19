@@ -42,6 +42,8 @@ fn main() -> Result<()> {
     // Stop Agent
     agent.stop()?;
 
+    drop(agent);
+
     // Show program exit time
     let exit = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
