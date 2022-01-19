@@ -4,8 +4,8 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::utils::{epoll_create1, epoll_ctl, epoll_wait, read, timerfd_create, timerfd_settime};
 use crate::Result;
+use crate::utils::check_err;
 
 use std::sync::{mpsc::Sender, Arc, Mutex};
 use std::{thread, thread::JoinHandle};
@@ -165,14 +165,6 @@ impl Timer {
 /// Error (-1 return) wrapping. Alternatively, the nix crate could be used
 /// instead of expanding this wrappers (if more functions and types are used
 /// from libc)
-
-/// Error Wrapper for libc return. Only check for errors.
-fn check_err<T: Ord + Default>(num: T) -> Result<T> {
-    if num < T::default() {
-        return Err(PyroscopeError::from(std::io::Error::last_os_error()));
-    }
-    Ok(num)
-}
 
 /// libc::timerfd wrapper
 pub fn timerfd_create(clockid: libc::clockid_t, clock_flags: libc::c_int) -> Result<i32> {
