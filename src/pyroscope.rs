@@ -219,7 +219,7 @@ impl PyroscopeAgent {
         // Wait for the Thread to finish
         let pair = Arc::clone(&self.running);
         let (lock, cvar) = &*pair;
-        cvar.wait_while(lock.lock()?, |running| *running)?;
+        let _guard = cvar.wait_while(lock.lock()?, |running| *running)?;
 
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);

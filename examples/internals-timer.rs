@@ -29,15 +29,15 @@ fn main() {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-
     println!("Current Time: {}", now);
 
     // Listen to the Timer events
     std::thread::spawn(move || {
+        #[allow(irrefutable_let_patterns)]
         while let result = rx.recv() {
             match result {
                 Ok(time) => println!("Thread 1 Notification: {}", time),
-                Err(err) => {
+                Err(_err) => {
                     println!("Error Thread 1");
                     break;
                 }
@@ -46,10 +46,11 @@ fn main() {
     });
 
     std::thread::spawn(move || {
+        #[allow(irrefutable_let_patterns)]
         while let result = rx2.recv() {
             match result {
                 Ok(time) => println!("Thread 2 Notification: {}", time),
-                Err(err) => {
+                Err(_err) => {
                     println!("Error Thread 2");
                     break;
                 }
