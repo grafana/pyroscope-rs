@@ -20,13 +20,34 @@ fn main() -> Result<()> {
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
 
+    // Show start time
+    let start = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Start Time: {}", start);
+
     // Start Agent
     agent.start()?;
 
     let _result = fibonacci(47);
 
+    // Show stop time
+    let stop = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Stop Time: {}", stop);
+
     // Stop Agent
     agent.stop()?;
+
+    // Show program exit time
+    let exit = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Exit Time: {}", exit);
 
     Ok(())
 }
