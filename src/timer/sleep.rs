@@ -31,8 +31,9 @@ impl Timer {
     pub fn initialize(self) -> Result<Self> {
         let txs = Arc::clone(&self.txs);
 
-        // Add tx
-        // txs.lock().unwrap().push(tx);
+        // Add Default tx
+        let (tx, _rx): (Sender<u64>, Receiver<u64>) = channel();
+        txs.lock()?.push(tx);
 
         // Spawn a Thread
         let handle = Some(thread::spawn(move || {
@@ -61,7 +62,10 @@ impl Timer {
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
-                    tx.send(current).unwrap();
+                    match tx.send(current) {
+                        Ok(_) => {}
+                        Err(_) => {}
+                    }
                 });
 
                 // Sleep for 10s

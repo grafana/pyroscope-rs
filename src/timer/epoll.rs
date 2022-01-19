@@ -4,10 +4,13 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::Result;
 use crate::utils::check_err;
+use crate::Result;
 
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::sync::{
+    mpsc::{channel, Receiver, Sender},
+    Arc, Mutex,
+};
 use std::{thread, thread::JoinHandle};
 
 #[derive(Debug, Default)]
@@ -23,6 +26,10 @@ impl Timer {
     pub fn initialize(self) -> Result<Self> {
         let txs = Arc::clone(&self.txs);
 
+        // Add Default tx
+        let (tx, _rx): (Sender<u64>, Receiver<u64>) = channel();
+        txs.lock()?.push(tx);
+
         let timer_fd = Timer::set_timerfd()?;
         let epoll_fd = Timer::create_epollfd(timer_fd)?;
 
@@ -30,7 +37,10 @@ impl Timer {
             loop {
                 // Exit thread if there are no listeners
                 if txs.lock()?.len() == 0 {
-                    // TODO: should close file descriptors?
+                    // Close file descriptors
+                    unsafe { libc::close(timer_fd) };
+                    unsafe { libc::close(epoll_fd) };
+
                     return Ok(());
                 }
 
@@ -45,7 +55,10 @@ impl Timer {
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
-                    tx.send(current).unwrap();
+                    match tx.send(current) {
+                        Ok(_) => {}
+                        Err(_) => {}
+                    }
                 });
             }
         }));
@@ -186,25 +199,23 @@ pub fn epoll_create1(epoll_flags: libc::c_int) -> Result<i32> {
 }
 
 /// libc::epoll_ctl wrapper
-pub fn epoll_ctl(epoll_fd: i32, epoll_flags: libc::c_int, timer_fd: i32, event: &mut libc::epoll_event) -> Result<()> {
-    check_err(unsafe {
-        libc::epoll_ctl(epoll_fd, epoll_flags, timer_fd, event)
-    })?;
+pub fn epoll_ctl(
+    epoll_fd: i32, epoll_flags: libc::c_int, timer_fd: i32, event: &mut libc::epoll_event,
+) -> Result<()> {
+    check_err(unsafe { libc::epoll_ctl(epoll_fd, epoll_flags, timer_fd, event) })?;
     Ok(())
 }
 
 /// libc::epoll_wait wrapper
-pub fn epoll_wait(epoll_fd: i32, events: *mut libc::epoll_event, maxevents: libc::c_int, timeout: libc::c_int) -> Result<()> {
-    check_err(unsafe {
-        libc::epoll_wait(epoll_fd, events, maxevents, timeout)
-    })?;
+pub fn epoll_wait(
+    epoll_fd: i32, events: *mut libc::epoll_event, maxevents: libc::c_int, timeout: libc::c_int,
+) -> Result<()> {
+    check_err(unsafe { libc::epoll_wait(epoll_fd, events, maxevents, timeout) })?;
     Ok(())
 }
 
 /// libc::read wrapper
 pub fn read(timer_fd: i32, bufptr: *mut libc::c_void, count: libc::size_t) -> Result<()> {
-    check_err(unsafe {
-        libc::read(timer_fd, bufptr, count)
-    })?;
+    check_err(unsafe { libc::read(timer_fd, bufptr, count) })?;
     Ok(())
 }

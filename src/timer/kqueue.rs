@@ -23,6 +23,10 @@ impl Timer {
     pub fn initialize(self) -> Result<Self> {
         let txs = Arc::clone(&self.txs);
 
+        // Add Default tx
+        let (tx, _rx): (Sender<u64>, Receiver<u64>) = channel();
+        txs.lock()?.push(tx);
+
         let kqueue = kqueue()?;
 
         let handle = Some(thread::spawn(move || {
@@ -49,7 +53,10 @@ impl Timer {
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
-                    tx.send(current).unwrap();
+                    match tx.send(current) {
+                        Ok(_) => {},
+                        Err(_) => {},
+                    }
                 });
 
                 // Wait 10s
@@ -137,10 +144,12 @@ impl Timer {
     }
 }
 
+/// libc::kqueue wrapper
 fn kqueue() -> Result<i32> {
     check_err(unsafe { libc::kqueue() }).map(|kq| kq as i32)
 }
 
+/// libc::kevent wrapper
 fn kevent(
     kqueue: i32, change: *const libc::kevent, c_count: libc::c_int, events: *mut libc::kevent,
     e_count: libc::c_int, timeout: *const libc::timespec,
