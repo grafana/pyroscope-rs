@@ -15,12 +15,14 @@ readme = "README.md"
 
 [dependencies]
 thiserror ="1.0"
+log = "0.4"
 reqwest = {version = "0.11",  features = ["blocking"]}
 pprof = {  version="0.6.2"}
 libc = "^0.2.66"
 
 [dev-dependencies]
 tokio = { version = "1.13", features = ["full"] }
+pretty_env_logger = "0.4.0"
 
 [profile.dev]
 opt-level=0
