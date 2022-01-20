@@ -125,12 +125,15 @@ impl PyroscopeAgentBuilder {
         // Initiliaze the backend
         let backend = Arc::clone(&self.backend);
         backend.lock()?.initialize(self.config.sample_rate)?;
+        log::trace!("PyroscopeAgent - Backend initialized");
 
         // Start Timer
         let timer = Timer::default().initialize()?;
+        log::trace!("PyroscopeAgent - Timer initialized");
 
         // Start the SessionManager
         let session_manager = SessionManager::new()?;
+        log::trace!("PyroscopeAgent - SessionManager initialized");
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
@@ -162,12 +165,17 @@ pub struct PyroscopeAgent {
 impl Drop for PyroscopeAgent {
     /// Properly shutdown the agent.
     fn drop(&mut self) {
+        log::debug!("PyroscopeAgent::drop()");
+
         // Stop Timer
         self.timer.drop_listeners().unwrap(); // Drop listeners
+        log::trace!("PyroscopeAgent - Dropped timer listeners");
         self.timer.handle.take().unwrap().join().unwrap().unwrap(); // Wait for the Timer thread to finish
+        log::trace!("PyroscopeAgent - Dropped timer thread");
 
         // Stop the SessionManager
         self.session_manager.push(SessionSignal::Kill).unwrap();
+        log::trace!("PyroscopeAgent - Sent kill signal to SessionManager");
         self.session_manager
             .handle
             .take()
@@ -175,9 +183,11 @@ impl Drop for PyroscopeAgent {
             .join()
             .unwrap()
             .unwrap();
+        log::trace!("PyroscopeAgent - Dropped SessionManager thread");
 
         // Wait for main thread to finish
         self.handle.take().unwrap().join().unwrap().unwrap();
+        log::trace!("PyroscopeAgent - Dropped main thread");
     }
 }
 
@@ -190,6 +200,8 @@ impl PyroscopeAgent {
 
     /// Start profiling and sending data. The agent will keep running until stopped.
     pub fn start(&mut self) -> Result<()> {
+        log::debug!("PyroscopeAgent - Starting");
+
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);
         // Call start()
@@ -213,8 +225,14 @@ impl PyroscopeAgent {
         let stx = self.session_manager.tx.clone();
 
         self.handle = Some(std::thread::spawn(move || {
+            log::trace!("PyroscopeAgent - Main Thread started");
+
             while let Ok(time) = rx.recv() {
+                log::trace!("PyroscopeAgent - Sending session {}", time);
+
+                // Generate report from backend
                 let report = backend.lock()?.report()?;
+
                 // Send new Session to SessionManager
                 stx.send(SessionSignal::Session(Session::new(
                     time,
@@ -223,6 +241,8 @@ impl PyroscopeAgent {
                 )?))?;
 
                 if time == 0 {
+                    log::trace!("PyroscopeAgent - Session Killed");
+
                     let (lock, cvar) = &*pair;
                     let mut running = lock.lock()?;
                     *running = false;
@@ -240,6 +260,7 @@ impl PyroscopeAgent {
 
     /// Stop the agent.
     pub fn stop(&mut self) -> Result<()> {
+        log::debug!("PyroscopeAgent - Stopping");
         // get tx and send termination signal
         self.tx.take().unwrap().send(0)?;
 
@@ -258,6 +279,7 @@ impl PyroscopeAgent {
 
     /// Add tags. This will restart the agent.
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
+        log::debug!("PyroscopeAgent - Adding tags");
         // Stop Agent
         self.stop()?;
 
@@ -279,6 +301,7 @@ impl PyroscopeAgent {
 
     /// Remove tags. This will restart the agent.
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
+        log::debug!("PyroscopeAgent - Removing tags");
         // Stop Agent
         self.stop()?;
 

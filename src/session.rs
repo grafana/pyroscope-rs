@@ -31,20 +31,25 @@ pub struct SessionManager {
 impl SessionManager {
     /// Create a new SessionManager
     pub fn new() -> Result<Self> {
+        log::info!("SessionManager - Creating SessionManager");
+
         // Create a channel for sending and receiving sessions
         let (tx, rx): (SyncSender<SessionSignal>, Receiver<SessionSignal>) = sync_channel(10);
 
         // Create a thread for the SessionManager
         let handle = Some(thread::spawn(move || {
+            log::trace!("SessionManager - SessionManager thread started");
             while let Ok(signal) = rx.recv() {
                 match signal {
                     SessionSignal::Session(session) => {
                         // Send the session
                         session.send()?;
+                        log::trace!("SessionManager - Session sent");
                     }
                     SessionSignal::Kill => {
                         // Kill the session manager
                         return Ok(());
+                        log::trace!("SessionManager - Kill signal received");
                     }
                 }
             }
@@ -56,7 +61,11 @@ impl SessionManager {
 
     /// Push a new session into the SessionManager
     pub fn push(&self, session: SessionSignal) -> Result<()> {
+        // Push the session into the SessionManager
         self.tx.send(session)?;
+
+        log::trace!("SessionManager - SessionSignal pushed");
+
         Ok(())
     }
 }
@@ -72,6 +81,7 @@ pub struct Session {
 
 impl Session {
     pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
+        log::info!("Session - Creating Session");
         // Session interrupted (0 signal), determine the time
         if until == 0 {
             let now = std::time::SystemTime::now()
@@ -94,6 +104,8 @@ impl Session {
     }
 
     pub fn send(self) -> Result<()> {
+        log::info!("Session - Sending Session");
+
         let _handle: JoinHandle<Result<()>> = thread::spawn(move || {
             if self.report.is_empty() {
                 return Ok(());
