@@ -4,11 +4,46 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{thread, thread::JoinHandle};
+use std::{
+    sync::mpsc::{sync_channel, Receiver, SyncSender},
+    thread,
+    thread::JoinHandle,
+};
 
 use crate::pyroscope::PyroscopeConfig;
 use crate::utils::merge_tags_with_app_name;
 use crate::Result;
+
+/// SessionManager
+#[derive(Debug)]
+pub struct SessionManager {
+    pub handle: Option<JoinHandle<Result<()>>>,
+    pub tx: SyncSender<Session>,
+}
+
+impl SessionManager {
+    /// Create a new SessionManager
+    pub fn new() -> Result<Self> {
+        // Create a channel for sending and receiving sessions
+        let (tx, rx): (SyncSender<Session>, Receiver<Session>) = sync_channel(10);
+
+        // Create a thread for the SessionManager
+        let handle = Some(thread::spawn(move || {
+            while let Ok(session) = rx.recv() {
+                session.send()?;
+            }
+            Ok(())
+        }));
+
+        Ok(SessionManager { handle, tx })
+    }
+
+    /// Push a new session into the SessionManager
+    pub fn push(&self, session: Session) -> Result<()> {
+        self.tx.send(session)?;
+        Ok(())
+    }
+}
 
 /// Pyroscope Session
 #[derive(Clone, Debug)]

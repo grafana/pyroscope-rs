@@ -15,6 +15,7 @@ use crate::backends::pprof::Pprof;
 use crate::backends::Backend;
 use crate::error::Result;
 use crate::session::Session;
+use crate::session::SessionManager;
 use crate::timer::Timer;
 
 /// Represent PyroscopeAgent Configuration
@@ -93,7 +94,9 @@ impl PyroscopeAgentBuilder {
 
     /// Set the agent backend. Default is pprof.
     pub fn backend<T: 'static>(self, backend: T) -> Self
-    where T: Backend {
+    where
+        T: Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -125,11 +128,15 @@ impl PyroscopeAgentBuilder {
         // Start Timer
         let timer = Timer::default().initialize()?;
 
+        // Start the SessionManager
+        let session_manager = SessionManager::new()?;
+
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
             backend: self.backend,
             config: self.config,
             timer,
+            session_manager,
             tx: None,
             handle: None,
             running: Arc::new((Mutex::new(false), Condvar::new())),
@@ -142,6 +149,7 @@ impl PyroscopeAgentBuilder {
 pub struct PyroscopeAgent {
     pub backend: Arc<Mutex<dyn Backend>>,
     timer: Timer,
+    session_manager: SessionManager,
     tx: Option<Sender<u64>>,
     handle: Option<JoinHandle<Result<()>>>,
     running: Arc<(Mutex<bool>, Condvar)>,
@@ -156,6 +164,16 @@ impl Drop for PyroscopeAgent {
         // Stop Timer
         self.timer.drop_listeners().unwrap(); // Drop listeners
         self.timer.handle.take().unwrap().join().unwrap().unwrap(); // Wait for the Timer thread to finish
+
+        // Wait for main thread to finish
+        self.handle.take().unwrap().join().unwrap().unwrap();
+        self.session_manager
+            .handle
+            .take()
+            .unwrap()
+            .join()
+            .unwrap()
+            .unwrap();
     }
 }
 
@@ -188,11 +206,13 @@ impl PyroscopeAgent {
 
         let config = self.config.clone();
 
+        let stx = self.session_manager.tx.clone();
+
         self.handle = Some(std::thread::spawn(move || {
             while let Ok(time) = rx.recv() {
                 let report = backend.lock()?.report()?;
-                // start a new session
-                Session::new(time, config.clone(), report)?.send()?;
+                // Send new Session to SessionManager
+                stx.send(Session::new(time, config.clone(), report)?)?;
 
                 if time == 0 {
                     let (lock, cvar) = &*pair;
