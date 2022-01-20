@@ -14,23 +14,39 @@ use crate::pyroscope::PyroscopeConfig;
 use crate::utils::merge_tags_with_app_name;
 use crate::Result;
 
+/// Session Signal
+#[derive(Debug)]
+pub enum SessionSignal {
+    Session(Session),
+    Kill,
+}
+
 /// SessionManager
 #[derive(Debug)]
 pub struct SessionManager {
     pub handle: Option<JoinHandle<Result<()>>>,
-    pub tx: SyncSender<Session>,
+    pub tx: SyncSender<SessionSignal>,
 }
 
 impl SessionManager {
     /// Create a new SessionManager
     pub fn new() -> Result<Self> {
         // Create a channel for sending and receiving sessions
-        let (tx, rx): (SyncSender<Session>, Receiver<Session>) = sync_channel(10);
+        let (tx, rx): (SyncSender<SessionSignal>, Receiver<SessionSignal>) = sync_channel(10);
 
         // Create a thread for the SessionManager
         let handle = Some(thread::spawn(move || {
-            while let Ok(session) = rx.recv() {
-                session.send()?;
+            while let Ok(signal) = rx.recv() {
+                match signal {
+                    SessionSignal::Session(session) => {
+                        // Send the session
+                        session.send()?;
+                    }
+                    SessionSignal::Kill => {
+                        // Kill the session manager
+                        return Ok(());
+                    }
+                }
             }
             Ok(())
         }));
@@ -39,7 +55,7 @@ impl SessionManager {
     }
 
     /// Push a new session into the SessionManager
-    pub fn push(&self, session: Session) -> Result<()> {
+    pub fn push(&self, session: SessionSignal) -> Result<()> {
         self.tx.send(session)?;
         Ok(())
     }

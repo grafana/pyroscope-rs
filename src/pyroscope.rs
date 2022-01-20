@@ -16,6 +16,7 @@ use crate::backends::Backend;
 use crate::error::Result;
 use crate::session::Session;
 use crate::session::SessionManager;
+use crate::session::SessionSignal;
 use crate::timer::Timer;
 
 /// Represent PyroscopeAgent Configuration
@@ -165,8 +166,8 @@ impl Drop for PyroscopeAgent {
         self.timer.drop_listeners().unwrap(); // Drop listeners
         self.timer.handle.take().unwrap().join().unwrap().unwrap(); // Wait for the Timer thread to finish
 
-        // Wait for main thread to finish
-        self.handle.take().unwrap().join().unwrap().unwrap();
+        // Stop the SessionManager
+        self.session_manager.push(SessionSignal::Kill).unwrap();
         self.session_manager
             .handle
             .take()
@@ -174,6 +175,9 @@ impl Drop for PyroscopeAgent {
             .join()
             .unwrap()
             .unwrap();
+
+        // Wait for main thread to finish
+        self.handle.take().unwrap().join().unwrap().unwrap();
     }
 }
 
@@ -212,7 +216,11 @@ impl PyroscopeAgent {
             while let Ok(time) = rx.recv() {
                 let report = backend.lock()?.report()?;
                 // Send new Session to SessionManager
-                stx.send(Session::new(time, config.clone(), report)?)?;
+                stx.send(SessionSignal::Session(Session::new(
+                    time,
+                    config.clone(),
+                    report,
+                )?))?;
 
                 if time == 0 {
                     let (lock, cvar) = &*pair;
