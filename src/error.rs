@@ -11,7 +11,7 @@ use thiserror::Error;
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
 /// Error type of Pyroscope
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub struct PyroscopeError {
     pub msg: String,
 }

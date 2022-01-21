@@ -6,7 +6,10 @@
 
 use crate::Result;
 
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::sync::{
+    mpsc::{channel, Receiver, Sender},
+    Arc, Mutex,
+};
 use std::time::Duration;
 use std::{thread, thread::JoinHandle};
 

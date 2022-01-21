@@ -9,7 +9,7 @@ use crate::Result;
 use std::fmt::Debug;
 
 /// Backend State 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum State {
     Uninitialized,
     Ready,
