@@ -6,7 +6,10 @@
 
 use crate::Result;
 
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::sync::{
+    mpsc::{channel, Receiver, Sender},
+    Arc, Mutex,
+};
 use std::time::Duration;
 use std::{thread, thread::JoinHandle};
 
@@ -16,6 +19,7 @@ use std::{thread, thread::JoinHandle};
 /// second (...10, ...20, ...)
 ///
 /// The Timer thread will run continously until all Senders are dropped.
+/// The Timer thread will be joined when all Senders are dropped.
 
 #[derive(Debug, Default)]
 pub struct Timer {

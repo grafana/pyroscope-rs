@@ -13,6 +13,14 @@ use std::sync::{
 };
 use std::{thread, thread::JoinHandle};
 
+/// A thread that sends a notification every 10th second
+///
+/// Timer will send an event to attached listeners (mpsc::Sender) every 10th
+/// second (...10, ...20, ...)
+///
+/// The Timer thread will run continously until all Senders are dropped.
+/// The Timer thread will be joined when all Senders are dropped.
+
 #[derive(Debug, Default)]
 pub struct Timer {
     /// A vector to store listeners (mpsc::Sender)
@@ -23,6 +31,7 @@ pub struct Timer {
 }
 
 impl Timer {
+    /// Initialize Timer and run a thread to send events to attached listeners
     pub fn initialize(self) -> Result<Self> {
         let txs = Arc::clone(&self.txs);
 
@@ -90,10 +99,13 @@ impl Timer {
         Ok(())
     }
 
+    /// Wait for the timer event
     fn wait_event(kqueue: i32, events: *mut libc::kevent) -> Result<()> {
         kevent(kqueue, [].as_mut_ptr(), 0, events, 1, std::ptr::null())?;
         Ok(())
     }
+
+    /// Register an initial expiration event
     fn register_initial_expiration(kqueue: i32) -> Result<libc::kevent> {
         // Get the next event time
         let now = std::time::SystemTime::now()
@@ -123,6 +135,8 @@ impl Timer {
 
         Ok(initial_event)
     }
+
+    /// Register a loop expiration event
     fn register_loop_expiration(kqueue: i32) -> Result<libc::kevent> {
         let loop_event = libc::kevent {
             ident: 1,

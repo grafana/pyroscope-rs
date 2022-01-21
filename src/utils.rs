@@ -30,13 +30,12 @@ pub fn merge_tags_with_app_name(
 }
 
 #[cfg(test)]
-mod tests {
+mod merge_tags_with_app_name_tests {
     use std::collections::HashMap;
 
     use crate::utils::merge_tags_with_app_name;
 
     #[test]
-
     fn merge_tags_with_app_name_with_tags() {
         let mut tags = HashMap::new();
         tags.insert("env".to_string(), "staging".to_string());
@@ -62,4 +61,19 @@ pub fn check_err<T: Ord + Default>(num: T) -> Result<T> {
         return Err(PyroscopeError::from(std::io::Error::last_os_error()));
     }
     Ok(num)
+}
+
+#[cfg(test)]
+mod check_err_tests {
+    use crate::utils::check_err;
+
+    #[test]
+    fn check_err_success() {
+        assert_eq!(check_err(1).unwrap(), 1)
+    }
+
+    #[test]
+    fn check_err_error() {
+        assert!(check_err(-1).is_err())
+    }
 }
