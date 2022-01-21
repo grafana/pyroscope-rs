@@ -31,9 +31,10 @@ impl Backend for Pprof<'_> {
     fn initialize(&mut self, sample_rate: i32) -> Result<()> {
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
-            return Err(crate::error::PyroscopeError {
-                msg: String::from("Pprof Backend is already Initialized"),
-            });
+            //return Err(crate::error::PyroscopeError {
+                //msg: String::from("Pprof Backend is already Initialized"),
+            //});
+            return Err(crate::error::PyroscopeError::default());
         }
 
         // Construct a ProfilerGuardBuilder
@@ -50,9 +51,10 @@ impl Backend for Pprof<'_> {
     fn start(&mut self) -> Result<()> {
         // Check if Backend is Ready
         if self.state != State::Ready {
-            return Err(crate::error::PyroscopeError {
-                msg: String::from("Pprof Backend is not Ready"),
-            });
+            //return Err(crate::error::PyroscopeError {
+                //msg: String::from("Pprof Backend is not Ready"),
+            //});
+            return Err(crate::error::PyroscopeError::default());
         }
 
         self.guard = Some(self.inner_builder.as_ref().unwrap().clone().build()?);
@@ -66,9 +68,11 @@ impl Backend for Pprof<'_> {
     fn stop(&mut self) -> Result<()> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(crate::error::PyroscopeError {
-                msg: String::from("Pprof Backend is not Running"),
-            });
+            //return Err(crate::error::PyroscopeError {
+                //msg: String::from("Pprof Backend is not Running"),
+            //});
+
+            return Err(crate::error::PyroscopeError::default());
         }
 
         // drop the guard
@@ -83,9 +87,10 @@ impl Backend for Pprof<'_> {
     fn report(&mut self) -> Result<Vec<u8>> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(crate::error::PyroscopeError {
-                msg: String::from("Pprof Backend is not Running"),
-            });
+            //return Err(crate::error::PyroscopeError {
+                //msg: String::from("Pprof Backend is not Running"),
+            //});
+            return Err(crate::error::PyroscopeError::default());
         }
 
         let mut buffer = Vec::new();
