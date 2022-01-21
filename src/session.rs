@@ -15,16 +15,22 @@ use crate::utils::merge_tags_with_app_name;
 use crate::Result;
 
 /// Session Signal
+///
+/// This enum is used to send data to the session thread. It can also kill the session thread.
 #[derive(Debug)]
 pub enum SessionSignal {
+    /// Send session data to the session thread.
     Session(Session),
+    /// Kill the session thread.
     Kill,
 }
 
-/// SessionManager
+/// Manage sessions and send data to the server.
 #[derive(Debug)]
 pub struct SessionManager {
+    /// The SessionManager thread.
     pub handle: Option<JoinHandle<Result<()>>>,
+    /// Channel to send data to the SessionManager thread.
     pub tx: SyncSender<SessionSignal>,
 }
 
@@ -71,6 +77,8 @@ impl SessionManager {
 }
 
 /// Pyroscope Session
+///
+/// Used to contain the session data, and send it to the server.
 #[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
@@ -80,6 +88,14 @@ pub struct Session {
 }
 
 impl Session {
+    /// Create a new Session
+    /// # Example 
+    /// ```ignore
+    /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app");
+    /// let report = vec![1, 2, 3];
+    /// let until = 154065120;
+    /// let session = Session::new(until, config, report).unwrap();
+    /// ```
     pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
         log::info!("Session - Creating Session");
         // Session interrupted (0 signal), determine the time
@@ -103,6 +119,15 @@ impl Session {
         })
     }
 
+    /// Send the session to the server and consumes the session object.
+    /// # Example
+    /// ```ignore
+    /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app");
+    /// let report = vec![1, 2, 3];
+    /// let until = 154065120;
+    /// let session = Session::new(until, config, report).unwrap();
+    /// session.send().unwrap();
+    /// ```
     pub fn send(self) -> Result<()> {
         log::info!("Session - Sending Session");
 

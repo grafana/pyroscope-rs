@@ -19,6 +19,7 @@ use std::{thread, thread::JoinHandle};
 /// second (...10, ...20, ...)
 ///
 /// The Timer thread will run continously until all Senders are dropped.
+/// The Timer thread will be joined when all Senders are dropped.
 
 #[derive(Debug, Default)]
 pub struct Timer {

@@ -19,12 +19,19 @@ use crate::session::SessionManager;
 use crate::session::SessionSignal;
 use crate::timer::Timer;
 
-/// Represent PyroscopeAgent Configuration
+/// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
+/// # Example
+/// ```
+/// use pyroscope::pyroscope::PyroscopeConfig;
+/// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
+/// ```
 #[derive(Clone, Debug)]
 pub struct PyroscopeConfig {
+    /// Pyroscope Server Address
     pub url: String,
     /// Application Name
     pub application_name: String,
+    /// Tags
     pub tags: HashMap<String, String>,
     /// Sample rate used in Hz
     pub sample_rate: i32,
@@ -37,7 +44,11 @@ pub struct PyroscopeConfig {
 
 impl PyroscopeConfig {
     /// Create a new PyroscopeConfig object. url and application_name are required.
-    /// tags and sample_rate are optional.
+    /// tags and sample_rate are optional. If sample_rate is not specified, it will default to 100.
+    /// # Example
+    /// ```ignore
+    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
+    /// ```
     pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
             url: url.as_ref().to_owned(),
@@ -48,6 +59,12 @@ impl PyroscopeConfig {
     }
 
     /// Set the Sample rate
+    /// # Example
+    /// ```ignore
+    /// let mut config = PyroscopeConfig::new("http://localhost:8080", "my-app");
+    /// config.set_sample_rate(10)
+    /// .unwrap();
+    /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             sample_rate,
@@ -55,7 +72,14 @@ impl PyroscopeConfig {
         }
     }
 
-    /// Set Tags
+    /// Set the tags
+    /// # Example
+    /// ```ignore
+    /// use pyroscope::pyroscope::PyroscopeConfig;
+    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
+    ///    .tags(vec![("env", "dev")])
+    ///    .unwrap();
+    /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
@@ -76,6 +100,13 @@ impl PyroscopeConfig {
 ///
 /// Alternatively, you can use PyroscopeAgent::build() which is a short-hand
 /// for calling PyroscopeAgentBuilder::new()
+///
+/// # Example
+/// ```ignore
+/// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+/// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
+/// let agent = builder.build().unwrap();
+/// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
     backend: Arc<Mutex<dyn Backend>>,
@@ -84,8 +115,13 @@ pub struct PyroscopeAgentBuilder {
 }
 
 impl PyroscopeAgentBuilder {
-    /// Create a new PyroscopeConfig object. url and application_name are required.
+    /// Create a new PyroscopeAgentBuilder object. url and application_name are required.
     /// tags and sample_rate are optional.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
+    /// ```
     pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
         Self {
             backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
@@ -94,6 +130,13 @@ impl PyroscopeAgentBuilder {
     }
 
     /// Set the agent backend. Default is pprof.
+    /// # Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .backend(Pprof::default())
+    /// .build()
+    /// .unwrap();
+    /// ```
     pub fn backend<T: 'static>(self, backend: T) -> Self
     where
         T: Backend,
@@ -105,6 +148,13 @@ impl PyroscopeAgentBuilder {
     }
 
     /// Set the Sample rate. Default value is 100.
+    /// # Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .sample_rate(99)
+    /// .build()
+    /// .unwrap();
+    /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             config: self.config.sample_rate(sample_rate),
@@ -113,6 +163,13 @@ impl PyroscopeAgentBuilder {
     }
 
     /// Set tags. Default is empty.
+    /// # Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .tags(vec![("env", "dev")])
+    /// .build()
+    /// .unwrap();
+    /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         Self {
             config: self.config.tags(tags),
@@ -148,17 +205,18 @@ impl PyroscopeAgentBuilder {
     }
 }
 
-/// PyroscopeAgent
+/// PyroscopeAgent is the main object of the library. It is used to start and stop the profiler, schedule the timer, and send the profiler data to the server.
 #[derive(Debug)]
 pub struct PyroscopeAgent {
-    pub backend: Arc<Mutex<dyn Backend>>,
     timer: Timer,
     session_manager: SessionManager,
     tx: Option<Sender<u64>>,
     handle: Option<JoinHandle<Result<()>>>,
     running: Arc<(Mutex<bool>, Condvar)>,
 
-    // Session Data
+    /// Profiler backend
+    pub backend: Arc<Mutex<dyn Backend>>,
+    /// Configuration Object
     pub config: PyroscopeConfig,
 }
 
@@ -192,13 +250,22 @@ impl Drop for PyroscopeAgent {
 }
 
 impl PyroscopeAgent {
-    /// Short-hand for PyroscopeAgentBuilder::build()
+    /// Short-hand for PyroscopeAgentBuilder::build(). This is a convenience method.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// ```
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
-    /// Start profiling and sending data. The agent will keep running until stopped.
+    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// agent.start().unwrap();
+    /// ```
     pub fn start(&mut self) -> Result<()> {
         log::debug!("PyroscopeAgent - Starting");
 
@@ -258,7 +325,14 @@ impl PyroscopeAgent {
         Ok(())
     }
 
-    /// Stop the agent.
+    /// Stop the agent. The agent will stop profiling and send a last report to the server.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// agent.start().unwrap();
+    /// // Expensive operation
+    /// agent.stop().unwrap();
+    /// ```
     pub fn stop(&mut self) -> Result<()> {
         log::debug!("PyroscopeAgent - Stopping");
         // get tx and send termination signal
@@ -278,8 +352,22 @@ impl PyroscopeAgent {
     }
 
     /// Add tags. This will restart the agent.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// agent.start().unwrap();
+    /// // Expensive operation
+    /// agent.add_tags(vec!["tag", "value"]).unwrap();
+    /// // Tagged operation
+    /// agent.stop().unwrap();
+    /// ```
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         log::debug!("PyroscopeAgent - Adding tags");
+        // Check that tags are not empty
+        if tags.is_empty() {
+            return Ok(());
+        }
+
         // Stop Agent
         self.stop()?;
 
@@ -300,8 +388,24 @@ impl PyroscopeAgent {
     }
 
     /// Remove tags. This will restart the agent.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app")
+    /// .tags(vec![("tag", "value")])
+    /// .build().unwrap();
+    /// agent.start().unwrap();
+    /// // Expensive operation
+    /// agent.remove_tags(vec!["tag"]).unwrap();
+    /// // Un-Tagged operation
+    /// agent.stop().unwrap();
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
         log::debug!("PyroscopeAgent - Removing tags");
+
+        // Check that tags are not empty
+        if tags.is_empty() {
+            return Ok(());
+        }
+
         // Stop Agent
         self.stop()?;
 

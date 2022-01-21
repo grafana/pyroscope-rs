@@ -13,6 +13,14 @@ use std::sync::{
 };
 use std::{thread, thread::JoinHandle};
 
+/// A thread that sends a notification every 10th second
+///
+/// Timer will send an event to attached listeners (mpsc::Sender) every 10th
+/// second (...10, ...20, ...)
+///
+/// The Timer thread will run continously until all Senders are dropped.
+/// The Timer thread will be joined when all Senders are dropped.
+
 #[derive(Debug, Default)]
 pub struct Timer {
     /// A vector to store listeners (mpsc::Sender)
@@ -23,6 +31,7 @@ pub struct Timer {
 }
 
 impl Timer {
+    /// Initialize Timer and run a thread to send events to attached listeners
     pub fn initialize(self) -> Result<Self> {
         let txs = Arc::clone(&self.txs);
 
@@ -136,6 +145,7 @@ impl Timer {
         Ok(epoll_fd)
     }
 
+    /// Wait for an event on the epoll file descriptor
     fn epoll_wait(timer_fd: libc::c_int, epoll_fd: libc::c_int) -> Result<()> {
         // vector to store events
         let mut events = Vec::with_capacity(1);
