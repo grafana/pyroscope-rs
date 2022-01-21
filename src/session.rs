@@ -54,8 +54,8 @@ impl SessionManager {
                     }
                     SessionSignal::Kill => {
                         // Kill the session manager
-                        return Ok(());
                         log::trace!("SessionManager - Kill signal received");
+                        return Ok(());
                     }
                 }
             }
