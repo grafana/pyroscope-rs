@@ -16,7 +16,16 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
+// Force rustc to display the log messages in the console.
+    std::env::set_var("RUST_LOG", "trace");
+
+    // Initialize the logger.
+    pretty_env_logger::init_timed();
+
     // This example should fail and return an error.
+    println!("This example should fail and return an error.");
+    println!("Run this with: RUST_BACKTRACE=1 cargo run --example error");
+
     let mut agent = PyroscopeAgent::builder("http://invalid_url", "example.error")
         .build()?;
     // Start Agent

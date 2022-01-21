@@ -32,6 +32,24 @@ impl Default for PyroscopeError {
     }
 }
 
+impl PyroscopeError {
+    /// Create a new instance of PyroscopeError
+    pub fn new(msg: &str) -> Self {
+        PyroscopeError {
+            msg: msg.to_string(),
+            source: None,
+        }
+    }
+
+    /// Create a new instance of PyroscopeError with source
+    pub fn new_with_source(msg: &str, source: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        PyroscopeError {
+            msg: msg.to_string(),
+            source: Some(source),
+        }
+    }
+}
+
 impl From<reqwest::Error> for PyroscopeError {
     fn from(err: reqwest::Error) -> Self {
         PyroscopeError {
@@ -71,17 +89,17 @@ impl From<std::io::Error> for PyroscopeError {
 impl<T> From<std::sync::PoisonError<T>> for PyroscopeError {
     fn from(_err: std::sync::PoisonError<T>) -> Self {
         PyroscopeError {
-            msg: String::from("Poison/Mutex Error"),
+            msg: String::from("Poison Error"),
             source: None,
         }
     }
 }
 
-impl<T> From<std::sync::mpsc::SendError<T>> for PyroscopeError {
-    fn from(_err: std::sync::mpsc::SendError<T>) -> Self {
+impl<T: 'static + Send + Sync> From<std::sync::mpsc::SendError<T>> for PyroscopeError {
+    fn from(err: std::sync::mpsc::SendError<T>) -> Self {
         PyroscopeError {
-            msg: String::from("mpsc Send Error"),
-            source: None,
+            msg: String::from("SendError Error"),
+            source: Some(Box::new(err)),
         }
     }
 }
