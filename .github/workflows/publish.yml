@@ -1,0 +1,22 @@
+name: Publish to crates.io
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  publish-pyroscope:
+    name: Publish pyroscope crate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: publish pyroscope crate
+        continue-on-error: true
+        run: |
+          cargo login ${{ secrets.CARGO_TOKEN }}
+          cargo publish
