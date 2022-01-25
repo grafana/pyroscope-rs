@@ -11,9 +11,10 @@ use thiserror::Error;
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
 /// Error type of Pyroscope
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub struct PyroscopeError {
     pub msg: String,
+    source: Option<Box<dyn std::error::Error + Send + Sync>>,
 }
 
 impl fmt::Display for PyroscopeError {
@@ -22,34 +23,65 @@ impl fmt::Display for PyroscopeError {
     }
 }
 
+impl Default for PyroscopeError {
+    fn default() -> Self {
+        PyroscopeError {
+            msg: "".to_string(),
+            source: None,
+        }
+    }
+}
+
+impl PyroscopeError {
+    /// Create a new instance of PyroscopeError
+    pub fn new(msg: &str) -> Self {
+        PyroscopeError {
+            msg: msg.to_string(),
+            source: None,
+        }
+    }
+
+    /// Create a new instance of PyroscopeError with source
+    pub fn new_with_source(msg: &str, source: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        PyroscopeError {
+            msg: msg.to_string(),
+            source: Some(source),
+        }
+    }
+}
+
 impl From<reqwest::Error> for PyroscopeError {
-    fn from(_err: reqwest::Error) -> Self {
+    fn from(err: reqwest::Error) -> Self {
         PyroscopeError {
             msg: String::from("reqwest Error"),
+            source: Some(Box::new(err)),
         }
     }
 }
 
 impl From<pprof::Error> for PyroscopeError {
-    fn from(_err: pprof::Error) -> Self {
+    fn from(err: pprof::Error) -> Self {
         PyroscopeError {
             msg: String::from("pprof Error"),
+            source: Some(Box::new(err)),
         }
     }
 }
 
 impl From<std::time::SystemTimeError> for PyroscopeError {
-    fn from(_err: std::time::SystemTimeError) -> Self {
+    fn from(err: std::time::SystemTimeError) -> Self {
         PyroscopeError {
             msg: String::from("SystemTime Error"),
+            source: Some(Box::new(err)),
         }
     }
 }
 
 impl From<std::io::Error> for PyroscopeError {
-    fn from(_err: std::io::Error) -> Self {
+    fn from(err: std::io::Error) -> Self {
         PyroscopeError {
             msg: String::from("IO Error"),
+            source: Some(Box::new(err)),
         }
     }
 }
@@ -57,15 +89,17 @@ impl From<std::io::Error> for PyroscopeError {
 impl<T> From<std::sync::PoisonError<T>> for PyroscopeError {
     fn from(_err: std::sync::PoisonError<T>) -> Self {
         PyroscopeError {
-            msg: String::from("Poison/Mutex Error"),
+            msg: String::from("Poison Error"),
+            source: None,
         }
     }
 }
 
-impl<T> From<std::sync::mpsc::SendError<T>> for PyroscopeError {
-    fn from(_err: std::sync::mpsc::SendError<T>) -> Self {
+impl<T: 'static + Send + Sync> From<std::sync::mpsc::SendError<T>> for PyroscopeError {
+    fn from(err: std::sync::mpsc::SendError<T>) -> Self {
         PyroscopeError {
-            msg: String::from("mpsc Send Error"),
+            msg: String::from("SendError Error"),
+            source: Some(Box::new(err)),
         }
     }
 }

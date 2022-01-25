@@ -54,8 +54,8 @@ impl SessionManager {
                     }
                     SessionSignal::Kill => {
                         // Kill the session manager
-                        return Ok(());
                         log::trace!("SessionManager - Kill signal received");
+                        return Ok(());
                     }
                 }
             }
@@ -89,7 +89,7 @@ pub struct Session {
 
 impl Session {
     /// Create a new Session
-    /// # Example 
+    /// # Example
     /// ```ignore
     /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app");
     /// let report = vec![1, 2, 3];
@@ -131,39 +131,38 @@ impl Session {
     pub fn send(self) -> Result<()> {
         log::info!("Session - Sending Session");
 
-        let _handle: JoinHandle<Result<()>> = thread::spawn(move || {
-            if self.report.is_empty() {
-                return Ok(());
-            }
-
-            let client = reqwest::blocking::Client::new();
-            // TODO: handle the error of this request
-
-            // Clone URL
-            let url = self.config.url.clone();
-
-            // Merge application name with Tags
-            let application_name = merge_tags_with_app_name(
-                self.config.application_name.clone(),
-                self.config.tags.clone(),
-            )?;
-
-            client
-                .post(format!("{}/ingest", url))
-                .header("Content-Type", "binary/octet-stream")
-                .query(&[
-                    ("name", application_name.as_str()),
-                    ("from", &format!("{}", self.from)),
-                    ("until", &format!("{}", self.until)),
-                    ("format", "folded"),
-                    ("sampleRate", &format!("{}", self.config.sample_rate)),
-                    ("spyName", "pprof-rs"),
-                ])
-                .body(self.report)
-                .send()?;
-
+        // Check if the report is empty
+        if self.report.is_empty() {
             return Ok(());
-        });
+        }
+
+        // Create a new client
+        let client = reqwest::blocking::Client::new();
+
+        // Clone URL
+        let url = self.config.url.clone();
+
+        // Merge application name with Tags
+        let application_name = merge_tags_with_app_name(
+            self.config.application_name.clone(),
+            self.config.tags.clone(),
+        )?;
+
+        // Create and send the request
+        client
+            .post(format!("{}/ingest", url))
+            .header("Content-Type", "binary/octet-stream")
+            .query(&[
+                ("name", application_name.as_str()),
+                ("from", &format!("{}", self.from)),
+                ("until", &format!("{}", self.until)),
+                ("format", "folded"),
+                ("sampleRate", &format!("{}", self.config.sample_rate)),
+                ("spyName", "pyroscope-rs"),
+            ])
+            .body(self.report)
+            .timeout(std::time::Duration::from_secs(10))
+            .send()?;
 
         Ok(())
     }
