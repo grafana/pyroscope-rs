@@ -220,6 +220,7 @@ pub struct PyroscopeAgent {
     pub config: PyroscopeConfig,
 }
 
+/// Gracefully stop the profiler.
 impl Drop for PyroscopeAgent {
     /// Properly shutdown the agent.
     fn drop(&mut self) {
@@ -269,12 +270,6 @@ impl PyroscopeAgent {
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
-    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
-    /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start().unwrap();
-    /// ```
     fn _start(&mut self) -> Result<()> {
         log::debug!("PyroscopeAgent - Starting");
 
@@ -294,7 +289,7 @@ impl PyroscopeAgent {
 
         let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
         self.timer.attach_listener(tx.clone())?;
-        self.tx = Some(tx.clone());
+        self.tx = Some(tx);
 
         let config = self.config.clone();
 
@@ -327,13 +322,18 @@ impl PyroscopeAgent {
                     return Ok(());
                 }
             }
-
-            return Ok(());
+            Ok(())
         }));
 
         Ok(())
     }
 
+    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// agent.start().unwrap();
+    /// ```
     pub fn start(&mut self) {
         match self._start() {
             Ok(_) => log::trace!("PyroscopeAgent - Agent started"),
@@ -341,14 +341,6 @@ impl PyroscopeAgent {
         }
     }
 
-    /// Stop the agent. The agent will stop profiling and send a last report to the server.
-    /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start().unwrap();
-    /// // Expensive operation
-    /// agent.stop().unwrap();
-    /// ```
     fn _stop(&mut self) -> Result<()> {
         log::debug!("PyroscopeAgent - Stopping");
         // get tx and send termination signal
@@ -367,6 +359,14 @@ impl PyroscopeAgent {
         Ok(())
     }
 
+    /// Stop the agent. The agent will stop profiling and send a last report to the server.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// agent.start().unwrap();
+    /// // Expensive operation
+    /// agent.stop().unwrap();
+    /// ```   
     pub fn stop(&mut self) {
         match self._stop() {
             Ok(_) => log::trace!("PyroscopeAgent - Agent stopped"),
