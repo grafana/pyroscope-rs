@@ -23,9 +23,9 @@ fn main() -> Result<()> {
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
 
-    agent.start()?;
+    agent.start();
     let _result = fibonacci(45);
-    agent.stop()?;
+    agent.stop();
 
     Ok(())
 }
