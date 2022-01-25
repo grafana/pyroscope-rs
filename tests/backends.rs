@@ -1,4 +1,4 @@
-use pyroscope::backends::{State};
+use pyroscope::backends::State;
 
 #[test]
 fn test_state_default() {

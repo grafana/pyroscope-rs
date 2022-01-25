@@ -138,9 +138,7 @@ impl PyroscopeAgentBuilder {
     /// .unwrap();
     /// ```
     pub fn backend<T: 'static>(self, backend: T) -> Self
-    where
-        T: Backend,
-    {
+    where T: Backend {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self

@@ -8,7 +8,7 @@ use crate::Result;
 
 use std::fmt::Debug;
 
-/// Backend State 
+/// Backend State
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum State {
     /// Backend is uninitialized.
