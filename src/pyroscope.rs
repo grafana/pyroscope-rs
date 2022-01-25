@@ -225,32 +225,41 @@ impl Drop for PyroscopeAgent {
     fn drop(&mut self) {
         log::debug!("PyroscopeAgent::drop()");
 
-        // Stop Timer
-        self.timer.drop_listeners().unwrap(); // Drop listeners
-        log::trace!("PyroscopeAgent - Dropped timer listeners");
-        self.timer.handle.take().unwrap().join().unwrap().unwrap(); // Wait for the Timer thread to finish
-        log::trace!("PyroscopeAgent - Dropped timer thread");
+        // Drop Timer listeners
+        match self.timer.drop_listeners() {
+            Ok(_) => log::trace!("PyroscopeAgent - Dropped timer listeners"),
+            Err(_) => log::error!("PyroscopeAgent - Error Dropping timer listeners"),
+        }
+
+        // Wait for the Timer thread to finish
+        match self.timer.handle.take().unwrap().join() {
+            Ok(_) => log::trace!("PyroscopeAgent - Dropped timer thread"),
+            Err(_) => log::error!("PyroscopeAgent - Error Dropping timer thread"),
+        }
 
         // Stop the SessionManager
-        self.session_manager.push(SessionSignal::Kill).unwrap();
-        log::trace!("PyroscopeAgent - Sent kill signal to SessionManager");
-        self.session_manager
-            .handle
-            .take()
-            .unwrap()
-            .join()
-            .unwrap()
-            .unwrap();
-        log::trace!("PyroscopeAgent - Dropped SessionManager thread");
+        match self.session_manager.push(SessionSignal::Kill) {
+            Ok(_) => log::trace!("PyroscopeAgent - Sent kill signal to SessionManager"),
+            Err(_) => log::error!("PyroscopeAgent - Error sending kill signal to SessionManager"),
+        }
+
+        // Stop SessionManager
+        match self.session_manager.handle.take().unwrap().join() {
+            Ok(_) => log::trace!("PyroscopeAgent - Dropped SessionManager thread"),
+            Err(_) => log::error!("PyroscopeAgent - Error Dropping SessionManager thread"),
+        }
 
         // Wait for main thread to finish
-        self.handle.take().unwrap().join().unwrap().unwrap();
-        log::trace!("PyroscopeAgent - Dropped main thread");
+        match self.handle.take().unwrap().join() {
+            Ok(_) => log::trace!("PyroscopeAgent - Dropped main thread"),
+            Err(_) => log::error!("PyroscopeAgent - Error Dropping main thread"),
+        }
     }
 }
 
 impl PyroscopeAgent {
     /// Short-hand for PyroscopeAgentBuilder::build(). This is a convenience method.
+    ///
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
@@ -266,7 +275,7 @@ impl PyroscopeAgent {
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
     /// agent.start().unwrap();
     /// ```
-    pub fn start(&mut self) -> Result<()> {
+    fn _start(&mut self) -> Result<()> {
         log::debug!("PyroscopeAgent - Starting");
 
         // Create a clone of Backend
@@ -325,6 +334,13 @@ impl PyroscopeAgent {
         Ok(())
     }
 
+    pub fn start(&mut self) {
+        match self._start() {
+            Ok(_) => log::trace!("PyroscopeAgent - Agent started"),
+            Err(_) => log::error!("PyroscopeAgent - Error starting agent"),
+        }
+    }
+
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     /// # Example
     /// ```ignore
@@ -333,7 +349,7 @@ impl PyroscopeAgent {
     /// // Expensive operation
     /// agent.stop().unwrap();
     /// ```
-    pub fn stop(&mut self) -> Result<()> {
+    fn _stop(&mut self) -> Result<()> {
         log::debug!("PyroscopeAgent - Stopping");
         // get tx and send termination signal
         self.tx.take().unwrap().send(0)?;
@@ -349,6 +365,13 @@ impl PyroscopeAgent {
         backend.lock()?.stop()?;
 
         Ok(())
+    }
+
+    pub fn stop(&mut self) {
+        match self._stop() {
+            Ok(_) => log::trace!("PyroscopeAgent - Agent stopped"),
+            Err(_) => log::error!("PyroscopeAgent - Error stopping agent"),
+        }
     }
 
     /// Add tags. This will restart the agent.
@@ -369,7 +392,7 @@ impl PyroscopeAgent {
         }
 
         // Stop Agent
-        self.stop()?;
+        self.stop();
 
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
@@ -382,7 +405,7 @@ impl PyroscopeAgent {
         self.config.tags.extend(tags_hashmap);
 
         // Restart Agent
-        self.start()?;
+        self.start();
 
         Ok(())
     }
@@ -407,7 +430,7 @@ impl PyroscopeAgent {
         }
 
         // Stop Agent
-        self.stop()?;
+        self.stop();
 
         // Iterate through every tag
         tags.iter().for_each(|key| {
@@ -416,7 +439,7 @@ impl PyroscopeAgent {
         });
 
         // Restart Agent
-        self.start()?;
+        self.start();
 
         Ok(())
     }
