@@ -55,6 +55,7 @@ mod merge_tags_with_app_name_tests {
         )
     }
 }
+
 /// Error Wrapper for libc return. Only check for errors.
 pub fn check_err<T: Ord + Default>(num: T) -> Result<T> {
     if num < T::default() {

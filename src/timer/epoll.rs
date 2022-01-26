@@ -64,10 +64,7 @@ impl Timer {
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
-                    match tx.send(current) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    }
+                    if tx.send(current).is_ok() {}
                 });
             }
         }));
@@ -151,12 +148,16 @@ impl Timer {
         let mut events = Vec::with_capacity(1);
 
         // wait for the timer to fire an event. This is function will block.
-        epoll_wait(epoll_fd, events.as_mut_ptr(), 1, -1)?;
+        unsafe {
+            epoll_wait(epoll_fd, events.as_mut_ptr(), 1, -1)?;
+        }
 
         // read the value from the timerfd. This is required to re-arm the timer.
         let mut buffer: u64 = 0;
         let bufptr: *mut _ = &mut buffer;
-        read(timer_fd, bufptr as *mut libc::c_void, 8)?;
+        unsafe {
+            read(timer_fd, bufptr as *mut libc::c_void, 8)?;
+        }
 
         Ok(())
     }
@@ -217,15 +218,21 @@ pub fn epoll_ctl(
 }
 
 /// libc::epoll_wait wrapper
-pub fn epoll_wait(
+///
+/// # Safety
+/// This function is a wrapper for libc::epoll_wait.
+pub unsafe fn epoll_wait(
     epoll_fd: i32, events: *mut libc::epoll_event, maxevents: libc::c_int, timeout: libc::c_int,
 ) -> Result<()> {
-    check_err(unsafe { libc::epoll_wait(epoll_fd, events, maxevents, timeout) })?;
+    check_err(libc::epoll_wait(epoll_fd, events, maxevents, timeout))?;
     Ok(())
 }
 
 /// libc::read wrapper
-pub fn read(timer_fd: i32, bufptr: *mut libc::c_void, count: libc::size_t) -> Result<()> {
-    check_err(unsafe { libc::read(timer_fd, bufptr, count) })?;
+///
+/// # Safety
+/// This function is a wrapper for libc::read.
+pub unsafe fn read(timer_fd: i32, bufptr: *mut libc::c_void, count: libc::size_t) -> Result<()> {
+    check_err(libc::read(timer_fd, bufptr, count))?;
     Ok(())
 }

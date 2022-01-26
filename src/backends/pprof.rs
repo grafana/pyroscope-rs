@@ -95,9 +95,7 @@ impl Backend for Pprof<'_> {
 
 // Copyright: https://github.com/YangKeao
 fn fold<W>(report: &Report, with_thread_name: bool, mut writer: W) -> Result<()>
-where
-    W: std::io::Write,
-{
+where W: std::io::Write {
     for (key, value) in report.data.iter() {
         if with_thread_name {
             if !key.thread_name.is_empty() {
