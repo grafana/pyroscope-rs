@@ -278,11 +278,9 @@ impl PyroscopeAgent {
 
         // set running to true
         let pair = Arc::clone(&self.running);
-        let (lock, cvar) = &*pair;
+        let (lock, _cvar) = &*pair;
         let mut running = lock.lock()?;
         *running = true;
-        drop(lock);
-        drop(cvar);
         drop(running);
 
         let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
