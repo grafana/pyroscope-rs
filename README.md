@@ -22,7 +22,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.2.0-beta"
+pyroscope = "0.3.0"
 ```
 
 Configure your profiler:
@@ -38,9 +38,9 @@ Profile your code:
 
 ```rust
 
- agent.start()?;
+ agent.start();
  // Profiled computation
- agent.stop()?;
+ agent.stop();
  
  // Non-profiled computation
 ```

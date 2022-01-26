@@ -328,7 +328,7 @@ impl PyroscopeAgent {
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start().unwrap();
+    /// agent.start();
     /// ```
     pub fn start(&mut self) {
         match self._start() {
@@ -361,7 +361,7 @@ impl PyroscopeAgent {
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
     /// agent.start().unwrap();
     /// // Expensive operation
-    /// agent.stop().unwrap();
+    /// agent.stop();
     /// ```   
     pub fn stop(&mut self) {
         match self._stop() {

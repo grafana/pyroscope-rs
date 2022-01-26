@@ -78,9 +78,7 @@ mod tests {
         let mut events = vec![libc::epoll_event { events: 0, u64: 0 }];
 
         // Expire in 1ms
-        let void = unsafe {
-            epoll_wait(epoll_fd, events.as_mut_ptr(), 1, 1).unwrap();
-        };
+        let void = unsafe { epoll_wait(epoll_fd, events.as_mut_ptr(), 1, 1).unwrap() };
 
         assert!(void == ());
     }

@@ -21,13 +21,13 @@
 //! To start profiling code and sending data.
 //!
 //! ```ignore
-//!  agent.start()?;
+//!  agent.start();
 //! ```
 //!
 //! To stop profiling code. You can restart the profiling at a later point.
 //!
 //! ```ignore
-//!  agent.stop()?;
+//!  agent.stop();
 //! ```
 
 // Re-exports structs

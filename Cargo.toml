@@ -5,12 +5,12 @@ Pyroscope Profiler
 """
 keywords = ["pyroscope", "profiler"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.2.0-alpha"
+version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
 documentation  = "https://docs.rs/pyroscope"
-repository = "https://github.com/omarabid/pyroscope.git"
+repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 
 [dependencies]
