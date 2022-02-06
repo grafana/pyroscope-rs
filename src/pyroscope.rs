@@ -4,20 +4,21 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::collections::HashMap;
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread::JoinHandle;
+use std::{
+    collections::HashMap,
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Arc, Condvar, Mutex,
+    },
+    thread::JoinHandle,
+};
 
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Receiver, Sender};
-
-use crate::backends::pprof::Pprof;
-use crate::backends::Backend;
-use crate::error::Result;
-use crate::session::Session;
-use crate::session::SessionManager;
-use crate::session::SessionSignal;
-use crate::timer::Timer;
+use crate::{
+    backends::{pprof::Pprof, Backend},
+    error::Result,
+    session::{Session, SessionManager, SessionSignal},
+    timer::Timer,
+};
 
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 /// # Example
@@ -222,7 +223,7 @@ pub struct PyroscopeAgent {
 impl Drop for PyroscopeAgent {
     /// Properly shutdown the agent.
     fn drop(&mut self) {
-        log::debug!("PyroscopeAgent::drop()");
+        log::debug!("PyroscopeAgent - Dropping Agent");
 
         // Drop Timer listeners
         match self.timer.drop_listeners() {
@@ -231,9 +232,11 @@ impl Drop for PyroscopeAgent {
         }
 
         // Wait for the Timer thread to finish
-        match self.timer.handle.take().unwrap().join() {
-            Ok(_) => log::trace!("PyroscopeAgent - Dropped timer thread"),
-            Err(_) => log::error!("PyroscopeAgent - Error Dropping timer thread"),
+        if let Some(handle) = self.timer.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!("PyroscopeAgent - Dropped timer thread"),
+                Err(_) => log::error!("PyroscopeAgent - Error Dropping timer thread"),
+            }
         }
 
         // Stop the SessionManager
@@ -242,17 +245,22 @@ impl Drop for PyroscopeAgent {
             Err(_) => log::error!("PyroscopeAgent - Error sending kill signal to SessionManager"),
         }
 
-        // Stop SessionManager
-        match self.session_manager.handle.take().unwrap().join() {
-            Ok(_) => log::trace!("PyroscopeAgent - Dropped SessionManager thread"),
-            Err(_) => log::error!("PyroscopeAgent - Error Dropping SessionManager thread"),
+        if let Some(handle) = self.session_manager.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!("PyroscopeAgent - Dropped SessionManager thread"),
+                Err(_) => log::error!("PyroscopeAgent - Error Dropping SessionManager thread"),
+            }
         }
 
         // Wait for main thread to finish
-        match self.handle.take().unwrap().join() {
-            Ok(_) => log::trace!("PyroscopeAgent - Dropped main thread"),
-            Err(_) => log::error!("PyroscopeAgent - Error Dropping main thread"),
+        if let Some(handle) = self.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!("PyroscopeAgent - Dropped main thread"),
+                Err(_) => log::error!("PyroscopeAgent - Error Dropping main thread"),
+            }
         }
+
+        log::debug!("PyroscopeAgent - Agent Dropped");
     }
 }
 

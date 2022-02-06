@@ -52,7 +52,13 @@ impl Backend for Pprof<'_> {
             return Err(PyroscopeError::new("Pprof Backend is not Ready"));
         }
 
-        self.guard = Some(self.inner_builder.as_ref().unwrap().clone().build()?);
+        self.guard = Some(
+            self.inner_builder
+                .as_ref()
+                .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
+                .clone()
+                .build()?,
+        );
 
         // Set State to Running
         self.state = State::Running;
@@ -82,7 +88,12 @@ impl Backend for Pprof<'_> {
         }
 
         let mut buffer = Vec::new();
-        let report = self.guard.as_ref().unwrap().report().build()?;
+        let report = self
+            .guard
+            .as_ref()
+            .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuard report error"))?
+            .report()
+            .build()?;
         fold(&report, true, &mut buffer)?;
 
         // Restart Profiler
