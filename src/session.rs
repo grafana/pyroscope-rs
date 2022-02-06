@@ -45,12 +45,17 @@ impl SessionManager {
         // Create a thread for the SessionManager
         let handle = Some(thread::spawn(move || {
             log::trace!("SessionManager - SessionManager thread started");
+            // This thread should only return if a kill signal is received.
             while let Ok(signal) = rx.recv() {
                 match signal {
                     SessionSignal::Session(session) => {
                         // Send the session
-                        session.send()?;
-                        log::trace!("SessionManager - Session sent");
+                        // Matching is done here (instead of ?) to avoid breaking
+                        // the SessionManager thread if the server is not available.
+                        match session.send() {
+                            Ok(_) => log::trace!("SessionManager - Session sent"),
+                            Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
+                        }
                     }
                     SessionSignal::Kill => {
                         // Kill the session manager
