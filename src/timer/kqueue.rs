@@ -108,7 +108,7 @@ impl Timer {
     /// Register an initial expiration event
     fn register_initial_expiration(kqueue: i32) -> Result<libc::kevent> {
         // Get first event time
-        let first_time = get_time_range(0)?.until;
+        let first_fire = get_time_range(0)?.until;
 
         let initial_event = libc::kevent {
             ident: 1,
