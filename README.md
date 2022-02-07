@@ -22,7 +22,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.3.0"
+pyroscope = "0.4.0"
 ```
 
 Configure your profiler:

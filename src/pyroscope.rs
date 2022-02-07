@@ -14,11 +14,13 @@ use std::{
 };
 
 use crate::{
-    backends::{pprof::Pprof, Backend},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::Timer,
 };
+
+use pyroscope_backends::pprof::Pprof;
+use pyroscope_backends::types::Backend;
 
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 /// # Example

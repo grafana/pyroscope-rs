@@ -6,9 +6,9 @@
 
 extern crate pyroscope;
 
-use pyroscope::backends::pprof::Pprof;
-use pyroscope::backends::Backend;
 use pyroscope::Result;
+use pyroscope_backends::pprof::Pprof;
+use pyroscope_backends::types::Backend;
 
 fn fibonacci(n: u64) -> u64 {
     match n {

@@ -35,7 +35,6 @@ pub use crate::pyroscope::PyroscopeAgent;
 pub use error::{PyroscopeError, Result};
 
 // Public modules
-pub mod backends;
 pub mod error;
 pub mod pyroscope;
 pub mod session;

@@ -4,8 +4,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::Result;
-
+use super::error::Result;
 use std::fmt::Debug;
 
 /// Backend State
@@ -38,5 +37,3 @@ pub trait Backend: Send + Debug {
     /// Generate profiling report
     fn report(&mut self) -> Result<Vec<u8>>;
 }
-
-pub mod pprof;

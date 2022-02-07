@@ -14,7 +14,7 @@ pub type Result<T> = std::result::Result<T, PyroscopeError>;
 #[derive(Error, Debug)]
 pub struct PyroscopeError {
     pub msg: String,
-    source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    pub source: Option<Box<dyn std::error::Error + Send + Sync>>,
 }
 
 impl fmt::Display for PyroscopeError {
@@ -59,15 +59,6 @@ impl From<reqwest::Error> for PyroscopeError {
     }
 }
 
-impl From<pprof::Error> for PyroscopeError {
-    fn from(err: pprof::Error) -> Self {
-        PyroscopeError {
-            msg: String::from("pprof Error"),
-            source: Some(Box::new(err)),
-        }
-    }
-}
-
 impl From<std::time::SystemTimeError> for PyroscopeError {
     fn from(err: std::time::SystemTimeError) -> Self {
         PyroscopeError {
@@ -100,6 +91,15 @@ impl<T: 'static + Send + Sync> From<std::sync::mpsc::SendError<T>> for Pyroscope
         PyroscopeError {
             msg: String::from("SendError Error"),
             source: Some(Box::new(err)),
+        }
+    }
+}
+
+impl From<pyroscope_backends::error::BackendError> for PyroscopeError {
+    fn from(err: pyroscope_backends::error::BackendError) -> Self {
+        PyroscopeError {
+            msg: err.msg,
+            source: err.source,
         }
     }
 }

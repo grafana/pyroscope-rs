@@ -6,10 +6,8 @@
 
 use pprof::{ProfilerGuard, ProfilerGuardBuilder, Report};
 
-use crate::backends::Backend;
-use crate::backends::State;
-use crate::PyroscopeError;
-use crate::Result;
+use super::error::{BackendError, Result};
+use super::types::{Backend, State};
 
 #[derive(Default)]
 pub struct Pprof<'a> {
@@ -32,7 +30,7 @@ impl Backend for Pprof<'_> {
     fn initialize(&mut self, sample_rate: i32) -> Result<()> {
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
-            return Err(PyroscopeError::new("Pprof Backend is already Initialized"));
+            return Err(BackendError::new("Pprof Backend is already Initialized"));
         }
 
         // Construct a ProfilerGuardBuilder
@@ -49,13 +47,13 @@ impl Backend for Pprof<'_> {
     fn start(&mut self) -> Result<()> {
         // Check if Backend is Ready
         if self.state != State::Ready {
-            return Err(PyroscopeError::new("Pprof Backend is not Ready"));
+            return Err(BackendError::new("Pprof Backend is not Ready"));
         }
 
         self.guard = Some(
             self.inner_builder
                 .as_ref()
-                .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
+                .ok_or_else(|| BackendError::new("pprof-rs: ProfilerGuardBuilder error"))?
                 .clone()
                 .build()?,
         );
@@ -69,7 +67,7 @@ impl Backend for Pprof<'_> {
     fn stop(&mut self) -> Result<()> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(PyroscopeError::new("Pprof Backend is not Running"));
+            return Err(BackendError::new("Pprof Backend is not Running"));
         }
 
         // drop the guard
@@ -84,14 +82,14 @@ impl Backend for Pprof<'_> {
     fn report(&mut self) -> Result<Vec<u8>> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(PyroscopeError::new("Pprof Backend is not Running"));
+            return Err(BackendError::new("Pprof Backend is not Running"));
         }
 
         let mut buffer = Vec::new();
         let report = self
             .guard
             .as_ref()
-            .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuard report error"))?
+            .ok_or_else(|| BackendError::new("pprof-rs: ProfilerGuard report error"))?
             .report()
             .build()?;
         fold(&report, true, &mut buffer)?;
