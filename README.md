@@ -3,8 +3,8 @@
 **Pyroscope Profiler for Rust. Profile your Rust applications.**
 
 [![license](https://img.shields.io/badge/license-Apache2.0-blue.svg)](LICENSE) 
-![tests](https://github.com/omarabid/pyroscope/workflows/Tests/badge.svg)
-![build](https://github.com/omarabid/pyroscope/workflows/Build/badge.svg)
+![tests](https://github.com/pyroscope-io/pyroscope-rs/workflows/Tests/badge.svg)
+![build](https://github.com/pyroscope-io/pyroscope-rs/workflows/Build/badge.svg)
 [![Crate](https://img.shields.io/crates/v/pyroscope.svg)](https://crates.io/crates/pyroscope)
 
 ---
@@ -22,7 +22,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.3.0"
+pyroscope = "0.3.1"
 ```
 
 Configure your profiler:
