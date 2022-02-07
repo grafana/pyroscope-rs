@@ -5,6 +5,7 @@
 // except according to those terms.
 
 use crate::utils::check_err;
+use crate::utils::get_time_range;
 use crate::Result;
 
 use std::sync::{
@@ -56,15 +57,13 @@ impl Timer {
                 // Fire @ 10th sec
                 Timer::epoll_wait(timer_fd, epoll_fd)?;
 
-                // Get current time
-                let current = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)?
-                    .as_secs();
+                // Get the current time range
+                let from = get_time_range(0)?.from;
 
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
-                    if tx.send(current).is_ok() {}
+                    if tx.send(from).is_ok() {}
                 });
             }
         }));
@@ -83,11 +82,7 @@ impl Timer {
         let tfd = timerfd_create(clockid, clock_flags)?;
 
         // Get the next event time
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_secs();
-        let rem = 10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap();
-        let first_fire = now + rem;
+        let first_fire = get_time_range(0)?.until;
 
         // new_value sets the Timer
         let mut new_value = libc::itimerspec {

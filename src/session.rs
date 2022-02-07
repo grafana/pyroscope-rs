@@ -11,6 +11,7 @@ use std::{
 };
 
 use crate::pyroscope::PyroscopeConfig;
+use crate::utils::get_time_range;
 use crate::utils::merge_tags_with_app_name;
 use crate::Result;
 
@@ -101,26 +102,18 @@ impl Session {
     /// let until = 154065120;
     /// let session = Session::new(until, config, report).unwrap();
     /// ```
-    pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
+    pub fn new(until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
         log::info!("Session - Creating Session");
-        // Session interrupted (0 signal), determine the time
-        if until == 0 {
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)?
-                .as_secs();
-            until = now
-                .checked_add(10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap())
-                .unwrap();
-        }
 
-        // Start of the session
-        let from = until.checked_sub(10u64).unwrap();
+        // get_time_range should be used with "from". We balance this by reducing
+        // 10s from the returned range.
+        let time_range = get_time_range(until)?;
 
         Ok(Self {
             config,
             report,
-            from,
-            until,
+            from: time_range.from - 10,
+            until: time_range.until - 10,
         })
     }
 
@@ -134,7 +127,7 @@ impl Session {
     /// session.send().unwrap();
     /// ```
     pub fn send(self) -> Result<()> {
-        log::info!("Session - Sending Session");
+        log::info!("Session - Sending Session {} - {}", self.from, self.until);
 
         // Check if the report is empty
         if self.report.is_empty() {

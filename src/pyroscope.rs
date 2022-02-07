@@ -302,20 +302,20 @@ impl PyroscopeAgent {
         self.handle = Some(std::thread::spawn(move || {
             log::trace!("PyroscopeAgent - Main Thread started");
 
-            while let Ok(time) = rx.recv() {
-                log::trace!("PyroscopeAgent - Sending session {}", time);
+            while let Ok(until) = rx.recv() {
+                log::trace!("PyroscopeAgent - Sending session {}", until);
 
                 // Generate report from backend
                 let report = backend.lock()?.report()?;
 
                 // Send new Session to SessionManager
                 stx.send(SessionSignal::Session(Session::new(
-                    time,
+                    until,
                     config.clone(),
                     report,
                 )?))?;
 
-                if time == 0 {
+                if until == 0 {
                     log::trace!("PyroscopeAgent - Session Killed");
 
                     let (lock, cvar) = &*pair;
