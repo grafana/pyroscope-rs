@@ -1,99 +1,61 @@
-use std::fmt;
-use thiserror::Error;
+// Copyright 2021 Developers of Pyroscope.
+
+// Licensed under the Apache License, Version 2.0 <LICENSE or
+// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
+// except according to those terms.
 
 /// Result Alias with PyroscopeError
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
 /// Error type of Pyroscope
-#[derive(Error, Debug)]
-pub struct PyroscopeError {
-    pub msg: String,
-    source: Option<Box<dyn std::error::Error + Send + Sync>>,
-}
+#[non_exhaustive]
+#[derive(thiserror::Error, Debug)]
+pub enum PyroscopeError {
+    #[error("Other: {}", &.0)]
+    AdHoc(String),
 
-impl fmt::Display for PyroscopeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.msg)
-    }
-}
+    #[error("{msg}: {source:?}")]
+    Compat{ msg: String, #[source] source: Box<dyn std::error::Error + Send + Sync + 'static> },
 
-impl Default for PyroscopeError {
-    fn default() -> Self {
-        PyroscopeError {
-            msg: "".to_string(),
-            source: None,
-        }
-    }
+    #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
+
+    #[error(transparent)]
+    Pprof(#[from] pprof::Error),
+
+    #[error(transparent)]
+    TimeSource(#[from] std::time::SystemTimeError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 }
 
 impl PyroscopeError {
     /// Create a new instance of PyroscopeError
     pub fn new(msg: &str) -> Self {
-        PyroscopeError {
-            msg: msg.to_string(),
-            source: None,
-        }
+        PyroscopeError::AdHoc(msg.to_string())
     }
 
     /// Create a new instance of PyroscopeError with source
-    pub fn new_with_source(msg: &str, source: Box<dyn std::error::Error + Send + Sync>) -> Self {
-        PyroscopeError {
+    pub fn new_with_source<E>(msg: &str, source: E) -> Self where E: std::error::Error + Send + Sync + 'static {
+        PyroscopeError::Compat {
             msg: msg.to_string(),
-            source: Some(source),
-        }
-    }
-}
-
-impl From<reqwest::Error> for PyroscopeError {
-    fn from(err: reqwest::Error) -> Self {
-        PyroscopeError {
-            msg: String::from("reqwest Error"),
-            source: Some(Box::new(err)),
-        }
-    }
-}
-
-impl From<pprof::Error> for PyroscopeError {
-    fn from(err: pprof::Error) -> Self {
-        PyroscopeError {
-            msg: String::from("pprof Error"),
-            source: Some(Box::new(err)),
-        }
-    }
-}
-
-impl From<std::time::SystemTimeError> for PyroscopeError {
-    fn from(err: std::time::SystemTimeError) -> Self {
-        PyroscopeError {
-            msg: String::from("SystemTime Error"),
-            source: Some(Box::new(err)),
-        }
-    }
-}
-
-impl From<std::io::Error> for PyroscopeError {
-    fn from(err: std::io::Error) -> Self {
-        PyroscopeError {
-            msg: String::from("IO Error"),
-            source: Some(Box::new(err)),
+            source: Box::new(source),
         }
     }
 }
 
 impl<T> From<std::sync::PoisonError<T>> for PyroscopeError {
     fn from(_err: std::sync::PoisonError<T>) -> Self {
-        PyroscopeError {
-            msg: String::from("Poison Error"),
-            source: None,
-        }
+        PyroscopeError::AdHoc("Poison Error".to_owned())
     }
 }
 
 impl<T: 'static + Send + Sync> From<std::sync::mpsc::SendError<T>> for PyroscopeError {
     fn from(err: std::sync::mpsc::SendError<T>) -> Self {
-        PyroscopeError {
+        PyroscopeError::Compat {
             msg: String::from("SendError Error"),
-            source: Some(Box::new(err)),
+            source: Box::new(err),
         }
     }
 }
