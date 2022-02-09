@@ -24,6 +24,8 @@
 //!  agent.stop();
 //! ```
 
+pub(crate) static LOG_TAG: &str = "pyroscope";
+
 // Re-exports structs
 pub use crate::pyroscope::PyroscopeAgent;
 pub use error::{PyroscopeError, Result};
