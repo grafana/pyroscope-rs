@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use std::{
     collections::HashMap,
     sync::{
@@ -139,7 +133,9 @@ impl PyroscopeAgentBuilder {
     /// .unwrap();
     /// ```
     pub fn backend<T: 'static>(self, backend: T) -> Self
-    where T: Backend {
+    where
+        T: Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
