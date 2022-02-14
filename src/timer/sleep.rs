@@ -4,6 +4,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::utils::get_time_range;
 use crate::Result;
 
 use std::sync::{
@@ -41,13 +42,8 @@ impl Timer {
 
         // Spawn a Thread
         let handle = Some(thread::spawn(move || {
-            // Get the current time
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)?
-                .as_secs();
-
-            // Calculate number of seconds until 10th second
-            let rem = 10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap();
+            // Get remaining time for 10th second fire event
+            let rem = get_time_range(0)?.rem;
 
             // Sleep for rem seconds
             thread::sleep(Duration::from_secs(rem));
@@ -59,9 +55,7 @@ impl Timer {
                 }
 
                 // Get current time
-                let current = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)?
-                    .as_secs();
+                let current = get_time_range(0)?.from;
 
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {

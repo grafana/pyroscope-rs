@@ -1,23 +1,18 @@
-// Copyright 2021 Developers of Pyroscope.
+use std::{
+    collections::HashMap,
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Arc, Condvar, Mutex,
+    },
+    thread::JoinHandle,
+};
 
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
-use std::collections::HashMap;
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread::JoinHandle;
-
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Receiver, Sender};
-
-use crate::backends::pprof::Pprof;
-use crate::backends::Backend;
-use crate::error::Result;
-use crate::session::Session;
-use crate::session::SessionManager;
-use crate::session::SessionSignal;
-use crate::timer::Timer;
+use crate::{
+    backends::{pprof::Pprof, Backend},
+    error::Result,
+    session::{Session, SessionManager, SessionSignal},
+    timer::Timer,
+};
 
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 /// # Example
@@ -138,7 +133,9 @@ impl PyroscopeAgentBuilder {
     /// .unwrap();
     /// ```
     pub fn backend<T: 'static>(self, backend: T) -> Self
-    where T: Backend {
+    where
+        T: Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -222,7 +219,7 @@ pub struct PyroscopeAgent {
 impl Drop for PyroscopeAgent {
     /// Properly shutdown the agent.
     fn drop(&mut self) {
-        log::debug!("PyroscopeAgent::drop()");
+        log::debug!("PyroscopeAgent - Dropping Agent");
 
         // Drop Timer listeners
         match self.timer.drop_listeners() {
@@ -231,9 +228,11 @@ impl Drop for PyroscopeAgent {
         }
 
         // Wait for the Timer thread to finish
-        match self.timer.handle.take().unwrap().join() {
-            Ok(_) => log::trace!("PyroscopeAgent - Dropped timer thread"),
-            Err(_) => log::error!("PyroscopeAgent - Error Dropping timer thread"),
+        if let Some(handle) = self.timer.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!("PyroscopeAgent - Dropped timer thread"),
+                Err(_) => log::error!("PyroscopeAgent - Error Dropping timer thread"),
+            }
         }
 
         // Stop the SessionManager
@@ -242,17 +241,22 @@ impl Drop for PyroscopeAgent {
             Err(_) => log::error!("PyroscopeAgent - Error sending kill signal to SessionManager"),
         }
 
-        // Stop SessionManager
-        match self.session_manager.handle.take().unwrap().join() {
-            Ok(_) => log::trace!("PyroscopeAgent - Dropped SessionManager thread"),
-            Err(_) => log::error!("PyroscopeAgent - Error Dropping SessionManager thread"),
+        if let Some(handle) = self.session_manager.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!("PyroscopeAgent - Dropped SessionManager thread"),
+                Err(_) => log::error!("PyroscopeAgent - Error Dropping SessionManager thread"),
+            }
         }
 
         // Wait for main thread to finish
-        match self.handle.take().unwrap().join() {
-            Ok(_) => log::trace!("PyroscopeAgent - Dropped main thread"),
-            Err(_) => log::error!("PyroscopeAgent - Error Dropping main thread"),
+        if let Some(handle) = self.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!("PyroscopeAgent - Dropped main thread"),
+                Err(_) => log::error!("PyroscopeAgent - Error Dropping main thread"),
+            }
         }
+
+        log::debug!("PyroscopeAgent - Agent Dropped");
     }
 }
 
@@ -294,20 +298,20 @@ impl PyroscopeAgent {
         self.handle = Some(std::thread::spawn(move || {
             log::trace!("PyroscopeAgent - Main Thread started");
 
-            while let Ok(time) = rx.recv() {
-                log::trace!("PyroscopeAgent - Sending session {}", time);
+            while let Ok(until) = rx.recv() {
+                log::trace!("PyroscopeAgent - Sending session {}", until);
 
                 // Generate report from backend
                 let report = backend.lock()?.report()?;
 
                 // Send new Session to SessionManager
                 stx.send(SessionSignal::Session(Session::new(
-                    time,
+                    until,
                     config.clone(),
                     report,
                 )?))?;
 
-                if time == 0 {
+                if until == 0 {
                     log::trace!("PyroscopeAgent - Session Killed");
 
                     let (lock, cvar) = &*pair;
@@ -359,7 +363,7 @@ impl PyroscopeAgent {
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start().unwrap();
+    /// agent.start();
     /// // Expensive operation
     /// agent.stop();
     /// ```   
@@ -374,11 +378,11 @@ impl PyroscopeAgent {
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start().unwrap();
+    /// agent.start();
     /// // Expensive operation
-    /// agent.add_tags(vec!["tag", "value"]).unwrap();
+    /// agent.add_tags(vec![("tag", "value")]).unwrap();
     /// // Tagged operation
-    /// agent.stop().unwrap();
+    /// agent.stop();
     /// ```
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         log::debug!("PyroscopeAgent - Adding tags");
@@ -412,11 +416,11 @@ impl PyroscopeAgent {
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app")
     /// .tags(vec![("tag", "value")])
     /// .build().unwrap();
-    /// agent.start().unwrap();
+    /// agent.start();
     /// // Expensive operation
     /// agent.remove_tags(vec!["tag"]).unwrap();
     /// // Un-Tagged operation
-    /// agent.stop().unwrap();
+    /// agent.stop();
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
         log::debug!("PyroscopeAgent - Removing tags");
 

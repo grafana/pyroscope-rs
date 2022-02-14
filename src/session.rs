@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use std::{
     sync::mpsc::{sync_channel, Receiver, SyncSender},
     thread,
@@ -11,6 +5,7 @@ use std::{
 };
 
 use crate::pyroscope::PyroscopeConfig;
+use crate::utils::get_time_range;
 use crate::utils::merge_tags_with_app_name;
 use crate::Result;
 
@@ -45,12 +40,17 @@ impl SessionManager {
         // Create a thread for the SessionManager
         let handle = Some(thread::spawn(move || {
             log::trace!("SessionManager - SessionManager thread started");
+            // This thread should only return if a kill signal is received.
             while let Ok(signal) = rx.recv() {
                 match signal {
                     SessionSignal::Session(session) => {
                         // Send the session
-                        session.send()?;
-                        log::trace!("SessionManager - Session sent");
+                        // Matching is done here (instead of ?) to avoid breaking
+                        // the SessionManager thread if the server is not available.
+                        match session.send() {
+                            Ok(_) => log::trace!("SessionManager - Session sent"),
+                            Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
+                        }
                     }
                     SessionSignal::Kill => {
                         // Kill the session manager
@@ -96,26 +96,18 @@ impl Session {
     /// let until = 154065120;
     /// let session = Session::new(until, config, report).unwrap();
     /// ```
-    pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
+    pub fn new(until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
         log::info!("Session - Creating Session");
-        // Session interrupted (0 signal), determine the time
-        if until == 0 {
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)?
-                .as_secs();
-            until = now
-                .checked_add(10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap())
-                .unwrap();
-        }
 
-        // Start of the session
-        let from = until.checked_sub(10u64).unwrap();
+        // get_time_range should be used with "from". We balance this by reducing
+        // 10s from the returned range.
+        let time_range = get_time_range(until)?;
 
         Ok(Self {
             config,
             report,
-            from,
-            until,
+            from: time_range.from - 10,
+            until: time_range.until - 10,
         })
     }
 
@@ -129,7 +121,7 @@ impl Session {
     /// session.send().unwrap();
     /// ```
     pub fn send(self) -> Result<()> {
-        log::info!("Session - Sending Session");
+        log::info!("Session - Sending Session {} - {}", self.from, self.until);
 
         // Check if the report is empty
         if self.report.is_empty() {

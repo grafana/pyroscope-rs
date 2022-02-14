@@ -5,6 +5,7 @@
 // except according to those terms.
 
 use crate::utils::check_err;
+use crate::utils::get_time_range;
 use crate::Result;
 
 use std::sync::{
@@ -57,15 +58,14 @@ impl Timer {
                     return Ok(());
                 }
 
+
                 // Get current time
-                let current = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)?
-                    .as_secs();
+                let from = get_time_range(0)?.from;
 
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
-                    match tx.send(current) {
+                    match tx.send(from) {
                         Ok(_) => {}
                         Err(_) => {}
                     }
@@ -107,12 +107,8 @@ impl Timer {
 
     /// Register an initial expiration event
     fn register_initial_expiration(kqueue: i32) -> Result<libc::kevent> {
-        // Get the next event time
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_secs();
-        let rem = 10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap();
-        let first_fire = now + rem;
+        // Get first event time
+        let first_fire = get_time_range(0)?.until;
 
         let initial_event = libc::kevent {
             ident: 1,

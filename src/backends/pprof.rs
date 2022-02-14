@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use pprof::{ProfilerGuard, ProfilerGuardBuilder, Report};
 
 use crate::backends::Backend;
@@ -52,7 +46,13 @@ impl Backend for Pprof<'_> {
             return Err(PyroscopeError::new("Pprof Backend is not Ready"));
         }
 
-        self.guard = Some(self.inner_builder.as_ref().unwrap().clone().build()?);
+        self.guard = Some(
+            self.inner_builder
+                .as_ref()
+                .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
+                .clone()
+                .build()?,
+        );
 
         // Set State to Running
         self.state = State::Running;
@@ -82,7 +82,12 @@ impl Backend for Pprof<'_> {
         }
 
         let mut buffer = Vec::new();
-        let report = self.guard.as_ref().unwrap().report().build()?;
+        let report = self
+            .guard
+            .as_ref()
+            .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuard report error"))?
+            .report()
+            .build()?;
         fold(&report, true, &mut buffer)?;
 
         // Restart Profiler
@@ -95,7 +100,9 @@ impl Backend for Pprof<'_> {
 
 // Copyright: https://github.com/YangKeao
 fn fold<W>(report: &Report, with_thread_name: bool, mut writer: W) -> Result<()>
-where W: std::io::Write {
+where
+    W: std::io::Write,
+{
     for (key, value) in report.data.iter() {
         if with_thread_name {
             if !key.thread_name.is_empty() {
@@ -105,10 +112,10 @@ where W: std::io::Write {
             }
         }
 
-        let last_frame = key.frames.len() - 1;
         for (index, frame) in key.frames.iter().rev().enumerate() {
-            let last_symbol = frame.len() - 1;
+            let last_frame = key.frames.len().saturating_sub(1);
             for (index, symbol) in frame.iter().rev().enumerate() {
+                let last_symbol = frame.len().saturating_sub(1);
                 if index == last_symbol {
                     write!(writer, "{}", symbol)?;
                 } else {

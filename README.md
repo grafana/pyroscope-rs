@@ -3,8 +3,8 @@
 **Pyroscope Profiler for Rust. Profile your Rust applications.**
 
 [![license](https://img.shields.io/badge/license-Apache2.0-blue.svg)](LICENSE) 
-![tests](https://github.com/omarabid/pyroscope/workflows/Tests/badge.svg)
-![build](https://github.com/omarabid/pyroscope/workflows/Build/badge.svg)
+![tests](https://github.com/pyroscope-io/pyroscope-rs/workflows/Tests/badge.svg)
+![build](https://github.com/pyroscope-io/pyroscope-rs/workflows/Build/badge.svg)
 [![Crate](https://img.shields.io/crates/v/pyroscope.svg)](https://crates.io/crates/pyroscope)
 
 ---
@@ -22,7 +22,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.3.0"
+pyroscope = "0.3.1"
 ```
 
 Configure your profiler:
@@ -44,6 +44,13 @@ Profile your code:
  
  // Non-profiled computation
 ```
+
+### Limitations
+
+- **Backend**: The Pyroscope Agent uses [pprof-rs](https://github.com/tikv/pprof-rs) as a backend. As a result, the [limitations](https://github.com/tikv/pprof-rs#why-not-) for pprof-rs also applies.
+- **Tagging**: Adding or removing tags is not possible within threads. In general, the [Pyroscope Agent](https://docs.rs/pyroscope/latest/pyroscope/pyroscope/struct.PyroscopeAgent.html) is not Sync; and as a result a reference cannot be shared between threads. A multi-threaded program could be profiled but the agent is not thread-aware and a particular thread cannot be tagged.
+- **Timer**: epoll (for Linux) and kqueue (for macOS) are required for a more precise timer.
+- **Shutdown**: The Pyroscope Agent might take some time (usually less than 10 seconds) to shutdown properly and drop its threads.
 
 ### Getting help
 
