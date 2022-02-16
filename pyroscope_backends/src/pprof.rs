@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use pprof::{ProfilerGuard, ProfilerGuardBuilder, Report};
 
 use super::error::{BackendError, Result};
@@ -104,7 +98,9 @@ impl Backend for Pprof<'_> {
 
 // Copyright: https://github.com/YangKeao
 fn fold<W>(report: &Report, with_thread_name: bool, mut writer: W) -> Result<()>
-where W: std::io::Write {
+where
+    W: std::io::Write,
+{
     for (key, value) in report.data.iter() {
         if with_thread_name {
             if !key.thread_name.is_empty() {
@@ -114,10 +110,10 @@ where W: std::io::Write {
             }
         }
 
-        let last_frame = key.frames.len() - 1;
         for (index, frame) in key.frames.iter().rev().enumerate() {
-            let last_symbol = frame.len() - 1;
+            let last_frame = key.frames.len().saturating_sub(1);
             for (index, symbol) in frame.iter().rev().enumerate() {
+                let last_symbol = frame.len().saturating_sub(1);
                 if index == last_symbol {
                     write!(writer, "{}", symbol)?;
                 } else {

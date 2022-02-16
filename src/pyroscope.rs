@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use std::{
     collections::HashMap,
     sync::{
@@ -141,7 +135,9 @@ impl PyroscopeAgentBuilder {
     /// .unwrap();
     /// ```
     pub fn backend<T: 'static>(self, backend: T) -> Self
-    where T: Backend {
+    where
+        T: Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -369,7 +365,7 @@ impl PyroscopeAgent {
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start().unwrap();
+    /// agent.start();
     /// // Expensive operation
     /// agent.stop();
     /// ```   
@@ -384,11 +380,11 @@ impl PyroscopeAgent {
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start().unwrap();
+    /// agent.start();
     /// // Expensive operation
-    /// agent.add_tags(vec!["tag", "value"]).unwrap();
+    /// agent.add_tags(vec![("tag", "value")]).unwrap();
     /// // Tagged operation
-    /// agent.stop().unwrap();
+    /// agent.stop();
     /// ```
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         log::debug!("PyroscopeAgent - Adding tags");
@@ -422,11 +418,11 @@ impl PyroscopeAgent {
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app")
     /// .tags(vec![("tag", "value")])
     /// .build().unwrap();
-    /// agent.start().unwrap();
+    /// agent.start();
     /// // Expensive operation
     /// agent.remove_tags(vec!["tag"]).unwrap();
     /// // Un-Tagged operation
-    /// agent.stop().unwrap();
+    /// agent.stop();
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
         log::debug!("PyroscopeAgent - Removing tags");
 
