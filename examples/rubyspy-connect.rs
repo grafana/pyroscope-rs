@@ -29,6 +29,7 @@ fn main() -> Result<()> {
 
     // Start Agent
     agent.start();
+
     println!("herehere");
 
     // Profile for around 1 minute
@@ -44,6 +45,7 @@ fn main() -> Result<()> {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
+
     println!("Exit Time: {}", exit);
 
     Ok(())

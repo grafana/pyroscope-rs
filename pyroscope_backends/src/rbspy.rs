@@ -55,7 +55,7 @@ impl Backend for Rbspy {
         //self.recorder = Some(Arc::new(Recorder::new(config)));
         //println!("humhum");
 
-        self.sampler = Some(Sampler::new(643364, 100, true, None, true));
+        self.sampler = Some(Sampler::new(973023, 100, true, None, true));
 
         Ok(())
     }
@@ -77,7 +77,7 @@ impl Backend for Rbspy {
         //self.recorder.as_ref().unwrap().record().unwrap();
 
         let (tx, rx) = std::sync::mpsc::channel();
-        let (synctx, syncrx) = std::sync::mpsc::sync_channel(10000);
+        let (synctx, syncrx) = std::sync::mpsc::sync_channel(1000);
         self.rx = Some(syncrx);
         self.sampler.as_mut().unwrap().start(synctx, tx).unwrap();
         Ok(())
@@ -85,6 +85,8 @@ impl Backend for Rbspy {
 
     fn stop(&mut self) -> Result<()> {
         //self.recorder.as_ref().unwrap().stop();
+
+        self.sampler.as_mut().unwrap().stop();
 
         Ok(())
     }
@@ -98,21 +100,40 @@ impl Backend for Rbspy {
         //.unwrap()
         //.write_summary(&mut writer)
         //.unwrap();
-        for i in 0..10005 {
-            let a = self.rx.as_ref().unwrap().recv().unwrap();
-            println!("{}: {}", i, a);
-        }
-        println!("Done");
 
-        Ok(vec![])
+        //for i in 0..10005 {
+        //let a = self.rx.as_ref().unwrap().recv().unwrap();
+        //println!("{}", a);
+        //println!("{}", self.sampler.as_ref().unwrap().total_traces());
+        //}
+
+        //println!("Done");
+        //
+        let col = self.rx.as_ref().unwrap().try_iter();
+
+        //println!("{:?}", &col.count());
+        let mut outputter = OutputFormat::collapsed.outputter(0.1);
+
+        for trace in col {
+            outputter.record(&trace).unwrap();
+        }
+        let mut writer = MyWriter { data: Vec::new() };
+        outputter.complete(&mut writer).unwrap();
+        //col.for_each(|x| println!("{:#?}", x));
+        //println!("{:?}", writer.data);
+
+        Ok(writer.data)
     }
 }
 
-struct MyWriter {}
+struct MyWriter {
+    data: Vec<u8>,
+}
 
 impl std::io::Write for MyWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        print!("{}", std::str::from_utf8(buf).unwrap());
+        self.data.extend_from_slice(buf);
+        //print!("{}", std::str::from_utf8(buf).unwrap());
         Ok(buf.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {
