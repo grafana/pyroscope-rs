@@ -9,6 +9,8 @@ use crate::utils::get_time_range;
 use crate::utils::merge_tags_with_app_name;
 use crate::Result;
 
+const LOG_TAG: &str = "Pyroscope::Session";
+
 /// Session Signal
 ///
 /// This enum is used to send data to the session thread. It can also kill the session thread.
@@ -32,15 +34,14 @@ pub struct SessionManager {
 impl SessionManager {
     /// Create a new SessionManager
     pub fn new() -> Result<Self> {
-        log::info!("SessionManager - Creating SessionManager");
+        log::info!(target: LOG_TAG, "Creating SessionManager");
 
         // Create a channel for sending and receiving sessions
         let (tx, rx): (SyncSender<SessionSignal>, Receiver<SessionSignal>) = sync_channel(10);
 
         // Create a thread for the SessionManager
         let handle = Some(thread::spawn(move || {
-            log::trace!("SessionManager - SessionManager thread started");
-            // This thread should only return if a kill signal is received.
+            log::trace!(target: LOG_TAG, "Started");
             while let Ok(signal) = rx.recv() {
                 match signal {
                     SessionSignal::Session(session) => {
@@ -54,7 +55,7 @@ impl SessionManager {
                     }
                     SessionSignal::Kill => {
                         // Kill the session manager
-                        log::trace!("SessionManager - Kill signal received");
+                        log::trace!(target: LOG_TAG, "Kill signal received");
                         return Ok(());
                     }
                 }
@@ -70,7 +71,7 @@ impl SessionManager {
         // Push the session into the SessionManager
         self.tx.send(session)?;
 
-        log::trace!("SessionManager - SessionSignal pushed");
+        log::trace!(target: LOG_TAG, "SessionSignal pushed");
 
         Ok(())
     }
@@ -96,8 +97,17 @@ impl Session {
     /// let until = 154065120;
     /// let session = Session::new(until, config, report)?;
     /// ```
-    pub fn new(until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
-        log::info!("Session - Creating Session");
+    pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
+        log::info!(target: LOG_TAG, "Creating Session");
+        // Session interrupted (0 signal), determine the time
+        if until == 0 {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_secs();
+            until = now
+                .checked_add(10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap())
+                .unwrap();
+        }
 
         // get_time_range should be used with "from". We balance this by reducing
         // 10s from the returned range.
@@ -121,7 +131,7 @@ impl Session {
     /// session.send()?;
     /// ```
     pub fn send(self) -> Result<()> {
-        log::info!("Session - Sending Session {} - {}", self.from, self.until);
+        log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
         // Check if the report is empty
         if self.report.is_empty() {
