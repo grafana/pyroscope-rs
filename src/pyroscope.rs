@@ -44,7 +44,7 @@ impl PyroscopeConfig {
     /// ```ignore
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
     /// ```
-    pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
+    pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
             url: url.as_ref().to_owned(),
             application_name: application_name.as_ref().to_owned(),
@@ -117,7 +117,7 @@ impl PyroscopeAgentBuilder {
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
     /// ```
-    pub fn new<S: AsRef<str>>(url: S, application_name: S) -> Self {
+    pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
             backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
             config: PyroscopeConfig::new(url, application_name),
@@ -132,10 +132,8 @@ impl PyroscopeAgentBuilder {
     /// .build()
     /// .unwrap();
     /// ```
-    pub fn backend<T: 'static>(self, backend: T) -> Self
-    where
-        T: Backend,
-    {
+    pub fn backend<T>(self, backend: T) -> Self
+        where T: 'static + Backend {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -366,7 +364,7 @@ impl PyroscopeAgent {
     /// agent.start();
     /// // Expensive operation
     /// agent.stop();
-    /// ```   
+    /// ```
     pub fn stop(&mut self) {
         match self._stop() {
             Ok(_) => log::trace!("PyroscopeAgent - Agent stopped"),
