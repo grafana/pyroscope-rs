@@ -60,10 +60,7 @@ impl Timer {
                 // Iterate through Senders
                 txs.lock()?.iter().for_each(|tx| {
                     // Send event to attached Sender
-                    match tx.send(current) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    }
+                    let _res = tx.send(current);
                 });
 
                 // Sleep for 10s

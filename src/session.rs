@@ -94,7 +94,7 @@ impl Session {
     /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app");
     /// let report = vec![1, 2, 3];
     /// let until = 154065120;
-    /// let session = Session::new(until, config, report).unwrap();
+    /// let session = Session::new(until, config, report)?;
     /// ```
     pub fn new(until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
         log::info!("Session - Creating Session");
@@ -117,8 +117,8 @@ impl Session {
     /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app");
     /// let report = vec![1, 2, 3];
     /// let until = 154065120;
-    /// let session = Session::new(until, config, report).unwrap();
-    /// session.send().unwrap();
+    /// let session = Session::new(until, config, report)?;
+    /// session.send()?;
     /// ```
     pub fn send(self) -> Result<()> {
         log::info!("Session - Sending Session {} - {}", self.from, self.until);

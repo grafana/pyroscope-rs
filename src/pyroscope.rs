@@ -342,7 +342,11 @@ impl PyroscopeAgent {
     fn _stop(&mut self) -> Result<()> {
         log::debug!("PyroscopeAgent - Stopping");
         // get tx and send termination signal
-        self.tx.take().unwrap().send(0)?;
+        if let Some(sender) = self.tx.take() {
+            sender.send(0)?;
+        } else {
+            log::error!("PyroscopeAgent - Missing sender")
+        }
 
         // Wait for the Thread to finish
         let pair = Arc::clone(&self.running);
@@ -360,8 +364,8 @@ impl PyroscopeAgent {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
+    /// agent.start()?;
     /// // Expensive operation
     /// agent.stop();
     /// ```
@@ -375,12 +379,12 @@ impl PyroscopeAgent {
     /// Add tags. This will restart the agent.
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
-    /// agent.start();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
+    /// agent.start()?;
     /// // Expensive operation
-    /// agent.add_tags(vec![("tag", "value")]).unwrap();
+    /// agent.add_tags(vec!["tag", "value"])?;
     /// // Tagged operation
-    /// agent.stop();
+    /// agent.stop()?;
     /// ```
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
         log::debug!("PyroscopeAgent - Adding tags");
@@ -411,14 +415,20 @@ impl PyroscopeAgent {
     /// Remove tags. This will restart the agent.
     /// # Example
     /// ```ignore
+    /// # use pyroscope::*;
+    /// # use std::result;
+    /// # fn main() -> result::Result<(), error::PyroscopeError> {
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app")
     /// .tags(vec![("tag", "value")])
-    /// .build().unwrap();
-    /// agent.start();
+    /// .build()?;
+    /// agent.start()?;
     /// // Expensive operation
-    /// agent.remove_tags(vec!["tag"]).unwrap();
+    /// agent.remove_tags(vec!["tag"])?;
     /// // Un-Tagged operation
-    /// agent.stop();
+    /// agent.stop()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
         log::debug!("PyroscopeAgent - Removing tags");
 
