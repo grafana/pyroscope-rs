@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use super::error::{BackendError, Result};
 use super::types::{Backend, State};
 
@@ -55,7 +49,7 @@ impl Backend for Rbspy {
         //self.recorder = Some(Arc::new(Recorder::new(config)));
         //println!("humhum");
 
-        self.sampler = Some(Sampler::new(973023, 100, true, None, true));
+        self.sampler = Some(Sampler::new(28636, 100, true, None, false));
 
         Ok(())
     }
