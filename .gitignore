@@ -3,7 +3,7 @@ Cargo.lock
 **/*.rs.bk
 .cache
 .DS_Store
-
+.vscode
 flamegraph.svg
 perf.data
 perf.data.*
