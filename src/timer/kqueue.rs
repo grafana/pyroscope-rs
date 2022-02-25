@@ -58,7 +58,6 @@ impl Timer {
                     return Ok(());
                 }
 
-
                 // Get current time
                 let from = get_time_range(0)?.from;
 

@@ -3,7 +3,7 @@ use pyroscope::timer::Timer;
 #[test]
 fn test_timer() {
     // Initialize Timer
-    let mut timer = Timer::default().initialize().unwrap();
+    let mut timer = Timer::initialize().unwrap();
 
     // Attach a listener
     let (tx, rx) = std::sync::mpsc::channel();

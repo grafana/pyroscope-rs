@@ -26,7 +26,7 @@ pub enum SessionSignal {
 #[derive(Debug)]
 pub struct SessionManager {
     /// The SessionManager thread.
-    pub handle: Option<JoinHandle<Result<()>>>,
+    pub handle: JoinHandle<Result<()>>,
     /// Channel to send data to the SessionManager thread.
     pub tx: SyncSender<SessionSignal>,
 }
@@ -40,7 +40,7 @@ impl SessionManager {
         let (tx, rx): (SyncSender<SessionSignal>, Receiver<SessionSignal>) = sync_channel(10);
 
         // Create a thread for the SessionManager
-        let handle = Some(thread::spawn(move || {
+        let handle = thread::spawn(move || {
             log::trace!(target: LOG_TAG, "Started");
             while let Ok(signal) = rx.recv() {
                 match signal {
@@ -61,7 +61,7 @@ impl SessionManager {
                 }
             }
             Ok(())
-        }));
+        });
 
         Ok(SessionManager { handle, tx })
     }
@@ -84,7 +84,9 @@ impl SessionManager {
 pub struct Session {
     pub config: PyroscopeConfig,
     pub report: Vec<u8>,
+    // unix time
     pub from: u64,
+    // unix time
     pub until: u64,
 }
 
@@ -131,7 +133,12 @@ impl Session {
     /// session.send()?;
     /// ```
     pub fn send(self) -> Result<()> {
-        log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
+        log::info!(
+            target: LOG_TAG,
+            "Sending Session: {} - {}",
+            self.from,
+            self.until
+        );
 
         // Check if the report is empty
         if self.report.is_empty() {
