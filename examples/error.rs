@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::PyroscopeAgent;
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -9,16 +9,14 @@ fn fibonacci(n: u64) -> u64 {
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + 'static>> {
     // Force rustc to display the log messages in the console.
     std::env::set_var("RUST_LOG", "trace");
 
     // Initialize the logger.
     pretty_env_logger::init_timed();
 
-    let mut agent = PyroscopeAgent::builder("http://invalid_url", "example.error")
-        .build()
-        .unwrap();
+    let mut agent = PyroscopeAgent::builder("http://invalid_url", "example.error").build()?;
     // Start Agent
     agent.start();
 

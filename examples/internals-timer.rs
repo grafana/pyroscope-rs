@@ -5,9 +5,9 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use pyroscope::timer::Timer;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + 'static>> {
     // Initialize the Timer
-    let mut timer = Timer::default().initialize().unwrap();
+    let mut timer = Timer::initialize()?;
 
     // Create a streaming channel
     let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
@@ -15,13 +15,12 @@ fn main() {
     let (tx2, rx2): (Sender<u64>, Receiver<u64>) = channel();
 
     // Attach tx to Timer
-    timer.attach_listener(tx).unwrap();
-    timer.attach_listener(tx2).unwrap();
+    timer.attach_listener(tx)?;
+    timer.attach_listener(tx2)?;
 
     // Show current time
     let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     println!("Current Time: {}", now);
 
@@ -51,6 +50,5 @@ fn main() {
             }
         }
     })
-    .join()
-    .unwrap();
+    .join()?;
 }

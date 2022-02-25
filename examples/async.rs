@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::PyroscopeAgent;
 
 fn fibonacci1(n: u64) -> u64 {
     match n {
@@ -17,7 +17,7 @@ fn fibonacci2(n: u64) -> u64 {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + 'static>> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.async")
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
@@ -29,15 +29,13 @@ async fn main() -> Result<()> {
         let n = fibonacci1(45);
         println!("Thread 1: {}", n);
     })
-    .await
-    .unwrap();
+    .await?;
 
     tokio::task::spawn(async {
         let n = fibonacci2(45);
         println!("Thread 2: {}", n);
     })
-    .await
-    .unwrap();
+    .await?;
 
     // Stop Agent
     agent.stop();

@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::PyroscopeAgent;
 
 use std::thread;
 
@@ -18,7 +18,7 @@ fn fibonacci2(n: u64) -> u64 {
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + 'static>> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
         .sample_rate(100)
         .build()?;
@@ -35,8 +35,8 @@ fn main() -> Result<()> {
     });
 
     // Wait for the threads to complete
-    handle_1.join().unwrap();
-    handle_2.join().unwrap();
+    handle_1.join()?;
+    handle_2.join()?;
 
     // Stop Agent
     agent.stop();

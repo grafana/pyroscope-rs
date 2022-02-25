@@ -2,7 +2,6 @@ extern crate pyroscope;
 
 use pyroscope::backends::pprof::Pprof;
 use pyroscope::backends::Backend;
-use pyroscope::Result;
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -11,14 +10,14 @@ fn fibonacci(n: u64) -> u64 {
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + 'static>> {
     let mut backend = Pprof::default();
     backend.initialize(100)?;
     backend.start()?;
 
     fibonacci(45);
     let report = backend.report()?;
-    println!("{}", std::str::from_utf8(&report).unwrap());
+    println!("{}", std::str::from_utf8(&report)?);
 
     backend.stop()?;
 

@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::PyroscopeAgent;
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -9,15 +9,14 @@ fn fibonacci(n: u64) -> u64 {
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + 'static>> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.basic")
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
 
     // Show start time
     let start = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     println!("Start Time: {}", start);
 
@@ -28,8 +27,7 @@ fn main() -> Result<()> {
 
     // Show stop time
     let stop = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     println!("Stop Time: {}", stop);
 
@@ -40,8 +38,7 @@ fn main() -> Result<()> {
 
     // Show program exit time
     let exit = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     println!("Exit Time: {}", exit);
 
