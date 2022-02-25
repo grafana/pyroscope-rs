@@ -63,7 +63,7 @@ impl PyroscopeConfig {
     /// ```ignore
     /// let mut config = PyroscopeConfig::new("http://localhost:8080", "my-app");
     /// config.set_sample_rate(10)
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
@@ -77,8 +77,7 @@ impl PyroscopeConfig {
     /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeConfig;
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
-    ///    .tags(vec![("env", "dev")])
-    ///    .unwrap();
+    ///    .tags(vec![("env", "dev")])?;
     /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
@@ -105,7 +104,7 @@ impl PyroscopeConfig {
 /// ```ignore
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
-/// let agent = builder.build().unwrap();
+/// let agent = builder.build()?;
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
@@ -135,7 +134,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .backend(Pprof::default())
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn backend<T>(self, backend: T) -> Self
         where T: 'static + Backend {
@@ -151,7 +150,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .sample_rate(99)
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
@@ -166,7 +165,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .tags(vec![("env", "dev")])
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         Self {
@@ -263,7 +262,7 @@ impl PyroscopeAgent {
     ///
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
     /// ```
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
@@ -329,7 +328,7 @@ impl PyroscopeAgent {
     /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
     /// agent.start();
     /// ```
     pub fn start(&mut self) {
