@@ -34,10 +34,23 @@ impl Backend for Pyspy {
 
         std::thread::spawn(move || {
             let mut config = Config::default();
-            config.subprocesses = true;
-            let sampler = Sampler::new(1508076, &config).unwrap();
+            dbg!(&config);
+            config.subprocesses = false;
+            config.native = false;
+            config.blocking = py_spy::config::LockingStrategy::Lock;
+            config.gil_only = false;
+            config.include_idle = false;
+            let sampler = Sampler::new(1975975, &config).unwrap();
             for sample in sampler {
                 for trace in sample.traces {
+                    if !(config.include_idle || trace.active) {
+                        continue;
+                    }
+
+                    if config.gil_only && !trace.owns_gil {
+                        continue;
+                    }
+
                     let frame = trace
                         .frames
                         .iter()
