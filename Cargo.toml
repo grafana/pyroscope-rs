@@ -12,6 +12,10 @@ homepage = "https://pyroscope.io"
 documentation  = "https://docs.rs/pyroscope"
 repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 
 [lib]
 name = "pyroscope_ffi"
@@ -21,6 +25,13 @@ crate-type = ["cdylib"]
 members = [
     "pyroscope_backends"
 ]
+exclude = [
+    "pyroscope_cli"
+]
+
+[[bin]]
+name = "pyroscope-cli"
+path = "pyroscope_cli/src/main.rs"
 
 [dependencies]
 pyroscope_backends = {path = "pyroscope_backends"}
