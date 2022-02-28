@@ -14,6 +14,8 @@ use crate::{
     timer::Timer,
 };
 
+const LOG_TAG: &str = "Pyroscope::Agent";
+
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 /// # Example
 /// ```
@@ -58,7 +60,7 @@ impl PyroscopeConfig {
     /// ```ignore
     /// let mut config = PyroscopeConfig::new("http://localhost:8080", "my-app");
     /// config.set_sample_rate(10)
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
@@ -72,8 +74,7 @@ impl PyroscopeConfig {
     /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeConfig;
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
-    ///    .tags(vec![("env", "dev")])
-    ///    .unwrap();
+    ///    .tags(vec![("env", "dev")])?;
     /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
@@ -100,7 +101,7 @@ impl PyroscopeConfig {
 /// ```ignore
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
-/// let agent = builder.build().unwrap();
+/// let agent = builder.build()?;
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
@@ -130,7 +131,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .backend(Pprof::default())
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn backend<T>(self, backend: T) -> Self
         where T: 'static + Backend {
@@ -146,7 +147,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .sample_rate(99)
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
@@ -161,7 +162,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .tags(vec![("env", "dev")])
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         Self {
@@ -175,15 +176,15 @@ impl PyroscopeAgentBuilder {
         // Initiliaze the backend
         let backend = Arc::clone(&self.backend);
         backend.lock()?.initialize(self.config.sample_rate)?;
-        log::trace!("PyroscopeAgent - Backend initialized");
+        log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start Timer
         let timer = Timer::default().initialize()?;
-        log::trace!("PyroscopeAgent - Timer initialized");
+        log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
         let session_manager = SessionManager::new()?;
-        log::trace!("PyroscopeAgent - SessionManager initialized");
+        log::trace!(target: LOG_TAG, "SessionManager initialized");
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
@@ -217,44 +218,45 @@ pub struct PyroscopeAgent {
 impl Drop for PyroscopeAgent {
     /// Properly shutdown the agent.
     fn drop(&mut self) {
-        log::debug!("PyroscopeAgent - Dropping Agent");
+        log::debug!(target: LOG_TAG, "PyroscopeAgent::drop()");
 
         // Drop Timer listeners
         match self.timer.drop_listeners() {
-            Ok(_) => log::trace!("PyroscopeAgent - Dropped timer listeners"),
-            Err(_) => log::error!("PyroscopeAgent - Error Dropping timer listeners"),
+            Ok(_) => log::trace!(target: LOG_TAG, "Dropped timer listeners"),
+            Err(_) => log::error!(target: LOG_TAG, "Error Dropping timer listeners"),
         }
 
         // Wait for the Timer thread to finish
         if let Some(handle) = self.timer.handle.take() {
             match handle.join() {
-                Ok(_) => log::trace!("PyroscopeAgent - Dropped timer thread"),
-                Err(_) => log::error!("PyroscopeAgent - Error Dropping timer thread"),
+                Ok(_) => log::trace!(target: LOG_TAG, "Dropped timer thread"),
+                Err(_) => log::error!(target: LOG_TAG, "Error Dropping timer thread"),
             }
         }
 
         // Stop the SessionManager
         match self.session_manager.push(SessionSignal::Kill) {
-            Ok(_) => log::trace!("PyroscopeAgent - Sent kill signal to SessionManager"),
-            Err(_) => log::error!("PyroscopeAgent - Error sending kill signal to SessionManager"),
+            Ok(_) => log::trace!(target: LOG_TAG, "Sent kill signal to SessionManager"),
+            Err(_) => log::error!(target: LOG_TAG, "Error sending kill signal to SessionManager"),
         }
 
         if let Some(handle) = self.session_manager.handle.take() {
             match handle.join() {
-                Ok(_) => log::trace!("PyroscopeAgent - Dropped SessionManager thread"),
-                Err(_) => log::error!("PyroscopeAgent - Error Dropping SessionManager thread"),
+                Ok(_) => log::trace!(target: LOG_TAG, "Dropped SessionManager thread"),
+                Err(_) => log::error!(target: LOG_TAG, "Error Dropping SessionManager thread"),
             }
         }
 
         // Wait for main thread to finish
+
         if let Some(handle) = self.handle.take() {
             match handle.join() {
-                Ok(_) => log::trace!("PyroscopeAgent - Dropped main thread"),
-                Err(_) => log::error!("PyroscopeAgent - Error Dropping main thread"),
+                Ok(_) => log::trace!(target: LOG_TAG, "Dropped main thread"),
+                Err(_) => log::error!(target: LOG_TAG, "Error Dropping main thread"),
             }
         }
 
-        log::debug!("PyroscopeAgent - Agent Dropped");
+        log::debug!(target:  LOG_TAG, "Agent Dropped");
     }
 }
 
@@ -263,7 +265,7 @@ impl PyroscopeAgent {
     ///
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
     /// ```
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
@@ -271,7 +273,7 @@ impl PyroscopeAgent {
     }
 
     fn _start(&mut self) -> Result<()> {
-        log::debug!("PyroscopeAgent - Starting");
+        log::debug!(target: LOG_TAG, "Starting");
 
         // Create a clone of Backend
         let backend = Arc::clone(&self.backend);
@@ -294,10 +296,10 @@ impl PyroscopeAgent {
         let stx = self.session_manager.tx.clone();
 
         self.handle = Some(std::thread::spawn(move || {
-            log::trace!("PyroscopeAgent - Main Thread started");
+            log::trace!(target: LOG_TAG, "Main Thread started");
 
             while let Ok(until) = rx.recv() {
-                log::trace!("PyroscopeAgent - Sending session {}", until);
+                log::trace!(target: LOG_TAG, "Sending session {}", until);
 
                 // Generate report from backend
                 let report = backend.lock()?.report()?;
@@ -310,7 +312,7 @@ impl PyroscopeAgent {
                 )?))?;
 
                 if until == 0 {
-                    log::trace!("PyroscopeAgent - Session Killed");
+                    log::trace!(target: LOG_TAG, "Session Killed");
 
                     let (lock, cvar) = &*pair;
                     let mut running = lock.lock()?;
@@ -329,18 +331,18 @@ impl PyroscopeAgent {
     /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
     /// agent.start();
     /// ```
     pub fn start(&mut self) {
         match self._start() {
-            Ok(_) => log::trace!("PyroscopeAgent - Agent started"),
-            Err(_) => log::error!("PyroscopeAgent - Error starting agent"),
+            Ok(_) => log::trace!(target: LOG_TAG, "Agent started"),
+            Err(_) => log::error!(target: LOG_TAG, "Error starting agent"),
         }
     }
 
     fn _stop(&mut self) -> Result<()> {
-        log::debug!("PyroscopeAgent - Stopping");
+        log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
             sender.send(0)?;
@@ -371,8 +373,8 @@ impl PyroscopeAgent {
     /// ```
     pub fn stop(&mut self) {
         match self._stop() {
-            Ok(_) => log::trace!("PyroscopeAgent - Agent stopped"),
-            Err(_) => log::error!("PyroscopeAgent - Error stopping agent"),
+            Ok(_) => log::trace!(target: LOG_TAG, "Agent stopped"),
+            Err(_) => log::error!(target: LOG_TAG, "Error stopping agent"),
         }
     }
 
@@ -387,7 +389,7 @@ impl PyroscopeAgent {
     /// agent.stop()?;
     /// ```
     pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
-        log::debug!("PyroscopeAgent - Adding tags");
+        log::debug!(target: LOG_TAG, "Adding tags");
         // Check that tags are not empty
         if tags.is_empty() {
             return Ok(());
@@ -430,7 +432,7 @@ impl PyroscopeAgent {
     /// # }
     /// ```
     pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
-        log::debug!("PyroscopeAgent - Removing tags");
+        log::debug!(target: LOG_TAG, "Removing tags");
 
         // Check that tags are not empty
         if tags.is_empty() {
