@@ -63,7 +63,7 @@ impl PyroscopeConfig {
     /// ```ignore
     /// let mut config = PyroscopeConfig::new("http://localhost:8080", "my-app");
     /// config.set_sample_rate(10)
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
@@ -77,8 +77,7 @@ impl PyroscopeConfig {
     /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeConfig;
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
-    ///    .tags(vec![("env", "dev")])
-    ///    .unwrap();
+    ///    .tags(vec![("env", "dev")])?;
     /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
@@ -105,7 +104,7 @@ impl PyroscopeConfig {
 /// ```ignore
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
-/// let agent = builder.build().unwrap();
+/// let agent = builder.build()?;
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
@@ -135,7 +134,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .backend(Pprof::default())
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn backend<T>(self, backend: T) -> Self
         where T: 'static + Backend {
@@ -151,7 +150,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .sample_rate(99)
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
@@ -166,7 +165,7 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .tags(vec![("env", "dev")])
     /// .build()
-    /// .unwrap();
+    /// ?;
     /// ```
     pub fn tags(self, tags: &[(&str, &str)]) -> Self {
         Self {
@@ -231,9 +230,11 @@ impl Drop for PyroscopeAgent {
         }
 
         // Wait for the Timer thread to finish
-        match self.timer.handle.take().unwrap().join() {
-            Ok(_) => log::trace!(target: LOG_TAG, "Dropped timer thread"),
-            Err(_) => log::error!(target: LOG_TAG, "Error Dropping timer thread"),
+        if let Some(handle) = self.timer.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!(target: LOG_TAG, "Dropped timer thread"),
+                Err(_) => log::error!(target: LOG_TAG, "Error Dropping timer thread"),
+            }
         }
 
         // Stop the SessionManager
@@ -242,16 +243,20 @@ impl Drop for PyroscopeAgent {
             Err(_) => log::error!(target: LOG_TAG, "Error sending kill signal to SessionManager"),
         }
 
-        // Stop SessionManager
-        match self.session_manager.handle.take().unwrap().join() {
-            Ok(_) => log::trace!(target: LOG_TAG, "Dropped SessionManager thread"),
-            Err(_) => log::error!(target: LOG_TAG, "Error Dropping SessionManager thread"),
+        if let Some(handle) = self.session_manager.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!(target: LOG_TAG, "Dropped SessionManager thread"),
+                Err(_) => log::error!(target: LOG_TAG, "Error Dropping SessionManager thread"),
+            }
         }
 
         // Wait for main thread to finish
-        match self.handle.take().unwrap().join() {
-            Ok(_) => log::trace!(target: LOG_TAG, "Dropped main thread"),
-            Err(_) => log::error!(target: LOG_TAG, "Error Dropping main thread"),
+
+        if let Some(handle) = self.handle.take() {
+            match handle.join() {
+                Ok(_) => log::trace!(target: LOG_TAG, "Dropped main thread"),
+                Err(_) => log::error!(target: LOG_TAG, "Error Dropping main thread"),
+            }
         }
 
         log::debug!(target:  LOG_TAG, "Agent Dropped");
@@ -263,7 +268,7 @@ impl PyroscopeAgent {
     ///
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
     /// ```
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
@@ -296,20 +301,20 @@ impl PyroscopeAgent {
         self.handle = Some(std::thread::spawn(move || {
             log::trace!(target: LOG_TAG, "Main Thread started");
 
-            while let Ok(time) = rx.recv() {
-                log::trace!(target: LOG_TAG, "Sending session {}", time);
+            while let Ok(until) = rx.recv() {
+                log::trace!(target: LOG_TAG, "Sending session {}", until);
 
                 // Generate report from backend
                 let report = backend.lock()?.report()?;
 
                 // Send new Session to SessionManager
                 stx.send(SessionSignal::Session(Session::new(
-                    time,
+                    until,
                     config.clone(),
                     report,
                 )?))?;
 
-                if time == 0 {
+                if until == 0 {
                     log::trace!(target: LOG_TAG, "Session Killed");
 
                     let (lock, cvar) = &*pair;
@@ -329,7 +334,7 @@ impl PyroscopeAgent {
     /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
     /// # Example
     /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build().unwrap();
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
     /// agent.start();
     /// ```
     pub fn start(&mut self) {
