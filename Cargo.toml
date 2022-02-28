@@ -17,16 +17,13 @@ autoexamples = false
 autotests = false
 autobenches = false
 
-[lib]
-name = "pyroscope_ffi"
-crate-type = ["cdylib"]
-
 [workspace]
 members = [
     "pyroscope_backends"
 ]
 exclude = [
-    "pyroscope_cli"
+    "pyroscope_cli",
+    "pyroscope_ffi",
 ]
 
 [[bin]]

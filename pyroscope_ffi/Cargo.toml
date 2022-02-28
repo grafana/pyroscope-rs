@@ -1,0 +1,10 @@
+[package]
+name = "pyroscope_ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "pyroscope_ffi"
+crate-type = ["cdylib"]
+
+[dependencies]
