@@ -1,7 +1,17 @@
 [package]
 name = "pyroscope_cli"
-version = "0.1.0"
+description = """
+Pyroscope Profiler CLI
+"""
+keywords = ["pyroscope", "profiler", "cli"]
+authors = ["Abid Omar <contact@omarabid.com>"]
+version = "0.4.0"
 edition = "2021"
+license = "Apache-2.0"
+homepage = "https://pyroscope.io"
+documentation  = "https://docs.rs/pyroscope"
+repository = "https://github.com/pyroscope-io/pyroscope-rs"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
