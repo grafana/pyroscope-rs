@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 /// Result Alias with PyroscopeError
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
@@ -15,7 +9,11 @@ pub enum PyroscopeError {
     AdHoc(String),
 
     #[error("{msg}: {source:?}")]
-    Compat{ msg: String, #[source] source: Box<dyn std::error::Error + Send + Sync + 'static> },
+    Compat {
+        msg: String,
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync + 'static>,
+    },
 
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
@@ -28,6 +26,9 @@ pub enum PyroscopeError {
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    BackendError(#[from] pyroscope_backends::error::BackendError),
 }
 
 impl PyroscopeError {
@@ -37,7 +38,10 @@ impl PyroscopeError {
     }
 
     /// Create a new instance of PyroscopeError with source
-    pub fn new_with_source<E>(msg: &str, source: E) -> Self where E: std::error::Error + Send + Sync + 'static {
+    pub fn new_with_source<E>(msg: &str, source: E) -> Self
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
         PyroscopeError::Compat {
             msg: msg.to_string(),
             source: Box::new(source),
