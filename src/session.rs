@@ -97,17 +97,8 @@ impl Session {
     /// let until = 154065120;
     /// let session = Session::new(until, config, report)?;
     /// ```
-    pub fn new(mut until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
+    pub fn new(until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
         log::info!(target: LOG_TAG, "Creating Session");
-        // Session interrupted (0 signal), determine the time
-        if until == 0 {
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)?
-                .as_secs();
-            until = now
-                .checked_add(10u64.checked_sub(now.checked_rem(10).unwrap()).unwrap())
-                .unwrap();
-        }
 
         // get_time_range should be used with "from". We balance this by reducing
         // 10s from the returned range.
