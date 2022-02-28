@@ -1,5 +1,5 @@
 [package]
-name = "pyroscope_cli"
+name = "pyroscope-cli"
 description = """
 Pyroscope Profiler CLI
 """

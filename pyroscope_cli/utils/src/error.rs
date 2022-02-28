@@ -45,3 +45,9 @@ impl Error {
         }
     }
 }
+
+impl<T> From<std::sync::PoisonError<T>> for Error {
+    fn from(_err: std::sync::PoisonError<T>) -> Self {
+        Error::AdHoc("Poison Error".to_owned())
+    }
+}
