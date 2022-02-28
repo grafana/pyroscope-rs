@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{
-        mpsc::{channel, Receiver, Sender},
+        mpsc::{self, Sender},
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
@@ -15,6 +15,28 @@ use crate::{
 };
 
 const LOG_TAG: &str = "Pyroscope::Agent";
+
+
+/// A signal sent from the agent to the timer.
+///
+/// Either schedules another wake-up, or asks
+/// the timer thread to terminate.
+#[derive(Debug, Clone, Copy)]
+pub enum AgentSignal {
+    // Thread termination was requested.
+    Terminate,
+    // When to take the next snapshot using the `Backend`.
+    NextSnapshot(u64),
+}
+
+impl std::fmt::Display for AgentSignal {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Terminate => write!(f, "Terminate"),
+            Self::NextSnapshot(when) => write!(f, "NextSnapshot({})", when),
+        }
+    }
+}
 
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 /// # Example
@@ -32,6 +54,8 @@ pub struct PyroscopeConfig {
     pub tags: HashMap<String, String>,
     /// Sample rate used in Hz
     pub sample_rate: i32,
+    /// How long to accumulate data for before sending it upstream
+    pub accumulation_cycle: std::time::Duration,
     // TODO
     // log_level
     // auth_token
@@ -52,6 +76,7 @@ impl PyroscopeConfig {
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
             sample_rate: 100i32,
+            accumulation_cycle: std::time::Duration::from_secs(10),
         }
     }
 
@@ -65,6 +90,26 @@ impl PyroscopeConfig {
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             sample_rate,
+            ..self
+        }
+    }
+
+    /// Override the accumulation cycle.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # fn main() -> Result<(), PyroscopeError> {
+    /// use std::time::Duration;
+    /// use pyroscope::pyroscope::PyroscopeConfig;
+    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
+    ///    .accumulation_cycle(Duration::from_millis(4587))?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn accumulation_cycle(self, accumulation_cycle: std::time::Duration) -> Self {
+        Self {
+            accumulation_cycle,
             ..self
         }
     }
@@ -134,7 +179,9 @@ impl PyroscopeAgentBuilder {
     /// ?;
     /// ```
     pub fn backend<T>(self, backend: T) -> Self
-        where T: 'static + Backend {
+    where
+        T: 'static + Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -145,13 +192,35 @@ impl PyroscopeAgentBuilder {
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .sample_rate(99)
+    /// .sample_rate(113)
     /// .build()
     /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             config: self.config.sample_rate(sample_rate),
+            ..self
+        }
+    }
+
+    /// Set the accumulation cycle. Default value is 10 seconds.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # fn main() -> Result<(), PyroscopeError> {
+    /// use std::time::Duration;
+    ///
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .accumulation_cycle(Duration::from_secs(3))
+    /// .build()
+    /// ?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn accumulation_cycle(self, acc_cycle: impl Into<std::time::Duration>) -> Self {
+        Self {
+            config: self.config.accumulation_cycle(acc_cycle.into()),
             ..self
         }
     }
@@ -179,7 +248,7 @@ impl PyroscopeAgentBuilder {
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start Timer
-        let timer = Timer::default().initialize()?;
+        let timer = Timer::initialize(self.config.accumulation_cycle.clone())?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
@@ -204,7 +273,7 @@ impl PyroscopeAgentBuilder {
 pub struct PyroscopeAgent {
     timer: Timer,
     session_manager: SessionManager,
-    tx: Option<Sender<u64>>,
+    tx: Option<Sender<AgentSignal>>,
     handle: Option<JoinHandle<Result<()>>>,
     running: Arc<(Mutex<bool>, Condvar)>,
 
@@ -287,7 +356,7 @@ impl PyroscopeAgent {
         *running = true;
         drop(running);
 
-        let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
+        let (tx, rx) = mpsc::channel();
         self.timer.attach_listener(tx.clone())?;
         self.tx = Some(tx);
 
@@ -298,28 +367,31 @@ impl PyroscopeAgent {
         self.handle = Some(std::thread::spawn(move || {
             log::trace!(target: LOG_TAG, "Main Thread started");
 
-            while let Ok(until) = rx.recv() {
-                log::trace!(target: LOG_TAG, "Sending session {}", until);
+            while let Ok(signal) = rx.recv() {
+                match signal {
+                    AgentSignal::NextSnapshot(until) => {
+                        log::trace!(target: LOG_TAG, "Sending session {}", until);
 
-                // Generate report from backend
-                let report = backend.lock()?.report()?;
+                        // Generate report from backend
+                        let report = backend.lock()?.report()?;
 
-                // Send new Session to SessionManager
-                stx.send(SessionSignal::Session(Session::new(
-                    until,
-                    config.clone(),
-                    report,
-                )?))?;
+                        // Send new Session to SessionManager
+                        stx.send(SessionSignal::Session(Session::new(
+                            until,
+                            config.clone(),
+                            report,
+                        )?))?
+                    }
+                    AgentSignal::Terminate => {
+                        log::trace!(target: LOG_TAG, "Session Killed");
 
-                if until == 0 {
-                    log::trace!(target: LOG_TAG, "Session Killed");
+                        let (lock, cvar) = &*pair;
+                        let mut running = lock.lock()?;
+                        *running = false;
+                        cvar.notify_one();
 
-                    let (lock, cvar) = &*pair;
-                    let mut running = lock.lock()?;
-                    *running = false;
-                    cvar.notify_one();
-
-                    return Ok(());
+                        return Ok(());
+                    }
                 }
             }
             Ok(())
@@ -345,7 +417,9 @@ impl PyroscopeAgent {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
-            sender.send(0)?;
+            // best effort
+            let _ = sender.send(AgentSignal::NextSnapshot(0));
+            sender.send(AgentSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")
         }

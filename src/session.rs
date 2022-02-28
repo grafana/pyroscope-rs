@@ -84,7 +84,9 @@ impl SessionManager {
 pub struct Session {
     pub config: PyroscopeConfig,
     pub report: Vec<u8>,
+    // unix time
     pub from: u64,
+    // unix time
     pub until: u64,
 }
 

@@ -4,12 +4,14 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::pyroscope::AgentSignal;
 use crate::utils::check_err;
 use crate::utils::get_time_range;
+use crate::PyroscopeError;
 use crate::Result;
 
 use std::sync::{
-    mpsc::{channel, Receiver, Sender},
+    mpsc::{channel, Sender},
     Arc, Mutex,
 };
 use std::{thread, thread::JoinHandle};
@@ -22,10 +24,10 @@ use std::{thread, thread::JoinHandle};
 /// The Timer thread will run continously until all Senders are dropped.
 /// The Timer thread will be joined when all Senders are dropped.
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Timer {
     /// A vector to store listeners (mpsc::Sender)
-    txs: Arc<Mutex<Vec<Sender<u64>>>>,
+    txs: Arc<Mutex<Vec<Sender<AgentSignal>>>>,
 
     /// Thread handle
     pub handle: Option<JoinHandle<Result<()>>>,
@@ -33,46 +35,48 @@ pub struct Timer {
 
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
-    pub fn initialize(self) -> Result<Self> {
-        let txs = Arc::clone(&self.txs);
+    pub fn initialize(cycle: std::time::Duration) -> Result<Self> {
+        let txs = Arc::new(Mutex::new(Vec::new()));
 
-        // Add Default tx
-        let (tx, _rx): (Sender<u64>, Receiver<u64>) = channel();
+        // Add a dummy tx so the below thread does not terminate early
+        let (tx, _rx) = channel();
         txs.lock()?.push(tx);
 
-        let timer_fd = Timer::set_timerfd()?;
+        let timer_fd = Timer::set_timerfd(cycle)?;
         let epoll_fd = Timer::create_epollfd(timer_fd)?;
 
-        let handle = Some(thread::spawn(move || {
-            loop {
-                // Exit thread if there are no listeners
-                if txs.lock()?.len() == 0 {
-                    // Close file descriptors
-                    unsafe { libc::close(timer_fd) };
-                    unsafe { libc::close(epoll_fd) };
+        let handle = Some({
+            let txs = txs.clone();
+            thread::spawn(move || {
+                loop {
+                    // Exit thread if there are no listeners
+                    if txs.lock()?.is_empty() {
+                        // Close file descriptors
+                        unsafe { libc::close(timer_fd) };
+                        unsafe { libc::close(epoll_fd) };
+                        return Ok::<_, PyroscopeError>(());
+                    }
 
-                    return Ok(());
+                    // Fire @ 10th sec
+                    Timer::epoll_wait(timer_fd, epoll_fd)?;
+
+                    // Get the current time range
+                    let from = AgentSignal::NextSnapshot(get_time_range(0)?.from);
+
+                    // Iterate through Senders
+                    txs.lock()?.iter().for_each(|tx| {
+                        // Send event to attached Sender
+                        if tx.send(from).is_ok() {}
+                    });
                 }
+            })
+        });
 
-                // Fire @ 10th sec
-                Timer::epoll_wait(timer_fd, epoll_fd)?;
-
-                // Get the current time range
-                let from = get_time_range(0)?.from;
-
-                // Iterate through Senders
-                txs.lock()?.iter().for_each(|tx| {
-                    // Send event to attached Sender
-                    if tx.send(from).is_ok() {}
-                });
-            }
-        }));
-
-        Ok(Self { handle, ..self })
+        Ok(Self { handle, txs })
     }
 
     /// create and set a timer file descriptor
-    fn set_timerfd() -> Result<libc::c_int> {
+    fn set_timerfd(cycle: std::time::Duration) -> Result<libc::c_int> {
         // Set the timer to use the system time.
         let clockid: libc::clockid_t = libc::CLOCK_REALTIME;
         // Non-blocking file descriptor
@@ -87,8 +91,8 @@ impl Timer {
         // new_value sets the Timer
         let mut new_value = libc::itimerspec {
             it_interval: libc::timespec {
-                tv_sec: 10,
-                tv_nsec: 0,
+                tv_sec: cycle.as_secs() as i64,
+                tv_nsec: cycle.subsec_nanos() as i64,
             },
             it_value: libc::timespec {
                 tv_sec: first_fire as i64,
@@ -161,7 +165,7 @@ impl Timer {
     ///
     /// Timer will dispatch an event with the timestamp of the current instant,
     /// every 10th second to all attached senders
-    pub fn attach_listener(&mut self, tx: Sender<u64>) -> Result<()> {
+    pub fn attach_listener(&mut self, tx: Sender<AgentSignal>) -> Result<()> {
         // Push Sender to a Vector of Sender(s)
         let txs = Arc::clone(&self.txs);
         txs.lock()?.push(tx);

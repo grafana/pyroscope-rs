@@ -1,18 +1,17 @@
 extern crate pyroscope;
 
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc;
 
 use pyroscope::timer::Timer;
 
 fn main() {
     // Initialize the Timer
-    let mut timer = Timer::default().initialize().unwrap();
+    let mut timer = Timer::initialize(std::time::Duration::from_secs(10)).unwrap();
 
     // Create a streaming channel
-    let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
+    let (tx, rx) = mpsc::channel();
 
-    let (tx2, rx2): (Sender<u64>, Receiver<u64>) = channel();
+    let (tx2, rx2) = mpsc::channel();
 
     // Attach tx to Timer
     timer.attach_listener(tx).unwrap();
