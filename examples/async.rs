@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
         .build()?;
 
     // Start Agent
-    agent.start();
+    agent.start()?;
 
     tokio::task::spawn(async {
         let n = fibonacci1(45);
@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
     .unwrap();
 
     // Stop Agent
-    agent.stop();
+    agent.stop()?;
 
     Ok(())
 }

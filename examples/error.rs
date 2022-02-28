@@ -20,12 +20,12 @@ fn main() -> Result<()> {
         .build()
         .unwrap();
     // Start Agent
-    agent.start();
+    agent.start()?;
 
     let _result = fibonacci(47);
 
     // Stop Agent
-    agent.stop();
+    agent.stop()?;
 
     drop(agent);
 
