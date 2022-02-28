@@ -26,8 +26,8 @@ members = [
 pyroscope_backends = {path = "pyroscope_backends"}
 thiserror ="1.0"
 log = "0.4"
-reqwest = {version = "0.11",  features = ["blocking"]}
-pprof = {  version="0.6.2"}
+reqwest = { version = "0.11", features = ["blocking"]}
+pprof = "0.6.2"
 libc = "^0.2.66"
 lazy_static = "1.4.0"
 

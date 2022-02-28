@@ -111,17 +111,15 @@ where
         }
 
         for (index, frame) in key.frames.iter().rev().enumerate() {
-            let last_frame = key.frames.len().saturating_sub(1);
             for (index, symbol) in frame.iter().rev().enumerate() {
-                let last_symbol = frame.len().saturating_sub(1);
-                if index == last_symbol {
+                if index + 1 == frame.len() {
                     write!(writer, "{}", symbol)?;
                 } else {
                     write!(writer, "{};", symbol)?;
                 }
             }
 
-            if index != last_frame {
+            if index + 1 != key.frames.len() {
                 write!(writer, ";")?;
             }
         }
