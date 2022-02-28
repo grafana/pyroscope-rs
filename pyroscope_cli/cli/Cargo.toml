@@ -8,10 +8,10 @@ edition = "2021"
 [dependencies]
 utils = { path = "../utils" }
 core = { path = "../core" }
-clap_complete = "3.0"
+clap_complete = "3.1"
 
 [dependencies.clap]
-version = "3.0"
+version = "3.1"
 features = ["cargo", "derive"]
 
 [dev-dependencies]
