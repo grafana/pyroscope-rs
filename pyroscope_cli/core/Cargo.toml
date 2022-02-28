@@ -1,0 +1,10 @@
+[package]
+name = "core"
+version = "0.4.0"
+authors = ["Abid Omar <contact@omarabid.com>"]
+description = "Core package for the project"
+edition = "2021"
+
+[dependencies]
+utils = { path = "../utils" }
+log = "0.4.14"
