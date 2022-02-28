@@ -10,11 +10,22 @@ use py_spy::sampler::Sampler;
 pub struct Pyspy {
     state: State,
     buffer: Arc<Mutex<HashMap<String, usize>>>,
+    pid: i32,
 }
 
 impl std::fmt::Debug for Pyspy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Pyspy Backend")
+    }
+}
+
+impl Pyspy {
+    pub fn new(pid: i32) -> Self {
+        Pyspy {
+            state: State::Uninitialized,
+            buffer: Arc::new(Mutex::new(HashMap::new())),
+            pid,
+        }
     }
 }
 
@@ -32,15 +43,16 @@ impl Backend for Pyspy {
     fn start(&mut self) -> Result<()> {
         let mut buffer = self.buffer.clone();
 
+        let pid = self.pid.clone();
+
         std::thread::spawn(move || {
             let mut config = Config::default();
-            dbg!(&config);
             config.subprocesses = false;
             config.native = false;
-            config.blocking = py_spy::config::LockingStrategy::Lock;
+            config.blocking = py_spy::config::LockingStrategy::NonBlocking;
             config.gil_only = false;
             config.include_idle = false;
-            let sampler = Sampler::new(1975975, &config).unwrap();
+            let sampler = Sampler::new(pid, &config).unwrap();
             for sample in sampler {
                 for trace in sample.traces {
                     if !(config.include_idle || trace.active) {

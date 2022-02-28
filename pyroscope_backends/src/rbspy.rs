@@ -15,12 +15,28 @@ pub struct Rbspy {
     recorder: Option<Arc<Recorder>>,
     sampler: Option<Sampler>,
     rx: Option<std::sync::mpsc::Receiver<StackTrace>>,
+    rx2: Option<std::sync::mpsc::Receiver<std::result::Result<(), anyhow::Error>>>,
     state: State,
+    pid: i32,
 }
 
 impl std::fmt::Debug for Rbspy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Rbspy Backend")
+    }
+}
+
+impl Rbspy {
+    pub fn new(pid: i32) -> Self {
+        Rbspy {
+            record_config: None,
+            recorder: None,
+            sampler: None,
+            rx: None,
+            rx2: None,
+            state: State::Uninitialized,
+            pid,
+        }
     }
 }
 
@@ -49,7 +65,9 @@ impl Backend for Rbspy {
         //self.recorder = Some(Arc::new(Recorder::new(config)));
         //println!("humhum");
 
-        self.sampler = Some(Sampler::new(28636, 100, true, None, false));
+        // TODO: To redo
+        //dbg!(self.pid);
+        self.sampler = Some(Sampler::new(self.pid, 100, false, None, false));
 
         Ok(())
     }
@@ -73,7 +91,23 @@ impl Backend for Rbspy {
         let (tx, rx) = std::sync::mpsc::channel();
         let (synctx, syncrx) = std::sync::mpsc::sync_channel(1000);
         self.rx = Some(syncrx);
-        self.sampler.as_mut().unwrap().start(synctx, tx).unwrap();
+        self.rx2 = Some(rx);
+        let a = self
+            .sampler
+            .as_mut()
+            .unwrap_or_else(|| panic!("sampler is none"));
+
+        println!("am here");
+
+        let b = a.start(synctx, tx);
+
+        match b {
+            Ok(_) => println!("Worked"),
+            Err(e) => {
+                dbg!(e);
+            }
+        }
+
         Ok(())
     }
 
@@ -104,6 +138,10 @@ impl Backend for Rbspy {
         //println!("Done");
         //
         let col = self.rx.as_ref().unwrap().try_iter();
+
+        //let a = self.rx2.as_ref().unwrap().recv().unwrap();
+        //dbg!(a);
+        println!("seems to be working");
 
         //println!("{:?}", &col.count());
         let mut outputter = OutputFormat::collapsed.outputter(0.1);

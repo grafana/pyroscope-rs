@@ -14,3 +14,4 @@ rbspy = { path = "../../rbspy-clone" }
 py-spy = "0.3.11"
 thiserror ="1.0"
 log = "0.4"
+anyhow = "*"
