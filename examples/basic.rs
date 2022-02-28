@@ -22,7 +22,7 @@ fn main() -> Result<()> {
     println!("Start Time: {}", start);
 
     // Start Agent
-    agent.start();
+    agent.start()?;
 
     let _result = fibonacci(47);
 
@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     println!("Stop Time: {}", stop);
 
     // Stop Agent
-    agent.stop();
+    agent.stop()?;
 
     drop(agent);
 

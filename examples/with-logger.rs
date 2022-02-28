@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use log::{debug, error, info, trace, warn};
+use log::info;
 
 use pyroscope::{PyroscopeAgent, Result};
 
@@ -24,12 +24,12 @@ fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.logger").build()?;
 
     // Start Agent
-    agent.start();
+    agent.start()?;
 
     let _result = fibonacci(47);
 
     // Stop Agent
-    agent.stop();
+    agent.stop()?;
 
     Ok(())
 }

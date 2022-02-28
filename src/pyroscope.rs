@@ -134,7 +134,9 @@ impl PyroscopeAgentBuilder {
     /// ?;
     /// ```
     pub fn backend<T>(self, backend: T) -> Self
-        where T: 'static + Backend {
+    where
+        T: 'static + Backend,
+    {
         Self {
             backend: Arc::new(Mutex::new(backend)),
             ..self
@@ -237,7 +239,10 @@ impl Drop for PyroscopeAgent {
         // Stop the SessionManager
         match self.session_manager.push(SessionSignal::Kill) {
             Ok(_) => log::trace!(target: LOG_TAG, "Sent kill signal to SessionManager"),
-            Err(_) => log::error!(target: LOG_TAG, "Error sending kill signal to SessionManager"),
+            Err(_) => log::error!(
+                target: LOG_TAG,
+                "Error sending kill signal to SessionManager"
+            ),
         }
 
         if let Some(handle) = self.session_manager.handle.take() {
@@ -256,7 +261,7 @@ impl Drop for PyroscopeAgent {
             }
         }
 
-        log::debug!(target:  LOG_TAG, "Agent Dropped");
+        log::debug!(target: LOG_TAG, "Agent Dropped");
     }
 }
 
@@ -272,7 +277,13 @@ impl PyroscopeAgent {
         PyroscopeAgentBuilder::new(url, application_name)
     }
 
-    fn _start(&mut self) -> Result<()> {
+    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
+    /// agent.start()?;
+    /// ```
+    pub fn start(&mut self) -> Result<()> {
         log::debug!(target: LOG_TAG, "Starting");
 
         // Create a clone of Backend
@@ -328,20 +339,15 @@ impl PyroscopeAgent {
         Ok(())
     }
 
-    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
+    /// Stop the agent. The agent will stop profiling and send a last report to the server.
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// agent.start();
+    /// agent.start()?;
+    /// // Expensive operation
+    /// agent.stop();
     /// ```
-    pub fn start(&mut self) {
-        match self._start() {
-            Ok(_) => log::trace!(target: LOG_TAG, "Agent started"),
-            Err(_) => log::error!(target: LOG_TAG, "Error starting agent"),
-        }
-    }
-
-    fn _stop(&mut self) -> Result<()> {
+    pub fn stop(&mut self) -> Result<()> {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
@@ -363,21 +369,6 @@ impl PyroscopeAgent {
         Ok(())
     }
 
-    /// Stop the agent. The agent will stop profiling and send a last report to the server.
-    /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// agent.start()?;
-    /// // Expensive operation
-    /// agent.stop();
-    /// ```
-    pub fn stop(&mut self) {
-        match self._stop() {
-            Ok(_) => log::trace!(target: LOG_TAG, "Agent stopped"),
-            Err(_) => log::error!(target: LOG_TAG, "Error stopping agent"),
-        }
-    }
-
     /// Add tags. This will restart the agent.
     /// # Example
     /// ```ignore
@@ -396,7 +387,7 @@ impl PyroscopeAgent {
         }
 
         // Stop Agent
-        self.stop();
+        self.stop()?;
 
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
@@ -409,7 +400,7 @@ impl PyroscopeAgent {
         self.config.tags.extend(tags_hashmap);
 
         // Restart Agent
-        self.start();
+        self.start()?;
 
         Ok(())
     }
@@ -440,7 +431,7 @@ impl PyroscopeAgent {
         }
 
         // Stop Agent
-        self.stop();
+        self.stop()?;
 
         // Iterate through every tag
         tags.iter().for_each(|key| {
@@ -449,7 +440,7 @@ impl PyroscopeAgent {
         });
 
         // Restart Agent
-        self.start();
+        self.start()?;
 
         Ok(())
     }

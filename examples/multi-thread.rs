@@ -24,7 +24,7 @@ fn main() -> Result<()> {
         .build()?;
 
     // Start Agent
-    agent.start();
+    agent.start()?;
 
     let handle_1 = thread::spawn(|| {
         fibonacci1(45);
@@ -39,7 +39,7 @@ fn main() -> Result<()> {
     handle_2.join().unwrap();
 
     // Stop Agent
-    agent.stop();
+    agent.stop()?;
 
     Ok(())
 }
