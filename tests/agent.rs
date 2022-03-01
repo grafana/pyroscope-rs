@@ -5,14 +5,14 @@ fn test_PyroscopeConfig_new() {
     let config = PyroscopeConfig::new("http://localhost:8080", "myapp");
     assert_eq!(config.url, "http://localhost:8080");
     assert_eq!(config.application_name, "myapp");
-    assert_eq!(config.sample_rate, 100i32);
+    assert_eq!(config.sample_rate, 100u32);
     assert_eq!(config.tags.len(), 0);
 }
 
 #[test]
 fn test_PyroscopeConfig_sample_rate() {
     let config = PyroscopeConfig::new("http://localhost:8080", "myapp").sample_rate(10);
-    assert_eq!(config.sample_rate, 10i32);
+    assert_eq!(config.sample_rate, 10u32);
 }
 
 #[test]

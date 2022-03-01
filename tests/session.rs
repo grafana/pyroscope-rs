@@ -29,7 +29,8 @@ fn test_session_new() {
         url: "http://localhost:8080".to_string(),
         application_name: "test".to_string(),
         tags: HashMap::new(),
-        sample_rate: 100,
+        sample_rate: 100u32,
+        spy_name: "test-rs".to_string(),
     };
 
     let report = vec![1, 2, 3];
@@ -46,7 +47,8 @@ fn test_session_send_error() {
         url: "http://invalid_url".to_string(),
         application_name: "test".to_string(),
         tags: HashMap::new(),
-        sample_rate: 100,
+        sample_rate: 100u32,
+        spy_name: "test-rs".to_string(),
     };
 
     let report = vec![1, 2, 3];
