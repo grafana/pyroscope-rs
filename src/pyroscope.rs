@@ -11,32 +11,11 @@ use crate::{
     backends::{pprof::Pprof, Backend},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
-    timer::Timer,
+    timer::{Timer, TimerSignal},
 };
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
-
-/// A signal sent from the agent to the timer.
-///
-/// Either schedules another wake-up, or asks
-/// the timer thread to terminate.
-#[derive(Debug, Clone, Copy)]
-pub enum AgentSignal {
-    // Thread termination was requested.
-    Terminate,
-    // When to take the next snapshot using the `Backend`.
-    NextSnapshot(u64),
-}
-
-impl std::fmt::Display for AgentSignal {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::Terminate => write!(f, "Terminate"),
-            Self::NextSnapshot(when) => write!(f, "NextSnapshot({})", when),
-        }
-    }
-}
 
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 /// # Example
@@ -275,7 +254,7 @@ impl PyroscopeAgentBuilder {
 pub struct PyroscopeAgent {
     timer: Timer,
     session_manager: SessionManager,
-    tx: Option<Sender<AgentSignal>>,
+    tx: Option<Sender<TimerSignal>>,
     handle: Option<JoinHandle<Result<()>>>,
     running: Arc<(Mutex<bool>, Condvar)>,
 
@@ -371,7 +350,7 @@ impl PyroscopeAgent {
 
             while let Ok(signal) = rx.recv() {
                 match signal {
-                    AgentSignal::NextSnapshot(until) => {
+                    TimerSignal::NextSnapshot(until) => {
                         log::trace!(target: LOG_TAG, "Sending session {}", until);
 
                         // Generate report from backend
@@ -384,7 +363,7 @@ impl PyroscopeAgent {
                             report,
                         )?))?
                     }
-                    AgentSignal::Terminate => {
+                    TimerSignal::Terminate => {
                         log::trace!(target: LOG_TAG, "Session Killed");
 
                         let (lock, cvar) = &*pair;
@@ -420,8 +399,8 @@ impl PyroscopeAgent {
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
             // best effort
-            let _ = sender.send(AgentSignal::NextSnapshot(0));
-            sender.send(AgentSignal::Terminate)?;
+            let _ = sender.send(TimerSignal::NextSnapshot(0));
+            sender.send(TimerSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")
         }

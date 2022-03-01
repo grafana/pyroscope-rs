@@ -4,7 +4,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::pyroscope::AgentSignal;
+use super::TimerSignal;
 use crate::utils::check_err;
 use crate::utils::get_time_range;
 use crate::PyroscopeError;
@@ -27,7 +27,7 @@ use std::{thread, thread::JoinHandle};
 #[derive(Debug)]
 pub struct Timer {
     /// A vector to store listeners (mpsc::Sender)
-    txs: Arc<Mutex<Vec<Sender<AgentSignal>>>>,
+    txs: Arc<Mutex<Vec<Sender<TimerSignal>>>>,
 
     /// Thread handle
     pub handle: Option<JoinHandle<Result<()>>>,
@@ -61,7 +61,7 @@ impl Timer {
                     Timer::epoll_wait(timer_fd, epoll_fd)?;
 
                     // Get the current time range
-                    let from = AgentSignal::NextSnapshot(get_time_range(0)?.from);
+                    let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
 
                     // Iterate through Senders
                     txs.lock()?.iter().for_each(|tx| {
@@ -165,7 +165,7 @@ impl Timer {
     ///
     /// Timer will dispatch an event with the timestamp of the current instant,
     /// every 10th second to all attached senders
-    pub fn attach_listener(&mut self, tx: Sender<AgentSignal>) -> Result<()> {
+    pub fn attach_listener(&mut self, tx: Sender<TimerSignal>) -> Result<()> {
         // Push Sender to a Vector of Sender(s)
         let txs = Arc::clone(&self.txs);
         txs.lock()?.push(tx);

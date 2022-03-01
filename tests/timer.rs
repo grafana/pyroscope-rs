@@ -1,4 +1,4 @@
-use pyroscope::{pyroscope::AgentSignal, timer::Timer};
+use pyroscope::timer::{TimerSignal, Timer};
 use assert_matches::assert_matches;
 
 #[test]
@@ -12,7 +12,7 @@ fn test_timer() {
 
     // Wait for event (should arrive in 10s)
     let planned = rx.recv().unwrap();
-    assert_matches!(planned, AgentSignal::NextSnapshot(planned) => {
+    assert_matches!(planned, TimerSignal::NextSnapshot(planned) => {
         // Get current time
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
