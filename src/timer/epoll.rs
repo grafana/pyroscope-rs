@@ -15,8 +15,8 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::{
-    time::Duration,
     thread::{self, JoinHandle},
+    time::Duration,
 };
 
 /// A thread that sends a notification every 10th second

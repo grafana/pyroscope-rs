@@ -13,8 +13,8 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::{
-    time::Duration,
     thread::{self, JoinHandle},
+    time::Duration,
 };
 
 /// A thread that sends a notification every 10th second
@@ -47,7 +47,8 @@ impl Timer {
 
         let handle = Some(thread::spawn(move || {
             // Wait for initial expiration
-            let initial_event = Timer::register_initial_expiration(kqueue, Duration::from_millis(0))?;
+            let initial_event =
+                Timer::register_initial_expiration(kqueue, Duration::from_millis(0))?;
             Timer::wait_event(kqueue, [initial_event].as_mut_ptr())?;
 
             // Register loop event
