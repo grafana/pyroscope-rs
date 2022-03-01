@@ -1,7 +1,7 @@
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_backends::pprof::Pprof;
+use pyroscope_backends::pprof::{Pprof, PprofConfig};
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -12,8 +12,7 @@ fn fibonacci(n: u64) -> u64 {
 
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.backend")
-        .backend(Pprof::default())
-        .sample_rate(100)
+        .backend(Pprof::new(PprofConfig::new(113)))
         .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
         .build()?;
 
