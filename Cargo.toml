@@ -13,9 +13,9 @@ documentation  = "https://docs.rs/pyroscope"
 repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
+autoexamples = true 
+autotests = true 
+autobenches = true 
 
 [workspace]
 members = [
@@ -26,9 +26,9 @@ exclude = [
     "pyroscope_ffi",
 ]
 
-[[bin]]
-name = "pyroscope-cli"
-path = "pyroscope_cli/src/main.rs"
+#[[bin]]
+#name = "pyroscope-cli"
+#path = "pyroscope_cli/src/main.rs"
 
 [dependencies]
 pyroscope_backends = {path = "pyroscope_backends"}

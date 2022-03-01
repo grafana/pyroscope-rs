@@ -45,6 +45,10 @@ impl Backend for Rbspy {
         self.state
     }
 
+    fn spy_name(&self) -> String {
+        String::from("rubyspy")
+    }
+
     fn initialize(&mut self, sample_rate: i32) -> Result<()> {
         //let config = RecordConfig {
         //format: OutputFormat::flamegraph,

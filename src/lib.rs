@@ -30,7 +30,6 @@ pub use error::{PyroscopeError, Result};
 
 // Public modules
 pub mod error;
-pub mod ffi;
 pub mod pyroscope;
 pub mod session;
 pub mod timer;

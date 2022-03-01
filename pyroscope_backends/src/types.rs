@@ -1,4 +1,3 @@
-
 use super::error::Result;
 use std::fmt::Debug;
 
@@ -23,8 +22,14 @@ impl Default for State {
 pub trait Backend: Send + Debug {
     /// Get the backend state.
     fn get_state(&self) -> State;
+    /// Backend Spy Name
+    fn spy_name(&self) -> Result<String>;
+    /// Get backend configuration.
+    fn sample_rate(&self) -> Result<u32>;
+
     /// Initialize the backend.
-    fn initialize(&mut self, sample_rate: i32) -> Result<()>;
+    fn initialize(&mut self) -> Result<()>;
+
     /// Start the backend.
     fn start(&mut self) -> Result<()>;
     /// Stop the backend.

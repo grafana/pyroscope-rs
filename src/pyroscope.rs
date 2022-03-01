@@ -13,7 +13,7 @@ use crate::{
     timer::Timer,
 };
 
-use pyroscope_backends::pprof::Pprof;
+use pyroscope_backends::pprof::{Pprof, PprofConfig};
 use pyroscope_backends::types::Backend;
 
 const LOG_TAG: &str = "Pyroscope::Agent";
@@ -32,8 +32,6 @@ pub struct PyroscopeConfig {
     pub application_name: String,
     /// Tags
     pub tags: HashMap<String, String>,
-    /// Sample rate used in Hz
-    pub sample_rate: i32,
     // TODO
     // log_level
     // auth_token
@@ -53,7 +51,6 @@ impl PyroscopeConfig {
             url: url.as_ref().to_owned(),
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
-            sample_rate: 100i32,
         }
     }
 
@@ -64,12 +61,12 @@ impl PyroscopeConfig {
     /// config.set_sample_rate(10)
     /// ?;
     /// ```
-    pub fn sample_rate(self, sample_rate: i32) -> Self {
-        Self {
-            sample_rate,
-            ..self
-        }
-    }
+    //pub fn sample_rate(self, sample_rate: i32) -> Self {
+    //Self {
+    //sample_rate,
+    //..self
+    //}
+    //}
 
     /// Set the tags
     /// # Example
@@ -153,12 +150,12 @@ impl PyroscopeAgentBuilder {
     /// .build()
     /// ?;
     /// ```
-    pub fn sample_rate(self, sample_rate: i32) -> Self {
-        Self {
-            config: self.config.sample_rate(sample_rate),
-            ..self
-        }
-    }
+    //pub fn sample_rate(self, sample_rate: i32) -> Self {
+    //Self {
+    //config: self.config.sample_rate(sample_rate),
+    //..self
+    //}
+    //}
 
     /// Set tags. Default is empty.
     /// # Example
@@ -179,7 +176,8 @@ impl PyroscopeAgentBuilder {
     pub fn build(self) -> Result<PyroscopeAgent> {
         // Initiliaze the backend
         let backend = Arc::clone(&self.backend);
-        backend.lock()?.initialize(self.config.sample_rate)?;
+
+        backend.lock()?.initialize()?;
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start Timer

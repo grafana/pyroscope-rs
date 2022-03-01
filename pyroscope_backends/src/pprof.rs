@@ -3,8 +3,26 @@ use pprof::{ProfilerGuard, ProfilerGuardBuilder, Report};
 use super::error::{BackendError, Result};
 use super::types::{Backend, State};
 
+#[derive(Debug)]
+pub struct PprofConfig {
+    sample_rate: u32,
+}
+
+impl Default for PprofConfig {
+    fn default() -> Self {
+        PprofConfig { sample_rate: 100 }
+    }
+}
+
+impl PprofConfig {
+    pub fn new(sample_rate: u32) -> Self {
+        PprofConfig { sample_rate }
+    }
+}
+
 #[derive(Default)]
 pub struct Pprof<'a> {
+    config: PprofConfig,
     inner_builder: Option<ProfilerGuardBuilder>,
     guard: Option<ProfilerGuard<'a>>,
     state: State,
@@ -21,7 +39,16 @@ impl Backend for Pprof<'_> {
         self.state
     }
 
-    fn initialize(&mut self, sample_rate: i32) -> Result<()> {
+    fn spy_name(&self) -> Result<String> {
+        Ok("pprof-rs".to_string())
+    }
+
+    fn sample_rate(&self) -> Result<u32> {
+        Ok(self.config.sample_rate)
+    }
+
+    fn initialize(&mut self) -> Result<()> {
+        let sample_rate = 100;
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
             return Err(BackendError::new("Pprof Backend is already Initialized"));

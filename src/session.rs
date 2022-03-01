@@ -122,7 +122,12 @@ impl Session {
     /// session.send()?;
     /// ```
     pub fn send(self) -> Result<()> {
-        log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
+        log::info!(
+            target: LOG_TAG,
+            "Sending Session: {} - {}",
+            self.from,
+            self.until
+        );
 
         // Check if the report is empty
         if self.report.is_empty() {

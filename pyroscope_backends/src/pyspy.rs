@@ -34,6 +34,10 @@ impl Backend for Pyspy {
         self.state
     }
 
+    fn spy_name(&self) -> String {
+        String::from("pyspy")
+    }
+
     fn initialize(&mut self, sample_rate: i32) -> Result<()> {
         //let buffer = Some(Arc::new(Mutex::new(String::new())));
 
