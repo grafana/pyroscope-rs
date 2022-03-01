@@ -1,5 +1,5 @@
-use pyroscope::timer::{TimerSignal, Timer};
 use assert_matches::assert_matches;
+use pyroscope::timer::{Timer, TimerSignal};
 
 #[test]
 fn test_timer() {

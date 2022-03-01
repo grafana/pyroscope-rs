@@ -16,7 +16,6 @@ use crate::{
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
-
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 /// # Example
 /// ```
@@ -287,7 +286,10 @@ impl Drop for PyroscopeAgent {
         // Stop the SessionManager
         match self.session_manager.push(SessionSignal::Kill) {
             Ok(_) => log::trace!(target: LOG_TAG, "Sent kill signal to SessionManager"),
-            Err(_) => log::error!(target: LOG_TAG, "Error sending kill signal to SessionManager"),
+            Err(_) => log::error!(
+                target: LOG_TAG,
+                "Error sending kill signal to SessionManager"
+            ),
         }
 
         if let Some(handle) = self.session_manager.handle.take() {
@@ -306,7 +308,7 @@ impl Drop for PyroscopeAgent {
             }
         }
 
-        log::debug!(target:  LOG_TAG, "Agent Dropped");
+        log::debug!(target: LOG_TAG, "Agent Dropped");
     }
 }
 
