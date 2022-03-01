@@ -99,11 +99,12 @@ impl PyroscopeConfig {
     /// # Example
     ///
     /// ```
-    /// # fn main() -> Result<(), PyroscopeError> {
     /// use std::time::Duration;
     /// use pyroscope::pyroscope::PyroscopeConfig;
+    /// # use pyroscope::PyroscopeError;
+    /// # fn main() -> Result<(), PyroscopeError> {
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
-    ///    .accumulation_cycle(Duration::from_millis(4587))?;
+    ///    .accumulation_cycle(Duration::from_millis(4587));
     /// # Ok(())
     /// # }
     /// ```
@@ -208,13 +209,14 @@ impl PyroscopeAgentBuilder {
     /// # Example
     ///
     /// ```
-    /// # fn main() -> Result<(), PyroscopeError> {
+    /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use std::time::Duration;
+    /// # use pyroscope::PyroscopeError;
+    /// # fn main() -> Result<(), PyroscopeError> {
     ///
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .accumulation_cycle(Duration::from_secs(3))
-    /// .build()
-    /// ?;
+    ///     .accumulation_cycle(Duration::from_secs(3))
+    ///     .build()?;
     /// # Ok(())
     /// # }
     /// ```
