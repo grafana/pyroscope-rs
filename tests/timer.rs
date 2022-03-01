@@ -1,10 +1,11 @@
 use assert_matches::assert_matches;
 use pyroscope::timer::{Timer, TimerSignal};
+use std::time::Duration;
 
 #[test]
 fn test_timer() {
     // Initialize Timer
-    let mut timer = Timer::initialize(std::time::Duration::from_secs(10)).unwrap();
+    let mut timer = Timer::initialize(Duration::from_secs(10)).unwrap();
 
     // Attach a listener
     let (tx, rx) = std::sync::mpsc::channel();

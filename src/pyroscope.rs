@@ -5,6 +5,7 @@ use std::{
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
+    time::Duration,
 };
 
 use crate::{
@@ -33,7 +34,7 @@ pub struct PyroscopeConfig {
     /// Sample rate used in Hz
     pub sample_rate: i32,
     /// How long to accumulate data for before sending it upstream
-    pub accumulation_cycle: std::time::Duration,
+    pub accumulation_cycle: Duration,
     // TODO
     // log_level
     // auth_token
@@ -54,7 +55,7 @@ impl PyroscopeConfig {
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
             sample_rate: 100i32,
-            accumulation_cycle: std::time::Duration::from_secs(10),
+            accumulation_cycle: Duration::from_secs(10),
         }
     }
 
@@ -86,7 +87,7 @@ impl PyroscopeConfig {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn accumulation_cycle(self, accumulation_cycle: std::time::Duration) -> Self {
+    pub fn accumulation_cycle(self, accumulation_cycle: Duration) -> Self {
         Self {
             accumulation_cycle,
             ..self
@@ -198,7 +199,7 @@ impl PyroscopeAgentBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn accumulation_cycle(self, acc_cycle: impl Into<std::time::Duration>) -> Self {
+    pub fn accumulation_cycle(self, acc_cycle: impl Into<Duration>) -> Self {
         Self {
             config: self.config.accumulation_cycle(acc_cycle.into()),
             ..self

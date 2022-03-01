@@ -14,7 +14,10 @@ use std::sync::{
     mpsc::{channel, Sender},
     Arc, Mutex,
 };
-use std::{thread, thread::JoinHandle};
+use std::{
+    time::Duration,
+    thread::{self, JoinHandle},
+};
 
 /// A thread that sends a notification every 10th second
 ///
@@ -35,7 +38,7 @@ pub struct Timer {
 
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
-    pub fn initialize(cycle: std::time::Duration) -> Result<Self> {
+    pub fn initialize(cycle: Duration) -> Result<Self> {
         let txs = Arc::new(Mutex::new(Vec::new()));
 
         // Add a dummy tx so the below thread does not terminate early
@@ -76,7 +79,7 @@ impl Timer {
     }
 
     /// create and set a timer file descriptor
-    fn set_timerfd(cycle: std::time::Duration) -> Result<libc::c_int> {
+    fn set_timerfd(cycle: Duration) -> Result<libc::c_int> {
         // Set the timer to use the system time.
         let clockid: libc::clockid_t = libc::CLOCK_REALTIME;
         // Non-blocking file descriptor

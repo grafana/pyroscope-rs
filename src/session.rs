@@ -1,7 +1,7 @@
 use std::{
     sync::mpsc::{sync_channel, Receiver, SyncSender},
-    thread,
-    thread::JoinHandle,
+    thread::{self, JoinHandle},
+    time::Duration,
 };
 
 use crate::pyroscope::PyroscopeConfig;
@@ -161,7 +161,7 @@ impl Session {
                 ("spyName", "pyroscope-rs"),
             ])
             .body(self.report)
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(Duration::from_secs(10))
             .send()?;
 
         Ok(())
