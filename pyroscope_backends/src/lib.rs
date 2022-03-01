@@ -4,5 +4,5 @@ pub mod types;
 
 // Pyroscope Backends
 pub mod pprof;
-//pub mod pyspy;
-//pub mod rbspy;
+pub mod pyspy;
+pub mod rbspy;

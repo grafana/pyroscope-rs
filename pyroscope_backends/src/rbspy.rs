@@ -9,6 +9,23 @@ use rbspy::{
     OutputFormat, StackTrace,
 };
 
+#[derive(Debug)]
+pub struct RbspyConfig {
+    sample_rate: u32,
+}
+
+impl Default for RbspyConfig {
+    fn default() -> Self {
+        RbspyConfig { sample_rate: 100 }
+    }
+}
+
+impl RbspyConfig {
+    pub fn new(sample_rate: u32) -> Self {
+        RbspyConfig { sample_rate }
+    }
+}
+
 #[derive(Default)]
 pub struct Rbspy {
     record_config: Option<RecordConfig>,
@@ -18,6 +35,8 @@ pub struct Rbspy {
     rx2: Option<std::sync::mpsc::Receiver<std::result::Result<(), anyhow::Error>>>,
     state: State,
     pid: i32,
+
+    config: RbspyConfig,
 }
 
 impl std::fmt::Debug for Rbspy {
@@ -36,6 +55,7 @@ impl Rbspy {
             rx2: None,
             state: State::Uninitialized,
             pid,
+            config: RbspyConfig::default(),
         }
     }
 }
@@ -45,11 +65,15 @@ impl Backend for Rbspy {
         self.state
     }
 
-    fn spy_name(&self) -> String {
-        String::from("rubyspy")
+    fn spy_name(&self) -> Result<String> {
+        Ok("rbspy".to_string())
     }
 
-    fn initialize(&mut self, sample_rate: i32) -> Result<()> {
+    fn sample_rate(&self) -> Result<u32> {
+        Ok(self.config.sample_rate)
+    }
+
+    fn initialize(&mut self) -> Result<()> {
         //let config = RecordConfig {
         //format: OutputFormat::flamegraph,
         //raw_path: None,

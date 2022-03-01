@@ -6,11 +6,30 @@ use std::sync::{Arc, Mutex};
 use py_spy::config::Config;
 use py_spy::sampler::Sampler;
 
+#[derive(Debug)]
+pub struct PyspyConfig {
+    sample_rate: u32,
+}
+
+impl Default for PyspyConfig {
+    fn default() -> Self {
+        PyspyConfig { sample_rate: 100 }
+    }
+}
+
+impl PyspyConfig {
+    pub fn new(sample_rate: u32) -> Self {
+        PyspyConfig { sample_rate }
+    }
+}
+
 #[derive(Default)]
 pub struct Pyspy {
     state: State,
     buffer: Arc<Mutex<HashMap<String, usize>>>,
     pid: i32,
+
+    config: PyspyConfig,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -25,6 +44,7 @@ impl Pyspy {
             state: State::Uninitialized,
             buffer: Arc::new(Mutex::new(HashMap::new())),
             pid,
+            config: PyspyConfig::default(),
         }
     }
 }
@@ -34,11 +54,15 @@ impl Backend for Pyspy {
         self.state
     }
 
-    fn spy_name(&self) -> String {
-        String::from("pyspy")
+    fn spy_name(&self) -> Result<String> {
+        Ok("pyspy".to_string())
     }
 
-    fn initialize(&mut self, sample_rate: i32) -> Result<()> {
+    fn sample_rate(&self) -> Result<u32> {
+        Ok(self.config.sample_rate)
+    }
+
+    fn initialize(&mut self) -> Result<()> {
         //let buffer = Some(Arc::new(Mutex::new(String::new())));
 
         Ok(())
