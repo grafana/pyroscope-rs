@@ -33,6 +33,16 @@ impl std::fmt::Debug for Pprof<'_> {
         write!(fmt, "Pprof Backend")
     }
 }
+impl<'a> Pprof<'a> {
+    pub fn new(config: PprofConfig) -> Self {
+        Pprof {
+            config,
+            inner_builder: None,
+            guard: None,
+            state: State::default(),
+        }
+    }
+}
 
 impl Backend for Pprof<'_> {
     fn get_state(&self) -> State {
@@ -40,7 +50,7 @@ impl Backend for Pprof<'_> {
     }
 
     fn spy_name(&self) -> Result<String> {
-        Ok("pprof-rs".to_string())
+        Ok("pyroscope-rs".to_string())
     }
 
     fn sample_rate(&self) -> Result<u32> {
@@ -48,14 +58,13 @@ impl Backend for Pprof<'_> {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        let sample_rate = 100;
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
             return Err(BackendError::new("Pprof Backend is already Initialized"));
         }
 
         // Construct a ProfilerGuardBuilder
-        let profiler = ProfilerGuardBuilder::default().frequency(sample_rate);
+        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
         // Set inner_builder field
         self.inner_builder = Some(profiler);
 

@@ -22,6 +22,7 @@ impl Default for State {
 pub trait Backend: Send + Debug {
     /// Get the backend state.
     fn get_state(&self) -> State;
+
     /// Backend Spy Name
     fn spy_name(&self) -> Result<String>;
     /// Get backend configuration.

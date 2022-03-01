@@ -156,7 +156,7 @@ impl Session {
                 ("until", &format!("{}", self.until)),
                 ("format", "folded"),
                 ("sampleRate", &format!("{}", self.config.sample_rate)),
-                ("spyName", "pyroscope-rs"),
+                ("spyName", self.config.spy_name.as_str()),
             ])
             .body(self.report)
             .timeout(std::time::Duration::from_secs(10))
