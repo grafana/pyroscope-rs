@@ -1,17 +1,25 @@
 extern crate pyroscope;
 
+use std::env;
+
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_backends::pyspy::Pyspy;
+use pyroscope_backends::pyspy::{Pyspy, PyspyConfig};
 
 fn main() -> Result<()> {
     // Force rustc to display the log messages in the console.
-    //std::env::set_var("RUST_LOG", "trace");
+    std::env::set_var("RUST_LOG", "info");
 
     // Initialize the logger.
-    //pretty_env_logger::init_timed();
+    pretty_env_logger::init_timed();
+
+    let args: Vec<String> = env::args().collect();
+
+    let pid = args[1].parse::<i32>().unwrap();
+
+    let config = PyspyConfig::new(pid, 100, true, None, true, false, false, false);
 
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
-        .backend(Pyspy::default())
+        .backend(Pyspy::new(config))
         .build()?;
 
     // Show start time
@@ -22,15 +30,13 @@ fn main() -> Result<()> {
     println!("Start Time: {}", start);
 
     // Start Agent
-    agent.start();
-
-    println!("herehere");
+    agent.start()?;
 
     // Profile for around 1 minute
     std::thread::sleep(std::time::Duration::from_secs(60));
 
     // Stop Agent
-    agent.stop();
+    agent.stop()?;
 
     drop(agent);
 

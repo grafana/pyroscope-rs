@@ -6,20 +6,54 @@ use std::sync::{Arc, Mutex};
 use py_spy::config::Config;
 use py_spy::sampler::Sampler;
 
-#[derive(Debug)]
+// TODO: initialize with default args and add helper functions
+// TODO: state for the thread + stop function
+// TODO: refactor fold function
+// TODO: handle errors and unwraps
+// TODO: document configuration options
+
+#[derive(Debug, Clone)]
 pub struct PyspyConfig {
+    pid: i32,
     sample_rate: u32,
+    lock_process: bool,
+    time_limit: Option<core::time::Duration>,
+    with_subprocesses: bool,
+    include_idle: bool,
+    gil_only: bool,
+    native: bool,
 }
 
 impl Default for PyspyConfig {
     fn default() -> Self {
-        PyspyConfig { sample_rate: 100 }
+        PyspyConfig {
+            pid: 0,
+            sample_rate: 100,
+            lock_process: false,
+            time_limit: None,
+            with_subprocesses: false,
+            include_idle: false,
+            gil_only: false,
+            native: false,
+        }
     }
 }
 
 impl PyspyConfig {
-    pub fn new(sample_rate: u32) -> Self {
-        PyspyConfig { sample_rate }
+    pub fn new(
+        pid: i32, sample_rate: u32, lock_process: bool, time_limit: Option<core::time::Duration>,
+        with_subprocesses: bool, include_idle: bool, gil_only: bool, native: bool,
+    ) -> Self {
+        PyspyConfig {
+            pid,
+            sample_rate,
+            lock_process,
+            time_limit,
+            with_subprocesses,
+            include_idle,
+            gil_only,
+            native,
+        }
     }
 }
 
@@ -27,8 +61,6 @@ impl PyspyConfig {
 pub struct Pyspy {
     state: State,
     buffer: Arc<Mutex<HashMap<String, usize>>>,
-    pid: i32,
-
     config: PyspyConfig,
 }
 
@@ -39,12 +71,11 @@ impl std::fmt::Debug for Pyspy {
 }
 
 impl Pyspy {
-    pub fn new(pid: i32) -> Self {
+    pub fn new(config: PyspyConfig) -> Self {
         Pyspy {
             state: State::Uninitialized,
             buffer: Arc::new(Mutex::new(HashMap::new())),
-            pid,
-            config: PyspyConfig::default(),
+            config,
         }
     }
 }
@@ -64,23 +95,33 @@ impl Backend for Pyspy {
 
     fn initialize(&mut self) -> Result<()> {
         //let buffer = Some(Arc::new(Mutex::new(String::new())));
-
         Ok(())
     }
 
     fn start(&mut self) -> Result<()> {
-        let mut buffer = self.buffer.clone();
+        let buffer = self.buffer.clone();
 
-        let pid = self.pid.clone();
+        let config_c = self.config.clone();
 
         std::thread::spawn(move || {
             let mut config = Config::default();
-            config.subprocesses = false;
-            config.native = false;
-            config.blocking = py_spy::config::LockingStrategy::NonBlocking;
-            config.gil_only = false;
-            config.include_idle = false;
-            let sampler = Sampler::new(pid, &config).unwrap();
+
+            config.subprocesses = config_c.with_subprocesses;
+
+            config.native = config_c.native;
+
+            if config_c.lock_process {
+                config.blocking = py_spy::config::LockingStrategy::Lock;
+            } else {
+                config.blocking = py_spy::config::LockingStrategy::NonBlocking;
+            }
+
+            config.gil_only = config_c.gil_only;
+
+            config.include_idle = config_c.include_idle;
+
+            let sampler = Sampler::new(config_c.pid, &config).unwrap();
+
             for sample in sampler {
                 for trace in sample.traces {
                     if !(config.include_idle || trace.active) {
