@@ -9,8 +9,7 @@ readme = "README.md"
 
 [dependencies]
 pprof = {  version="0.6.2"}
-#rbspy = "0.10"
-rbspy = { path = "../../rbspy-clone" }
+rbspy = "0.11.1"
 py-spy = "0.3.11"
 thiserror ="1.0"
 log = "0.4"
