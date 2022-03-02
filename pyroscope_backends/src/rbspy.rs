@@ -1,40 +1,58 @@
 use super::error::{BackendError, Result};
 use super::types::{Backend, State};
 
-use std::sync::{Arc, Mutex};
+use rbspy::{sampler::Sampler, OutputFormat, StackTrace};
 
-use rbspy::{
-    recorder::{RecordConfig, Recorder},
-    sampler::Sampler,
-    OutputFormat, StackTrace,
-};
+// TODO: refactor WRITER
+// TODO: handle errors returned from rx2
+// TODO: sync_channel size
+// TODO: handle unwraps
 
+/// Rbspy Configuration
 #[derive(Debug)]
 pub struct RbspyConfig {
+    pid: i32,
     sample_rate: u32,
+    lock_process: bool,
+    time_limit: Option<core::time::Duration>,
+    with_subprocesses: bool,
 }
 
 impl Default for RbspyConfig {
     fn default() -> Self {
-        RbspyConfig { sample_rate: 100 }
+        RbspyConfig {
+            pid: 0,
+            sample_rate: 100,
+            lock_process: false,
+            time_limit: None,
+            with_subprocesses: false,
+        }
     }
 }
 
 impl RbspyConfig {
-    pub fn new(sample_rate: u32) -> Self {
-        RbspyConfig { sample_rate }
+    /// Create a new RbspyConfig
+    pub fn new(
+        pid: i32, sample_rate: u32, lock_process: bool, time_limit: Option<core::time::Duration>,
+        with_subprocesses: bool,
+    ) -> Self {
+        RbspyConfig {
+            pid,
+            sample_rate,
+            lock_process,
+            time_limit,
+            with_subprocesses,
+        }
     }
 }
 
+/// Rbspy Backend
 #[derive(Default)]
 pub struct Rbspy {
-    record_config: Option<RecordConfig>,
-    recorder: Option<Arc<Recorder>>,
     sampler: Option<Sampler>,
     rx: Option<std::sync::mpsc::Receiver<StackTrace>>,
     rx2: Option<std::sync::mpsc::Receiver<std::result::Result<(), anyhow::Error>>>,
     state: State,
-    pid: i32,
 
     config: RbspyConfig,
 }
@@ -46,16 +64,13 @@ impl std::fmt::Debug for Rbspy {
 }
 
 impl Rbspy {
-    pub fn new(pid: i32) -> Self {
+    pub fn new(config: RbspyConfig) -> Self {
         Rbspy {
-            record_config: None,
-            recorder: None,
             sampler: None,
             rx: None,
             rx2: None,
             state: State::Uninitialized,
-            pid,
-            config: RbspyConfig::default(),
+            config,
         }
     }
 }
@@ -74,47 +89,31 @@ impl Backend for Rbspy {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        //let config = RecordConfig {
-        //format: OutputFormat::flamegraph,
-        //raw_path: None,
-        //out_path: None,
-        //pid: 371084,
-        //with_subprocesses: false,
-        //sample_rate: 100,
-        //maybe_duration: None,
-        //flame_min_width: 10.0,
-        //lock_process: true,
-        //};
+        // Check if Backend is Uninitialized
+        if self.state != State::Uninitialized {
+            return Err(BackendError::new("Rbspy Backend is already Initialized"));
+        }
 
-        // Set configuration for rbspy
-        //self.record_config = Some(config);
+        // Create Sampler
+        self.sampler = Some(Sampler::new(
+            self.config.pid,
+            self.config.sample_rate,
+            self.config.lock_process,
+            self.config.time_limit,
+            self.config.with_subprocesses,
+        ));
 
-        // Create recorder
-        //self.recorder = Some(Arc::new(Recorder::new(config)));
-        //println!("humhum");
-
-        // TODO: To redo
-        //dbg!(self.pid);
-        self.sampler = Some(Sampler::new(self.pid, 100, false, None, false));
+        // Set State to Ready
+        self.state = State::Ready;
 
         Ok(())
     }
 
     fn start(&mut self) -> Result<()> {
-        //let recorder = Recorder::new(config);
-
-        //match recorder.record() {
-        //Ok(a) => dbg!(a),
-        //Err(e) => println!("Failed to record: {:?}", e),
-        //}
-
-        //let record = self.recorder.as_mut().unwrap();
-        //let recorder = Arc::clone(record);
-        //std::thread::spawn(move || match recorder.record() {
-        //Ok(a) => dbg!(a),
-        //Err(e) => println!("Failed to record: {:?}", e),
-        //});
-        //self.recorder.as_ref().unwrap().record().unwrap();
+        // Check if Backend is Ready
+        if self.state != State::Ready {
+            return Err(BackendError::new("Rbspy Backend is not Ready"));
+        }
 
         let (tx, rx) = std::sync::mpsc::channel();
         let (synctx, syncrx) = std::sync::mpsc::sync_channel(1000);
@@ -136,51 +135,40 @@ impl Backend for Rbspy {
             }
         }
 
+        // Set State to Running
+        self.state = State::Running;
+
         Ok(())
     }
 
     fn stop(&mut self) -> Result<()> {
-        //self.recorder.as_ref().unwrap().stop();
+        // Check if Backend is Running
+        if self.state != State::Running {
+            return Err(BackendError::new("Rbspy Backend is not Running"));
+        }
 
+        // Stop Sampler
         self.sampler.as_mut().unwrap().stop();
 
         Ok(())
     }
 
     fn report(&mut self) -> Result<Vec<u8>> {
-        //println!("report");
-        //let mut writer = MyWriter {};
+        // Check if Backend is Running
+        if self.state != State::Running {
+            return Err(BackendError::new("Rbspy Backend is not Running"));
+        }
 
-        //self.recorder
-        //.as_ref()
-        //.unwrap()
-        //.write_summary(&mut writer)
-        //.unwrap();
-
-        //for i in 0..10005 {
-        //let a = self.rx.as_ref().unwrap().recv().unwrap();
-        //println!("{}", a);
-        //println!("{}", self.sampler.as_ref().unwrap().total_traces());
-        //}
-
-        //println!("Done");
-        //
         let col = self.rx.as_ref().unwrap().try_iter();
 
-        //let a = self.rx2.as_ref().unwrap().recv().unwrap();
-        //dbg!(a);
-        println!("seems to be working");
-
-        //println!("{:?}", &col.count());
         let mut outputter = OutputFormat::collapsed.outputter(0.1);
 
         for trace in col {
-            outputter.record(&trace).unwrap();
+            outputter.record(&trace)?;
         }
+
         let mut writer = MyWriter { data: Vec::new() };
         outputter.complete(&mut writer).unwrap();
-        //col.for_each(|x| println!("{:#?}", x));
-        //println!("{:?}", writer.data);
 
         Ok(writer.data)
     }

@@ -20,6 +20,9 @@ pub enum BackendError {
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Anyhow(#[from] anyhow::Error),
 }
 
 impl BackendError {
