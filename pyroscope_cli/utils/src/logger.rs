@@ -15,8 +15,9 @@ pub fn default_root_logger() -> Result<slog::Logger> {
     // Create drains
     let drain = slog::Duplicate(default_discard()?, default_discard()?).fuse();
 
+    // TODO: Link logging to config
     // Merge drains
-    let drain = slog::Duplicate(default_term_drain().unwrap_or(default_discard()?), drain).fuse();
+    //let drain = slog::Duplicate(default_term_drain().unwrap_or(default_discard()?), drain).fuse();
 
     // Create Logger
     let logger = slog::Logger::root(drain, o!("who" => "pyroscope-cli"));

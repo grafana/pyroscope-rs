@@ -1,6 +1,6 @@
 use config::{Config, Environment};
 use lazy_static::lazy_static;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::RwLock;
@@ -13,9 +13,22 @@ lazy_static! {
     static ref CONFIG: RwLock<Config> = RwLock::new(Config::new());
 }
 
-#[derive(Debug, Deserialize)]
+/// Supported profilers
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum Spy {
+    Auto,
+    rbspy,
+    Dotnetspy,
+    Ebpfspy,
+    Phpspy,
+    Pyspy,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub debug: bool,
+    pub pid: i32,
+    pub spy_name: Spy,
 }
 
 impl AppConfig {
@@ -35,7 +48,7 @@ impl AppConfig {
         }
 
         // Merge settings with env variables
-        settings.merge(Environment::with_prefix("APP"))?;
+        settings.merge(Environment::with_prefix("PYROSCOPE"))?;
 
         // TODO: Merge settings with Clap Settings Arguments
 
@@ -69,6 +82,16 @@ impl AppConfig {
 
         Ok(())
     }
+
+    //pub fn setT<T>(key: &str, value: T) -> Result<()>
+    //where
+    //T: serde::Serialize,
+    //{
+    //{
+    //CONFIG.write()?.set::<T>(key, value)?;
+    //}
+    //Ok(())
+    //}
 
     // Get a single value
     pub fn get<'de, T>(key: &'de str) -> Result<T>

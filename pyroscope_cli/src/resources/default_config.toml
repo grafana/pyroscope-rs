@@ -1,1 +1,3 @@
 debug = false
+pid = 0
+spy_name = "rbspy"

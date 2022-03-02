@@ -243,8 +243,7 @@ they are used to launch a new process before polling the URL.
             long,
             value_name = "PID",
             help = "PID of the process you want to profile. Pass -1 to profile the whole system (only supported by ebpfspy)",
-            parse(try_from_str),
-            default_value = "0"
+            parse(try_from_str)
         )]
         pid: i32,
         #[clap(
@@ -277,8 +276,7 @@ they are used to launch a new process before polling the URL.
             arg_enum,
             long,
             value_name = "SPY_NAME",
-            help = "name of the profiler to use",
-            default_value = "auto"
+            help = "name of the profiler to use"
         )]
         spy_name: Spy,
         #[clap(
@@ -386,8 +384,7 @@ they are used to launch a new process before polling the URL.
             arg_enum,
             long,
             value_name = "SPY_NAME",
-            help = "name of the profiler to use",
-            default_value = "auto"
+            help = "name of the profiler to use"
         )]
         spy_name: Spy,
         #[clap(
@@ -480,14 +477,16 @@ pub fn cli_match() -> Result<()> {
     // Execute the subcommand
     match &cli.command {
         Commands::Adhoc { .. } => {
-            println!("adhoc command");
+            commands::adhoc()?;
         }
         Commands::Exec { server_address, .. } => {
+            commands::exec()?;
             dbg!(server_address);
-            println!("exec command");
         }
-        Commands::Connect { .. } => {
-            println!("connect command");
+        Commands::Connect { pid, spy_name, .. } => {
+            AppConfig::set("pid", &pid.to_string())?;
+            AppConfig::set("spy_name", "rbspy")?;
+            commands::connect()?;
         }
         Commands::Completion { shell } => match shell {
             CompletionShell::Bash => {
