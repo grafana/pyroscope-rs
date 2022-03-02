@@ -10,7 +10,7 @@ use super::error::Result;
 // CONFIG static variable. It's actually an AppConfig
 // inside an RwLock.
 lazy_static! {
-    static ref CONFIG: RwLock<Config> = RwLock::new(Config::new());
+    static ref CONFIG: RwLock<Config> = RwLock::new(Config::builder().build().unwrap());
 }
 
 /// Supported profilers
@@ -34,28 +34,25 @@ pub struct AppConfig {
 impl AppConfig {
     /// Initialize AppConfig.
     pub fn init(default_config: Option<&str>) -> Result<()> {
-        let mut settings = Config::new();
+        let mut settings = Config::builder().add_source(Environment::with_prefix("PYROSCOPE"));
 
         // Embed file into executable
         // This macro will embed the configuration file into the
         // executable. Check include_str! for more info.
         if let Some(config_contents) = default_config {
             //let contents = include_str!(config_file_path);
-            settings.merge(config::File::from_str(
-                config_contents,
-                config::FileFormat::Toml,
-            ))?;
+            let default_source = config::File::from_str(config_contents, config::FileFormat::Toml);
+            settings = settings.add_source(default_source);
         }
 
-        // Merge settings with env variables
-        settings.merge(Environment::with_prefix("PYROSCOPE"))?;
+        let config_build = settings.build()?;
 
         // TODO: Merge settings with Clap Settings Arguments
 
         // Save Config to RwLoc
         {
             let mut w = CONFIG.write()?;
-            *w = settings;
+            *w = config_build;
         }
 
         Ok(())
@@ -112,6 +109,6 @@ impl AppConfig {
         let config_clone = r.deref().clone();
 
         // Coerce Config into AppConfig
-        Ok(config_clone.try_into()?)
+        Ok(config_clone.try_deserialize()?)
     }
 }
