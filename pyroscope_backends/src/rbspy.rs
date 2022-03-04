@@ -3,7 +3,8 @@ use super::types::{Backend, State};
 
 use rbspy::{sampler::Sampler, OutputFormat, StackTrace};
 
-// TODO: refactor WRITER
+use std::io::Write;
+
 // TODO: handle errors returned from rx2
 // TODO: sync_channel size
 // TODO: handle unwraps
@@ -167,24 +168,70 @@ impl Backend for Rbspy {
             outputter.record(&trace)?;
         }
 
-        let mut writer = MyWriter { data: Vec::new() };
-        outputter.complete(&mut writer).unwrap();
+        // Create a new writer
+        let mut buffer: Vec<u8> = Vec::new();
+        let mut writer = RbspyWriter::new(&mut buffer);
 
-        Ok(writer.data)
+        // Push the outputter into the writer
+        outputter.complete(&mut writer)?;
+
+        // Flush the Writer
+        writer.flush()?;
+
+        // Return the writer's buffer
+        Ok(buffer)
     }
 }
 
-struct MyWriter {
+/// Rubyspy Writer
+/// This object is used to write the output of the rbspy sampler to a data buffer
+struct RbspyWriter<'a> {
     data: Vec<u8>,
+    buffer: &'a mut Vec<u8>,
 }
 
-impl std::io::Write for MyWriter {
+impl<'a> RbspyWriter<'a> {
+    /// Create a new RbspyWriter
+    pub fn new(buffer: &'a mut Vec<u8>) -> Self {
+        RbspyWriter {
+            data: Vec::new(),
+            buffer,
+        }
+    }
+}
+
+/// Implement Writer for Rbspy
+impl<'a> std::io::Write for RbspyWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        // push the data to the buffer
         self.data.extend_from_slice(buf);
-        //print!("{}", std::str::from_utf8(buf).unwrap());
+
+        // return the number of bytes written
         Ok(buf.len())
     }
+
     fn flush(&mut self) -> std::io::Result<()> {
+        // flush the buffer
+        self.buffer.extend_from_slice(&self.data);
+
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test_rbspy_writer {
+    use super::RbspyWriter;
+    use std::io::Write;
+
+    #[test]
+    fn test_rbspy_writer() {
+        let mut buffer: Vec<u8> = Vec::new();
+        let mut writer = RbspyWriter::new(&mut buffer);
+
+        writer.write(b"hello").unwrap();
+        writer.write(b"world").unwrap();
+        writer.flush().unwrap();
+
+        assert_eq!(buffer, b"helloworld".to_vec());
     }
 }
