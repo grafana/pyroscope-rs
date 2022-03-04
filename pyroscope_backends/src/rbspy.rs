@@ -6,9 +6,7 @@ use rbspy::{sampler::Sampler, OutputFormat, StackTrace};
 use std::io::Write;
 use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
 
-// TODO: handle errors returned from rx2
 // TODO: sync_channel size
-// TODO: handle unwraps
 // TODO: handle anyhow error type
 
 /// Rbspy Configuration
@@ -57,12 +55,16 @@ impl RbspyConfig {
 /// Rbspy Backend
 #[derive(Default)]
 pub struct Rbspy {
-    sampler: Option<Sampler>,
-    stack_receiver: Option<Receiver<StackTrace>>,
-    error_receiver: Option<Receiver<std::result::Result<(), anyhow::Error>>>,
+    /// Rbspy State
     state: State,
-
+    /// Rbspy Configuration
     config: RbspyConfig,
+    /// Rbspy Sampler
+    sampler: Option<Sampler>,
+    /// StackTrace Receiver
+    stack_receiver: Option<Receiver<StackTrace>>,
+    /// Error Receiver
+    error_receiver: Option<Receiver<std::result::Result<(), anyhow::Error>>>,
 }
 
 impl std::fmt::Debug for Rbspy {
@@ -144,7 +146,7 @@ impl Backend for Rbspy {
         // Get the Sampler
         let sampler = self
             .sampler
-            .as_mut()
+            .as_ref()
             .ok_or_else(|| BackendError::new("Rbspy: Sampler is not set"))?;
 
         // Start the Sampler
@@ -164,7 +166,7 @@ impl Backend for Rbspy {
 
         // Stop Sampler
         self.sampler
-            .as_mut()
+            .as_ref()
             .ok_or_else(|| BackendError::new("Rbspy: Sampler is not set"))?
             .stop();
 
@@ -178,6 +180,21 @@ impl Backend for Rbspy {
         // Check if Backend is Running
         if self.state != State::Running {
             return Err(BackendError::new("Rbspy: Backend is not Running"));
+        }
+
+        // Send Errors to Log
+        let errors = self
+            .error_receiver
+            .as_ref()
+            .ok_or_else(|| BackendError::new("Rbspy: error receiver is not set"))?
+            .try_iter();
+        for error in errors {
+            match error {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Rbspy: Error in Sampler: {}", e);
+                }
+            }
         }
 
         // Collect the StackTrace from the receiver
