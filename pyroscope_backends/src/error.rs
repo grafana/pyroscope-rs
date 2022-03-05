@@ -42,3 +42,15 @@ impl BackendError {
         }
     }
 }
+
+impl<T> From<std::sync::PoisonError<T>> for BackendError {
+    fn from(_err: std::sync::PoisonError<T>) -> Self {
+        BackendError::AdHoc("Poison Error".to_owned())
+    }
+}
+
+impl From<failure::Error> for BackendError {
+    fn from(_err: failure::Error) -> Self {
+        BackendError::AdHoc("Failure Error".to_owned())
+    }
+}
