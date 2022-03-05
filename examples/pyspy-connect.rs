@@ -16,7 +16,13 @@ fn main() -> Result<()> {
 
     let pid = args[1].parse::<i32>().unwrap();
 
-    let config = PyspyConfig::new(pid, 100, true, None, true, false, false, false);
+    let config = PyspyConfig::new(pid)
+        .sample_rate(100)
+        .lock_process(true)
+        .time_limit(None)
+        .with_subprocesses(true)
+        .include_idle(false)
+        .native(false);
 
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
         .backend(Pyspy::new(config))

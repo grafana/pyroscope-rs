@@ -7,7 +7,7 @@ use pyroscope_backends::rbspy::{Rbspy, RbspyConfig};
 
 fn main() -> Result<()> {
     // Force rustc to display the log messages in the console.
-    std::env::set_var("RUST_LOG", "trace");
+    std::env::set_var("RUST_LOG", "error");
 
     // Initialize the logger.
     pretty_env_logger::init_timed();
@@ -33,9 +33,17 @@ fn main() -> Result<()> {
     agent.start()?;
 
     // Profile for around 1 minute
-    std::thread::sleep(std::time::Duration::from_secs(120));
+    std::thread::sleep(std::time::Duration::from_secs(30));
 
     // Stop Agent
+    agent.stop()?;
+
+    std::thread::sleep(std::time::Duration::from_secs(30));
+
+    agent.start()?;
+
+    std::thread::sleep(std::time::Duration::from_secs(30));
+
     agent.stop()?;
 
     drop(agent);
