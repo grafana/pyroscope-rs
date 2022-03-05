@@ -1,8 +1,9 @@
 use super::error::{BackendError, Result};
 use super::types::{Backend, State};
 
-use rbspy::{sampler::Sampler, OutputFormat, StackTrace};
+use rbspy::{sampler::Sampler, ui::output::Outputter, OutputFormat, StackFrame, StackTrace};
 
+use std::collections::HashMap;
 use std::io::Write;
 use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
 
@@ -101,6 +102,7 @@ impl Backend for Rbspy {
             return Err(BackendError::new("Rbspy: Backend is already Initialized"));
         }
 
+        // Check if a process ID is set
         if self.config.pid.is_none() {
             return Err(BackendError::new("Rbspy: No Process ID Specified"));
         }
@@ -208,7 +210,7 @@ impl Backend for Rbspy {
 
         // Create a new OutputFormat (collapsed). This is an object provided by rbspy.
         // The argument should be ignored.
-        let mut outputter = OutputFormat::collapsed.outputter(0.1);
+        let mut outputter = RbspyFormatter::default();
 
         // Iterate over the StackTrace
         for trace in stack_trace {
@@ -230,6 +232,70 @@ impl Backend for Rbspy {
 
         // Return the writer's buffer
         Ok(buffer)
+    }
+}
+
+/// Rbspy Formatter
+#[derive(Default)]
+pub struct RbspyFormatter(HashMap<String, usize>);
+
+impl Outputter for RbspyFormatter {
+    fn record(&mut self, stack: &StackTrace) -> std::result::Result<(), anyhow::Error> {
+        let frame = stack
+            .iter()
+            .rev()
+            .map(|frame| format!("{}", StackFrameFormatter(frame)))
+            .collect::<Vec<String>>()
+            .join(";");
+
+        *self.0.entry(frame).or_insert(0) += 1;
+
+        Ok(())
+    }
+    fn complete(&mut self, writer: &mut dyn Write) -> std::result::Result<(), anyhow::Error> {
+        if self.0.is_empty() {
+            log::info!("Rbspy: No StackTraces reported");
+
+            return Ok(());
+        } else {
+            self.0
+                .iter()
+                .map(|(frame, count)| format!("{} {}", frame, count))
+                .collect::<Vec<String>>()
+                .iter()
+                .try_for_each(|line| writeln!(writer, "{}", line))?;
+        }
+        Ok(())
+    }
+}
+
+/// Custom Formatter for Rbspy StackFrames
+pub struct StackFrameFormatter<'a>(&'a StackFrame);
+
+impl<'a> std::fmt::Display for StackFrameFormatter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{} - {}",
+            self.0.relative_path, self.0.lineno, self.0.name
+        )
+    }
+}
+
+#[cfg(test)]
+mod test_stack_frame_formatter {
+    use super::{StackFrame, StackFrameFormatter};
+
+    #[test]
+    fn test_stack_frame_formatter() {
+        let frame = StackFrame {
+            absolute_path: Some("".to_string()),
+            relative_path: "test.rb".to_string(),
+            lineno: 1,
+            name: "test".to_string(),
+        };
+        let formatter = StackFrameFormatter(&frame);
+        assert_eq!(formatter.to_string(), "test.rb:1 - test");
     }
 }
 
