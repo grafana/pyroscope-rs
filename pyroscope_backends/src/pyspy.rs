@@ -1,8 +1,11 @@
 use super::error::{BackendError, Result};
 use super::types::{Backend, State};
 use py_spy::config::Config;
-use py_spy::sampler::Sampler;
+use py_spy::sampler::{Sample, Sampler};
+use py_spy::Frame;
+use py_spy::StackTrace;
 use std::collections::HashMap;
+use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
@@ -115,6 +118,10 @@ pub struct Pyspy {
     sampler_config: Option<Config>,
     /// Sampler thread
     sampler_thread: Option<JoinHandle<Result<()>>>,
+    /// tx
+    tx: Option<Sender<Sample>>,
+    /// rx
+    rx: Option<Receiver<Sample>>,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -132,6 +139,8 @@ impl Pyspy {
             config,
             sampler_config: None,
             sampler_thread: None,
+            tx: None,
+            rx: None,
         }
     }
 }
@@ -162,7 +171,13 @@ impl Backend for Pyspy {
 
         // Create a new py-spy configuration
         self.sampler_config = Some(Config {
+            // TODO
             //blocking: config_c.lock_process,
+            //if config_c.lock_process {
+            //config.blocking = py_spy::config::LockingStrategy::Lock;
+            //} else {
+            //config.blocking = py_spy::config::LockingStrategy::NonBlocking;
+            //}
             native: self.config.native,
             pid: self.config.pid,
             sampling_rate: self.config.sample_rate as u64,
@@ -187,26 +202,10 @@ impl Backend for Pyspy {
 
         let buffer = self.buffer.clone();
 
-        let config_c = self.config.clone();
+        let config = self.sampler_config.clone().unwrap();
 
         self.sampler_thread = Some(std::thread::spawn(move || {
-            let mut config = Config::default();
-
-            config.subprocesses = config_c.with_subprocesses;
-
-            config.native = config_c.native;
-
-            if config_c.lock_process {
-                config.blocking = py_spy::config::LockingStrategy::Lock;
-            } else {
-                config.blocking = py_spy::config::LockingStrategy::NonBlocking;
-            }
-
-            config.gil_only = config_c.gil_only;
-
-            config.include_idle = config_c.include_idle;
-
-            let sampler = Sampler::new(config_c.pid.unwrap(), &config)?;
+            let sampler = Sampler::new(config.pid.unwrap(), &config)?;
 
             for sample in sampler {
                 for trace in sample.traces {
