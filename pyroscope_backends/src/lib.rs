@@ -6,3 +6,4 @@ pub mod types;
 pub mod pprof;
 pub mod pyspy;
 pub mod rbspy;
+pub mod void;
