@@ -1,15 +1,20 @@
-use super::error::{BackendError, Result};
-use super::types::{Backend, State};
-use py_spy::config::Config;
-use py_spy::sampler::{Sample, Sampler};
-use py_spy::Frame;
-use py_spy::StackTrace;
-use std::collections::HashMap;
-use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
-use std::sync::{Arc, Mutex};
-use std::thread::JoinHandle;
+use super::{
+    error::{BackendError, Result},
+    types::{Backend, StackFrame, StackTrace, State},
+};
+use py_spy::{
+    config::Config,
+    sampler::{Sample, Sampler},
+};
+use std::{
+    collections::HashMap,
+    sync::{
+        mpsc::{channel, sync_channel, Receiver, Sender, SyncSender},
+        Arc, Mutex,
+    },
+    thread::JoinHandle,
+};
 
-// TODO: initialize with default args and add helper functions
 // TODO: state for the thread + stop function
 // TODO: refactor fold function
 
@@ -21,7 +26,7 @@ pub struct PyspyConfig {
     /// Sampling rate
     sample_rate: u32,
     /// Lock Process while sampling
-    lock_process: bool,
+    lock_process: py_spy::config::LockingStrategy,
     /// Profiling duration. None for infinite.
     time_limit: Option<core::time::Duration>,
     /// Include subprocesses
@@ -39,7 +44,7 @@ impl Default for PyspyConfig {
         PyspyConfig {
             pid: Some(0),
             sample_rate: 100,
-            lock_process: false,
+            lock_process: py_spy::config::LockingStrategy::NonBlocking,
             time_limit: None,
             with_subprocesses: false,
             include_idle: false,
@@ -49,7 +54,6 @@ impl Default for PyspyConfig {
     }
 }
 
-// TODO: use helper functions
 impl PyspyConfig {
     /// Create a new PyspyConfig
     pub fn new(pid: i32) -> Self {
@@ -70,7 +74,11 @@ impl PyspyConfig {
     /// Set the lock process flag
     pub fn lock_process(self, lock_process: bool) -> Self {
         PyspyConfig {
-            lock_process,
+            lock_process: if lock_process {
+                py_spy::config::LockingStrategy::Lock
+            } else {
+                py_spy::config::LockingStrategy::NonBlocking
+            },
             ..self
         }
     }
@@ -118,10 +126,7 @@ pub struct Pyspy {
     sampler_config: Option<Config>,
     /// Sampler thread
     sampler_thread: Option<JoinHandle<Result<()>>>,
-    /// tx
-    tx: Option<Sender<Sample>>,
-    /// rx
-    rx: Option<Receiver<Sample>>,
+    running: Arc<Mutex<bool>>,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -139,8 +144,7 @@ impl Pyspy {
             config,
             sampler_config: None,
             sampler_thread: None,
-            tx: None,
-            rx: None,
+            running: Arc::new(Mutex::new(false)),
         }
     }
 }
@@ -171,13 +175,7 @@ impl Backend for Pyspy {
 
         // Create a new py-spy configuration
         self.sampler_config = Some(Config {
-            // TODO
-            //blocking: config_c.lock_process,
-            //if config_c.lock_process {
-            //config.blocking = py_spy::config::LockingStrategy::Lock;
-            //} else {
-            //config.blocking = py_spy::config::LockingStrategy::NonBlocking;
-            //}
+            blocking: self.config.lock_process.clone(),
             native: self.config.native,
             pid: self.config.pid,
             sampling_rate: self.config.sample_rate as u64,
@@ -200,6 +198,10 @@ impl Backend for Pyspy {
             return Err(BackendError::new("Rbspy: Backend is not Ready"));
         }
 
+        let running = Arc::clone(&self.running);
+        // set running to true
+        *running.lock().unwrap() = true;
+
         let buffer = self.buffer.clone();
 
         let config = self.sampler_config.clone().unwrap();
@@ -207,7 +209,9 @@ impl Backend for Pyspy {
         self.sampler_thread = Some(std::thread::spawn(move || {
             let sampler = Sampler::new(config.pid.unwrap(), &config)?;
 
-            for sample in sampler {
+            let isampler = sampler.take_while(|x| *running.lock().unwrap());
+
+            for sample in isampler {
                 for trace in sample.traces {
                     if !(config.include_idle || trace.active) {
                         continue;
@@ -217,26 +221,9 @@ impl Backend for Pyspy {
                         continue;
                     }
 
-                    let frame = trace
-                        .frames
-                        .iter()
-                        .rev()
-                        .map(|frame| {
-                            let filename = match &frame.short_filename {
-                                Some(f) => &f,
-                                None => &frame.filename,
-                            };
-                            if frame.line != 0 {
-                                format!("{} ({}:{})", frame.name, filename, frame.line)
-                            } else if filename.len() > 0 {
-                                format!("{} ({})", frame.name, filename)
-                            } else {
-                                frame.name.clone()
-                            }
-                        })
-                        .collect::<Vec<String>>()
-                        .join(";");
-                    *buffer.lock()?.entry(frame).or_insert(0) += 1;
+                    let own_trace: StackTrace = trace.clone().into();
+
+                    *buffer.lock()?.entry(own_trace.to_string()).or_insert(0) += 1;
                 }
             }
 
@@ -254,6 +241,12 @@ impl Backend for Pyspy {
         if self.state != State::Running {
             return Err(BackendError::new("Rbspy: Backend is not Running"));
         }
+
+        // set running to false
+        *self.running.lock().unwrap() = false;
+
+        // wait for sampler thread to finish
+        self.sampler_thread.take().unwrap().join().unwrap()?;
 
         // Set State to Running
         self.state = State::Ready;
@@ -280,5 +273,33 @@ impl Backend for Pyspy {
         buffer.lock()?.clear();
 
         Ok(v8)
+    }
+}
+
+impl From<py_spy::Frame> for StackFrame {
+    fn from(frame: py_spy::Frame) -> Self {
+        Self {
+            module: frame.module.clone(),
+            name: Some(frame.name.clone()),
+            filename: frame.short_filename.clone(),
+            relative_path: None,
+            absolute_path: Some(frame.filename.clone()),
+            line: Some(frame.line as u32),
+        }
+    }
+}
+
+impl From<py_spy::StackTrace> for StackTrace {
+    fn from(trace: py_spy::StackTrace) -> Self {
+        Self {
+            pid: Some(trace.pid as u32),
+            thread_id: Some(trace.thread_id as u64),
+            thread_name: trace.thread_name.clone(),
+            frames: trace
+                .frames
+                .iter()
+                .map(|frame| frame.clone().into())
+                .collect(),
+        }
     }
 }
