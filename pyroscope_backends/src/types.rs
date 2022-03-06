@@ -42,7 +42,7 @@ pub trait Backend: Send + Debug {
 /// Transitions and avoid State transition implementations in the backend.
 pub struct BackendImpl<T: Backend> {
     state: State,
-    backend: T,
+    pub backend: T,
 }
 
 impl<T: Backend> BackendImpl<T> {

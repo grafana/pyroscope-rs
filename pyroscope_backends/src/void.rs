@@ -1,5 +1,9 @@
-use super::error::{BackendError, Result};
-use super::types::{Backend, BackendImpl, State};
+use crate::types::{StackFrame, StackTrace};
+
+use super::{
+    error::Result,
+    types::{Backend, BackendImpl, State},
+};
 
 #[derive(Debug)]
 pub struct VoidConfig {
@@ -54,14 +58,22 @@ impl Backend for VoidBackend {
     fn initialize(&mut self) -> Result<()> {
         Ok(())
     }
+
     fn start(&mut self) -> Result<()> {
         Ok(())
     }
+
     fn stop(&mut self) -> Result<()> {
         Ok(())
     }
+
     fn report(&mut self) -> Result<Vec<u8>> {
-        let report = "void".to_string().into_bytes();
+        // Generate a dummy Stack Trace
+        let stack_trace = generate_stack_trace()?;
+
+        // Format the stack trace
+        let a = format!("{} 1", stack_trace);
+        let report = a.into_bytes();
 
         Ok(report)
     }
@@ -69,4 +81,19 @@ impl Backend for VoidBackend {
 
 pub fn void_backend(config: VoidConfig) -> BackendImpl<VoidBackend> {
     BackendImpl::new(VoidBackend::new(config))
+}
+
+/// Generate a dummy stack trace
+fn generate_stack_trace() -> Result<StackTrace> {
+    let frames = vec![StackFrame::new(
+        None,
+        Some("void".to_string()),
+        Some("void.rs".to_string()),
+        None,
+        None,
+        Some(0),
+    )];
+    let stack_trace = StackTrace::new(None, None, None, frames);
+
+    Ok(stack_trace)
 }

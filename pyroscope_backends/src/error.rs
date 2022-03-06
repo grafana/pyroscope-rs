@@ -33,9 +33,7 @@ impl BackendError {
 
     /// Create a new instance of PyroscopeError with source
     pub fn new_with_source<E>(msg: &str, source: E) -> Self
-    where
-        E: std::error::Error + Send + Sync + 'static,
-    {
+    where E: std::error::Error + Send + Sync + 'static {
         BackendError::Compat {
             msg: msg.to_string(),
             source: Box::new(source),
