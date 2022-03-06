@@ -39,9 +39,17 @@ fn main() -> Result<()> {
     agent.start()?;
 
     // Profile for around 1 minute
-    std::thread::sleep(std::time::Duration::from_secs(60));
+    std::thread::sleep(std::time::Duration::from_secs(20));
 
+    println!("Stopping agent");
     // Stop Agent
+    agent.stop()?;
+
+    println!("Done");
+
+    agent.start()?;
+    std::thread::sleep(std::time::Duration::from_secs(40));
+
     agent.stop()?;
 
     drop(agent);
