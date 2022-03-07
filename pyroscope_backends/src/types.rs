@@ -1,5 +1,5 @@
 use super::error::{BackendError, Result};
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 /// Backend State
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -125,8 +125,44 @@ impl<T: Backend> BackendImpl<T> {
     }
 }
 
-/// StackTrace
+/// Report
 #[derive(Debug, Default)]
+pub struct Report {
+    pub data: HashMap<StackTrace, usize>,
+}
+
+impl Report {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+        }
+    }
+
+    pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
+        *self.data.entry(stack_trace).or_insert(0) += 1;
+
+        Ok(())
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+}
+
+impl std::fmt::Display for Report {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let collpased = self
+            .data
+            .iter()
+            .map(|(k, v)| format!("{} {}", k, v))
+            .collect::<Vec<String>>();
+
+        write!(f, "{}", collpased.join("\n"))
+    }
+}
+
+/// StackTrace
+#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct StackTrace {
     /// Process ID
     pub pid: Option<u32>,
@@ -154,7 +190,7 @@ impl StackTrace {
 }
 
 /// StackFrame
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct StackFrame {
     /// Module name
     pub module: Option<String>,
@@ -306,6 +342,62 @@ mod tests {
         assert_eq!(
             format!("{}", stack_trace),
             "filename:2 - name;filename:1 - name"
+        );
+    }
+
+    #[test]
+    fn test_report_record() {
+        let mut report = Report::new();
+
+        let stack_trace = StackTrace::new(None, None, None, vec![]);
+
+        assert!(report.record(stack_trace).is_ok());
+        assert_eq!(report.data.len(), 1);
+    }
+
+    #[test]
+    fn test_report_clear() {
+        let mut report = Report::new();
+
+        let stack_trace = StackTrace::new(None, None, None, vec![]);
+
+        assert!(report.record(stack_trace).is_ok());
+
+        report.clear();
+
+        assert_eq!(report.data.len(), 0);
+    }
+
+    #[test]
+    fn test_report_display() {
+        // Dummy StackTrace
+        let mut frames = Vec::new();
+        frames.push(StackFrame::new(
+            Some("module".to_string()),
+            Some("name".to_string()),
+            Some("filename".to_string()),
+            Some("absolute_path".to_string()),
+            Some("relative_path".to_string()),
+            Some(1),
+        ));
+        frames.push(StackFrame::new(
+            Some("module".to_string()),
+            Some("name".to_string()),
+            Some("filename".to_string()),
+            Some("absolute_path".to_string()),
+            Some("relative_path".to_string()),
+            Some(2),
+        ));
+        let stack_trace = StackTrace::new(None, None, None, frames);
+
+        let mut report = Report::new();
+
+        report.record(stack_trace.clone()).unwrap();
+        report.record(stack_trace).unwrap();
+
+        assert_eq!(
+            format!("{}", report),
+            "filename:2 - name;filename:1 - name 2"
         );
     }
 }
