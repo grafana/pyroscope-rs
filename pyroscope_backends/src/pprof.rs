@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::ffi::OsStr;
+
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 
 use crate::types::{Report, StackFrame, StackTrace};
@@ -117,7 +120,6 @@ impl Backend for Pprof<'_> {
             return Err(BackendError::new("Pprof Backend is not Running"));
         }
 
-        let mut buffer = Vec::new();
         let report = self
             .guard
             .as_ref()
@@ -125,13 +127,13 @@ impl Backend for Pprof<'_> {
             .report()
             .build()?;
 
-        fold(&report, true, &mut buffer)?;
+        let new_report = Into::<Report>::into(report).to_string().into_bytes();
 
         // Restart Profiler
         self.stop()?;
         self.start()?;
 
-        Ok(buffer)
+        Ok(new_report)
     }
 }
 
@@ -171,7 +173,13 @@ where
 
 impl From<pprof::Report> for Report {
     fn from(report: pprof::Report) -> Self {
-        Report { data: report.data }
+        //convert report to Report
+        let report_data: HashMap<StackTrace, usize> = report
+            .data
+            .iter()
+            .map(|(key, value)| (key.to_owned().into(), value.to_owned() as usize))
+            .collect();
+        Report::new(report_data)
     }
 }
 
@@ -181,7 +189,12 @@ impl From<pprof::Frames> for StackTrace {
             None,
             Some(frames.thread_id),
             Some(frames.thread_name),
-            frames.frames.iter().map(|frame| frame.into()).collect(),
+            frames
+                .frames
+                .concat()
+                .iter()
+                .map(|frame| frame.to_owned().into())
+                .collect(),
         )
     }
 }
@@ -190,7 +203,18 @@ impl From<pprof::Symbol> for StackFrame {
     fn from(symbol: pprof::Symbol) -> Self {
         StackFrame::new(
             None,
-            Some(String::from_utf8(symbol.name.unwrap_or(vec![])).unwrap_or("".to_string())),
+            Some(symbol.name()),
+            Some(
+                symbol
+                    .filename
+                    .clone()
+                    .unwrap_or(std::path::PathBuf::new())
+                    .file_name()
+                    .unwrap_or(OsStr::new(""))
+                    .to_str()
+                    .unwrap_or("")
+                    .to_string(),
+            ),
             Some(
                 symbol
                     .filename
@@ -199,7 +223,6 @@ impl From<pprof::Symbol> for StackFrame {
                     .unwrap_or("")
                     .to_string(),
             ),
-            None,
             None,
             symbol.lineno,
         )

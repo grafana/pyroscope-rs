@@ -132,10 +132,8 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn new() -> Self {
-        Self {
-            data: HashMap::new(),
-        }
+    pub fn new(data: HashMap<StackTrace, usize>) -> Self {
+        Self { data }
     }
 
     pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
