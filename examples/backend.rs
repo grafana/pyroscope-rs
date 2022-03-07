@@ -2,12 +2,20 @@ extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
 use pyroscope_backends::pprof::{Pprof, PprofConfig};
+use std::hash::{Hash, Hasher};
 
-fn fibonacci(n: u64) -> u64 {
-    match n {
-        0 | 1 => 1,
-        n => fibonacci(n - 1) + fibonacci(n - 2),
+fn hash_rounds(n: u64) -> u64 {
+    let hash_str = "Some string to hash";
+    let mut default_hasher = std::collections::hash_map::DefaultHasher::new();
+
+    for _ in 0..n {
+        for _ in 0..1000 {
+            default_hasher.write(hash_str.as_bytes());
+        }
+        hash_str.hash(&mut default_hasher);
     }
+
+    n
 }
 
 fn main() -> Result<()> {
@@ -17,7 +25,7 @@ fn main() -> Result<()> {
         .build()?;
 
     agent.start()?;
-    let _result = fibonacci(45);
+    let _result = hash_rounds(300_000);
     agent.stop()?;
 
     Ok(())
