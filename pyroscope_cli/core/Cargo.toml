@@ -9,3 +9,5 @@ edition = "2021"
 utils = { path = "../utils" }
 pyroscope = { path = "../../" }
 log = "0.4.14"
+ctrlc = "3.2.1"
+duct = "0.13.5"

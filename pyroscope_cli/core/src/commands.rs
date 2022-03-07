@@ -4,6 +4,11 @@ use utils::error::Result;
 use pyroscope::pyroscope_backends::rbspy::{Rbspy, RbspyConfig};
 use pyroscope::PyroscopeAgent;
 
+use ctrlc;
+use std::sync::mpsc::channel;
+
+use duct::cmd;
+
 /// adhoc command
 pub fn adhoc() -> Result<()> {
     println!("adhoc command");
@@ -12,12 +17,48 @@ pub fn adhoc() -> Result<()> {
 
 /// exec command
 pub fn exec() -> Result<()> {
-    println!("exec command");
+    let (tx, rx) = channel();
+
+    let handle = cmd!("ruby", "./scripts/ruby.rb").stdout_capture().start()?;
+    let pids = handle.pids();
+
+    let pid = *pids.get(0).unwrap() as i32;
+
+    let config = RbspyConfig::new(pid, 100, true, None, true);
+
+    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
+        .backend(Rbspy::new(config))
+        .build()
+        .unwrap();
+
+    agent.start().unwrap();
+
+    //handle.wait()?;
+
+    ctrlc::set_handler(move || {
+        tx.send(()).unwrap();
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    println!("Press Ctrl-C to exit.");
+
+    rx.recv().unwrap();
+
+    println!("Exiting.");
+
+    agent.stop().unwrap();
+
+    drop(agent);
+
+    handle.kill()?;
+
     Ok(())
 }
 
 /// connect command
 pub fn connect() -> Result<()> {
+    let (tx, rx) = channel();
+
     println!("connect command");
     let pid: i32 = AppConfig::get("pid")?;
 
@@ -30,11 +71,20 @@ pub fn connect() -> Result<()> {
 
     agent.start().unwrap();
 
-    std::thread::sleep(std::time::Duration::from_secs(100));
+    ctrlc::set_handler(move || {
+        tx.send(()).unwrap();
+    })
+    .expect("Error setting Ctrl-C handler");
 
-    println!("agent started");
+    println!("Press Ctrl-C to exit.");
+
+    rx.recv().unwrap();
+
+    println!("Exiting.");
 
     agent.stop().unwrap();
+
+    drop(agent);
 
     Ok(())
 }
