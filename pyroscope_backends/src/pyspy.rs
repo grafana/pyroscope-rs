@@ -4,21 +4,14 @@ use super::{
     error::{BackendError, Result},
     types::{Backend, StackFrame, StackTrace, State},
 };
-use py_spy::{
-    config::Config,
-    sampler::{Sample, Sampler},
-};
+use py_spy::{config::Config, sampler::Sampler};
 use std::{
-    collections::HashMap,
     sync::{
-        mpsc::{channel, sync_channel, Receiver, Sender, SyncSender},
+        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
     },
     thread::JoinHandle,
 };
-
-// TODO: state for the thread + stop function
-// TODO: refactor fold function
 
 /// Pyspy Configuration
 #[derive(Debug, Clone)]
@@ -128,7 +121,8 @@ pub struct Pyspy {
     sampler_config: Option<Config>,
     /// Sampler thread
     sampler_thread: Option<JoinHandle<Result<()>>>,
-    running: Arc<Mutex<bool>>,
+    /// Atomic flag to stop the sampler
+    running: Arc<AtomicBool>,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -146,7 +140,7 @@ impl Pyspy {
             config,
             sampler_config: None,
             sampler_thread: None,
-            running: Arc::new(Mutex::new(false)),
+            running: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -202,7 +196,7 @@ impl Backend for Pyspy {
 
         let running = Arc::clone(&self.running);
         // set running to true
-        *running.lock().unwrap() = true;
+        running.store(true, Ordering::Relaxed);
 
         let buffer = self.buffer.clone();
 
@@ -211,7 +205,7 @@ impl Backend for Pyspy {
         self.sampler_thread = Some(std::thread::spawn(move || {
             let sampler = Sampler::new(config.pid.unwrap(), &config)?;
 
-            let isampler = sampler.take_while(|x| *running.lock().unwrap());
+            let isampler = sampler.take_while(|_x| running.load(Ordering::Relaxed));
 
             for sample in isampler {
                 for trace in sample.traces {
@@ -245,7 +239,7 @@ impl Backend for Pyspy {
         }
 
         // set running to false
-        *self.running.lock().unwrap() = false;
+        self.running.store(false, Ordering::Relaxed);
 
         // wait for sampler thread to finish
         self.sampler_thread.take().unwrap().join().unwrap()?;
