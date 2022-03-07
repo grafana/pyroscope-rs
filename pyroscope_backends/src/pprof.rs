@@ -1,4 +1,6 @@
-use pprof::{ProfilerGuard, ProfilerGuardBuilder, Report};
+use pprof::{ProfilerGuard, ProfilerGuardBuilder};
+
+use crate::types::{Report, StackFrame, StackTrace};
 
 use super::error::{BackendError, Result};
 use super::types::{Backend, State};
@@ -122,6 +124,7 @@ impl Backend for Pprof<'_> {
             .ok_or_else(|| BackendError::new("pprof-rs: ProfilerGuard report error"))?
             .report()
             .build()?;
+
         fold(&report, true, &mut buffer)?;
 
         // Restart Profiler
@@ -133,7 +136,7 @@ impl Backend for Pprof<'_> {
 }
 
 // Copyright: https://github.com/YangKeao
-fn fold<W>(report: &Report, with_thread_name: bool, mut writer: W) -> Result<()>
+fn fold<W>(report: &pprof::Report, with_thread_name: bool, mut writer: W) -> Result<()>
 where
     W: std::io::Write,
 {
@@ -164,4 +167,41 @@ where
     }
 
     Ok(())
+}
+
+impl From<pprof::Report> for Report {
+    fn from(report: pprof::Report) -> Self {
+        Report { data: report.data }
+    }
+}
+
+impl From<pprof::Frames> for StackTrace {
+    fn from(frames: pprof::Frames) -> Self {
+        StackTrace::new(
+            None,
+            Some(frames.thread_id),
+            Some(frames.thread_name),
+            frames.frames.iter().map(|frame| frame.into()).collect(),
+        )
+    }
+}
+
+impl From<pprof::Symbol> for StackFrame {
+    fn from(symbol: pprof::Symbol) -> Self {
+        StackFrame::new(
+            None,
+            Some(String::from_utf8(symbol.name.unwrap_or(vec![])).unwrap_or("".to_string())),
+            Some(
+                symbol
+                    .filename
+                    .unwrap_or(std::path::PathBuf::new())
+                    .to_str()
+                    .unwrap_or("")
+                    .to_string(),
+            ),
+            None,
+            None,
+            symbol.lineno,
+        )
+    }
 }

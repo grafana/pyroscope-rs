@@ -1,4 +1,4 @@
-use crate::types::{StackFrame, StackTrace};
+use crate::types::{Report, StackFrame, StackTrace};
 
 use super::{
     error::Result,
@@ -31,6 +31,7 @@ impl VoidConfig {
 pub struct VoidBackend {
     state: State,
     config: VoidConfig,
+    buffer: Report,
 }
 
 impl VoidBackend {
@@ -56,6 +57,12 @@ impl Backend for VoidBackend {
     }
 
     fn initialize(&mut self) -> Result<()> {
+        // Generate a dummy Stack Trace
+        let stack_trace = generate_stack_trace()?;
+
+        // Add the StackTrace to the buffer
+        self.buffer.record(stack_trace);
+
         Ok(())
     }
 
@@ -68,12 +75,7 @@ impl Backend for VoidBackend {
     }
 
     fn report(&mut self) -> Result<Vec<u8>> {
-        // Generate a dummy Stack Trace
-        let stack_trace = generate_stack_trace()?;
-
-        // Format the stack trace
-        let a = format!("{} 1", stack_trace);
-        let report = a.into_bytes();
+        let report = self.buffer.to_string().into_bytes();
 
         Ok(report)
     }

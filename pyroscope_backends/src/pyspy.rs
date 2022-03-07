@@ -1,3 +1,5 @@
+use crate::types::Report;
+
 use super::{
     error::{BackendError, Result},
     types::{Backend, StackFrame, StackTrace, State},
@@ -119,7 +121,7 @@ pub struct Pyspy {
     /// Pyspy State
     state: State,
     /// Profiling buffer
-    buffer: Arc<Mutex<HashMap<String, usize>>>,
+    buffer: Arc<Mutex<Report>>,
     /// Pyspy Configuration
     config: PyspyConfig,
     /// Sampler configuration
@@ -140,7 +142,7 @@ impl Pyspy {
     pub fn new(config: PyspyConfig) -> Self {
         Pyspy {
             state: State::Uninitialized,
-            buffer: Arc::new(Mutex::new(HashMap::new())),
+            buffer: Arc::new(Mutex::new(Report::default())),
             config,
             sampler_config: None,
             sampler_thread: None,
@@ -223,7 +225,7 @@ impl Backend for Pyspy {
 
                     let own_trace: StackTrace = trace.clone().into();
 
-                    *buffer.lock()?.entry(own_trace.to_string()).or_insert(0) += 1;
+                    buffer.lock()?.record(own_trace)?;
                 }
             }
 
@@ -262,13 +264,7 @@ impl Backend for Pyspy {
 
         let buffer = self.buffer.clone();
 
-        let col: Vec<String> = buffer
-            .lock()?
-            .iter()
-            .map(|(k, v)| format!("{} {}", k, v))
-            .collect();
-
-        let v8: Vec<u8> = col.join("\n").into_bytes();
+        let v8: Vec<u8> = buffer.lock()?.to_string().into_bytes();
 
         buffer.lock()?.clear();
 
