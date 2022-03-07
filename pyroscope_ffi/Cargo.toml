@@ -18,3 +18,5 @@ name = "pyroscope_ffi"
 crate-type = ["cdylib"]
 
 [dependencies]
+pyroscope = { path = "../" }
+pyroscope_backends = { path = "../pyroscope_backends" }
