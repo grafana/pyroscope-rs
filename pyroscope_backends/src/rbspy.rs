@@ -36,16 +36,35 @@ impl Default for RbspyConfig {
 
 impl RbspyConfig {
     /// Create a new RbspyConfig
-    pub fn new(
-        pid: i32, sample_rate: u32, lock_process: bool, time_limit: Option<core::time::Duration>,
-        with_subprocesses: bool,
-    ) -> Self {
+    pub fn new(pid: i32) -> Self {
         RbspyConfig {
             pid: Some(pid),
+            ..Default::default()
+        }
+    }
+
+    pub fn sample_rate(self, sample_rate: u32) -> Self {
+        RbspyConfig {
             sample_rate,
+            ..self
+        }
+    }
+
+    pub fn lock_process(self, lock_process: bool) -> Self {
+        RbspyConfig {
             lock_process,
-            time_limit,
+            ..self
+        }
+    }
+
+    pub fn time_limit(self, time_limit: Option<core::time::Duration>) -> Self {
+        RbspyConfig { time_limit, ..self }
+    }
+
+    pub fn with_subprocesses(self, with_subprocesses: bool) -> Self {
+        RbspyConfig {
             with_subprocesses,
+            ..self
         }
     }
 }
