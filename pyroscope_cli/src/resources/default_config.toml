@@ -1,3 +1,8 @@
 debug = false
-pid = 0
-spy_name = "rbspy"
+spy_name = "auto"
+log_level = "info"
+rbspy_blocking = false
+pyspy_blocking = false
+sample_rate = 100
+detect_subprocesses = true
+server_address = "http://localhost:4040"

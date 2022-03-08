@@ -6,53 +6,216 @@ use std::path::Path;
 use std::sync::RwLock;
 
 use super::error::Result;
+use crate::types::{LogLevel, OutputFormat, Spy};
 
 // CONFIG static variable. It's actually an AppConfig
 // inside an RwLock.
 lazy_static! {
-    static ref CONFIG: RwLock<Config> = RwLock::new(Config::builder().build().unwrap());
-}
-
-/// Supported profilers
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub enum Spy {
-    Auto,
-    rbspy,
-    Dotnetspy,
-    Ebpfspy,
-    Phpspy,
-    Pyspy,
+    pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::new());
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub debug: bool,
-    pub pid: i32,
+    pub pid: Option<i32>,
     pub spy_name: Spy,
+    pub application_name: Option<String>,
+    pub auth_token: Option<String>,
+    pub detect_subprocesses: Option<bool>,
+    pub group_name: Option<String>,
+    pub no_logging: Option<bool>,
+    pub log_level: LogLevel,
+    pub no_root_drop: Option<bool>,
+    pub pyspy_blocking: Option<bool>,
+    pub rbspy_blocking: Option<bool>,
+    pub sample_rate: Option<u32>,
+    pub server_address: Option<String>,
+    pub tag: Option<String>,
+    pub upstream_request_timeout: Option<String>,
+    pub upstream_threads: Option<u32>,
+    pub user_name: Option<String>,
 }
 
 impl AppConfig {
     /// Initialize AppConfig.
     pub fn init(default_config: Option<&str>) -> Result<()> {
-        let mut settings = Config::builder().add_source(Environment::with_prefix("PYROSCOPE"));
+        let mut settings = Config::new();
 
         // Embed file into executable
         // This macro will embed the configuration file into the
         // executable. Check include_str! for more info.
         if let Some(config_contents) = default_config {
             //let contents = include_str!(config_file_path);
-            let default_source = config::File::from_str(config_contents, config::FileFormat::Toml);
-            settings = settings.add_source(default_source);
+            settings.merge(config::File::from_str(
+                config_contents,
+                config::FileFormat::Toml,
+            ))?;
         }
 
-        let config_build = settings.build()?;
-
-        // TODO: Merge settings with Clap Settings Arguments
-
+        // Merge settings with env variables
+        settings.merge(Environment::with_prefix("PYROSCOPE"))?;
         // Save Config to RwLoc
         {
             let mut w = CONFIG.write()?;
-            *w = config_build;
+            *w = settings;
+        }
+
+        Ok(())
+    }
+
+    pub fn merge_args(app: clap::App) -> Result<()> {
+        let args = app.get_matches();
+
+        // Connect Command
+        if let Some(sub_connect) = args.subcommand_matches("connect") {
+            if sub_connect.is_present("log_level") {
+                if let Some(log_level) = sub_connect.value_of("log_level") {
+                    AppConfig::set("log_level", log_level)?;
+                }
+            }
+            if sub_connect.is_present("no_logging") {
+                if let Some(no_logging) = sub_connect.value_of("no_logging") {
+                    AppConfig::set("no_logging", no_logging)?;
+                }
+            }
+            if sub_connect.is_present("pyspy_blocking") {
+                if let Some(pyspy_blocking) = sub_connect.value_of("pyspy_blocking") {
+                    AppConfig::set("pyspy_blocking", pyspy_blocking)?;
+                }
+            }
+            if sub_connect.is_present("rbspy_blocking") {
+                if let Some(rbspy_blocking) = sub_connect.value_of("rbspy_blocking") {
+                    AppConfig::set("rbspy_blocking", rbspy_blocking)?;
+                }
+            }
+            if sub_connect.is_present("sample_rate") {
+                if let Some(sample_rate) = sub_connect.value_of("sample_rate") {
+                    AppConfig::set("sample_rate", sample_rate)?;
+                }
+            }
+            if sub_connect.is_present("server_address") {
+                if let Some(server_address) = sub_connect.value_of("server_address") {
+                    AppConfig::set("server_address", server_address)?;
+                }
+            }
+            if sub_connect.is_present("tag") {
+                if let Some(tag) = sub_connect.value_of("tag") {
+                    AppConfig::set("tag", tag)?;
+                }
+            }
+            if sub_connect.is_present("upstream_request_timeout") {
+                if let Some(upstream_request_timeout) =
+                    sub_connect.value_of("upstream_request_timeout")
+                {
+                    AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
+                }
+            }
+            if sub_connect.is_present("upstream_threads") {
+                if let Some(upstream_threads) = sub_connect.value_of("upstream_threads") {
+                    AppConfig::set("upstream_threads", upstream_threads)?;
+                }
+            }
+            if sub_connect.is_present("application_name") {
+                if let Some(application_name) = sub_connect.value_of("application_name") {
+                    AppConfig::set("application_name", application_name)?;
+                }
+            }
+            if sub_connect.is_present("auth_token") {
+                if let Some(auth_token) = sub_connect.value_of("auth_token") {
+                    AppConfig::set("auth_token", auth_token)?;
+                }
+            }
+            if sub_connect.is_present("detect_subprocesses") {
+                if let Some(detect_subprocesses) = sub_connect.value_of("detect_subprocesses") {
+                    AppConfig::set("detect_subprocesses", detect_subprocesses)?;
+                }
+            }
+            if sub_connect.is_present("pid") {
+                if let Some(pid) = sub_connect.value_of("pid") {
+                    AppConfig::set("pid", pid)?;
+                }
+            }
+            if sub_connect.is_present("spy_name") {
+                if let Some(spy_name) = sub_connect.value_of("spy_name") {
+                    AppConfig::set("spy_name", spy_name)?;
+                }
+            }
+        }
+
+        // Exec Command
+        if let Some(sub_exec) = args.subcommand_matches("exec") {
+            if sub_exec.is_present("log_level") {
+                if let Some(log_level) = sub_exec.value_of("log_level") {
+                    AppConfig::set("log_level", log_level)?;
+                }
+            }
+            if sub_exec.is_present("no_logging") {
+                if let Some(no_logging) = sub_exec.value_of("no_logging") {
+                    AppConfig::set("no_logging", no_logging)?;
+                }
+            }
+            if sub_exec.is_present("pyspy_blocking") {
+                if let Some(pyspy_blocking) = sub_exec.value_of("pyspy_blocking") {
+                    AppConfig::set("pyspy_blocking", pyspy_blocking)?;
+                }
+            }
+            if sub_exec.is_present("rbspy_blocking") {
+                if let Some(rbspy_blocking) = sub_exec.value_of("rbspy_blocking") {
+                    AppConfig::set("rbspy_blocking", rbspy_blocking)?;
+                }
+            }
+            if sub_exec.is_present("sample_rate") {
+                if let Some(sample_rate) = sub_exec.value_of("sample_rate") {
+                    AppConfig::set("sample_rate", sample_rate)?;
+                }
+            }
+            if sub_exec.is_present("server_address") {
+                if let Some(server_address) = sub_exec.value_of("server_address") {
+                    AppConfig::set("server_address", server_address)?;
+                }
+            }
+            if sub_exec.is_present("tag") {
+                if let Some(tag) = sub_exec.value_of("tag") {
+                    AppConfig::set("tag", tag)?;
+                }
+            }
+            if sub_exec.is_present("upstream_request_timeout") {
+                if let Some(upstream_request_timeout) =
+                    sub_exec.value_of("upstream_request_timeout")
+                {
+                    AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
+                }
+            }
+            if sub_exec.is_present("upstream_threads") {
+                if let Some(upstream_threads) = sub_exec.value_of("upstream_threads") {
+                    AppConfig::set("upstream_threads", upstream_threads)?;
+                }
+            }
+            if sub_exec.is_present("application_name") {
+                if let Some(application_name) = sub_exec.value_of("application_name") {
+                    AppConfig::set("application_name", application_name)?;
+                }
+            }
+            if sub_exec.is_present("auth_token") {
+                if let Some(auth_token) = sub_exec.value_of("auth_token") {
+                    AppConfig::set("auth_token", auth_token)?;
+                }
+            }
+            if sub_exec.is_present("detect_subprocesses") {
+                if let Some(detect_subprocesses) = sub_exec.value_of("detect_subprocesses") {
+                    AppConfig::set("detect_subprocesses", detect_subprocesses)?;
+                }
+            }
+            if sub_exec.is_present("spy_name") {
+                if let Some(spy_name) = sub_exec.value_of("spy_name") {
+                    AppConfig::set("spy_name", spy_name)?;
+                }
+            }
+            if sub_exec.is_present("user_name") {
+                if let Some(pid) = sub_exec.value_of("user_name") {
+                    AppConfig::set("user_name", pid)?;
+                }
+            }
         }
 
         Ok(())
@@ -109,6 +272,6 @@ impl AppConfig {
         let config_clone = r.deref().clone();
 
         // Coerce Config into AppConfig
-        Ok(config_clone.try_deserialize()?)
+        Ok(config_clone.try_into()?)
     }
 }

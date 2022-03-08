@@ -3,12 +3,12 @@ use clap_complete::{
     generate,
     shells::{Bash, Fish, PowerShell, Zsh},
 };
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 use core::commands;
 use utils::app_config::AppConfig;
 use utils::error::Result;
+use utils::types::{LogLevel, OutputFormat, Spy};
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -80,46 +80,53 @@ they are used to launch a new process before polling the URL.
     )]
     Adhoc {
         #[clap(
-            long,
+            name = "application_name",
+            long = "application-name",
             value_name = "APPLICATION_NAME",
             help = "application name used when uploading profiling data"
         )]
         application_name: Option<String>,
         #[clap(
-            long,
+            name = "data_path",
+            long = "data-path",
             value_name = "DATA_PATH",
             help = "directory where pyroscope stores adhoc profiles"
         )]
         data_path: String,
         #[clap(
-            long,
+            name = "detect_subprocesses",
+            long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
             help = "keep track of and profile subprocesses of the main process"
         )]
         detect_subprocesses: bool,
         #[clap(
-            long,
+            name = "duration",
+            long = "duration",
             value_name = "DURATION",
             help = "duration of the profiling session, which is the whole execution of the profiled process by default",
             default_value = "0s"
         )]
         duration: String,
         #[clap(
-            arg_enum,
-            long,
+            name = "log_level",
+            short,
+            long = "log-level",
             value_name = "LOG_LEVEL",
             help = "",
             default_value = "info"
         )]
         log_level: LogLevel,
         #[clap(
-            long,
+            name = "no_logging",
+            long = "no-logging",
             value_name = "NO_LOGGING",
             help = "disable logging from pyroscope"
         )]
         no_logging: bool,
         #[clap(
-            long,
+            name = "max_nodes_render",
+            long = "max-nodes-render",
             value_name = "MAX_NODES_RENDER",
             help = "max number of nodes used to display data on the frontend",
             parse(try_from_str),
@@ -127,7 +134,8 @@ they are used to launch a new process before polling the URL.
         )]
         max_nodes_render: u32,
         #[clap(
-            long,
+            name = "max_nodes_serialization",
+            long = "max-nodes-serialization",
             value_name = "MAX_NODES_SERIALIZATION",
             help = "max number of nodes used when saving profiles to disk",
             parse(try_from_str),
@@ -135,21 +143,23 @@ they are used to launch a new process before polling the URL.
         )]
         max_nodes_serialization: u32,
         #[clap(
-            long,
+            name = "no_json_output",
+            long = "no-json-output",
             value_name = "NO_JSON_OUTPUT",
             help = "disable generating native JSON file(s) in pyroscope data directory"
         )]
         no_json_output: bool,
         #[clap(
-            arg_enum,
-            long,
+            name = "output_format",
+            long = "output-format",
             value_name = "OUTPUT_FORMAT",
             help = "format to export profiling data",
             default_value = "html"
         )]
         output_format: OutputFormat,
         #[clap(
-            long,
+            name = "pid",
+            long = "pid",
             value_name = "PID",
             help = "PID of the process you want to profile. Pass -1 to profile the whole system (only supported by ebpfspy)",
             parse(try_from_str),
@@ -157,33 +167,37 @@ they are used to launch a new process before polling the URL.
         )]
         pid: i32,
         #[clap(
-            long,
+            name = "push",
+            long = "push",
             value_name = "PUSH",
             help = "use push mode, exposing an ingestion endpoint for the profiled program to use"
         )]
         push: bool,
         #[clap(
-            long,
+            name = "pyspy_blocking",
+            long = "pyspy-blocking",
             value_name = "PYSPY_BLOCKING",
             help = "enable blocking mode for pyspy"
         )]
         pyspy_blocking: bool,
         #[clap(
-            long,
+            name = "rbspy_blocking",
+            long = "rbspy-blocking",
             value_name = "RBSPY_BLOCKING",
             help = "enable blocking mode for rbspy"
         )]
         rbspy_blocking: bool,
         #[clap(
-            long,
+            name = "sample_rate",
+            long = "sample-rate",
             value_name = "SAMPLE_RATE",
             help = "sample rate for the profiler in Hz. 100 means reading 100 times per second",
             default_value = "100"
         )]
         sample_rate: i32,
         #[clap(
-            arg_enum,
-            long,
+            name = "spy_name",
+            long = "spy-name",
             value_name = "SPY_NAME",
             help = "name of the profiler to use",
             default_value = "auto"
@@ -208,92 +222,105 @@ they are used to launch a new process before polling the URL.
     )]
     Connect {
         #[clap(
-            long,
+            name = "application_name",
+            long = "application-name",
             value_name = "APPLICATION_NAME",
             help = "application name used when uploading profiling data"
         )]
         application_name: Option<String>,
         #[clap(
-            long,
+            name = "auth_token",
+            long = "auth-token",
             value_name = "AUTH_TOKEN",
             help = "authorization token used to upload profiling data"
         )]
         auth_token: Option<String>,
         #[clap(
-            long,
+            name = "detect_subprocesses",
+            long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
             help = "keep track of and profile subprocesses of the main process"
         )]
         detect_subprocesses: bool,
         #[clap(
-            arg_enum,
-            long,
+            name = "log_level",
+            short,
+            long = "log-level",
             value_name = "LOG_LEVEL",
             help = "",
             default_value = "info"
         )]
         log_level: LogLevel,
         #[clap(
-            long,
+            name = "no_logging",
+            long = "no-logging",
             value_name = "NO_LOGGING",
             help = "disable logging from pyroscope"
         )]
         no_logging: bool,
         #[clap(
-            long,
+            name = "pid",
+            long = "pid",
             value_name = "PID",
             help = "PID of the process you want to profile. Pass -1 to profile the whole system (only supported by ebpfspy)",
             parse(try_from_str)
         )]
         pid: i32,
         #[clap(
-            long,
+            name = "pyspy_blocking",
+            long = "pyspy-blocking",
             value_name = "PYSPY_BLOCKING",
             help = "enable blocking mode for pyspy"
         )]
         pyspy_blocking: bool,
         #[clap(
-            long,
+            name = "rbspy_blocking",
+            long = "rbspy-blocking",
             value_name = "RBSPY_BLOCKING",
             help = "enable blocking mode for rbspy"
         )]
         rbspy_blocking: bool,
         #[clap(
-            long,
+            name = "sample_rate",
+            long = "sample-rate",
             value_name = "SAMPLE_RATE",
             help = "sample rate for the profiler in Hz. 100 means reading 100 times per second",
             default_value = "100"
         )]
         sample_rate: i32,
         #[clap(
-            long,
+            name = "server_address",
+            long = "server-address",
             value_name = "SERVER_ADDRESS",
             help = "Pyroscope server address",
             default_value = "http://localhost:4040"
         )]
         server_address: String,
         #[clap(
-            arg_enum,
-            long,
+            name = "spy_name",
+            long = "spy-name",
             value_name = "SPY_NAME",
             help = "name of the profiler to use"
         )]
         spy_name: Spy,
         #[clap(
-            long,
+            name = "tag",
+            long = "tag",
             value_name = "TAG",
             help = "tag in key=value form. The flag may be specified multiple times"
         )]
         tag: Option<String>,
         #[clap(
-            long,
+            name = "upstream_request_timeout",
+            long = "upstream-request-timeout",
             value_name = "UPSTREAM_REQUEST_TIMEOUT",
             help = "profile upload timeout",
             default_value = "10s"
         )]
         upstream_request_timeout: String,
         #[clap(
-            long,
+            name = "upstream_threads",
+            long = "upstream-threads",
             value_name = "UPSTREAM_THREADS",
             help = "number of upload threads",
             parse(try_from_str),
@@ -311,97 +338,111 @@ they are used to launch a new process before polling the URL.
         #[clap(required = true)]
         command: Option<String>,
         #[clap(
-            long,
+            name = "application_name",
+            long = "application-name",
             value_name = "APPLICATION_NAME",
             help = "application name used when uploading profiling data"
         )]
         application_name: Option<String>,
         #[clap(
-            long,
+            name = "auth_token",
+            long = "auth-token",
             value_name = "AUTH_TOKEN",
             help = "authorization token used to upload profiling data"
         )]
         auth_token: Option<String>,
         #[clap(
-            long,
+            name = "detect_subprocesses",
+            long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
             help = "keep track of and profile subprocesses of the main process"
         )]
         detect_subprocesses: bool,
         #[clap(
-            long,
+            name = "group_name",
+            long = "group-name",
             value_name = "GROUP_NAME",
             help = "start process under specified group name"
         )]
         group_name: Option<String>,
         #[clap(
-            arg_enum,
-            long,
+            name = "log_level",
+            short,
+            long = "log-level",
             value_name = "LOG_LEVEL",
             help = "",
             default_value = "info"
         )]
         log_level: LogLevel,
         #[clap(
-            long,
+            name = "no_logging",
+            long = "no-logging",
             value_name = "NO_LOGGING",
             help = "disable logging from pyroscope"
         )]
         no_logging: bool,
         #[clap(
-            long,
+            name = "no_root_drop",
+            long = "no-root-drop",
             value_name = "NO_ROOT_DROP",
             help = "disable permissions drop when ran under root. use this one if you want to run your command as root"
         )]
         no_root_drop: bool,
         #[clap(
-            long,
+            name = "pyspy_blocking",
+            long = "pyspy-blocking",
             value_name = "PYSPY_BLOCKING",
             help = "enable blocking mode for pyspy"
         )]
         pyspy_blocking: bool,
         #[clap(
-            long,
+            name = "rbspy_blocking",
+            long = "rbspy-blocking",
             value_name = "RBSPY_BLOCKING",
             help = "enable blocking mode for rbspy"
         )]
         rbspy_blocking: bool,
         #[clap(
-            long,
+            name = "sample_rate",
+            long = "sample-rate",
             value_name = "SAMPLE_RATE",
             help = "sample rate for the profiler in Hz. 100 means reading 100 times per second",
             default_value = "100"
         )]
-        sample_rate: i32,
+        sample_rate: u32,
         #[clap(
-            long,
+            name = "server_address",
+            long = "server-address",
             value_name = "SERVER_ADDRESS",
             help = "Pyroscope server address",
             default_value = "http://localhost:4040"
         )]
         server_address: String,
         #[clap(
-            arg_enum,
-            long,
+            name = "spy_name",
+            long = "spy-name",
             value_name = "SPY_NAME",
             help = "name of the profiler to use"
         )]
         spy_name: Spy,
         #[clap(
-            long,
+            name = "tag",
+            long = "tag",
             value_name = "TAG",
             help = "tag in key=value form. The flag may be specified multiple times"
         )]
         tag: Option<String>,
         #[clap(
-            long,
+            name = "upstream_request_timeout",
+            long = "upstream-request-timeout",
             value_name = "UPSTREAM_REQUEST_TIMEOUT",
             help = "profile upload timeout",
             default_value = "10s"
         )]
         upstream_request_timeout: String,
         #[clap(
-            long,
+            name = "upstream_threads",
+            long = "upstream-threads",
             value_name = "UPSTREAM_THREADS",
             help = "number of upload threads",
             parse(try_from_str),
@@ -409,7 +450,8 @@ they are used to launch a new process before polling the URL.
         )]
         upstream_threads: u32,
         #[clap(
-            long,
+            name = "user_name",
+            long = "user-name",
             value_name = "USER_NAME",
             help = "start process under specified user name"
         )]
@@ -421,26 +463,6 @@ they are used to launch a new process before polling the URL.
         long_about = None,
     )]
     Config,
-}
-
-/// Debug level for the logger
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]
-enum LogLevel {
-    Debug,
-    Info,
-    Warn,
-    Error,
-}
-
-/// Supported profilers
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]
-enum Spy {
-    Auto,
-    Rbspy,
-    Dotnetspy,
-    Ebpfspy,
-    Phpspy,
-    Pyspy,
 }
 
 /// Supported Completion Shells
@@ -456,23 +478,18 @@ enum CompletionShell {
     Zsh,
 }
 
-/// Output Format for Adhoc profiling
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]
-enum OutputFormat {
-    None,
-    Html,
-    Pprof,
-    Collapsed,
-}
-
 /// Match the command line arguments and run the appropriate command
 pub fn cli_match() -> Result<()> {
     // Parse the command line arguments
     let cli = Cli::parse();
-    let mut app = Cli::into_app();
 
     // Merge clap config file if the value is set
     AppConfig::merge_config(cli.config.as_deref())?;
+
+    let app = Cli::into_app();
+    AppConfig::merge_args(app)?;
+
+    let mut app = Cli::into_app();
 
     // Execute the subcommand
     match &cli.command {
@@ -481,11 +498,8 @@ pub fn cli_match() -> Result<()> {
         }
         Commands::Exec { server_address, .. } => {
             commands::exec()?;
-            dbg!(server_address);
         }
-        Commands::Connect { pid, spy_name, .. } => {
-            AppConfig::set("pid", &pid.to_string())?;
-            AppConfig::set("spy_name", "rbspy")?;
+        Commands::Connect { .. } => {
             commands::connect()?;
         }
         Commands::Completion { shell } => match shell {
