@@ -24,7 +24,6 @@ fn test_session_new() {
         application_name: "test".to_string(),
         tags: HashMap::new(),
         sample_rate: 100,
-        accumulation_cycle: Duration::from_secs(10),
     };
 
     let report = vec![1, 2, 3];
@@ -42,7 +41,6 @@ fn test_session_send_error() {
         application_name: "test".to_string(),
         tags: HashMap::new(),
         sample_rate: 100,
-        accumulation_cycle: Duration::from_secs(10),
     };
 
     let report = vec![1, 2, 3];

@@ -33,8 +33,6 @@ pub struct PyroscopeConfig {
     pub tags: HashMap<String, String>,
     /// Sample rate used in Hz
     pub sample_rate: i32,
-    /// How long to accumulate data for before sending it upstream
-    pub accumulation_cycle: Duration,
     // TODO
     // log_level
     // auth_token
@@ -55,7 +53,6 @@ impl PyroscopeConfig {
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
             sample_rate: 100i32,
-            accumulation_cycle: Duration::from_secs(10),
         }
     }
 
@@ -73,27 +70,8 @@ impl PyroscopeConfig {
         }
     }
 
-    /// Override the accumulation cycle.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use std::time::Duration;
-    /// use pyroscope::pyroscope::PyroscopeConfig;
     /// # use pyroscope::PyroscopeError;
     /// # fn main() -> Result<(), PyroscopeError> {
-    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
-    ///    .accumulation_cycle(Duration::from_millis(4587));
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn accumulation_cycle(self, accumulation_cycle: Duration) -> Self {
-        Self {
-            accumulation_cycle,
-            ..self
-        }
-    }
-
     /// Set the tags
     /// # Example
     /// ```ignore
@@ -183,29 +161,8 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// Set the accumulation cycle. Default value is 10 seconds.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
-    /// use std::time::Duration;
     /// # use pyroscope::PyroscopeError;
     /// # fn main() -> Result<(), PyroscopeError> {
-    ///
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    ///     .accumulation_cycle(Duration::from_secs(3))
-    ///     .build()?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn accumulation_cycle(self, acc_cycle: impl Into<Duration>) -> Self {
-        Self {
-            config: self.config.accumulation_cycle(acc_cycle.into()),
-            ..self
-        }
-    }
-
     /// Set tags. Default is empty.
     /// # Example
     /// ```ignore
@@ -229,7 +186,7 @@ impl PyroscopeAgentBuilder {
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start Timer
-        let timer = Timer::initialize(self.config.accumulation_cycle.clone())?;
+        let timer = Timer::initialize(std::time::Duration::from_secs(10))?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
