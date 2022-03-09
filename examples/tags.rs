@@ -16,7 +16,7 @@ fn main() -> Result<()> {
         .build()?;
 
     // Start Agent
-    agent.start();
+    agent.start()?;
 
     // Make some calculation
     let _result = fibonacci(47);
@@ -28,7 +28,7 @@ fn main() -> Result<()> {
     let _result = fibonacci(47);
 
     // Stop Agent
-    agent.stop();
+    agent.stop()?;
 
     Ok(())
 }
