@@ -1,3 +1,4 @@
+
 /// Result Alias with PyroscopeError
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
@@ -36,7 +37,9 @@ impl PyroscopeError {
 
     /// Create a new instance of PyroscopeError with source
     pub fn new_with_source<E>(msg: &str, source: E) -> Self
-    where E: std::error::Error + Send + Sync + 'static {
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
         PyroscopeError::Compat {
             msg: msg.to_string(),
             source: Box::new(source),

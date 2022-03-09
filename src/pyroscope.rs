@@ -1,16 +1,17 @@
 use std::{
     collections::HashMap,
     sync::{
-        mpsc::{channel, Receiver, Sender},
+        mpsc::{self, Sender},
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
+    time::Duration,
 };
 
 use crate::{
     error::Result,
     session::{Session, SessionManager, SessionSignal},
-    timer::Timer,
+    timer::{Timer, TimerSignal},
 };
 
 use pyroscope_backends::pprof::Pprof;
@@ -147,6 +148,8 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    /// # use pyroscope::PyroscopeError;
+    /// # fn main() -> Result<(), PyroscopeError> {
     /// Set tags. Default is empty.
     /// # Example
     /// ```ignore
@@ -176,7 +179,7 @@ impl PyroscopeAgentBuilder {
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start Timer
-        let timer = Timer::default().initialize()?;
+        let timer = Timer::initialize(std::time::Duration::from_secs(10))?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
@@ -201,7 +204,7 @@ impl PyroscopeAgentBuilder {
 pub struct PyroscopeAgent {
     timer: Timer,
     session_manager: SessionManager,
-    tx: Option<Sender<u64>>,
+    tx: Option<Sender<TimerSignal>>,
     handle: Option<JoinHandle<Result<()>>>,
     running: Arc<(Mutex<bool>, Condvar)>,
 
@@ -293,7 +296,7 @@ impl PyroscopeAgent {
         *running = true;
         drop(running);
 
-        let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
+        let (tx, rx) = mpsc::channel();
         self.timer.attach_listener(tx.clone())?;
         self.tx = Some(tx);
 
@@ -304,28 +307,31 @@ impl PyroscopeAgent {
         self.handle = Some(std::thread::spawn(move || {
             log::trace!(target: LOG_TAG, "Main Thread started");
 
-            while let Ok(until) = rx.recv() {
-                log::trace!(target: LOG_TAG, "Sending session {}", until);
+            while let Ok(signal) = rx.recv() {
+                match signal {
+                    TimerSignal::NextSnapshot(until) => {
+                        log::trace!(target: LOG_TAG, "Sending session {}", until);
 
-                // Generate report from backend
-                let report = backend.lock()?.report()?;
+                        // Generate report from backend
+                        let report = backend.lock()?.report()?;
 
-                // Send new Session to SessionManager
-                stx.send(SessionSignal::Session(Session::new(
-                    until,
-                    config.clone(),
-                    report,
-                )?))?;
+                        // Send new Session to SessionManager
+                        stx.send(SessionSignal::Session(Session::new(
+                            until,
+                            config.clone(),
+                            report,
+                        )?))?
+                    }
+                    TimerSignal::Terminate => {
+                        log::trace!(target: LOG_TAG, "Session Killed");
 
-                if until == 0 {
-                    log::trace!(target: LOG_TAG, "Session Killed");
+                        let (lock, cvar) = &*pair;
+                        let mut running = lock.lock()?;
+                        *running = false;
+                        cvar.notify_one();
 
-                    let (lock, cvar) = &*pair;
-                    let mut running = lock.lock()?;
-                    *running = false;
-                    cvar.notify_one();
-
-                    return Ok(());
+                        return Ok(());
+                    }
                 }
             }
             Ok(())
@@ -346,7 +352,9 @@ impl PyroscopeAgent {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
-            sender.send(0)?;
+            // best effort
+            let _ = sender.send(TimerSignal::NextSnapshot(0));
+            sender.send(TimerSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")
         }

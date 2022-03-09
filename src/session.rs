@@ -1,7 +1,7 @@
 use std::{
     sync::mpsc::{sync_channel, Receiver, SyncSender},
-    thread,
-    thread::JoinHandle,
+    thread::{self, JoinHandle},
+    time::Duration,
 };
 
 use crate::pyroscope::PyroscopeConfig;
@@ -84,7 +84,9 @@ impl SessionManager {
 pub struct Session {
     pub config: PyroscopeConfig,
     pub report: Vec<u8>,
+    // unix time
     pub from: u64,
+    // unix time
     pub until: u64,
 }
 
@@ -159,7 +161,7 @@ impl Session {
                 ("spyName", self.config.spy_name.as_str()),
             ])
             .body(self.report)
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(Duration::from_secs(10))
             .send()?;
 
         Ok(())
