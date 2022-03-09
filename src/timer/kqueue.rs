@@ -1,9 +1,3 @@
-// Copyright 2021 Developers of Pyroscope.
-
-// Licensed under the Apache License, Version 2.0 <LICENSE or
-// https://www.apache.org/licenses/LICENSE-2.0>. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use super::TimerSignal;
 use crate::utils::check_err;
 use crate::utils::get_time_range;
@@ -145,8 +139,8 @@ impl Timer {
             filter: libc::EVFILT_TIMER,
             flags: libc::EV_ADD | libc::EV_ENABLE,
             fflags: 0,
-            data: duration.as_millis(),
-            udata: std::ptr::null(),
+            data: duration.as_millis() as isize,
+            udata: 0 as *mut libc::c_void,
         };
 
         // add loop event
