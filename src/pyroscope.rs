@@ -1,17 +1,18 @@
 use std::{
     collections::HashMap,
     sync::{
-        mpsc::{channel, Receiver, Sender},
+        mpsc::{self, Sender},
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
+    time::Duration,
 };
 
 use crate::{
     backends::{pprof::Pprof, Backend},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
-    timer::Timer,
+    timer::{Timer, TimerSignal},
 };
 
 const LOG_TAG: &str = "Pyroscope::Agent";
@@ -32,6 +33,8 @@ pub struct PyroscopeConfig {
     pub tags: HashMap<String, String>,
     /// Sample rate used in Hz
     pub sample_rate: i32,
+    /// How long to accumulate data for before sending it upstream
+    pub accumulation_cycle: Duration,
     // TODO
     // log_level
     // auth_token
@@ -52,6 +55,7 @@ impl PyroscopeConfig {
             application_name: application_name.as_ref().to_owned(),
             tags: HashMap::new(),
             sample_rate: 100i32,
+            accumulation_cycle: Duration::from_secs(10),
         }
     }
 
@@ -65,6 +69,27 @@ impl PyroscopeConfig {
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             sample_rate,
+            ..self
+        }
+    }
+
+    /// Override the accumulation cycle.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use pyroscope::pyroscope::PyroscopeConfig;
+    /// # use pyroscope::PyroscopeError;
+    /// # fn main() -> Result<(), PyroscopeError> {
+    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
+    ///    .accumulation_cycle(Duration::from_millis(4587));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn accumulation_cycle(self, accumulation_cycle: Duration) -> Self {
+        Self {
+            accumulation_cycle,
             ..self
         }
     }
@@ -147,13 +172,36 @@ impl PyroscopeAgentBuilder {
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .sample_rate(99)
+    /// .sample_rate(113)
     /// .build()
     /// ?;
     /// ```
     pub fn sample_rate(self, sample_rate: i32) -> Self {
         Self {
             config: self.config.sample_rate(sample_rate),
+            ..self
+        }
+    }
+
+    /// Set the accumulation cycle. Default value is 10 seconds.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// use std::time::Duration;
+    /// # use pyroscope::PyroscopeError;
+    /// # fn main() -> Result<(), PyroscopeError> {
+    ///
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    ///     .accumulation_cycle(Duration::from_secs(3))
+    ///     .build()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn accumulation_cycle(self, acc_cycle: impl Into<Duration>) -> Self {
+        Self {
+            config: self.config.accumulation_cycle(acc_cycle.into()),
             ..self
         }
     }
@@ -181,7 +229,7 @@ impl PyroscopeAgentBuilder {
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start Timer
-        let timer = Timer::default().initialize()?;
+        let timer = Timer::initialize(self.config.accumulation_cycle.clone())?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
@@ -206,7 +254,7 @@ impl PyroscopeAgentBuilder {
 pub struct PyroscopeAgent {
     timer: Timer,
     session_manager: SessionManager,
-    tx: Option<Sender<u64>>,
+    tx: Option<Sender<TimerSignal>>,
     handle: Option<JoinHandle<Result<()>>>,
     running: Arc<(Mutex<bool>, Condvar)>,
 
@@ -298,7 +346,7 @@ impl PyroscopeAgent {
         *running = true;
         drop(running);
 
-        let (tx, rx): (Sender<u64>, Receiver<u64>) = channel();
+        let (tx, rx) = mpsc::channel();
         self.timer.attach_listener(tx.clone())?;
         self.tx = Some(tx);
 
@@ -309,28 +357,31 @@ impl PyroscopeAgent {
         self.handle = Some(std::thread::spawn(move || {
             log::trace!(target: LOG_TAG, "Main Thread started");
 
-            while let Ok(until) = rx.recv() {
-                log::trace!(target: LOG_TAG, "Sending session {}", until);
+            while let Ok(signal) = rx.recv() {
+                match signal {
+                    TimerSignal::NextSnapshot(until) => {
+                        log::trace!(target: LOG_TAG, "Sending session {}", until);
 
-                // Generate report from backend
-                let report = backend.lock()?.report()?;
+                        // Generate report from backend
+                        let report = backend.lock()?.report()?;
 
-                // Send new Session to SessionManager
-                stx.send(SessionSignal::Session(Session::new(
-                    until,
-                    config.clone(),
-                    report,
-                )?))?;
+                        // Send new Session to SessionManager
+                        stx.send(SessionSignal::Session(Session::new(
+                            until,
+                            config.clone(),
+                            report,
+                        )?))?
+                    }
+                    TimerSignal::Terminate => {
+                        log::trace!(target: LOG_TAG, "Session Killed");
 
-                if until == 0 {
-                    log::trace!(target: LOG_TAG, "Session Killed");
+                        let (lock, cvar) = &*pair;
+                        let mut running = lock.lock()?;
+                        *running = false;
+                        cvar.notify_one();
 
-                    let (lock, cvar) = &*pair;
-                    let mut running = lock.lock()?;
-                    *running = false;
-                    cvar.notify_one();
-
-                    return Ok(());
+                        return Ok(());
+                    }
                 }
             }
             Ok(())
@@ -351,7 +402,9 @@ impl PyroscopeAgent {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
-            sender.send(0)?;
+            // best effort
+            let _ = sender.send(TimerSignal::NextSnapshot(0));
+            sender.send(TimerSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")
         }

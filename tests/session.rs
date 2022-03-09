@@ -1,14 +1,8 @@
 use pyroscope::{
     pyroscope::PyroscopeConfig,
     session::{Session, SessionManager, SessionSignal},
-    PyroscopeError,
 };
-use std::{
-    collections::HashMap,
-    sync::mpsc::{sync_channel, Receiver, SyncSender},
-    thread,
-    thread::JoinHandle,
-};
+use std::{collections::HashMap, time::Duration};
 
 #[test]
 fn test_session_manager_new() {
@@ -30,6 +24,7 @@ fn test_session_new() {
         application_name: "test".to_string(),
         tags: HashMap::new(),
         sample_rate: 100,
+        accumulation_cycle: Duration::from_secs(10),
     };
 
     let report = vec![1, 2, 3];
@@ -47,11 +42,12 @@ fn test_session_send_error() {
         application_name: "test".to_string(),
         tags: HashMap::new(),
         sample_rate: 100,
+        accumulation_cycle: Duration::from_secs(10),
     };
 
     let report = vec![1, 2, 3];
 
-    let session = Session::new(1950, config, report).unwrap();
+    let _session = Session::new(1950, config, report).unwrap();
 
     // TODO: to figure this out
 }

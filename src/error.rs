@@ -15,7 +15,11 @@ pub enum PyroscopeError {
     AdHoc(String),
 
     #[error("{msg}: {source:?}")]
-    Compat{ msg: String, #[source] source: Box<dyn std::error::Error + Send + Sync + 'static> },
+    Compat {
+        msg: String,
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync + 'static>,
+    },
 
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
@@ -37,7 +41,10 @@ impl PyroscopeError {
     }
 
     /// Create a new instance of PyroscopeError with source
-    pub fn new_with_source<E>(msg: &str, source: E) -> Self where E: std::error::Error + Send + Sync + 'static {
+    pub fn new_with_source<E>(msg: &str, source: E) -> Self
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
         PyroscopeError::Compat {
             msg: msg.to_string(),
             source: Box::new(source),

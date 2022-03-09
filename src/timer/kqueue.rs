@@ -12,7 +12,10 @@ use std::sync::{
     mpsc::{channel, Receiver, Sender},
     Arc, Mutex,
 };
-use std::{thread, thread::JoinHandle};
+use std::{
+    thread::{self, JoinHandle},
+    time::Duration,
+};
 
 /// A thread that sends a notification every 10th second
 ///
@@ -33,7 +36,7 @@ pub struct Timer {
 
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
-    pub fn initialize(self) -> Result<Self> {
+    pub fn initialize(self, accumulation_cycle: Duration) -> Result<Self> {
         let txs = Arc::clone(&self.txs);
 
         // Add Default tx
@@ -44,11 +47,12 @@ impl Timer {
 
         let handle = Some(thread::spawn(move || {
             // Wait for initial expiration
-            let initial_event = Timer::register_initial_expiration(kqueue)?;
+            let initial_event =
+                Timer::register_initial_expiration(kqueue, Duration::from_millis(0))?;
             Timer::wait_event(kqueue, [initial_event].as_mut_ptr())?;
 
             // Register loop event
-            let loop_event = Timer::register_loop_expiration(kqueue)?;
+            let loop_event = Timer::register_loop_expiration(kqueue, accumulation_cycle)?;
 
             // Loop 10s
             loop {
@@ -57,7 +61,6 @@ impl Timer {
                     // TODO: should close file descriptors?
                     return Ok(());
                 }
-
 
                 // Get current time
                 let from = get_time_range(0)?.from;
@@ -133,14 +136,14 @@ impl Timer {
     }
 
     /// Register a loop expiration event
-    fn register_loop_expiration(kqueue: i32) -> Result<libc::kevent> {
+    fn register_loop_expiration(kqueue: i32, duration: Duration) -> Result<libc::kevent> {
         let loop_event = libc::kevent {
             ident: 1,
             filter: libc::EVFILT_TIMER,
             flags: libc::EV_ADD | libc::EV_ENABLE,
             fflags: 0,
-            data: 10000,
-            udata: 0 as *mut libc::c_void,
+            data: duration.as_millis(),
+            udata: std::ptr::null(),
         };
 
         // add loop event
