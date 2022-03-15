@@ -10,6 +10,10 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
     steps:
+      - name: install libunwind (for pprof)
+        continue-on-error: true
+        run: sudo apt install libunwind8-dev
+
       - name: Checkout sources
         uses: actions/checkout@v2
 
