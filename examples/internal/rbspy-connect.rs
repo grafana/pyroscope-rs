@@ -16,7 +16,10 @@ fn main() -> Result<()> {
 
     let pid = args[1].parse::<i32>().unwrap();
 
-    let config = RbspyConfig::new(pid, 100, true, None, true);
+    let config = RbspyConfig::new(pid)
+        .sample_rate(100)
+        .lock_process(true)
+        .with_subprocesses(true);
 
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
         .backend(Rbspy::new(config))

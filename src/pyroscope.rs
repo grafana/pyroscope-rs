@@ -5,7 +5,6 @@ use std::{
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
-    time::Duration,
 };
 
 use crate::{

@@ -1,7 +1,7 @@
 use super::error::{BackendError, Result};
 use super::types::{Backend, State};
 
-use rbspy::{sampler::Sampler, ui::output::Outputter, OutputFormat, StackFrame, StackTrace};
+use rbspy::{sampler::Sampler, ui::output::Outputter, StackFrame, StackTrace};
 
 use std::collections::HashMap;
 use std::io::Write;

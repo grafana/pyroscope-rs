@@ -61,7 +61,7 @@ impl Backend for VoidBackend {
         let stack_trace = generate_stack_trace()?;
 
         // Add the StackTrace to the buffer
-        self.buffer.record(stack_trace);
+        self.buffer.record(stack_trace)?;
 
         Ok(())
     }

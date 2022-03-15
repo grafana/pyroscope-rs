@@ -137,40 +137,6 @@ impl Backend for Pprof<'_> {
     }
 }
 
-// Copyright: https://github.com/YangKeao
-fn fold<W>(report: &pprof::Report, with_thread_name: bool, mut writer: W) -> Result<()>
-where
-    W: std::io::Write,
-{
-    for (key, value) in report.data.iter() {
-        if with_thread_name {
-            if !key.thread_name.is_empty() {
-                write!(writer, "{};", key.thread_name)?;
-            } else {
-                write!(writer, "{:?};", key.thread_id)?;
-            }
-        }
-
-        for (index, frame) in key.frames.iter().rev().enumerate() {
-            for (index, symbol) in frame.iter().rev().enumerate() {
-                if index + 1 == frame.len() {
-                    write!(writer, "{}", symbol)?;
-                } else {
-                    write!(writer, "{};", symbol)?;
-                }
-            }
-
-            if index + 1 != key.frames.len() {
-                write!(writer, ";")?;
-            }
-        }
-
-        writeln!(writer, " {}", value)?;
-    }
-
-    Ok(())
-}
-
 impl From<pprof::Report> for Report {
     fn from(report: pprof::Report) -> Self {
         //convert report to Report

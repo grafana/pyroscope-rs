@@ -169,6 +169,12 @@ impl Backend for Pyspy {
             return Err(BackendError::new("Rbspy: No Process ID Specified"));
         }
 
+        // Set duration for py-spy
+        let duration = match self.config.time_limit {
+            Some(duration) => py_spy::config::RecordDuration::Seconds(duration.as_secs()),
+            None => py_spy::config::RecordDuration::Unlimited,
+        };
+
         // Create a new py-spy configuration
         self.sampler_config = Some(Config {
             blocking: self.config.lock_process.clone(),
@@ -179,6 +185,7 @@ impl Backend for Pyspy {
             include_thread_ids: true,
             subprocesses: self.config.with_subprocesses,
             gil_only: self.config.gil_only,
+            duration,
             ..Config::default()
         });
 

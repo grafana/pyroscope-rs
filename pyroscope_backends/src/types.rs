@@ -345,7 +345,7 @@ mod tests {
 
     #[test]
     fn test_report_record() {
-        let mut report = Report::new();
+        let mut report = Report::new(HashMap::new());
 
         let stack_trace = StackTrace::new(None, None, None, vec![]);
 
@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn test_report_clear() {
-        let mut report = Report::new();
+        let mut report = Report::new(HashMap::new());
 
         let stack_trace = StackTrace::new(None, None, None, vec![]);
 
@@ -388,7 +388,7 @@ mod tests {
         ));
         let stack_trace = StackTrace::new(None, None, None, frames);
 
-        let mut report = Report::new();
+        let mut report = Report::new(HashMap::new());
 
         report.record(stack_trace.clone()).unwrap();
         report.record(stack_trace).unwrap();
