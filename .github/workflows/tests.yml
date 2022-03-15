@@ -21,6 +21,10 @@ jobs:
           target: aarch64-unknown-linux-gnu
     runs-on: ${{ matrix.os }}
     steps:
+      - name: install libunwind 
+        continue-on-error: true
+        run: |
+          sudo apt install libunwind8-dev
       - name: Checkout sources
         uses: actions/checkout@v2
 
