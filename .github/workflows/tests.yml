@@ -23,5 +23,5 @@ jobs:
       - name: Run cargo test
         uses: omarabid-forks/rs-cargo@v1
         with:
-          command: test
-          args: --tests --lib
+          command: build 
+          args: --examples
