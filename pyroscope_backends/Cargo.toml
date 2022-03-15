@@ -8,7 +8,7 @@ license = "Apache-2.0"
 readme = "README.md"
 
 [dependencies]
-pprof = {  version="0.6.2"}
+pprof = "0.7"
 rbspy = "0.11.1"
 py-spy = "0.3.11"
 thiserror ="1.0"
