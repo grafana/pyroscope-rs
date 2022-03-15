@@ -5,10 +5,21 @@ on: [push, pull_request]
 jobs:
   test:
     name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
+        toolchain: [stable, nightly]
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
+        exclude:
+        - os: ubuntu-latest
+          target: x86_64-apple-darwin
+        - os: ubuntu-latest
+          target: aarch64-apple-darwin
+        - os: macos-latest
+          target: x86_64-unknown-linux-gnu
+        - os: macos-latest
+          target: aarch64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -17,7 +28,8 @@ jobs:
         uses: omarabid-forks/rs-toolchain@v1
         with:
           profile: default
-          toolchain: stable
+          toolchain: ${{ matrix.toolchain }}
+          target: ${{ matrix.target }}
           override: true
 
       - name: Run cargo test
