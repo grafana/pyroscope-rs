@@ -1,4 +1,3 @@
-
 /// Result Alias with PyroscopeError
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
@@ -24,9 +23,6 @@ pub enum PyroscopeError {
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    BackendError(#[from] pyroscope_backends::error::BackendError),
 }
 
 impl PyroscopeError {

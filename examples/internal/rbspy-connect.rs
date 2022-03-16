@@ -3,7 +3,7 @@ extern crate pyroscope;
 use std::env;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_backends::rbspy::{Rbspy, RbspyConfig};
+use pyroscope_rbspy::{Rbspy, RbspyConfig};
 
 fn main() -> Result<()> {
     // Force rustc to display the log messages in the console.

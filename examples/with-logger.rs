@@ -3,6 +3,7 @@ extern crate pyroscope;
 use log::info;
 
 use pyroscope::{PyroscopeAgent, Result};
+use pyroscope_pprofrs::{Pprof, PprofConfig};
 use std::hash::{Hash, Hasher};
 
 fn hash_rounds(n: u64) -> u64 {
@@ -29,7 +30,9 @@ fn main() -> Result<()> {
     info!("With Logger example");
 
     // Create a new agent.
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.logger").build()?;
+    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.logger")
+        .backend(Pprof::new(PprofConfig::new(100)))
+        .build()?;
 
     // Start Agent
     agent.start()?;

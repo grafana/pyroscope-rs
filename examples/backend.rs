@@ -1,7 +1,7 @@
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_backends::pprof::{Pprof, PprofConfig};
+use pyroscope_pprofrs::{Pprof, PprofConfig};
 use std::hash::{Hash, Hasher};
 
 fn hash_rounds(n: u64) -> u64 {

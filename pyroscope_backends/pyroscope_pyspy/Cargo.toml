@@ -1,0 +1,11 @@
+[package]
+name = "pyroscope_pyspy"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+py-spy = "0.3.11"
+pyroscope = { path = "../../" }
+thiserror ="1.0"

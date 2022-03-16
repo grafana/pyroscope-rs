@@ -27,9 +27,9 @@
 // Re-exports structs
 pub use crate::pyroscope::PyroscopeAgent;
 pub use error::{PyroscopeError, Result};
-pub use pyroscope_backends;
 
 // Public modules
+pub mod backend;
 pub mod error;
 pub mod pyroscope;
 pub mod session;

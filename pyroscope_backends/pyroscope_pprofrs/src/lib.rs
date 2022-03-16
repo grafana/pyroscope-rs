@@ -3,10 +3,8 @@ use std::ffi::OsStr;
 
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 
-use crate::types::{Report, StackFrame, StackTrace};
-
-use super::error::{BackendError, Result};
-use super::types::{Backend, State};
+use pyroscope::backend::{Backend, Report, StackFrame, StackTrace, State};
+use pyroscope::error::{PyroscopeError, Result};
 
 #[derive(Debug)]
 pub struct PprofConfig {
@@ -38,6 +36,7 @@ impl std::fmt::Debug for Pprof<'_> {
         write!(fmt, "Pprof Backend")
     }
 }
+
 impl<'a> Pprof<'a> {
     pub fn new(config: PprofConfig) -> Self {
         Pprof {
@@ -54,7 +53,7 @@ impl Backend for Pprof<'_> {
         self.state
     }
 
-    fn spy_name(&self) -> Result<String> {
+    fn spy_name(&self) -> std::result::Result<String, PyroscopeError> {
         Ok("pyroscope-rs".to_string())
     }
 
@@ -65,7 +64,7 @@ impl Backend for Pprof<'_> {
     fn initialize(&mut self) -> Result<()> {
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
-            return Err(BackendError::new("Pprof Backend is already Initialized"));
+            return Err(PyroscopeError::new("Pprof Backend is already Initialized"));
         }
 
         // Construct a ProfilerGuardBuilder
@@ -82,15 +81,16 @@ impl Backend for Pprof<'_> {
     fn start(&mut self) -> Result<()> {
         // Check if Backend is Ready
         if self.state != State::Ready {
-            return Err(BackendError::new("Pprof Backend is not Ready"));
+            return Err(PyroscopeError::new("Pprof Backend is not Ready"));
         }
 
         self.guard = Some(
             self.inner_builder
                 .as_ref()
-                .ok_or_else(|| BackendError::new("pprof-rs: ProfilerGuardBuilder error"))?
+                .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
                 .clone()
-                .build()?,
+                .build()
+                .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?,
         );
 
         // Set State to Running
@@ -102,7 +102,7 @@ impl Backend for Pprof<'_> {
     fn stop(&mut self) -> Result<()> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(BackendError::new("Pprof Backend is not Running"));
+            return Err(PyroscopeError::new("Pprof Backend is not Running"));
         }
 
         // drop the guard
@@ -117,17 +117,20 @@ impl Backend for Pprof<'_> {
     fn report(&mut self) -> Result<Vec<u8>> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(BackendError::new("Pprof Backend is not Running"));
+            return Err(PyroscopeError::new("Pprof Backend is not Running"));
         }
 
         let report = self
             .guard
             .as_ref()
-            .ok_or_else(|| BackendError::new("pprof-rs: ProfilerGuard report error"))?
+            .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuard report error"))?
             .report()
-            .build()?;
+            .build()
+            .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        let new_report = Into::<Report>::into(report).to_string().into_bytes();
+        let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report))
+            .to_string()
+            .into_bytes();
 
         // Restart Profiler
         self.stop()?;
@@ -137,21 +140,42 @@ impl Backend for Pprof<'_> {
     }
 }
 
-impl From<pprof::Report> for Report {
+struct ReportWrapper(Report);
+
+impl From<ReportWrapper> for Report {
+    fn from(report: ReportWrapper) -> Self {
+        report.0
+    }
+}
+
+impl From<pprof::Report> for ReportWrapper {
     fn from(report: pprof::Report) -> Self {
         //convert report to Report
         let report_data: HashMap<StackTrace, usize> = report
             .data
             .iter()
-            .map(|(key, value)| (key.to_owned().into(), value.to_owned() as usize))
+            .map(|(key, value)| {
+                (
+                    Into::<StackTraceWrapper>::into(key.to_owned()).into(),
+                    value.to_owned() as usize,
+                )
+            })
             .collect();
-        Report::new(report_data)
+        ReportWrapper(Report::new(report_data))
     }
 }
 
-impl From<pprof::Frames> for StackTrace {
+struct StackTraceWrapper(StackTrace);
+
+impl From<StackTraceWrapper> for StackTrace {
+    fn from(stack_trace: StackTraceWrapper) -> Self {
+        stack_trace.0
+    }
+}
+
+impl From<pprof::Frames> for StackTraceWrapper {
     fn from(frames: pprof::Frames) -> Self {
-        StackTrace::new(
+        StackTraceWrapper(StackTrace::new(
             None,
             Some(frames.thread_id),
             Some(frames.thread_name),
@@ -159,15 +183,23 @@ impl From<pprof::Frames> for StackTrace {
                 .frames
                 .concat()
                 .iter()
-                .map(|frame| frame.to_owned().into())
+                .map(|frame| Into::<StackFrameWrapper>::into(frame.to_owned()).into())
                 .collect(),
-        )
+        ))
     }
 }
 
-impl From<pprof::Symbol> for StackFrame {
+struct StackFrameWrapper(StackFrame);
+
+impl From<StackFrameWrapper> for StackFrame {
+    fn from(stack_frame: StackFrameWrapper) -> Self {
+        stack_frame.0
+    }
+}
+
+impl From<pprof::Symbol> for StackFrameWrapper {
     fn from(symbol: pprof::Symbol) -> Self {
-        StackFrame::new(
+        StackFrameWrapper(StackFrame::new(
             None,
             Some(symbol.name()),
             Some(
@@ -191,6 +223,6 @@ impl From<pprof::Symbol> for StackFrame {
             ),
             None,
             symbol.lineno,
-        )
+        ))
     }
 }

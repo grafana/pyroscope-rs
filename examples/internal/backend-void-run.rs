@@ -2,8 +2,8 @@ extern crate pyroscope;
 
 use log::info;
 
+use pyroscope::backend::{void_backend, VoidConfig};
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_backends::void::{void_backend, VoidConfig};
 
 fn main() -> Result<()> {
     // Force rustc to display the log messages in the console.
@@ -19,7 +19,6 @@ fn main() -> Result<()> {
 
     // Create backend
     let backend = void_backend(backend_config);
-
 
     // Create a new agent.
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "void.backend")

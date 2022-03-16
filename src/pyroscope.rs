@@ -13,8 +13,7 @@ use crate::{
     timer::{Timer, TimerSignal},
 };
 
-use pyroscope_backends::pprof::Pprof;
-use pyroscope_backends::types::Backend;
+use crate::backend::{Backend, VoidBackend};
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -124,7 +123,7 @@ impl PyroscopeAgentBuilder {
     /// ```
     pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
-            backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
+            backend: Arc::new(Mutex::new(VoidBackend::default())), // Default Backend
             config: PyroscopeConfig::new(url, application_name),
         }
     }
