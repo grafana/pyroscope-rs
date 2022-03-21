@@ -21,7 +21,7 @@ fn hash_rounds(n: u64) -> u64 {
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.basic")
         .backend(Pprof::new(PprofConfig::new(100)))
-        .tags(&[("TagA", "ValueA"), ("TagB", "ValueB")])
+        .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
         .build()?;
 
     // Show start time

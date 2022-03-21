@@ -79,7 +79,7 @@ impl PyroscopeConfig {
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
     ///    .tags(vec![("env", "dev")])?;
     /// ```
-    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+    pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
             .to_owned()
@@ -156,7 +156,7 @@ impl PyroscopeAgentBuilder {
     /// .build()
     /// ?;
     /// ```
-    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+    pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
             config: self.config.tags(tags),
             ..self
