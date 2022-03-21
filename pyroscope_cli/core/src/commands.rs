@@ -1,41 +1,44 @@
-use pyroscope::pyroscope_backends::pyspy::{Pyspy, PyspyConfig};
 use utils::app_config::AppConfig;
-use utils::error::Result;
-use utils::types::Spy;
+use utils::error::{Error, Result};
 
-use pyroscope::pyroscope_backends::rbspy::{Rbspy, RbspyConfig};
 use pyroscope::PyroscopeAgent;
+use pyroscope_pyspy::{Pyspy, PyspyConfig};
+use pyroscope_rbspy::{Rbspy, RbspyConfig};
 
 use ctrlc;
 use std::sync::mpsc::channel;
 
-use duct::cmd;
-
-/// adhoc command
-pub fn adhoc() -> Result<()> {
-    println!("adhoc command");
-    Ok(())
-}
+use crate::executor::Executor;
+use crate::profiler::Profiler;
 
 /// exec command
 pub fn exec() -> Result<()> {
+    // Get command to execute
+    let command = AppConfig::get::<Option<String>>("command")?
+        .ok_or_else(|| Error::new("command unwrap failed"))?;
+
+    //dbg!(AppConfig::fetch()?);
+    //return Ok(());
+
+    // Get UID
+    let uid = AppConfig::get::<Option<u32>>("user_name").unwrap_or(None);
+    // Get GID
+    let gid = AppConfig::get::<Option<u32>>("group_name").unwrap_or(None);
+
+    // Create new executor and run it
+    let executor = Executor::new(command.as_ref(), "", uid, gid).run()?;
+
+    println!("stopped here?");
+
+    // Set PID
+    AppConfig::set("pid", executor.get_pid()?.to_string().as_str())?;
+
+    // Initialize profiler
+    let mut profiler = Profiler::default();
+
+    profiler.init()?;
+
     let (tx, rx) = channel();
-
-    let handle = cmd!("ruby", "./scripts/ruby.rb").stdout_capture().start()?;
-    let pids = handle.pids();
-
-    let pid = *pids.get(0).unwrap() as i32;
-
-    let config = RbspyConfig::new(pid);
-
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
-        .backend(Rbspy::new(config))
-        .build()
-        .unwrap();
-
-    agent.start().unwrap();
-
-    //handle.wait()?;
 
     ctrlc::set_handler(move || {
         tx.send(()).unwrap();
@@ -48,31 +51,33 @@ pub fn exec() -> Result<()> {
 
     println!("Exiting.");
 
-    agent.stop().unwrap();
-
-    drop(agent);
-
-    handle.kill()?;
+    executor.stop()?;
+    profiler.stop()?;
 
     Ok(())
 }
 
 /// connect command
 pub fn connect() -> Result<()> {
-    let spy: Spy = AppConfig::get("spy_name")?;
+    // Initialize profiler
+    let mut profiler = Profiler::default();
 
-    dbg!(spy);
-    match spy {
-        Spy::Rbspy => {
-            rbspy()?;
-        }
-        Spy::Pyspy => {
-            pyspy()?;
-        }
-        _ => {
-            println!("not supported spy");
-        }
-    }
+    profiler.init()?;
+
+    let (tx, rx) = channel();
+
+    ctrlc::set_handler(move || {
+        tx.send(()).unwrap();
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    println!("Press Ctrl-C to exit.");
+
+    rx.recv().unwrap();
+
+    println!("Exiting.");
+
+    profiler.stop()?;
 
     Ok(())
 }

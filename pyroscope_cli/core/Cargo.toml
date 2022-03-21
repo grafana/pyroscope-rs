@@ -8,6 +8,10 @@ edition = "2021"
 [dependencies]
 utils = { path = "../utils" }
 pyroscope = { path = "../../" }
+pyroscope_pprofrs = { path = "../../pyroscope_backends/pyroscope_pprofrs" }
+pyroscope_rbspy = { path = "../../pyroscope_backends/pyroscope_rbspy" }
+pyroscope_pyspy = { path = "../../pyroscope_backends/pyroscope_pyspy" }
 log = "0.4.14"
 ctrlc = "3.2.1"
 duct = "0.13.5"
+names= "0.13.0"

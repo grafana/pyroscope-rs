@@ -26,6 +26,9 @@ pub enum Error {
 
     #[error(transparent)]
     Config(#[from] config::ConfigError),
+
+    #[error(transparent)]
+    PyroscopeError(#[from] pyroscope::PyroscopeError),
 }
 
 impl Error {

@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::RwLock;
 
 use super::error::Result;
-use crate::types::{LogLevel, OutputFormat, Spy};
+use crate::types::{LogLevel, Spy};
 
 // CONFIG static variable. It's actually an AppConfig
 // inside an RwLock.
@@ -20,9 +20,9 @@ pub struct AppConfig {
     pub pid: Option<i32>,
     pub spy_name: Spy,
     pub application_name: Option<String>,
-    pub auth_token: Option<String>,
+    // TODO: placeholder for future implementation
+    //pub auth_token: Option<String>,
     pub detect_subprocesses: Option<bool>,
-    pub group_name: Option<String>,
     pub no_logging: Option<bool>,
     pub log_level: LogLevel,
     pub no_root_drop: Option<bool>,
@@ -31,9 +31,12 @@ pub struct AppConfig {
     pub sample_rate: Option<u32>,
     pub server_address: Option<String>,
     pub tag: Option<String>,
-    pub upstream_request_timeout: Option<String>,
-    pub upstream_threads: Option<u32>,
-    pub user_name: Option<String>,
+    // TODO: placeholder for future implementation
+    //pub upstream_request_timeout: Option<String>,
+    //pub upstream_threads: Option<u32>,
+    pub user_name: Option<u32>,
+    pub group_name: Option<u32>,
+    pub command: Option<String>,
 }
 
 impl AppConfig {
@@ -103,28 +106,30 @@ impl AppConfig {
                     AppConfig::set("tag", tag)?;
                 }
             }
-            if sub_connect.is_present("upstream_request_timeout") {
-                if let Some(upstream_request_timeout) =
-                    sub_connect.value_of("upstream_request_timeout")
-                {
-                    AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
-                }
-            }
-            if sub_connect.is_present("upstream_threads") {
-                if let Some(upstream_threads) = sub_connect.value_of("upstream_threads") {
-                    AppConfig::set("upstream_threads", upstream_threads)?;
-                }
-            }
+            // TODO: placeholder for future implementation
+            //if sub_connect.is_present("upstream_request_timeout") {
+            //if let Some(upstream_request_timeout) =
+            //sub_connect.value_of("upstream_request_timeout")
+            //{
+            //AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
+            //}
+            //}
+            //if sub_connect.is_present("upstream_threads") {
+            //if let Some(upstream_threads) = sub_connect.value_of("upstream_threads") {
+            //AppConfig::set("upstream_threads", upstream_threads)?;
+            //}
+            //}
             if sub_connect.is_present("application_name") {
                 if let Some(application_name) = sub_connect.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
                 }
             }
-            if sub_connect.is_present("auth_token") {
-                if let Some(auth_token) = sub_connect.value_of("auth_token") {
-                    AppConfig::set("auth_token", auth_token)?;
-                }
-            }
+            // TODO: placeholder for future implementation
+            //if sub_connect.is_present("auth_token") {
+            //if let Some(auth_token) = sub_connect.value_of("auth_token") {
+            //AppConfig::set("auth_token", auth_token)?;
+            //}
+            //}
             if sub_connect.is_present("detect_subprocesses") {
                 if let Some(detect_subprocesses) = sub_connect.value_of("detect_subprocesses") {
                     AppConfig::set("detect_subprocesses", detect_subprocesses)?;
@@ -144,6 +149,11 @@ impl AppConfig {
 
         // Exec Command
         if let Some(sub_exec) = args.subcommand_matches("exec") {
+            if sub_exec.is_present("command") {
+                if let Some(command) = sub_exec.value_of("command") {
+                    AppConfig::set("command", command)?;
+                }
+            }
             if sub_exec.is_present("log_level") {
                 if let Some(log_level) = sub_exec.value_of("log_level") {
                     AppConfig::set("log_level", log_level)?;
@@ -179,28 +189,30 @@ impl AppConfig {
                     AppConfig::set("tag", tag)?;
                 }
             }
-            if sub_exec.is_present("upstream_request_timeout") {
-                if let Some(upstream_request_timeout) =
-                    sub_exec.value_of("upstream_request_timeout")
-                {
-                    AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
-                }
-            }
-            if sub_exec.is_present("upstream_threads") {
-                if let Some(upstream_threads) = sub_exec.value_of("upstream_threads") {
-                    AppConfig::set("upstream_threads", upstream_threads)?;
-                }
-            }
+            // TODO: placeholder for future implementation
+            //if sub_exec.is_present("upstream_request_timeout") {
+            //if let Some(upstream_request_timeout) =
+            //sub_exec.value_of("upstream_request_timeout")
+            //{
+            //AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
+            //}
+            //}
+            //if sub_exec.is_present("upstream_threads") {
+            //if let Some(upstream_threads) = sub_exec.value_of("upstream_threads") {
+            //AppConfig::set("upstream_threads", upstream_threads)?;
+            //}
+            //}
             if sub_exec.is_present("application_name") {
                 if let Some(application_name) = sub_exec.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
                 }
             }
-            if sub_exec.is_present("auth_token") {
-                if let Some(auth_token) = sub_exec.value_of("auth_token") {
-                    AppConfig::set("auth_token", auth_token)?;
-                }
-            }
+            // TODO: placeholder for future implementation
+            //if sub_exec.is_present("auth_token") {
+            //if let Some(auth_token) = sub_exec.value_of("auth_token") {
+            //AppConfig::set("auth_token", auth_token)?;
+            //}
+            //}
             if sub_exec.is_present("detect_subprocesses") {
                 if let Some(detect_subprocesses) = sub_exec.value_of("detect_subprocesses") {
                     AppConfig::set("detect_subprocesses", detect_subprocesses)?;
@@ -212,8 +224,13 @@ impl AppConfig {
                 }
             }
             if sub_exec.is_present("user_name") {
-                if let Some(pid) = sub_exec.value_of("user_name") {
-                    AppConfig::set("user_name", pid)?;
+                if let Some(user_name) = sub_exec.value_of("user_name") {
+                    AppConfig::set("user_name", user_name)?;
+                }
+            }
+            if sub_exec.is_present("group_name") {
+                if let Some(group_name) = sub_exec.value_of("group_name") {
+                    AppConfig::set("group_name", group_name)?;
                 }
             }
         }

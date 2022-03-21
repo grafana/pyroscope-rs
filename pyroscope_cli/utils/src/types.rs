@@ -60,16 +60,19 @@ impl FromStr for OutputFormat {
 pub enum Spy {
     #[serde(rename = "auto")]
     Auto,
+    // Place holder for future development
+    //#[serde(rename = "dotnetspy")]
+    //Dotnetspy,
+    //#[serde(rename = "ebpfspy")]
+    //Ebpfspy,
+    //#[serde(rename = "phpspy")]
+    //Phpspy,
     #[serde(rename = "rbspy")]
     Rbspy,
-    #[serde(rename = "dotnetspy")]
-    Dotnetspy,
-    #[serde(rename = "ebpfspy")]
-    Ebpfspy,
-    #[serde(rename = "phpspy")]
-    Phpspy,
     #[serde(rename = "pyspy")]
     Pyspy,
+    #[serde(rename = "rustspy")]
+    Rustspy,
 }
 
 impl FromStr for Spy {
@@ -77,12 +80,14 @@ impl FromStr for Spy {
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
-            "auto" => Ok(Spy::Auto),
+            // Place holder for future development
+            //"auto" => Ok(Spy::Auto),
+            //"dotnetspy" => Ok(Spy::Dotnetspy),
+            //"ebpfspy" => Ok(Spy::Ebpfspy),
+            //"phpspy" => Ok(Spy::Phpspy),
             "rbspy" => Ok(Spy::Rbspy),
-            "dotnetspy" => Ok(Spy::Dotnetspy),
-            "ebpfspy" => Ok(Spy::Ebpfspy),
-            "phpspy" => Ok(Spy::Phpspy),
             "pyspy" => Ok(Spy::Pyspy),
+            "rustspy" => Ok(Spy::Rustspy),
             _ => Ok(Spy::Auto),
         }
     }
