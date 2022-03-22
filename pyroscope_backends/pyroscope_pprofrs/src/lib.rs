@@ -18,8 +18,15 @@ impl Default for PprofConfig {
 }
 
 impl PprofConfig {
-    pub fn new(sample_rate: u32) -> Self {
-        PprofConfig { sample_rate }
+    pub fn new() -> Self {
+        PprofConfig::default()
+    }
+
+    pub fn sample_rate(self, sample_rate: u32) -> Self {
+        PprofConfig {
+            sample_rate,
+            ..self
+        }
     }
 }
 

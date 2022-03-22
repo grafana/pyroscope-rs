@@ -18,7 +18,7 @@ fn main() -> Result<()> {
     pretty_env_logger::init_timed();
 
     let mut agent = PyroscopeAgent::builder("http://invalid_url", "example.error")
-        .backend(Pprof::new(PprofConfig::new(100)))
+        .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
         .build()
         .unwrap();
     // Start Agent

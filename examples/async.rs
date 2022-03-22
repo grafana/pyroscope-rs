@@ -35,7 +35,7 @@ fn hash_rounds2(n: u64) -> u64 {
 #[tokio::main]
 async fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.async")
-        .backend(Pprof::new(PprofConfig::new(100)))
+        .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
         .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
         .build()?;
 

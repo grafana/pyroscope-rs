@@ -13,7 +13,7 @@ fn fibonacci(n: u64) -> u64 {
 
 fn main() -> Result<()> {
     // Create Pprof configuration
-    let backend_config = PprofConfig::new(113);
+    let backend_config = PprofConfig::new().sample_rate(100);
 
     // Create backend
     let mut backend = Pprof::new(backend_config);

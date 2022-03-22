@@ -31,7 +31,7 @@ fn main() -> Result<()> {
 
     // Create a new agent.
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.logger")
-        .backend(Pprof::new(PprofConfig::new(100)))
+        .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
         .build()?;
 
     // Start Agent

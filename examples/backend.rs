@@ -20,7 +20,7 @@ fn hash_rounds(n: u64) -> u64 {
 
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.backend")
-        .backend(Pprof::new(PprofConfig::new(113)))
+        .backend(Pprof::new(PprofConfig::new().sample_rate(113)))
         .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
         .build()?;
 

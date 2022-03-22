@@ -2,11 +2,20 @@
 //!
 //! # Quick Start
 //!
+//! ## Add Pyroscope and pprof-rs backend to Cargo.toml
+//!
+//! ```toml
+//! [dependencies]
+//! pyroscope = "0.4"
+//! pyroscope-pprofrs = "0.1"
+//! ```
+//!
 //! ## Configure a Pyroscope Agent
 //!
 //! ```ignore
 //! let mut agent =
 //!     PyroscopeAgent::builder("http://localhost:4040", "myapp")
+//!     .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
 //!     .build()?;
 //! ```
 //!
