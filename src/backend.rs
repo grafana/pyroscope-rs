@@ -160,6 +160,7 @@ impl std::fmt::Display for Report {
 }
 
 /// StackTrace
+/// A representation of a stack trace.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct StackTrace {
     /// Process ID
@@ -188,6 +189,7 @@ impl StackTrace {
 }
 
 /// StackFrame
+/// A representation of a stack frame.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct StackFrame {
     /// Module name

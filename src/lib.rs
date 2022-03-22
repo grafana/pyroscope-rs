@@ -2,7 +2,7 @@
 //!
 //! # Quick Start
 //!
-//! ## Configure Pyroscope Agent
+//! ## Configure a Pyroscope Agent
 //!
 //! ```ignore
 //! let mut agent =

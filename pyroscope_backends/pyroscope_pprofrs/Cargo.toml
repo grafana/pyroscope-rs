@@ -1,11 +1,52 @@
 [package]
 name = "pyroscope_pprofrs"
-version = "0.1.0"
+description = """
+pprof-rs backend for Pyroscope Profiler.
+"""
+keywords = ["pyroscope", "profiler", "pprof-rs"]
+authors = ["Abid Omar <contact@omarabid.com>"]
+version = "0.1.0-beta"
 edition = "2021"
+license = "Apache-2.0"
+homepage = "https://pyroscope.io"
+documentation  = "https://docs.rs/pyroscope"
+repository = "https://github.com/pyroscope-io/pyroscope-rs"
+readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 pprof = "0.7"
-pyroscope = { path = "../../" }
+pyroscope = {version = "0.4.0", path = "../../" }
 thiserror ="1.0"
+
+[profile.dev]
+opt-level=0
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 4
+
+[profile.release]
+opt-level=3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+
+[profile.test]
+opt-level = 1
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 4
+
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1

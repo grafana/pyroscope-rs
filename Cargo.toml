@@ -25,10 +25,6 @@ exclude = [
     "pyroscope_cli",
 ]
 
-#[[bin]]
-#name = "pyroscope-cli"
-#path = "pyroscope_cli/src/main.rs"
-
 [[example]]
 name = "internal-backend-void"
 path = "examples/internal/backend-void.rs"

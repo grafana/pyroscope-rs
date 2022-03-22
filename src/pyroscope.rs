@@ -146,15 +146,12 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// # use pyroscope::PyroscopeError;
-    /// # fn main() -> Result<(), PyroscopeError> {
     /// Set tags. Default is empty.
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .tags(vec![("env", "dev")])
-    /// .build()
-    /// ?;
+    /// .build()?;
     /// ```
     pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
@@ -249,7 +246,6 @@ impl Drop for PyroscopeAgent {
         }
 
         // Wait for main thread to finish
-
         if let Some(handle) = self.handle.take() {
             match handle.join() {
                 Ok(_) => log::trace!(target: LOG_TAG, "Dropped main thread"),
