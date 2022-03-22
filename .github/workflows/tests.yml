@@ -33,6 +33,7 @@ jobs:
         uses: omarabid-forks/rs-toolchain@v1
         with:
           profile: default
+          toolchain: stable
           target: ${{ matrix.target }}
           override: true
 
