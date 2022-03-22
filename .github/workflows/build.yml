@@ -8,8 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
         package: [lib, cli, pprofrs, pyspy, rbspy]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: install libunwind (for pprof)
         continue-on-error: true
