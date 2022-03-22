@@ -25,11 +25,11 @@ pub struct PyspyConfig {
     time_limit: Option<core::time::Duration>,
     /// Include subprocesses
     with_subprocesses: bool,
-    /// todo
+    /// Include idle time
     include_idle: bool,
-    /// todo
+    /// Detect Python GIL
     gil_only: bool,
-    /// todo
+    /// Profile native C extensions
     native: bool,
 }
 
@@ -98,10 +98,12 @@ impl PyspyConfig {
         }
     }
 
+    /// Detect Python GIL
     pub fn gil_only(self, gil_only: bool) -> Self {
         PyspyConfig { gil_only, ..self }
     }
 
+    /// Profile native C extensions
     pub fn native(self, native: bool) -> Self {
         PyspyConfig { native, ..self }
     }
@@ -160,12 +162,12 @@ impl Backend for Pyspy {
     fn initialize(&mut self) -> Result<()> {
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
-            return Err(PyroscopeError::new("Rbspy: Backend is already Initialized"));
+            return Err(PyroscopeError::new("Pyspy: Backend is already Initialized"));
         }
 
         // Check if a process ID is set
         if self.config.pid.is_none() {
-            return Err(PyroscopeError::new("Rbspy: No Process ID Specified"));
+            return Err(PyroscopeError::new("Pyspy: No Process ID Specified"));
         }
 
         // Set duration for py-spy
@@ -197,24 +199,38 @@ impl Backend for Pyspy {
     fn start(&mut self) -> Result<()> {
         // Check if Backend is Ready
         if self.state != State::Ready {
-            return Err(PyroscopeError::new("Rbspy: Backend is not Ready"));
+            return Err(PyroscopeError::new("Pyspy: Backend is not Ready"));
         }
 
+        // set sampler state to running
         let running = Arc::clone(&self.running);
-        // set running to true
         running.store(true, Ordering::Relaxed);
 
+        // create a new buffer reference
         let buffer = self.buffer.clone();
 
-        let config = self.sampler_config.clone().unwrap();
+        // create a new sampler_config reference
+        let config = self
+            .sampler_config
+            .clone()
+            .ok_or_else(|| PyroscopeError::new("Pyspy: Sampler configuration is not set"))?;
 
         self.sampler_thread = Some(std::thread::spawn(move || {
-            let sampler = Sampler::new(config.pid.unwrap(), &config)
-                .map_err(|e| PyroscopeError::new(&format!("Rbspy: Sampler Error: {}", e)))?;
+            // Get PID
+            // TODO: we are doing lots of these checks, we should probably do this once
+            let pid = config
+                .pid
+                .ok_or_else(|| PyroscopeError::new("Pyspy: PID is not set"))?;
 
-            let isampler = sampler.take_while(|_x| running.load(Ordering::Relaxed));
+            // Create a new pyspy sampler
+            let sampler = Sampler::new(pid, &config)
+                .map_err(|e| PyroscopeError::new(&format!("Pyspy: Sampler Error: {}", e)))?;
 
-            for sample in isampler {
+            // Keep the sampler running until the running flag is set to false
+            let sampler_output = sampler.take_while(|_x| running.load(Ordering::Relaxed));
+
+            // Collect the sampler output
+            for sample in sampler_output {
                 for trace in sample.traces {
                     if !(config.include_idle || trace.active) {
                         continue;
@@ -224,9 +240,11 @@ impl Backend for Pyspy {
                         continue;
                     }
 
+                    // Convert py-spy trace to a Pyroscope trace
                     let own_trace: StackTrace =
                         Into::<StackTraceWrapper>::into(trace.clone()).into();
 
+                    // Add the trace to the buffer
                     buffer.lock()?.record(own_trace)?;
                 }
             }
@@ -243,14 +261,18 @@ impl Backend for Pyspy {
     fn stop(&mut self) -> Result<()> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(PyroscopeError::new("Rbspy: Backend is not Running"));
+            return Err(PyroscopeError::new("Pyspy: Backend is not Running"));
         }
 
         // set running to false
         self.running.store(false, Ordering::Relaxed);
 
         // wait for sampler thread to finish
-        self.sampler_thread.take().unwrap().join().unwrap()?;
+        self.sampler_thread
+            .take()
+            .ok_or_else(|| PyroscopeError::new("Pyspy: Failed to unwrap Sampler Thread"))?
+            .join()
+            .unwrap_or_else(|_| Err(PyroscopeError::new("Pyspy: Failed to join sampler thread")))?;
 
         // Set State to Running
         self.state = State::Ready;
@@ -261,18 +283,22 @@ impl Backend for Pyspy {
     fn report(&mut self) -> Result<Vec<u8>> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(PyroscopeError::new("Rbspy: Backend is not Running"));
+            return Err(PyroscopeError::new("Pyspy: Backend is not Running"));
         }
 
+        // create a new buffer reference
         let buffer = self.buffer.clone();
 
-        let v8: Vec<u8> = buffer.lock()?.to_string().into_bytes();
+        // convert the buffer report into a byte vector
+        let report: Vec<u8> = buffer.lock()?.to_string().into_bytes();
 
+        // Clear the buffer
         buffer.lock()?.clear();
 
-        Ok(v8)
+        Ok(report)
     }
 }
+
 struct StackFrameWrapper(StackFrame);
 
 impl From<StackFrameWrapper> for StackFrame {
