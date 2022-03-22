@@ -34,27 +34,27 @@ jobs:
       - name: Cargo build for pyrosocpe-cli 
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'cli'
-        cwd: ./pyroscope_cli
         with:
+          cwd: ./pyroscope_cli
           command: build
 
       - name: Cargo build for pprof-rs
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'pprofrs'
-        cwd: ./pyroscope_backends/pyroscope_pprofrs
         with:
+          cwd: ./pyroscope_backends/pyroscope_pprofrs
           command: build
 
       - name: Cargo build for pyspy 
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'pyspy'
-        cwd: ./pyroscope_backends/pyroscope_pyspy
         with:
+          cwd: ./pyroscope_backends/pyroscope_pyspy
           command: build
 
       - name: Cargo build for rbspy 
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'rbspy'
-        cwd: ./pyroscope_backends/pyroscope_rbspy
         with:
+          cwd: ./pyroscope_backends/pyroscope_rbspy
           command: build
