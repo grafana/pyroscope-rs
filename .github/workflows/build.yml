@@ -9,6 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
+        package: [lib, cli, pprofrs, pyspy, rbspy]
     steps:
       - name: install libunwind (for pprof)
         continue-on-error: true
@@ -24,7 +25,36 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Run cargo build
+      - name: Cargo build for pyroscope library 
         uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'lib'
+        with:
+          command: build
+
+      - name: Cargo build for pyrosocpe-cli 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'cli'
+        cwd: ./pyroscope_cli
+        with:
+          command: build
+
+      - name: Cargo build for pprof-rs
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'pprofrs'
+        cwd: ./pyroscope_backends/pyroscope_pprofrs
+        with:
+          command: build
+
+      - name: Cargo build for pyspy 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'pyspy'
+        cwd: ./pyroscope_backends/pyroscope_pyspy
+        with:
+          command: build
+
+      - name: Cargo build for rbspy 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'rbspy'
+        cwd: ./pyroscope_backends/pyroscope_rbspy
         with:
           command: build
