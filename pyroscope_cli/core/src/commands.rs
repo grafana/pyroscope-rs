@@ -1,41 +1,44 @@
-use pyroscope::pyroscope_backends::pyspy::{Pyspy, PyspyConfig};
 use utils::app_config::AppConfig;
-use utils::error::Result;
-use utils::types::Spy;
+use utils::error::{Error, Result};
+use utils::types::{LogLevel, Spy};
 
-use pyroscope::pyroscope_backends::rbspy::{Rbspy, RbspyConfig};
 use pyroscope::PyroscopeAgent;
+use pyroscope_pyspy::{Pyspy, PyspyConfig};
+use pyroscope_rbspy::{Rbspy, RbspyConfig};
 
 use ctrlc;
 use std::sync::mpsc::channel;
 
-use duct::cmd;
-
-/// adhoc command
-pub fn adhoc() -> Result<()> {
-    println!("adhoc command");
-    Ok(())
-}
+use crate::executor::Executor;
+use crate::profiler::Profiler;
 
 /// exec command
 pub fn exec() -> Result<()> {
+    // TODO: this is hacky
+    set_application_name()?;
+    set_tags()?;
+
+    // Get command to execute
+    let command = AppConfig::get::<Option<String>>("command")?
+        .ok_or_else(|| Error::new("command unwrap failed"))?;
+
+    // Get UID
+    let uid = AppConfig::get::<Option<u32>>("user_name").unwrap_or(None);
+    // Get GID
+    let gid = AppConfig::get::<Option<u32>>("group_name").unwrap_or(None);
+
+    // Create new executor and run it
+    let executor = Executor::new(command.as_ref(), "", uid, gid).run()?;
+
+    // Set PID
+    AppConfig::set("pid", executor.get_pid()?.to_string().as_str())?;
+
+    // Initialize profiler
+    let mut profiler = Profiler::default();
+
+    profiler.init()?;
+
     let (tx, rx) = channel();
-
-    let handle = cmd!("ruby", "./scripts/ruby.rb").stdout_capture().start()?;
-    let pids = handle.pids();
-
-    let pid = *pids.get(0).unwrap() as i32;
-
-    let config = RbspyConfig::new(pid);
-
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
-        .backend(Rbspy::new(config))
-        .build()
-        .unwrap();
-
-    agent.start().unwrap();
-
-    //handle.wait()?;
 
     ctrlc::set_handler(move || {
         tx.send(()).unwrap();
@@ -48,31 +51,36 @@ pub fn exec() -> Result<()> {
 
     println!("Exiting.");
 
-    agent.stop().unwrap();
-
-    drop(agent);
-
-    handle.kill()?;
+    executor.stop()?;
+    profiler.stop()?;
 
     Ok(())
 }
 
 /// connect command
 pub fn connect() -> Result<()> {
-    let spy: Spy = AppConfig::get("spy_name")?;
+    // TODO: this is hacky
+    set_application_name()?;
+    set_tags()?;
 
-    dbg!(spy);
-    match spy {
-        Spy::Rbspy => {
-            rbspy()?;
-        }
-        Spy::Pyspy => {
-            pyspy()?;
-        }
-        _ => {
-            println!("not supported spy");
-        }
-    }
+    let mut profiler = Profiler::default();
+
+    profiler.init()?;
+
+    let (tx, rx) = channel();
+
+    ctrlc::set_handler(move || {
+        tx.send(()).unwrap();
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    println!("Press Ctrl-C to exit.");
+
+    rx.recv().unwrap();
+
+    println!("Exiting.");
+
+    profiler.stop()?;
 
     Ok(())
 }
@@ -85,86 +93,32 @@ pub fn config() -> Result<()> {
     Ok(())
 }
 
-pub fn rbspy() -> Result<()> {
-    let (tx, rx) = channel();
+fn set_application_name() -> Result<()> {
+    let pre_app_name: String = AppConfig::get::<String>("application_name").unwrap_or_else(|_| {
+        names::Generator::default()
+            .next()
+            .unwrap_or("unassigned.app".to_string())
+            .replace("-", ".")
+    });
 
-    let pid: i32 = AppConfig::get("pid")?;
-    let sample_rate: u32 = AppConfig::get("sample_rate")?;
-    let lock_process: bool = AppConfig::get("rbspy_blocking")?;
-    let with_subprocesses: bool = AppConfig::get("detect_subprocesses")?;
+    let pre = match AppConfig::get::<Spy>("spy_name")? {
+        Spy::Pyspy => "pyspy",
+        Spy::Rbspy => "rbspy",
+        _ => "none",
+    };
 
-    let config = RbspyConfig::new(pid)
-        .sample_rate(sample_rate)
-        .lock_process(lock_process)
-        .with_subprocesses(with_subprocesses);
+    // add pre to pre_app_name
+    let app_name = format!("{}.{}", pre, pre_app_name);
 
-    println!("Connecting to PID {}", pid);
-
-    let server_address: String = AppConfig::get("server_address")?;
-
-    let mut agent = PyroscopeAgent::builder(server_address, "rbspy.basic".to_string())
-        .backend(Rbspy::new(config))
-        .build()
-        .unwrap();
-
-    agent.start().unwrap();
-
-    ctrlc::set_handler(move || {
-        tx.send(()).unwrap();
-    })
-    .expect("Error setting Ctrl-C handler");
-
-    println!("Press Ctrl-C to exit.");
-
-    rx.recv().unwrap();
-
-    println!("Exiting.");
-
-    agent.stop().unwrap();
-
-    drop(agent);
+    AppConfig::set("application_name", app_name.as_str())?;
 
     Ok(())
 }
 
-pub fn pyspy() -> Result<()> {
-    let (tx, rx) = channel();
+fn set_tags() -> Result<()> {
+    let tag: String = AppConfig::get::<String>("tag").unwrap_or("".to_string());
 
-    let pid: i32 = AppConfig::get("pid")?;
-    let sample_rate: u32 = AppConfig::get("sample_rate")?;
-    let lock_process: bool = AppConfig::get("pyspy_blocking")?;
-    let with_subprocesses: bool = AppConfig::get("detect_subprocesses")?;
-
-    let config = PyspyConfig::new(pid)
-        .sample_rate(sample_rate)
-        .lock_process(lock_process)
-        .with_subprocesses(with_subprocesses);
-
-    println!("Connecting to PID {}", pid);
-
-    let server_address: String = AppConfig::get("server_address")?;
-
-    let mut agent = PyroscopeAgent::builder(server_address, "pyspy.basic".to_string())
-        .backend(Pyspy::new(config))
-        .build()
-        .unwrap();
-
-    agent.start().unwrap();
-
-    ctrlc::set_handler(move || {
-        tx.send(()).unwrap();
-    })
-    .expect("Error setting Ctrl-C handler");
-
-    println!("Press Ctrl-C to exit.");
-
-    rx.recv().unwrap();
-
-    println!("Exiting.");
-
-    agent.stop().unwrap();
-
-    drop(agent);
+    AppConfig::set("tag", tag.as_str())?;
 
     Ok(())
 }

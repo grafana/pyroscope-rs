@@ -1,6 +1,7 @@
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
+use pyroscope_pprofrs::{Pprof, PprofConfig};
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -17,6 +18,7 @@ fn main() -> Result<()> {
     pretty_env_logger::init_timed();
 
     let mut agent = PyroscopeAgent::builder("http://invalid_url", "example.error")
+        .backend(Pprof::new(PprofConfig::new(100)))
         .build()
         .unwrap();
     // Start Agent

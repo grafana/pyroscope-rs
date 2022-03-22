@@ -1,7 +1,7 @@
 extern crate pyroscope;
 
+use pyroscope::backend::{void_backend, VoidConfig};
 use pyroscope::Result;
-use pyroscope_backends::void::{void_backend, VoidConfig};
 
 fn main() -> Result<()> {
     // Create new VoidConfig

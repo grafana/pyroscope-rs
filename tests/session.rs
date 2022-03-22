@@ -2,7 +2,7 @@ use pyroscope::{
     pyroscope::PyroscopeConfig,
     session::{Session, SessionManager, SessionSignal},
 };
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 #[test]
 fn test_session_manager_new() {

@@ -13,8 +13,7 @@ use crate::{
     timer::{Timer, TimerSignal},
 };
 
-use pyroscope_backends::pprof::Pprof;
-use pyroscope_backends::types::Backend;
+use crate::backend::{Backend, VoidBackend};
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -80,7 +79,7 @@ impl PyroscopeConfig {
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
     ///    .tags(vec![("env", "dev")])?;
     /// ```
-    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+    pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
             .to_owned()
@@ -124,7 +123,7 @@ impl PyroscopeAgentBuilder {
     /// ```
     pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
-            backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
+            backend: Arc::new(Mutex::new(VoidBackend::default())), // Default Backend
             config: PyroscopeConfig::new(url, application_name),
         }
     }
@@ -147,17 +146,14 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// # use pyroscope::PyroscopeError;
-    /// # fn main() -> Result<(), PyroscopeError> {
     /// Set tags. Default is empty.
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .tags(vec![("env", "dev")])
-    /// .build()
-    /// ?;
+    /// .build()?;
     /// ```
-    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+    pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
             config: self.config.tags(tags),
             ..self
@@ -250,7 +246,6 @@ impl Drop for PyroscopeAgent {
         }
 
         // Wait for main thread to finish
-
         if let Some(handle) = self.handle.take() {
             match handle.join() {
                 Ok(_) => log::trace!(target: LOG_TAG, "Dropped main thread"),

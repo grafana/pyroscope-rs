@@ -1,6 +1,7 @@
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
+use pyroscope_pprofrs::{Pprof, PprofConfig};
 use std::hash::{Hash, Hasher};
 
 fn hash_rounds(n: u64) -> u64 {
@@ -19,7 +20,8 @@ fn hash_rounds(n: u64) -> u64 {
 
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.tags")
-        .tags(&[("Hostname", "pyroscope")])
+        .backend(Pprof::new(PprofConfig::new(100)))
+        .tags([("Hostname", "pyroscope")].to_vec())
         .build()?;
 
     // Start Agent

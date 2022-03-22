@@ -1,10 +1,9 @@
-use crate::types::Report;
-
-use super::{
-    error::{BackendError, Result},
-    types::{Backend, StackFrame, StackTrace, State},
-};
 use py_spy::{config::Config, sampler::Sampler};
+
+use pyroscope::{
+    backend::{Backend, Report, StackFrame, StackTrace, State},
+    error::{PyroscopeError, Result},
+};
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -161,12 +160,12 @@ impl Backend for Pyspy {
     fn initialize(&mut self) -> Result<()> {
         // Check if Backend is Uninitialized
         if self.state != State::Uninitialized {
-            return Err(BackendError::new("Rbspy: Backend is already Initialized"));
+            return Err(PyroscopeError::new("Rbspy: Backend is already Initialized"));
         }
 
         // Check if a process ID is set
         if self.config.pid.is_none() {
-            return Err(BackendError::new("Rbspy: No Process ID Specified"));
+            return Err(PyroscopeError::new("Rbspy: No Process ID Specified"));
         }
 
         // Set duration for py-spy
@@ -198,7 +197,7 @@ impl Backend for Pyspy {
     fn start(&mut self) -> Result<()> {
         // Check if Backend is Ready
         if self.state != State::Ready {
-            return Err(BackendError::new("Rbspy: Backend is not Ready"));
+            return Err(PyroscopeError::new("Rbspy: Backend is not Ready"));
         }
 
         let running = Arc::clone(&self.running);
@@ -210,7 +209,8 @@ impl Backend for Pyspy {
         let config = self.sampler_config.clone().unwrap();
 
         self.sampler_thread = Some(std::thread::spawn(move || {
-            let sampler = Sampler::new(config.pid.unwrap(), &config)?;
+            let sampler = Sampler::new(config.pid.unwrap(), &config)
+                .map_err(|e| PyroscopeError::new(&format!("Rbspy: Sampler Error: {}", e)))?;
 
             let isampler = sampler.take_while(|_x| running.load(Ordering::Relaxed));
 
@@ -224,7 +224,8 @@ impl Backend for Pyspy {
                         continue;
                     }
 
-                    let own_trace: StackTrace = trace.clone().into();
+                    let own_trace: StackTrace =
+                        Into::<StackTraceWrapper>::into(trace.clone()).into();
 
                     buffer.lock()?.record(own_trace)?;
                 }
@@ -242,7 +243,7 @@ impl Backend for Pyspy {
     fn stop(&mut self) -> Result<()> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(BackendError::new("Rbspy: Backend is not Running"));
+            return Err(PyroscopeError::new("Rbspy: Backend is not Running"));
         }
 
         // set running to false
@@ -260,7 +261,7 @@ impl Backend for Pyspy {
     fn report(&mut self) -> Result<Vec<u8>> {
         // Check if Backend is Running
         if self.state != State::Running {
-            return Err(BackendError::new("Rbspy: Backend is not Running"));
+            return Err(PyroscopeError::new("Rbspy: Backend is not Running"));
         }
 
         let buffer = self.buffer.clone();
@@ -272,31 +273,46 @@ impl Backend for Pyspy {
         Ok(v8)
     }
 }
+struct StackFrameWrapper(StackFrame);
 
-impl From<py_spy::Frame> for StackFrame {
+impl From<StackFrameWrapper> for StackFrame {
+    fn from(stack_frame: StackFrameWrapper) -> Self {
+        stack_frame.0
+    }
+}
+
+impl From<py_spy::Frame> for StackFrameWrapper {
     fn from(frame: py_spy::Frame) -> Self {
-        Self {
+        StackFrameWrapper(StackFrame {
             module: frame.module.clone(),
             name: Some(frame.name.clone()),
             filename: frame.short_filename.clone(),
             relative_path: None,
             absolute_path: Some(frame.filename.clone()),
             line: Some(frame.line as u32),
-        }
+        })
     }
 }
 
-impl From<py_spy::StackTrace> for StackTrace {
+struct StackTraceWrapper(StackTrace);
+
+impl From<StackTraceWrapper> for StackTrace {
+    fn from(stack_trace: StackTraceWrapper) -> Self {
+        stack_trace.0
+    }
+}
+
+impl From<py_spy::StackTrace> for StackTraceWrapper {
     fn from(trace: py_spy::StackTrace) -> Self {
-        Self {
+        StackTraceWrapper(StackTrace {
             pid: Some(trace.pid as u32),
             thread_id: Some(trace.thread_id as u64),
             thread_name: trace.thread_name.clone(),
             frames: trace
                 .frames
                 .iter()
-                .map(|frame| frame.clone().into())
+                .map(|frame| Into::<StackFrameWrapper>::into(frame.clone()).into())
                 .collect(),
-        }
+        })
     }
 }

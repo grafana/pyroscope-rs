@@ -1,11 +1,11 @@
 [package]
-name = "pyroscope-cli"
+name = "pyroscope_pprofrs"
 description = """
-Pyroscope Profiler CLI
+pprof-rs backend for Pyroscope Profiler.
 """
-keywords = ["pyroscope", "profiler", "cli"]
+keywords = ["pyroscope", "profiler", "pprof-rs"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.0.1-beta"
+version = "0.1.0-beta"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
@@ -13,24 +13,11 @@ documentation  = "https://docs.rs/pyroscope"
 repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 
-[workspace]
-members = [
-    "utils",
-    "cli",
-    "core",
-]
 
 [dependencies]
-utils = { path = "utils" }
-cli = { path = "cli"}
-core = { path = "core" }
-human-panic = "1.0.3"
-better-panic = "0.3.0"
-log = "0.4.14"
-
-[dev-dependencies]
-assert_cmd = "2.0.4"
-predicates = "2.1.1"
+pprof = "0.7"
+pyroscope = {version = "0.4.0", path = "../../" }
+thiserror ="1.0"
 
 [profile.dev]
 opt-level=0

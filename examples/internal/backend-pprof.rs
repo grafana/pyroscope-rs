@@ -1,8 +1,8 @@
 extern crate pyroscope;
 
+use pyroscope::backend::Backend;
 use pyroscope::Result;
-use pyroscope_backends::pprof::{Pprof, PprofConfig};
-use pyroscope_backends::types::Backend;
+use pyroscope_pprofrs::{Pprof, PprofConfig};
 
 fn fibonacci(n: u64) -> u64 {
     match n {
