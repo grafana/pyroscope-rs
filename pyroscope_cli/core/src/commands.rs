@@ -1,10 +1,6 @@
 use utils::app_config::AppConfig;
 use utils::error::{Error, Result};
-use utils::types::{LogLevel, Spy};
-
-use pyroscope::PyroscopeAgent;
-use pyroscope_pyspy::{Pyspy, PyspyConfig};
-use pyroscope_rbspy::{Rbspy, RbspyConfig};
+use utils::types::Spy;
 
 use ctrlc;
 use std::sync::mpsc::channel;

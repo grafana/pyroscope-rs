@@ -21,8 +21,11 @@ impl Profiler {
         let sample_rate: u32 = AppConfig::get::<u32>("sample_rate")?;
 
         // TODO: CLI should probably unify this into a single argument
-        let pyspy_blocking: bool = AppConfig::get::<bool>("pyspy_blocking")?;
         let rbspy_blocking: bool = AppConfig::get::<bool>("rbspy_blocking")?;
+        let pyspy_blocking: bool = AppConfig::get::<bool>("pyspy_blocking")?;
+        let pyspy_idle: bool = AppConfig::get::<bool>("pyspy_idle")?;
+        let pyspy_gil: bool = AppConfig::get::<bool>("pyspy_gil")?;
+        let pyspy_native: bool = AppConfig::get::<bool>("pyspy_native")?;
 
         let detect_subprocesses: bool = AppConfig::get::<bool>("detect_subprocesses")?;
 
@@ -34,7 +37,10 @@ impl Profiler {
                 let config = PyspyConfig::new(pid)
                     .sample_rate(sample_rate)
                     .lock_process(pyspy_blocking)
-                    .with_subprocesses(detect_subprocesses);
+                    .with_subprocesses(detect_subprocesses)
+                    .include_idle(pyspy_idle)
+                    .gil_only(pyspy_gil)
+                    .native(pyspy_native);
                 let backend = Pyspy::new(config);
                 PyroscopeAgent::builder(server_address, app_name)
                     .backend(backend)

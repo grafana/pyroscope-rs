@@ -95,6 +95,13 @@ enum Commands {
         )]
         pid: i32,
         #[clap(
+            name = "rbspy_blocking",
+            long = "rbspy-blocking",
+            value_name = "RBSPY_BLOCKING",
+            help = "enable blocking mode for rbspy"
+        )]
+        rbspy_blocking: bool,
+        #[clap(
             name = "pyspy_blocking",
             long = "pyspy-blocking",
             value_name = "PYSPY_BLOCKING",
@@ -102,12 +109,26 @@ enum Commands {
         )]
         pyspy_blocking: bool,
         #[clap(
-            name = "rbspy_blocking",
-            long = "rbspy-blocking",
-            value_name = "RBSPY_BLOCKING",
-            help = "enable blocking mode for rbspy"
+            name = "pyspy_idle",
+            long = "pyspy-idle",
+            value_name = "PYSPY_IDLE",
+            help = "include idle threads for pyspy"
         )]
-        rbspy_blocking: bool,
+        pyspy_idle: bool,
+        #[clap(
+            name = "pyspy_gil",
+            long = "pyspy-gil",
+            value_name = "PYSPY_GIL",
+            help = "enable GIL mode for pyspy"
+        )]
+        pyspy_gil: bool,
+        #[clap(
+            name = "pyspy_native",
+            long = "pyspy-native",
+            value_name = "PYSPY_NATIVE",
+            help = "enable native extensions profiling for pyspy"
+        )]
+        pyspy_native: bool,
         #[clap(
             name = "sample_rate",
             long = "sample-rate",
@@ -212,6 +233,13 @@ enum Commands {
         //)]
         //no_root_drop: bool,
         #[clap(
+            name = "rbspy_blocking",
+            long = "rbspy-blocking",
+            value_name = "RBSPY_BLOCKING",
+            help = "enable blocking mode for rbspy"
+        )]
+        rbspy_blocking: bool,
+        #[clap(
             name = "pyspy_blocking",
             long = "pyspy-blocking",
             value_name = "PYSPY_BLOCKING",
@@ -219,12 +247,26 @@ enum Commands {
         )]
         pyspy_blocking: bool,
         #[clap(
-            name = "rbspy_blocking",
-            long = "rbspy-blocking",
-            value_name = "RBSPY_BLOCKING",
-            help = "enable blocking mode for rbspy"
+            name = "pyspy_idle",
+            long = "pyspy-idle",
+            value_name = "PYSPY_IDLE",
+            help = "include idle threads for pyspy"
         )]
-        rbspy_blocking: bool,
+        pyspy_idle: bool,
+        #[clap(
+            name = "pyspy_gil",
+            long = "pyspy-gil",
+            value_name = "PYSPY_GIL",
+            help = "enable GIL mode for pyspy"
+        )]
+        pyspy_gil: bool,
+        #[clap(
+            name = "pyspy_native",
+            long = "pyspy-native",
+            value_name = "PYSPY_NATIVE",
+            help = "enable native extensions profiling for pyspy"
+        )]
+        pyspy_native: bool,
         #[clap(
             name = "sample_rate",
             long = "sample-rate",
