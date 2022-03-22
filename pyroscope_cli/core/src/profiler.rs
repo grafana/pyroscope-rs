@@ -1,9 +1,8 @@
 use pyroscope::PyroscopeAgent;
-use pyroscope_pprofrs::{Pprof, PprofConfig};
 use pyroscope_pyspy::{Pyspy, PyspyConfig};
 use pyroscope_rbspy::{Rbspy, RbspyConfig};
 use utils::app_config::AppConfig;
-use utils::error::Result;
+use utils::error::{Error, Result};
 use utils::types::Spy;
 
 #[derive(Debug, Default)]
@@ -15,7 +14,7 @@ impl Profiler {
     pub fn init(&mut self) -> Result<()> {
         let pid: i32 = AppConfig::get::<i32>("pid")?;
 
-        let app_name: String = get_application_name()?;
+        let app_name: String = AppConfig::get::<String>("application_name")?;
 
         let server_address: String = AppConfig::get::<String>("server_address")?;
 
@@ -27,15 +26,10 @@ impl Profiler {
 
         let detect_subprocesses: bool = AppConfig::get::<bool>("detect_subprocesses")?;
 
+        let tag_str = &AppConfig::get::<String>("tag")?;
+        let tags = tags_to_array(tag_str)?;
+
         let mut agent = match AppConfig::get::<Spy>("spy_name")? {
-            Spy::Rustspy => {
-                println!("here");
-                let config = PprofConfig::new(100);
-                let backend = Pprof::new(config);
-                PyroscopeAgent::builder(server_address, app_name)
-                    .backend(backend)
-                    .build()?
-            }
             Spy::Pyspy => {
                 let config = PyspyConfig::new(pid)
                     .sample_rate(sample_rate)
@@ -44,6 +38,7 @@ impl Profiler {
                 let backend = Pyspy::new(config);
                 PyroscopeAgent::builder(server_address, app_name)
                     .backend(backend)
+                    .tags(tags)
                     .build()?
             }
             Spy::Rbspy => {
@@ -54,9 +49,9 @@ impl Profiler {
                 let backend = Rbspy::new(config);
                 PyroscopeAgent::builder(server_address, app_name)
                     .backend(backend)
+                    .tags(tags)
                     .build()?
             }
-            _ => return Ok(()),
         };
 
         agent.start()?;
@@ -75,22 +70,24 @@ impl Profiler {
     }
 }
 
-fn get_application_name() -> Result<String> {
-    let pre_app_name: String = AppConfig::get::<String>("application_name").unwrap_or_else(|_| {
-        names::Generator::default()
+fn tags_to_array(tags: &str) -> Result<Vec<(&str, &str)>> {
+    // check if tags is empty
+    if tags.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut tags_array = Vec::new();
+
+    for tag in tags.split(";") {
+        let mut tag_array = tag.split("=");
+        let key = tag_array
             .next()
-            .unwrap_or("unassigned.app".to_string())
-            .replace("-", ".")
-    });
+            .ok_or_else(|| Error::new("failed to parse tag key"))?;
+        let value = tag_array
+            .next()
+            .ok_or_else(|| Error::new("failed to parse tag value"))?;
+        tags_array.push((key, value));
+    }
 
-    let pre = match AppConfig::get::<Spy>("spy_name")? {
-        Spy::Pyspy => "pyspy",
-        Spy::Rbspy => "rbspy",
-        _ => "none",
-    };
-
-    // add pre to pre_app_name
-    let app_name = format!("{}.{}", pre, pre_app_name);
-
-    Ok(app_name)
+    Ok(tags_array)
 }

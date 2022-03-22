@@ -1,9 +1,10 @@
+use clap::ArgEnum;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
 use std::str::FromStr;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, ArgEnum)]
 pub enum LogLevel {
     #[serde(rename = "debug")]
     Debug,
@@ -30,7 +31,7 @@ impl FromStr for LogLevel {
 }
 
 /// Output Format for Adhoc profiling
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ArgEnum)]
 pub enum OutputFormat {
     #[serde(rename = "none")]
     None,
@@ -56,10 +57,8 @@ impl FromStr for OutputFormat {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ArgEnum)]
 pub enum Spy {
-    #[serde(rename = "auto")]
-    Auto,
     // Place holder for future development
     //#[serde(rename = "dotnetspy")]
     //Dotnetspy,
@@ -67,12 +66,12 @@ pub enum Spy {
     //Ebpfspy,
     //#[serde(rename = "phpspy")]
     //Phpspy,
+    ////#[serde(rename = "rustspy")]
+    //Rustspy,
     #[serde(rename = "rbspy")]
     Rbspy,
     #[serde(rename = "pyspy")]
     Pyspy,
-    #[serde(rename = "rustspy")]
-    Rustspy,
 }
 
 impl FromStr for Spy {
@@ -85,10 +84,10 @@ impl FromStr for Spy {
             //"dotnetspy" => Ok(Spy::Dotnetspy),
             //"ebpfspy" => Ok(Spy::Ebpfspy),
             //"phpspy" => Ok(Spy::Phpspy),
+            //"rustspy" => Ok(Spy::Rustspy),
             "rbspy" => Ok(Spy::Rbspy),
             "pyspy" => Ok(Spy::Pyspy),
-            "rustspy" => Ok(Spy::Rustspy),
-            _ => Ok(Spy::Auto),
+            _ => Ok(Spy::Rbspy),
         }
     }
 }

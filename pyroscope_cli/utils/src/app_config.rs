@@ -1,4 +1,4 @@
-use config::{Config, Environment};
+use config::{Config, Environment, Source};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
@@ -57,6 +57,7 @@ impl AppConfig {
 
         // Merge settings with env variables
         settings.merge(Environment::with_prefix("PYROSCOPE"))?;
+
         // Save Config to RwLoc
         {
             let mut w = CONFIG.write()?;
@@ -102,8 +103,11 @@ impl AppConfig {
                 }
             }
             if sub_connect.is_present("tag") {
-                if let Some(tag) = sub_connect.value_of("tag") {
-                    AppConfig::set("tag", tag)?;
+                if let Some(tags) = sub_connect.values_of("tag") {
+                    // Join tags by ;
+                    let tag: String = tags.collect::<Vec<&str>>().join(";");
+
+                    AppConfig::set("tag", tag.as_str())?;
                 }
             }
             // TODO: placeholder for future implementation
@@ -185,8 +189,11 @@ impl AppConfig {
                 }
             }
             if sub_exec.is_present("tag") {
-                if let Some(tag) = sub_exec.value_of("tag") {
-                    AppConfig::set("tag", tag)?;
+                if let Some(tags) = sub_exec.values_of("tag") {
+                    // Join tags by ;
+                    let tag: String = tags.collect::<Vec<&str>>().join(";");
+
+                    AppConfig::set("tag", tag.as_str())?;
                 }
             }
             // TODO: placeholder for future implementation

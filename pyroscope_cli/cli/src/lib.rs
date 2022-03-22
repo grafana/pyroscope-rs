@@ -71,14 +71,14 @@ enum Commands {
         )]
         detect_subprocesses: bool,
         #[clap(
+            arg_enum,
             name = "log_level",
             short,
             long = "log-level",
             value_name = "LOG_LEVEL",
-            help = "",
-            default_value = "info"
+            help = "[default: info] log level for the application"
         )]
-        log_level: LogLevel,
+        log_level: Option<LogLevel>,
         #[clap(
             name = "no_logging",
             long = "no-logging",
@@ -112,19 +112,18 @@ enum Commands {
             name = "sample_rate",
             long = "sample-rate",
             value_name = "SAMPLE_RATE",
-            help = "sample rate for the profiler in Hz. 100 means reading 100 times per second",
-            default_value = "100"
+            help = "[default: 100] sample rate for the profiler in Hz. 100 means reading 100 times per second"
         )]
-        sample_rate: i32,
+        sample_rate: Option<u32>,
         #[clap(
             name = "server_address",
             long = "server-address",
             value_name = "SERVER_ADDRESS",
-            help = "Pyroscope server address",
-            default_value = "http://localhost:4040"
+            help = "[default: http://localhost:4040] Pyroscope server address"
         )]
-        server_address: String,
+        server_address: Option<String>,
         #[clap(
+            arg_enum,
             name = "spy_name",
             long = "spy-name",
             value_name = "SPY_NAME",
@@ -132,6 +131,7 @@ enum Commands {
         )]
         spy_name: Spy,
         #[clap(
+            multiple = true,
             name = "tag",
             long = "tag",
             value_name = "TAG",
@@ -180,7 +180,7 @@ enum Commands {
         //value_name = "AUTH_TOKEN",
         //help = "authorization token used to upload profiling data"
         //)]
-        auth_token: Option<String>,
+        //auth_token: Option<String>,
         #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
@@ -189,21 +189,14 @@ enum Commands {
         )]
         detect_subprocesses: bool,
         #[clap(
-            name = "group_name",
-            long = "group-name",
-            value_name = "GROUP_NAME",
-            help = "start process under specified group name"
-        )]
-        group_name: Option<String>,
-        #[clap(
+            arg_enum,
             name = "log_level",
             short,
             long = "log-level",
             value_name = "LOG_LEVEL",
-            help = "",
-            default_value = "info"
+            help = "[default: info] log level for the application"
         )]
-        log_level: LogLevel,
+        log_level: Option<LogLevel>,
         #[clap(
             name = "no_logging",
             long = "no-logging",
@@ -211,13 +204,13 @@ enum Commands {
             help = "disable logging from pyroscope"
         )]
         no_logging: bool,
-        #[clap(
-            name = "no_root_drop",
-            long = "no-root-drop",
-            value_name = "NO_ROOT_DROP",
-            help = "disable permissions drop when ran under root. use this one if you want to run your command as root"
-        )]
-        no_root_drop: bool,
+        //#[clap(
+        //name = "no_root_drop",
+        //long = "no-root-drop",
+        //value_name = "NO_ROOT_DROP",
+        //help = "disable permissions drop when ran under root. use this one if you want to run your command as root"
+        //)]
+        //no_root_drop: bool,
         #[clap(
             name = "pyspy_blocking",
             long = "pyspy-blocking",
@@ -236,19 +229,18 @@ enum Commands {
             name = "sample_rate",
             long = "sample-rate",
             value_name = "SAMPLE_RATE",
-            help = "sample rate for the profiler in Hz. 100 means reading 100 times per second",
-            default_value = "100"
+            help = "[default: 100] sample rate for the profiler in Hz. 100 means reading 100 times per second"
         )]
-        sample_rate: u32,
+        sample_rate: Option<u32>,
         #[clap(
             name = "server_address",
             long = "server-address",
             value_name = "SERVER_ADDRESS",
-            help = "Pyroscope server address",
-            default_value = "http://localhost:4040"
+            help = "[default: http://localhost:4040] Pyroscope server address"
         )]
-        server_address: String,
+        server_address: Option<String>,
         #[clap(
+            arg_enum,
             name = "spy_name",
             long = "spy-name",
             value_name = "SPY_NAME",
@@ -287,6 +279,13 @@ enum Commands {
             help = "start process under specified user name"
         )]
         user_name: Option<String>,
+        #[clap(
+            name = "group_name",
+            long = "group-name",
+            value_name = "GROUP_NAME",
+            help = "start process under specified group name"
+        )]
+        group_name: Option<String>,
     },
     #[clap(
         name = "config",
@@ -318,10 +317,11 @@ pub fn cli_match() -> Result<()> {
     AppConfig::merge_config(cli.config.as_deref())?;
 
     let app = Cli::into_app();
+
+    // Merge clap args into config
     AppConfig::merge_args(app)?;
 
     let mut app = Cli::into_app();
-
     // Execute the subcommand
     match &cli.command {
         Commands::Exec { .. } => {

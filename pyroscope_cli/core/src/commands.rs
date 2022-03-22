@@ -1,5 +1,6 @@
 use utils::app_config::AppConfig;
 use utils::error::{Error, Result};
+use utils::types::{LogLevel, Spy};
 
 use pyroscope::PyroscopeAgent;
 use pyroscope_pyspy::{Pyspy, PyspyConfig};
@@ -13,12 +14,13 @@ use crate::profiler::Profiler;
 
 /// exec command
 pub fn exec() -> Result<()> {
+    // TODO: this is hacky
+    set_application_name()?;
+    set_tags()?;
+
     // Get command to execute
     let command = AppConfig::get::<Option<String>>("command")?
         .ok_or_else(|| Error::new("command unwrap failed"))?;
-
-    //dbg!(AppConfig::fetch()?);
-    //return Ok(());
 
     // Get UID
     let uid = AppConfig::get::<Option<u32>>("user_name").unwrap_or(None);
@@ -27,8 +29,6 @@ pub fn exec() -> Result<()> {
 
     // Create new executor and run it
     let executor = Executor::new(command.as_ref(), "", uid, gid).run()?;
-
-    println!("stopped here?");
 
     // Set PID
     AppConfig::set("pid", executor.get_pid()?.to_string().as_str())?;
@@ -59,7 +59,10 @@ pub fn exec() -> Result<()> {
 
 /// connect command
 pub fn connect() -> Result<()> {
-    // Initialize profiler
+    // TODO: this is hacky
+    set_application_name()?;
+    set_tags()?;
+
     let mut profiler = Profiler::default();
 
     profiler.init()?;
@@ -90,86 +93,32 @@ pub fn config() -> Result<()> {
     Ok(())
 }
 
-pub fn rbspy() -> Result<()> {
-    let (tx, rx) = channel();
+fn set_application_name() -> Result<()> {
+    let pre_app_name: String = AppConfig::get::<String>("application_name").unwrap_or_else(|_| {
+        names::Generator::default()
+            .next()
+            .unwrap_or("unassigned.app".to_string())
+            .replace("-", ".")
+    });
 
-    let pid: i32 = AppConfig::get("pid")?;
-    let sample_rate: u32 = AppConfig::get("sample_rate")?;
-    let lock_process: bool = AppConfig::get("rbspy_blocking")?;
-    let with_subprocesses: bool = AppConfig::get("detect_subprocesses")?;
+    let pre = match AppConfig::get::<Spy>("spy_name")? {
+        Spy::Pyspy => "pyspy",
+        Spy::Rbspy => "rbspy",
+        _ => "none",
+    };
 
-    let config = RbspyConfig::new(pid)
-        .sample_rate(sample_rate)
-        .lock_process(lock_process)
-        .with_subprocesses(with_subprocesses);
+    // add pre to pre_app_name
+    let app_name = format!("{}.{}", pre, pre_app_name);
 
-    println!("Connecting to PID {}", pid);
-
-    let server_address: String = AppConfig::get("server_address")?;
-
-    let mut agent = PyroscopeAgent::builder(server_address, "rbspy.basic".to_string())
-        .backend(Rbspy::new(config))
-        .build()
-        .unwrap();
-
-    agent.start().unwrap();
-
-    ctrlc::set_handler(move || {
-        tx.send(()).unwrap();
-    })
-    .expect("Error setting Ctrl-C handler");
-
-    println!("Press Ctrl-C to exit.");
-
-    rx.recv().unwrap();
-
-    println!("Exiting.");
-
-    agent.stop().unwrap();
-
-    drop(agent);
+    AppConfig::set("application_name", app_name.as_str())?;
 
     Ok(())
 }
 
-pub fn pyspy() -> Result<()> {
-    let (tx, rx) = channel();
+fn set_tags() -> Result<()> {
+    let tag: String = AppConfig::get::<String>("tag").unwrap_or("".to_string());
 
-    let pid: i32 = AppConfig::get("pid")?;
-    let sample_rate: u32 = AppConfig::get("sample_rate")?;
-    let lock_process: bool = AppConfig::get("pyspy_blocking")?;
-    let with_subprocesses: bool = AppConfig::get("detect_subprocesses")?;
-
-    let config = PyspyConfig::new(pid)
-        .sample_rate(sample_rate)
-        .lock_process(lock_process)
-        .with_subprocesses(with_subprocesses);
-
-    println!("Connecting to PID {}", pid);
-
-    let server_address: String = AppConfig::get("server_address")?;
-
-    let mut agent = PyroscopeAgent::builder(server_address, "pyspy.basic".to_string())
-        .backend(Pyspy::new(config))
-        .build()
-        .unwrap();
-
-    agent.start().unwrap();
-
-    ctrlc::set_handler(move || {
-        tx.send(()).unwrap();
-    })
-    .expect("Error setting Ctrl-C handler");
-
-    println!("Press Ctrl-C to exit.");
-
-    rx.recv().unwrap();
-
-    println!("Exiting.");
-
-    agent.stop().unwrap();
-
-    drop(agent);
+    AppConfig::set("tag", tag.as_str())?;
 
     Ok(())
 }
