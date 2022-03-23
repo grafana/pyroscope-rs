@@ -1,4 +1,4 @@
-use config::{Config, Environment, Source};
+use config::{Config, Environment};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
@@ -69,7 +69,7 @@ impl AppConfig {
         Ok(())
     }
 
-    pub fn merge_args(app: clap::App) -> Result<()> {
+    pub fn merge_args(app: clap::Command) -> Result<()> {
         let args = app.get_matches();
 
         // Connect Command
@@ -80,19 +80,31 @@ impl AppConfig {
                 }
             }
             if sub_connect.is_present("no_logging") {
-                if let Some(no_logging) = sub_connect.value_of("no_logging") {
-                    AppConfig::set("no_logging", no_logging)?;
-                }
+                //if let Some(no_logging) = sub_connect.value_of("no_logging") {
+                //AppConfig::set("no_logging", no_logging)?;
+                //}
+                AppConfig::set("no_logging", "true")?;
             }
             if sub_connect.is_present("pyspy_blocking") {
-                if let Some(pyspy_blocking) = sub_connect.value_of("pyspy_blocking") {
-                    AppConfig::set("pyspy_blocking", pyspy_blocking)?;
-                }
+                //if let Some(pyspy_blocking) = sub_connect.value_of("pyspy_blocking") {
+                //AppConfig::set("pyspy_blocking", pyspy_blocking)?;
+                //}
+                AppConfig::set("pyspy_blocking", "true")?;
+            }
+            if sub_connect.is_present("pyspy_idle") {
+                AppConfig::set("pyspy_idle", "true")?;
+            }
+            if sub_connect.is_present("pyspy_gil") {
+                AppConfig::set("pyspy_gil", "true")?;
+            }
+            if sub_connect.is_present("pyspy_native") {
+                AppConfig::set("pyspy_native", "true")?;
             }
             if sub_connect.is_present("rbspy_blocking") {
-                if let Some(rbspy_blocking) = sub_connect.value_of("rbspy_blocking") {
-                    AppConfig::set("rbspy_blocking", rbspy_blocking)?;
-                }
+                //if let Some(rbspy_blocking) = sub_connect.value_of("rbspy_blocking") {
+                //AppConfig::set("rbspy_blocking", rbspy_blocking)?;
+                //}
+                AppConfig::set("rbspy_blocking", "true")?;
             }
             if sub_connect.is_present("sample_rate") {
                 if let Some(sample_rate) = sub_connect.value_of("sample_rate") {
@@ -137,9 +149,10 @@ impl AppConfig {
             //}
             //}
             if sub_connect.is_present("detect_subprocesses") {
-                if let Some(detect_subprocesses) = sub_connect.value_of("detect_subprocesses") {
-                    AppConfig::set("detect_subprocesses", detect_subprocesses)?;
-                }
+                //if let Some(detect_subprocesses) = sub_connect.value_of("detect_subprocesses") {
+                //AppConfig::set("detect_subprocesses", detect_subprocesses)?;
+                //}
+                AppConfig::set("detect_subprocesses", "true")?;
             }
             if sub_connect.is_present("pid") {
                 if let Some(pid) = sub_connect.value_of("pid") {
@@ -166,19 +179,31 @@ impl AppConfig {
                 }
             }
             if sub_exec.is_present("no_logging") {
-                if let Some(no_logging) = sub_exec.value_of("no_logging") {
-                    AppConfig::set("no_logging", no_logging)?;
-                }
+                //if let Some(no_logging) = sub_exec.value_of("no_logging") {
+                //AppConfig::set("no_logging", no_logging)?;
+                //}
+                AppConfig::set("no_logging", "true")?;
             }
             if sub_exec.is_present("pyspy_blocking") {
-                if let Some(pyspy_blocking) = sub_exec.value_of("pyspy_blocking") {
-                    AppConfig::set("pyspy_blocking", pyspy_blocking)?;
-                }
+                //if let Some(pyspy_blocking) = sub_exec.value_of("pyspy_blocking") {
+                //AppConfig::set("pyspy_blocking", pyspy_blocking)?;
+                //}
+                AppConfig::set("pyspy_blocking", "true")?;
+            }
+            if sub_exec.is_present("pyspy_idle") {
+                AppConfig::set("pyspy_idle", "true")?;
+            }
+            if sub_exec.is_present("pyspy_gil") {
+                AppConfig::set("pyspy_gil", "true")?;
+            }
+            if sub_exec.is_present("pyspy_native") {
+                AppConfig::set("pyspy_native", "true")?;
             }
             if sub_exec.is_present("rbspy_blocking") {
-                if let Some(rbspy_blocking) = sub_exec.value_of("rbspy_blocking") {
-                    AppConfig::set("rbspy_blocking", rbspy_blocking)?;
-                }
+                //if let Some(rbspy_blocking) = sub_exec.value_of("rbspy_blocking") {
+                //AppConfig::set("rbspy_blocking", rbspy_blocking)?;
+                //}
+                AppConfig::set("rbspy_blocking", "true")?;
             }
             if sub_exec.is_present("sample_rate") {
                 if let Some(sample_rate) = sub_exec.value_of("sample_rate") {
@@ -223,9 +248,10 @@ impl AppConfig {
             //}
             //}
             if sub_exec.is_present("detect_subprocesses") {
-                if let Some(detect_subprocesses) = sub_exec.value_of("detect_subprocesses") {
-                    AppConfig::set("detect_subprocesses", detect_subprocesses)?;
-                }
+                //if let Some(detect_subprocesses) = sub_exec.value_of("detect_subprocesses") {
+                //AppConfig::set("detect_subprocesses", detect_subprocesses)?;
+                //}
+                AppConfig::set("detect_subprocesses", "true")?;
             }
             if sub_exec.is_present("spy_name") {
                 if let Some(spy_name) = sub_exec.value_of("spy_name") {
@@ -268,16 +294,6 @@ impl AppConfig {
 
         Ok(())
     }
-
-    //pub fn setT<T>(key: &str, value: T) -> Result<()>
-    //where
-    //T: serde::Serialize,
-    //{
-    //{
-    //CONFIG.write()?.set::<T>(key, value)?;
-    //}
-    //Ok(())
-    //}
 
     // Get a single value
     pub fn get<'de, T>(key: &'de str) -> Result<T>

@@ -10,7 +10,7 @@ use crate::profiler::Profiler;
 
 /// exec command
 pub fn exec() -> Result<()> {
-    // TODO: this is hacky
+    // TODO: this processing should probably be done along with the config parsing
     set_application_name()?;
     set_tags()?;
 
@@ -31,11 +31,12 @@ pub fn exec() -> Result<()> {
 
     // Initialize profiler
     let mut profiler = Profiler::default();
-
     profiler.init()?;
 
+    // Create a channel for ctrlc
     let (tx, rx) = channel();
 
+    // Set ctrcl handler
     ctrlc::set_handler(move || {
         tx.send(()).unwrap();
     })
@@ -43,10 +44,12 @@ pub fn exec() -> Result<()> {
 
     println!("Press Ctrl-C to exit.");
 
+    // Wait for Ctrl+C signal
     rx.recv().unwrap();
 
     println!("Exiting.");
 
+    // Stop exector and profiler
     executor.stop()?;
     profiler.stop()?;
 
@@ -55,16 +58,18 @@ pub fn exec() -> Result<()> {
 
 /// connect command
 pub fn connect() -> Result<()> {
-    // TODO: this is hacky
+    // TODO: this processing should probably be done along with the config parsing
     set_application_name()?;
     set_tags()?;
 
+    // Initialize profiler
     let mut profiler = Profiler::default();
-
     profiler.init()?;
 
+    // Create a channel for ctrlc
     let (tx, rx) = channel();
 
+    // Set ctrcl handler
     ctrlc::set_handler(move || {
         tx.send(()).unwrap();
     })
@@ -72,35 +77,31 @@ pub fn connect() -> Result<()> {
 
     println!("Press Ctrl-C to exit.");
 
+    // Wait for Ctrl+C signal
     rx.recv().unwrap();
 
     println!("Exiting.");
 
+    // Stop exector and profiler
     profiler.stop()?;
 
     Ok(())
 }
 
-/// Show the configuration file
-pub fn config() -> Result<()> {
-    let config = AppConfig::fetch()?;
-    println!("{:#?}", config);
-
-    Ok(())
-}
-
+//
+// TODO: These functions should be placed somewhere else
+//
 fn set_application_name() -> Result<()> {
     let pre_app_name: String = AppConfig::get::<String>("application_name").unwrap_or_else(|_| {
         names::Generator::default()
             .next()
-            .unwrap_or("unassigned.app".to_string())
-            .replace("-", ".")
+            .unwrap_or_else(|| "unassigned.app".to_string())
+            .replace('-', ".")
     });
 
     let pre = match AppConfig::get::<Spy>("spy_name")? {
         Spy::Pyspy => "pyspy",
         Spy::Rbspy => "rbspy",
-        _ => "none",
     };
 
     // add pre to pre_app_name
@@ -112,7 +113,7 @@ fn set_application_name() -> Result<()> {
 }
 
 fn set_tags() -> Result<()> {
-    let tag: String = AppConfig::get::<String>("tag").unwrap_or("".to_string());
+    let tag: String = AppConfig::get::<String>("tag").unwrap_or_else(|_| "".to_string());
 
     AppConfig::set("tag", tag.as_str())?;
 

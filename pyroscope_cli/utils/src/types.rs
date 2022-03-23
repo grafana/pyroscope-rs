@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::error::Result;
 use std::str::FromStr;
 
+// TODO: These definitions should be placed in the core workspace.
+
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, ArgEnum)]
 pub enum LogLevel {
     #[serde(rename = "trace")]

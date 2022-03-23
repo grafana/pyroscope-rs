@@ -18,7 +18,6 @@ use utils::types::{LogLevel, Spy};
     long_about = "Pyroscope CLI",
     version
 )]
-#[clap(setting = AppSettings::SubcommandRequired)]
 #[clap(global_setting(AppSettings::DeriveDisplayOrder))]
 pub struct Cli {
     /// Set a custom config file
@@ -67,7 +66,8 @@ enum Commands {
             name = "detect_subprocesses",
             long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
-            help = "keep track of and profile subprocesses of the main process"
+            help = "keep track of and profile subprocesses of the main process",
+            takes_value = false
         )]
         detect_subprocesses: bool,
         #[clap(
@@ -83,7 +83,8 @@ enum Commands {
             name = "no_logging",
             long = "no-logging",
             value_name = "NO_LOGGING",
-            help = "disable logging from pyroscope"
+            help = "disable logging from pyroscope",
+            takes_value = false
         )]
         no_logging: bool,
         #[clap(
@@ -98,35 +99,40 @@ enum Commands {
             name = "rbspy_blocking",
             long = "rbspy-blocking",
             value_name = "RBSPY_BLOCKING",
-            help = "enable blocking mode for rbspy"
+            help = "enable blocking mode for rbspy",
+            takes_value = false
         )]
         rbspy_blocking: bool,
         #[clap(
             name = "pyspy_blocking",
             long = "pyspy-blocking",
             value_name = "PYSPY_BLOCKING",
-            help = "enable blocking mode for pyspy"
+            help = "enable blocking mode for pyspy",
+            takes_value = false
         )]
         pyspy_blocking: bool,
         #[clap(
             name = "pyspy_idle",
             long = "pyspy-idle",
             value_name = "PYSPY_IDLE",
-            help = "include idle threads for pyspy"
+            help = "include idle threads for pyspy",
+            takes_value = false
         )]
         pyspy_idle: bool,
         #[clap(
             name = "pyspy_gil",
             long = "pyspy-gil",
             value_name = "PYSPY_GIL",
-            help = "enable GIL mode for pyspy"
+            help = "enable GIL mode for pyspy",
+            takes_value = false
         )]
         pyspy_gil: bool,
         #[clap(
             name = "pyspy_native",
             long = "pyspy-native",
             value_name = "PYSPY_NATIVE",
-            help = "enable native extensions profiling for pyspy"
+            help = "enable native extensions profiling for pyspy",
+            takes_value = false
         )]
         pyspy_native: bool,
         #[clap(
@@ -152,7 +158,7 @@ enum Commands {
         )]
         spy_name: Spy,
         #[clap(
-            multiple = true,
+            multiple_occurrences = true,
             name = "tag",
             long = "tag",
             value_name = "TAG",
@@ -206,7 +212,8 @@ enum Commands {
             name = "detect_subprocesses",
             long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
-            help = "keep track of and profile subprocesses of the main process"
+            help = "keep track of and profile subprocesses of the main process",
+            takes_value = false
         )]
         detect_subprocesses: bool,
         #[clap(
@@ -222,7 +229,8 @@ enum Commands {
             name = "no_logging",
             long = "no-logging",
             value_name = "NO_LOGGING",
-            help = "disable logging from pyroscope"
+            help = "disable logging from pyroscope",
+            takes_value = false
         )]
         no_logging: bool,
         //#[clap(
@@ -236,35 +244,40 @@ enum Commands {
             name = "rbspy_blocking",
             long = "rbspy-blocking",
             value_name = "RBSPY_BLOCKING",
-            help = "enable blocking mode for rbspy"
+            help = "enable blocking mode for rbspy",
+            takes_value = false
         )]
         rbspy_blocking: bool,
         #[clap(
             name = "pyspy_blocking",
             long = "pyspy-blocking",
             value_name = "PYSPY_BLOCKING",
-            help = "enable blocking mode for pyspy"
+            help = "enable blocking mode for pyspy",
+            takes_value = false
         )]
         pyspy_blocking: bool,
         #[clap(
             name = "pyspy_idle",
             long = "pyspy-idle",
             value_name = "PYSPY_IDLE",
-            help = "include idle threads for pyspy"
+            help = "include idle threads for pyspy",
+            takes_value = false
         )]
         pyspy_idle: bool,
         #[clap(
             name = "pyspy_gil",
             long = "pyspy-gil",
             value_name = "PYSPY_GIL",
-            help = "enable GIL mode for pyspy"
+            help = "enable GIL mode for pyspy",
+            takes_value = false
         )]
         pyspy_gil: bool,
         #[clap(
             name = "pyspy_native",
             long = "pyspy-native",
             value_name = "PYSPY_NATIVE",
-            help = "enable native extensions profiling for pyspy"
+            help = "enable native extensions profiling for pyspy",
+            takes_value = false
         )]
         pyspy_native: bool,
         #[clap(
@@ -329,12 +342,6 @@ enum Commands {
         )]
         group_name: Option<String>,
     },
-    #[clap(
-        name = "config",
-        about = "Show Configuration",
-        long_about = None,
-    )]
-    Config,
 }
 
 /// Supported Completion Shells
@@ -358,12 +365,12 @@ pub fn cli_match() -> Result<()> {
     // Merge clap config file if the value is set
     AppConfig::merge_config(cli.config.as_deref())?;
 
-    let app = Cli::into_app();
+    let app = Cli::command();
 
     // Merge clap args into config
     AppConfig::merge_args(app)?;
 
-    let mut app = Cli::into_app();
+    let mut app = Cli::command();
     // Execute the subcommand
     match &cli.command {
         Commands::Exec { .. } => {
@@ -391,9 +398,6 @@ pub fn cli_match() -> Result<()> {
                 generate(Zsh, &mut app, "pyroscope-cli", &mut std::io::stdout());
             }
         },
-        Commands::Config => {
-            commands::config()?;
-        }
     }
 
     Ok(())

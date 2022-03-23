@@ -15,7 +15,7 @@ slog-term = "2.8.0"
 slog-scope = "4.4.0"
 slog-async = "2.7.0"
 slog-stdlog = "4.1.0"
-clap = "3.1"
+clap = "=3.1.6"
 log = "=0.4.11"
 serde = { version = "1.0", features = ["derive"] }
 pyroscope = { path = "../../" }

@@ -25,6 +25,7 @@ fn main() -> Result<()> {
             .install();
     }
 
+    // Setup logging
     let _guard = utils::logger::setup_logging()?;
 
     // Initialize Configuration

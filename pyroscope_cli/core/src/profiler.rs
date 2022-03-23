@@ -84,8 +84,8 @@ fn tags_to_array(tags: &str) -> Result<Vec<(&str, &str)>> {
 
     let mut tags_array = Vec::new();
 
-    for tag in tags.split(";") {
-        let mut tag_array = tag.split("=");
+    for tag in tags.split(';') {
+        let mut tag_array = tag.split('=');
         let key = tag_array
             .next()
             .ok_or_else(|| Error::new("failed to parse tag key"))?;
