@@ -11,6 +11,7 @@ use crate::{
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
+    utils::get_time_range,
 };
 
 use crate::backend::{Backend, VoidBackend};
@@ -346,8 +347,8 @@ impl PyroscopeAgent {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
-            // best effort
-            let _ = sender.send(TimerSignal::NextSnapshot(0));
+            // Send last session
+            let _ = sender.send(TimerSignal::NextSnapshot(get_time_range(0)?.until));
             sender.send(TimerSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")
