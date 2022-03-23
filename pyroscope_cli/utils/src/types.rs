@@ -6,6 +6,8 @@ use std::str::FromStr;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, ArgEnum)]
 pub enum LogLevel {
+    #[serde(rename = "trace")]
+    Trace,
     #[serde(rename = "debug")]
     Debug,
     #[serde(rename = "info")]
@@ -14,6 +16,8 @@ pub enum LogLevel {
     Warn,
     #[serde(rename = "error")]
     Error,
+    #[serde(rename = "critical")]
+    Critical,
 }
 
 impl FromStr for LogLevel {
