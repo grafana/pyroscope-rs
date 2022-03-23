@@ -23,10 +23,7 @@ impl PprofConfig {
     }
 
     pub fn sample_rate(self, sample_rate: u32) -> Self {
-        PprofConfig {
-            sample_rate,
-            ..self
-        }
+        PprofConfig { sample_rate }
     }
 }
 
@@ -213,9 +210,9 @@ impl From<pprof::Symbol> for StackFrameWrapper {
                 symbol
                     .filename
                     .clone()
-                    .unwrap_or(std::path::PathBuf::new())
+                    .unwrap_or_else(std::path::PathBuf::new)
                     .file_name()
-                    .unwrap_or(OsStr::new(""))
+                    .unwrap_or_else(|| OsStr::new(""))
                     .to_str()
                     .unwrap_or("")
                     .to_string(),
@@ -223,7 +220,7 @@ impl From<pprof::Symbol> for StackFrameWrapper {
             Some(
                 symbol
                     .filename
-                    .unwrap_or(std::path::PathBuf::new())
+                    .unwrap_or_else(std::path::PathBuf::new)
                     .to_str()
                     .unwrap_or("")
                     .to_string(),
