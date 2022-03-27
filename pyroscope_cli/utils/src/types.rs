@@ -65,15 +65,6 @@ impl FromStr for OutputFormat {
 
 #[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ArgEnum)]
 pub enum Spy {
-    // Place holder for future development
-    //#[serde(rename = "dotnetspy")]
-    //Dotnetspy,
-    //#[serde(rename = "ebpfspy")]
-    //Ebpfspy,
-    //#[serde(rename = "phpspy")]
-    //Phpspy,
-    ////#[serde(rename = "rustspy")]
-    //Rustspy,
     #[serde(rename = "rbspy")]
     Rbspy,
     #[serde(rename = "pyspy")]
@@ -85,12 +76,6 @@ impl FromStr for Spy {
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
-            // Place holder for future development
-            //"auto" => Ok(Spy::Auto),
-            //"dotnetspy" => Ok(Spy::Dotnetspy),
-            //"ebpfspy" => Ok(Spy::Ebpfspy),
-            //"phpspy" => Ok(Spy::Phpspy),
-            //"rustspy" => Ok(Spy::Rustspy),
             "rbspy" => Ok(Spy::Rbspy),
             "pyspy" => Ok(Spy::Pyspy),
             _ => Ok(Spy::Rbspy),

@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::ffi::OsStr;
-
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
+use pyroscope::{
+    backend::{Backend, Report, StackFrame, StackTrace, State},
+    error::{PyroscopeError, Result},
+};
+use std::{collections::HashMap, ffi::OsStr};
 
-use pyroscope::backend::{Backend, Report, StackFrame, StackTrace, State};
-use pyroscope::error::{PyroscopeError, Result};
-
+/// Pprof Configuration
 #[derive(Debug)]
 pub struct PprofConfig {
     sample_rate: u32,
@@ -27,6 +27,7 @@ impl PprofConfig {
     }
 }
 
+/// Pprof Backend
 #[derive(Default)]
 pub struct Pprof<'a> {
     config: PprofConfig,

@@ -1,9 +1,12 @@
 use pyroscope::PyroscopeAgent;
 use pyroscope_pyspy::{Pyspy, PyspyConfig};
 use pyroscope_rbspy::{Rbspy, RbspyConfig};
-use utils::app_config::AppConfig;
-use utils::error::{Error, Result};
-use utils::types::Spy;
+
+use utils::{
+    app_config::AppConfig,
+    error::{Error, Result},
+    types::Spy,
+};
 
 #[derive(Debug, Default)]
 pub struct Profiler {

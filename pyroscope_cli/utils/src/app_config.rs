@@ -32,10 +32,6 @@ pub struct AppConfig {
     pub sample_rate: Option<u32>,
     pub server_address: Option<String>,
     pub tag: Option<String>,
-    // TODO: placeholder for future implementation
-    //pub upstream_request_timeout: Option<String>,
-    //pub upstream_threads: Option<u32>,
-    //pub auth_token: Option<String>,
     pub user_name: Option<u32>,
     pub group_name: Option<u32>,
     pub command: Option<String>,
@@ -80,15 +76,9 @@ impl AppConfig {
                 }
             }
             if sub_connect.is_present("no_logging") {
-                //if let Some(no_logging) = sub_connect.value_of("no_logging") {
-                //AppConfig::set("no_logging", no_logging)?;
-                //}
                 AppConfig::set("no_logging", "true")?;
             }
             if sub_connect.is_present("pyspy_blocking") {
-                //if let Some(pyspy_blocking) = sub_connect.value_of("pyspy_blocking") {
-                //AppConfig::set("pyspy_blocking", pyspy_blocking)?;
-                //}
                 AppConfig::set("pyspy_blocking", "true")?;
             }
             if sub_connect.is_present("pyspy_idle") {
@@ -101,9 +91,6 @@ impl AppConfig {
                 AppConfig::set("pyspy_native", "true")?;
             }
             if sub_connect.is_present("rbspy_blocking") {
-                //if let Some(rbspy_blocking) = sub_connect.value_of("rbspy_blocking") {
-                //AppConfig::set("rbspy_blocking", rbspy_blocking)?;
-                //}
                 AppConfig::set("rbspy_blocking", "true")?;
             }
             if sub_connect.is_present("sample_rate") {
@@ -124,34 +111,12 @@ impl AppConfig {
                     AppConfig::set("tag", tag.as_str())?;
                 }
             }
-            // TODO: placeholder for future implementation
-            //if sub_connect.is_present("upstream_request_timeout") {
-            //if let Some(upstream_request_timeout) =
-            //sub_connect.value_of("upstream_request_timeout")
-            //{
-            //AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
-            //}
-            //}
-            //if sub_connect.is_present("upstream_threads") {
-            //if let Some(upstream_threads) = sub_connect.value_of("upstream_threads") {
-            //AppConfig::set("upstream_threads", upstream_threads)?;
-            //}
-            //}
             if sub_connect.is_present("application_name") {
                 if let Some(application_name) = sub_connect.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
                 }
             }
-            // TODO: placeholder for future implementation
-            //if sub_connect.is_present("auth_token") {
-            //if let Some(auth_token) = sub_connect.value_of("auth_token") {
-            //AppConfig::set("auth_token", auth_token)?;
-            //}
-            //}
             if sub_connect.is_present("detect_subprocesses") {
-                //if let Some(detect_subprocesses) = sub_connect.value_of("detect_subprocesses") {
-                //AppConfig::set("detect_subprocesses", detect_subprocesses)?;
-                //}
                 AppConfig::set("detect_subprocesses", "true")?;
             }
             if sub_connect.is_present("pid") {
@@ -179,15 +144,9 @@ impl AppConfig {
                 }
             }
             if sub_exec.is_present("no_logging") {
-                //if let Some(no_logging) = sub_exec.value_of("no_logging") {
-                //AppConfig::set("no_logging", no_logging)?;
-                //}
                 AppConfig::set("no_logging", "true")?;
             }
             if sub_exec.is_present("pyspy_blocking") {
-                //if let Some(pyspy_blocking) = sub_exec.value_of("pyspy_blocking") {
-                //AppConfig::set("pyspy_blocking", pyspy_blocking)?;
-                //}
                 AppConfig::set("pyspy_blocking", "true")?;
             }
             if sub_exec.is_present("pyspy_idle") {
@@ -200,9 +159,6 @@ impl AppConfig {
                 AppConfig::set("pyspy_native", "true")?;
             }
             if sub_exec.is_present("rbspy_blocking") {
-                //if let Some(rbspy_blocking) = sub_exec.value_of("rbspy_blocking") {
-                //AppConfig::set("rbspy_blocking", rbspy_blocking)?;
-                //}
                 AppConfig::set("rbspy_blocking", "true")?;
             }
             if sub_exec.is_present("sample_rate") {
@@ -223,34 +179,12 @@ impl AppConfig {
                     AppConfig::set("tag", tag.as_str())?;
                 }
             }
-            // TODO: placeholder for future implementation
-            //if sub_exec.is_present("upstream_request_timeout") {
-            //if let Some(upstream_request_timeout) =
-            //sub_exec.value_of("upstream_request_timeout")
-            //{
-            //AppConfig::set("upstream_request_timeout", upstream_request_timeout)?;
-            //}
-            //}
-            //if sub_exec.is_present("upstream_threads") {
-            //if let Some(upstream_threads) = sub_exec.value_of("upstream_threads") {
-            //AppConfig::set("upstream_threads", upstream_threads)?;
-            //}
-            //}
             if sub_exec.is_present("application_name") {
                 if let Some(application_name) = sub_exec.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
                 }
             }
-            // TODO: placeholder for future implementation
-            //if sub_exec.is_present("auth_token") {
-            //if let Some(auth_token) = sub_exec.value_of("auth_token") {
-            //AppConfig::set("auth_token", auth_token)?;
-            //}
-            //}
             if sub_exec.is_present("detect_subprocesses") {
-                //if let Some(detect_subprocesses) = sub_exec.value_of("detect_subprocesses") {
-                //AppConfig::set("detect_subprocesses", detect_subprocesses)?;
-                //}
                 AppConfig::set("detect_subprocesses", "true")?;
             }
             if sub_exec.is_present("spy_name") {

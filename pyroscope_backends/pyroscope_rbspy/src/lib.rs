@@ -1,10 +1,12 @@
-use pyroscope::backend::{Backend, Report, StackFrame, StackTrace, State};
-use pyroscope::error::{PyroscopeError, Result};
-
+use pyroscope::{
+    backend::{Backend, Report, StackFrame, StackTrace, State},
+    error::{PyroscopeError, Result},
+};
 use rbspy::sampler::Sampler;
-
-use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    mpsc::{channel, sync_channel, Receiver, Sender, SyncSender},
+    Arc, Mutex,
+};
 
 /// Rbspy Configuration
 #[derive(Debug)]

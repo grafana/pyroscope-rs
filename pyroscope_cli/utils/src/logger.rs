@@ -1,9 +1,6 @@
-use slog::o;
-use slog::Drain;
+use slog::{o, Drain};
 
-use super::app_config::AppConfig;
-use super::error::Result;
-use super::types::LogLevel;
+use super::{app_config::AppConfig, error::Result, types::LogLevel};
 
 pub fn setup_logging() -> Result<slog_scope::GlobalLoggerGuard> {
     // Setup Logging

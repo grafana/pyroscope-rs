@@ -6,9 +6,11 @@ use clap_complete::{
 use std::path::PathBuf;
 
 use core::commands;
-use utils::app_config::AppConfig;
-use utils::error::Result;
-use utils::types::{LogLevel, Spy};
+use utils::{
+    app_config::AppConfig,
+    error::Result,
+    types::{LogLevel, Spy},
+};
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -54,14 +56,6 @@ enum Commands {
             help = "application name used when uploading profiling data"
         )]
         application_name: Option<String>,
-        // TODO: placeholder for future implementation
-        //#[clap(
-        //name = "auth_token",
-        //long = "auth-token",
-        //value_name = "AUTH_TOKEN",
-        //help = "authorization token used to upload profiling data"
-        //)]
-        //auth_token: Option<String>,
         #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
@@ -165,24 +159,6 @@ enum Commands {
             help = "tag in key=value form. The flag may be specified multiple times"
         )]
         tag: Option<String>,
-        // TODO: placeholder for future implementation
-        //#[clap(
-        //name = "upstream_request_timeout",
-        //long = "upstream-request-timeout",
-        //value_name = "UPSTREAM_REQUEST_TIMEOUT",
-        //help = "profile upload timeout",
-        //default_value = "10s"
-        //)]
-        //upstream_request_timeout: String,
-        //#[clap(
-        //name = "upstream_threads",
-        //long = "upstream-threads",
-        //value_name = "UPSTREAM_THREADS",
-        //help = "number of upload threads",
-        //parse(try_from_str),
-        //default_value = "4"
-        //)]
-        //upstream_threads: u32,
     },
     #[clap(
         name = "exec",
@@ -200,14 +176,6 @@ enum Commands {
             help = "application name used when uploading profiling data"
         )]
         application_name: Option<String>,
-        // TODO: placeholder for future implementation
-        //#[clap(
-        //name = "auth_token",
-        //long = "auth-token",
-        //value_name = "AUTH_TOKEN",
-        //help = "authorization token used to upload profiling data"
-        //)]
-        //auth_token: Option<String>,
         #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
@@ -233,13 +201,6 @@ enum Commands {
             takes_value = false
         )]
         no_logging: bool,
-        //#[clap(
-        //name = "no_root_drop",
-        //long = "no-root-drop",
-        //value_name = "NO_ROOT_DROP",
-        //help = "disable permissions drop when ran under root. use this one if you want to run your command as root"
-        //)]
-        //no_root_drop: bool,
         #[clap(
             name = "rbspy_blocking",
             long = "rbspy-blocking",
@@ -309,24 +270,6 @@ enum Commands {
             help = "tag in key=value form. The flag may be specified multiple times"
         )]
         tag: Option<String>,
-        // TODO: placeholder for future implementation
-        //#[clap(
-        //name = "upstream_request_timeout",
-        //long = "upstream-request-timeout",
-        //value_name = "UPSTREAM_REQUEST_TIMEOUT",
-        //help = "profile upload timeout",
-        //default_value = "10s"
-        //)]
-        //upstream_request_timeout: String,
-        //#[clap(
-        //name = "upstream_threads",
-        //long = "upstream-threads",
-        //value_name = "UPSTREAM_THREADS",
-        //help = "number of upload threads",
-        //parse(try_from_str),
-        //default_value = "4"
-        //)]
-        //upstream_threads: u32,
         #[clap(
             name = "user_name",
             long = "user-name",

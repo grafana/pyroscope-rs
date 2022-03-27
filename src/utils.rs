@@ -1,5 +1,4 @@
-use crate::error::Result;
-use crate::PyroscopeError;
+use crate::{error::Result, PyroscopeError};
 
 use std::collections::HashMap;
 

@@ -1,5 +1,4 @@
 use py_spy::{config::Config, sampler::Sampler};
-
 use pyroscope::{
     backend::{Backend, Report, StackFrame, StackTrace, State},
     error::{PyroscopeError, Result},
@@ -21,7 +20,7 @@ pub struct PyspyConfig {
     sample_rate: u32,
     /// Lock Process while sampling
     lock_process: py_spy::config::LockingStrategy,
-    /// Profiling duration. None for infinite.
+    /// Profiling duration (None for infinite)
     time_limit: Option<core::time::Duration>,
     /// Include subprocesses
     with_subprocesses: bool,

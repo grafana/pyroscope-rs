@@ -1,5 +1,6 @@
 use duct::cmd;
 use std::os::unix::process::CommandExt;
+
 use utils::error::{Error, Result};
 
 pub struct Executor<'a> {

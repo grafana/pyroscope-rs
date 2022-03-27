@@ -4,10 +4,11 @@ use std::{
     time::Duration,
 };
 
-use crate::pyroscope::PyroscopeConfig;
-use crate::utils::get_time_range;
-use crate::utils::merge_tags_with_app_name;
-use crate::Result;
+use crate::{
+    pyroscope::PyroscopeConfig,
+    utils::{get_time_range, merge_tags_with_app_name},
+    Result,
+};
 
 const LOG_TAG: &str = "Pyroscope::Session";
 

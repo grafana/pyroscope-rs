@@ -1,12 +1,12 @@
-use utils::app_config::AppConfig;
-use utils::error::{Error, Result};
-use utils::types::Spy;
-
 use ctrlc;
 use std::sync::mpsc::channel;
 
-use crate::executor::Executor;
-use crate::profiler::Profiler;
+use crate::{executor::Executor, profiler::Profiler};
+use utils::{
+    app_config::AppConfig,
+    error::{Error, Result},
+    types::Spy,
+};
 
 /// exec command
 pub fn exec() -> Result<()> {
