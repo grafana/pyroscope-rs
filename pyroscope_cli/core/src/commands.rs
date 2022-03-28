@@ -18,13 +18,16 @@ pub fn exec() -> Result<()> {
     let command = AppConfig::get::<Option<String>>("command")?
         .ok_or_else(|| Error::new("command unwrap failed"))?;
 
+    let command_args = AppConfig::get::<Option<String>>("command_args")?
+        .ok_or_else(|| Error::new("command unwrap failed"))?;
+
     // Get UID
     let uid = AppConfig::get::<Option<u32>>("user_name").unwrap_or(None);
     // Get GID
     let gid = AppConfig::get::<Option<u32>>("group_name").unwrap_or(None);
 
     // Create new executor and run it
-    let executor = Executor::new(command.as_ref(), "", uid, gid).run()?;
+    let executor = Executor::new(command.as_ref(), command_args.as_ref(), uid, gid).run()?;
 
     // Set PID
     AppConfig::set("pid", executor.get_pid()?.to_string().as_str())?;

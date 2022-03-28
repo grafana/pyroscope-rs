@@ -1,9 +1,8 @@
 use config::{Config, Environment};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
-use std::path::Path;
 use std::sync::RwLock;
+use std::{ops::Deref, path::Path};
 
 use super::error::Result;
 use crate::types::{LogLevel, Spy};
@@ -35,6 +34,7 @@ pub struct AppConfig {
     pub user_name: Option<u32>,
     pub group_name: Option<u32>,
     pub command: Option<String>,
+    pub command_args: Option<String>,
 }
 
 impl AppConfig {
@@ -134,8 +134,26 @@ impl AppConfig {
         // Exec Command
         if let Some(sub_exec) = args.subcommand_matches("exec") {
             if sub_exec.is_present("command") {
-                if let Some(command) = sub_exec.value_of("command") {
-                    AppConfig::set("command", command)?;
+                if let Some(command) = sub_exec.values_of("command") {
+                    // Get First element of command
+                    let cmd = command
+                        .clone()
+                        .collect::<Vec<&str>>()
+                        .first()
+                        .unwrap_or(&String::from("").as_str())
+                        .to_string();
+                    AppConfig::set("command", &cmd)?;
+
+                    // Get rest of command
+                    let command_args = command
+                        .collect::<Vec<&str>>()
+                        .iter()
+                        .skip(1)
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>()
+                        .join(" ");
+
+                    AppConfig::set("command_args", &command_args)?;
                 }
             }
             if sub_exec.is_present("log_level") {

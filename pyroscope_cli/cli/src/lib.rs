@@ -166,8 +166,14 @@ enum Commands {
         long_about = None,
     )]
     Exec {
-        /// The command to execute
-        #[clap(required = true)]
+        #[clap(
+            required = true,
+            name = "command",
+            value_name = "COMMAND",
+            help = "command to execute",
+            takes_value = true,
+            multiple_values = true
+        )]
         command: Option<String>,
         #[clap(
             name = "application_name",
