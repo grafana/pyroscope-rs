@@ -424,6 +424,7 @@ impl VoidConfig {
     }
 }
 
+/// Empty Backend implementation for Testing purposes
 #[derive(Debug, Default)]
 pub struct VoidBackend {
     state: State,

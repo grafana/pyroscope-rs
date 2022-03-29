@@ -89,6 +89,9 @@ mod get_current_time_secs_tests {
     }
 }
 
+/// A representation of a time range. The time range is represented by a start
+/// time, an end time, a current time and remaining time in seconds. The
+/// remaining time is the duration in seconds until the end time.
 #[derive(Debug, PartialEq)]
 pub struct TimeRange {
     pub from: u64,

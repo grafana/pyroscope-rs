@@ -23,7 +23,7 @@ use std::{
 
 #[derive(Debug)]
 pub struct Timer {
-    /// A vector to store listeners (mpsc::Sender)
+    /// A vector to store listeners
     txs: Arc<Mutex<Vec<Sender<TimerSignal>>>>,
 
     /// Thread handle

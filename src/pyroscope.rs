@@ -36,11 +36,6 @@ pub struct PyroscopeConfig {
     pub sample_rate: u32,
     /// Spy Name
     pub spy_name: String,
-    // TODO
-    // log_level
-    // auth_token
-    // upstream_request_timeout = 10s
-    // no_logging
 }
 
 impl PyroscopeConfig {
