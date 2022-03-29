@@ -1,13 +1,13 @@
 [package]
 name = "cli"
-version = "0.4.0"
+version = "0.1.0"
 authors = ["Abid Omar <contact@omarabid.com>"]
 description = "CLI interface"
 edition = "2021"
 
 [dependencies]
-utils = { path = "../utils" }
-core = { path = "../core" }
+utils = { version = "0.1", path = "../utils" }
+core = { version = "0.1", path = "../core" }
 clap_complete = "3.1"
 names= "0.13.0"
 

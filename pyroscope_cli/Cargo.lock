@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "cli"
-version = "0.4.0"
+version = "0.1.0"
 dependencies = [
  "assert_cmd",
  "clap 3.1.6",
@@ -367,7 +367,7 @@ dependencies = [
 
 [[package]]
 name = "core"
-version = "0.4.0"
+version = "0.1.0"
 dependencies = [
  "ctrlc",
  "duct",
@@ -1695,7 +1695,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pprofrs"
-version = "0.1.0-beta"
+version = "0.1.0"
 dependencies = [
  "pprof",
  "pyroscope",
@@ -1704,7 +1704,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pyspy"
-version = "0.1.0-beta"
+version = "0.1.0"
 dependencies = [
  "py-spy",
  "pyroscope",
@@ -1713,7 +1713,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_rbspy"
-version = "0.1.0-beta"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
@@ -2606,7 +2606,7 @@ dependencies = [
 
 [[package]]
 name = "utils"
-version = "0.4.0"
+version = "0.1.0"
 dependencies = [
  "clap 3.1.6",
  "color-backtrace",
