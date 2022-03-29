@@ -19,7 +19,6 @@ You may be looking for:
 ## Table of Contents
 - [Quick Start](#quick-start)
 - [Limitations](#limitations)
-- [pyroscope-cli](#pyroscope-cli)
 - [Getting Help](#getting-help)
 - [License](#license)
 
@@ -65,8 +64,6 @@ Profile your code:
 - **Tagging**: Adding or removing tags is not possible within threads. In general, the [Pyroscope Agent](https://docs.rs/pyroscope/latest/pyroscope/pyroscope/struct.PyroscopeAgent.html) is not Sync; and as a result a reference cannot be shared between threads. A multi-threaded program could be profiled but the agent is not thread-aware and a particular thread cannot be tagged.
 - **Timer**: epoll (for Linux) and kqueue (for macOS) are required for a more precise timer.
 - **Shutdown**: The Pyroscope Agent might take some time (usually less than 10 seconds) to shutdown properly and drop its threads.
-
-### Pyroscope CLI
 
 ### Getting help
 
