@@ -5,15 +5,16 @@ use std::{
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
-    time::Duration,
 };
 
 use crate::{
-    backends::{pprof::Pprof, Backend},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
+    utils::get_time_range,
 };
+
+use crate::backend::{Backend, VoidBackend};
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -31,13 +32,10 @@ pub struct PyroscopeConfig {
     pub application_name: String,
     /// Tags
     pub tags: HashMap<String, String>,
-    /// Sample rate used in Hz
-    pub sample_rate: i32,
-    // TODO
-    // log_level
-    // auth_token
-    // upstream_request_timeout = 10s
-    // no_logging
+    /// Sample Rate
+    pub sample_rate: u32,
+    /// Spy Name
+    pub spy_name: String,
 }
 
 impl PyroscopeConfig {
@@ -49,29 +47,27 @@ impl PyroscopeConfig {
     /// ```
     pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
-            url: url.as_ref().to_owned(),
-            application_name: application_name.as_ref().to_owned(),
-            tags: HashMap::new(),
-            sample_rate: 100i32,
+            url: url.as_ref().to_owned(), // Pyroscope Server URL
+            application_name: application_name.as_ref().to_owned(), // Application Name
+            tags: HashMap::new(),         // Empty tags
+            sample_rate: 100u32,          // Default sample rate
+            spy_name: String::from("undefined"), // Spy Name should be set by the backend
         }
     }
 
-    /// Set the Sample rate
-    /// # Example
-    /// ```ignore
-    /// let mut config = PyroscopeConfig::new("http://localhost:8080", "my-app");
-    /// config.set_sample_rate(10)
-    /// ?;
-    /// ```
-    pub fn sample_rate(self, sample_rate: i32) -> Self {
+    /// Set the Sample rate.
+    pub fn sample_rate(self, sample_rate: u32) -> Self {
         Self {
             sample_rate,
             ..self
         }
     }
 
-    /// # use pyroscope::PyroscopeError;
-    /// # fn main() -> Result<(), PyroscopeError> {
+    /// Set the Spy Name.
+    pub fn spy_name(self, spy_name: String) -> Self {
+        Self { spy_name, ..self }
+    }
+
     /// Set the tags
     /// # Example
     /// ```ignore
@@ -79,7 +75,7 @@ impl PyroscopeConfig {
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
     ///    .tags(vec![("env", "dev")])?;
     /// ```
-    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+    pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
         let tags_hashmap: HashMap<String, String> = tags
             .to_owned()
@@ -123,7 +119,7 @@ impl PyroscopeAgentBuilder {
     /// ```
     pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
-            backend: Arc::new(Mutex::new(Pprof::default())), // Default Backend
+            backend: Arc::new(Mutex::new(VoidBackend::default())), // Default Backend
             config: PyroscopeConfig::new(url, application_name),
         }
     }
@@ -146,32 +142,14 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// Set the Sample rate. Default value is 100.
-    /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .sample_rate(113)
-    /// .build()
-    /// ?;
-    /// ```
-    pub fn sample_rate(self, sample_rate: i32) -> Self {
-        Self {
-            config: self.config.sample_rate(sample_rate),
-            ..self
-        }
-    }
-
-    /// # use pyroscope::PyroscopeError;
-    /// # fn main() -> Result<(), PyroscopeError> {
     /// Set tags. Default is empty.
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .tags(vec![("env", "dev")])
-    /// .build()
-    /// ?;
+    /// .build()?;
     /// ```
-    pub fn tags(self, tags: &[(&str, &str)]) -> Self {
+    pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
             config: self.config.tags(tags),
             ..self
@@ -180,9 +158,15 @@ impl PyroscopeAgentBuilder {
 
     /// Initialize the backend, timer and return a PyroscopeAgent object.
     pub fn build(self) -> Result<PyroscopeAgent> {
-        // Initiliaze the backend
+        // Get the backend
         let backend = Arc::clone(&self.backend);
-        backend.lock()?.initialize(self.config.sample_rate)?;
+        // Initialize the backend
+        backend.lock()?.initialize()?;
+
+        // Set Spy Name and Sample Rate from the Backend
+        let config = self.config.sample_rate(backend.lock()?.sample_rate()?);
+        let config = config.spy_name(backend.lock()?.spy_name()?);
+
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start Timer
@@ -196,7 +180,7 @@ impl PyroscopeAgentBuilder {
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
             backend: self.backend,
-            config: self.config,
+            config,
             timer,
             session_manager,
             tx: None,
@@ -258,7 +242,6 @@ impl Drop for PyroscopeAgent {
         }
 
         // Wait for main thread to finish
-
         if let Some(handle) = self.handle.take() {
             match handle.join() {
                 Ok(_) => log::trace!(target: LOG_TAG, "Dropped main thread"),
@@ -359,8 +342,8 @@ impl PyroscopeAgent {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
-            // best effort
-            let _ = sender.send(TimerSignal::NextSnapshot(0));
+            // Send last session
+            let _ = sender.send(TimerSignal::NextSnapshot(get_time_range(0)?.until));
             sender.send(TimerSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")

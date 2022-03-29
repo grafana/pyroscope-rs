@@ -2,11 +2,20 @@
 //!
 //! # Quick Start
 //!
-//! ## Configure Pyroscope Agent
+//! ## Add Pyroscope and pprof-rs backend to Cargo.toml
+//!
+//! ```toml
+//! [dependencies]
+//! pyroscope = "0.4"
+//! pyroscope-pprofrs = "0.1"
+//! ```
+//!
+//! ## Configure a Pyroscope Agent
 //!
 //! ```ignore
 //! let mut agent =
 //!     PyroscopeAgent::builder("http://localhost:4040", "myapp")
+//!     .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
 //!     .build()?;
 //! ```
 //!
@@ -29,7 +38,7 @@ pub use crate::pyroscope::PyroscopeAgent;
 pub use error::{PyroscopeError, Result};
 
 // Public modules
-pub mod backends;
+pub mod backend;
 pub mod error;
 pub mod pyroscope;
 pub mod session;

@@ -4,23 +4,70 @@ on: [push, pull_request]
 
 jobs:
   test:
-    name: ${{ matrix.os }}
+    name: ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        package: [lib, cli, pprofrs, pyspy, rbspy]
+        os: [ubuntu-latest, macos-latest]
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
+        exclude:
+        - os: ubuntu-latest
+          target: x86_64-apple-darwin
+        - os: ubuntu-latest
+          target: aarch64-apple-darwin
+        - os: macos-latest
+          target: x86_64-unknown-linux-gnu
+        - os: macos-latest
+          target: aarch64-unknown-linux-gnu
     steps:
+      - name: install libunwind (for pprof)
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: sudo apt install libunwind8-dev
+
       - name: Checkout sources
         uses: actions/checkout@v2
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1
         with:
-          profile: minimal
+          profile: default
           toolchain: stable
+          target: ${{ matrix.target }}
           override: true
 
       - name: Run cargo test
         uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'lib'
         with:
+          command: test
+          args: --all
+
+      - name: Cargo build for pyrosocpe-cli 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'cli'
+        with:
+          args: --all --manifest-path pyroscope_cli/Cargo.toml
+          command: test
+
+      - name: Cargo build for pprof-rs
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'pprofrs'
+        with:
+          args: --all --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
+          command: test
+
+      - name: Cargo build for pyspy 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'pyspy'
+        with:
+          args: --all --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
+          command: test
+
+      - name: Cargo build for rbspy 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'rbspy'
+        with:
+          args: --all --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
           command: test

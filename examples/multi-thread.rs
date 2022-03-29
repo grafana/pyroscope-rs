@@ -1,37 +1,55 @@
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
+use pyroscope_pprofrs::{Pprof, PprofConfig};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    thread,
+};
 
-use std::thread;
+fn hash_rounds1(n: u64) -> u64 {
+    let hash_str = "Some string to hash";
+    let mut default_hasher = DefaultHasher::new();
 
-fn fibonacci1(n: u64) -> u64 {
-    match n {
-        0 | 1 => 1,
-        n => fibonacci1(n - 1) + fibonacci1(n - 2),
+    for _ in 0..n {
+        for _ in 0..1000 {
+            default_hasher.write(hash_str.as_bytes());
+        }
+        hash_str.hash(&mut default_hasher);
     }
+
+    n
 }
 
-fn fibonacci2(n: u64) -> u64 {
-    match n {
-        0 | 1 => 1,
-        n => fibonacci2(n - 1) + fibonacci2(n - 2),
+fn hash_rounds2(n: u64) -> u64 {
+    let hash_str = "Some string to hash";
+    let mut default_hasher = DefaultHasher::new();
+
+    for _ in 0..n {
+        for _ in 0..1000 {
+            default_hasher.write(hash_str.as_bytes());
+        }
+        hash_str.hash(&mut default_hasher);
     }
+
+    n
 }
 
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
-        .sample_rate(100)
+        .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
         .build()?;
 
     // Start Agent
     agent.start()?;
 
     let handle_1 = thread::spawn(|| {
-        fibonacci1(45);
+        hash_rounds1(300_000);
     });
 
     let handle_2 = thread::spawn(|| {
-        fibonacci2(45);
+        hash_rounds2(500_000);
     });
 
     // Wait for the threads to complete

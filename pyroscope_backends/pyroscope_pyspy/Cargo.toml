@@ -1,0 +1,51 @@
+[package]
+name = "pyroscope_pyspy"
+description = """
+pyspy backend for Pyroscope Profiler.
+"""
+keywords = ["pyroscope", "profiler", "pyspy"]
+authors = ["Abid Omar <contact@omarabid.com>"]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+homepage = "https://pyroscope.io"
+documentation  = "https://docs.rs/pyroscope"
+repository = "https://github.com/pyroscope-io/pyroscope-rs"
+readme = "README.md"
+
+[dependencies]
+py-spy = "0.3.11"
+pyroscope = { version = "0.4.0", path = "../../" }
+thiserror ="1.0"
+
+[profile.dev]
+opt-level=0
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 4
+
+[profile.release]
+opt-level=3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+
+[profile.test]
+opt-level = 1
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 4
+
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1

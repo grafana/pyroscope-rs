@@ -1,8 +1,8 @@
 use super::TimerSignal;
-use crate::utils::check_err;
-use crate::utils::get_time_range;
-use crate::PyroscopeError;
-use crate::Result;
+use crate::{
+    utils::{check_err, get_time_range},
+    PyroscopeError, Result,
+};
 
 use std::sync::{
     mpsc::{channel, Sender},
@@ -23,7 +23,7 @@ use std::{
 
 #[derive(Debug)]
 pub struct Timer {
-    /// A vector to store listeners (mpsc::Sender)
+    /// A vector to store listeners
     txs: Arc<Mutex<Vec<Sender<TimerSignal>>>>,
 
     /// Thread handle

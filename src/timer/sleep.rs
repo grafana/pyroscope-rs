@@ -1,13 +1,14 @@
 use super::TimerSignal;
-use crate::utils::get_time_range;
-use crate::Result;
+use crate::{utils::get_time_range, Result};
 
-use std::sync::{
-    mpsc::{channel, Receiver, Sender},
-    Arc, Mutex,
+use std::{
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Arc, Mutex,
+    },
+    thread::{self, JoinHandle},
+    time::Duration,
 };
-use std::time::Duration;
-use std::{thread, thread::JoinHandle};
 
 /// A thread that sends a notification every 10th second
 ///
