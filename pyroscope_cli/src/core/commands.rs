@@ -96,6 +96,7 @@ pub fn connect() -> Result<()> {
 //
 fn set_application_name() -> Result<()> {
     let pre_app_name: String = AppConfig::get::<String>("application_name").unwrap_or_else(|_| {
+        log::info!("we recommend specifying application name via -application-name flag or env variable PYROSCOPE_APPLICATION_NAME");
         names::Generator::default()
             .next()
             .unwrap_or_else(|| "unassigned.app".to_string())
@@ -109,6 +110,12 @@ fn set_application_name() -> Result<()> {
 
     // add pre to pre_app_name
     let app_name = format!("{}.{}", pre, pre_app_name);
+
+    log::info!(
+        "Profiling with {} profiler with application name: {}",
+        pre,
+        app_name
+    );
 
     AppConfig::set("application_name", app_name.as_str())?;
 
