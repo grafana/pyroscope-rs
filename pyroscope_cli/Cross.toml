@@ -1,0 +1,5 @@
+[target.x86_64-unknown-linux-musl]
+image = "omarabid/pyroscope-cli:x86_64-unknown-linux-musl"
+
+[target.arm-unknown-linux-gnueabihf]
+image = "omarabid/pyroscope-cli:arm-unknown-linux-gnueabihf"
