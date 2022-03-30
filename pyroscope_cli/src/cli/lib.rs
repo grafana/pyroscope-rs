@@ -31,7 +31,7 @@ pub struct Cli {
     command: Commands,
 }
 
-/// Clap Derive for pyroscope-cli commands 
+/// Clap Derive for pyroscope-cli commands
 #[derive(Subcommand, Debug)]
 enum Commands {
     #[clap(
@@ -75,14 +75,6 @@ enum Commands {
         )]
         log_level: Option<LogLevel>,
         #[clap(
-            name = "no_logging",
-            long = "no-logging",
-            value_name = "NO_LOGGING",
-            help = "disable logging from pyroscope",
-            takes_value = false
-        )]
-        no_logging: bool,
-        #[clap(
             name = "pid",
             long = "pid",
             value_name = "PID",
@@ -91,21 +83,13 @@ enum Commands {
         )]
         pid: i32,
         #[clap(
-            name = "rbspy_blocking",
-            long = "rbspy-blocking",
-            value_name = "RBSPY_BLOCKING",
-            help = "enable blocking mode for rbspy",
+            name = "blocking",
+            long = "blocking",
+            value_name = "BLOCKING",
+            help = "enable blocking mode. [supported by: rbspy, pyspy]",
             takes_value = false
         )]
-        rbspy_blocking: bool,
-        #[clap(
-            name = "pyspy_blocking",
-            long = "pyspy-blocking",
-            value_name = "PYSPY_BLOCKING",
-            help = "enable blocking mode for pyspy",
-            takes_value = false
-        )]
-        pyspy_blocking: bool,
+        blocking: bool,
         #[clap(
             name = "pyspy_idle",
             long = "pyspy-idle",
@@ -202,29 +186,13 @@ enum Commands {
         )]
         log_level: Option<LogLevel>,
         #[clap(
-            name = "no_logging",
-            long = "no-logging",
-            value_name = "NO_LOGGING",
-            help = "disable logging from pyroscope",
+            name = "blocking",
+            long = "blocking",
+            value_name = "BLOCKING",
+            help = "enable blocking mode. [supported by: rbspy, pyspy]",
             takes_value = false
         )]
-        no_logging: bool,
-        #[clap(
-            name = "rbspy_blocking",
-            long = "rbspy-blocking",
-            value_name = "RBSPY_BLOCKING",
-            help = "enable blocking mode for rbspy",
-            takes_value = false
-        )]
-        rbspy_blocking: bool,
-        #[clap(
-            name = "pyspy_blocking",
-            long = "pyspy-blocking",
-            value_name = "PYSPY_BLOCKING",
-            help = "enable blocking mode for pyspy",
-            takes_value = false
-        )]
-        pyspy_blocking: bool,
+        blocking: bool,
         #[clap(
             name = "pyspy_idle",
             long = "pyspy-idle",

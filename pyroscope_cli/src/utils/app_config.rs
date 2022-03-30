@@ -23,8 +23,7 @@ pub struct AppConfig {
     pub no_logging: Option<bool>,
     pub log_level: LogLevel,
     pub no_root_drop: Option<bool>,
-    pub rbspy_blocking: Option<bool>,
-    pub pyspy_blocking: Option<bool>,
+    pub blocking: Option<bool>,
     pub pyspy_idle: Option<bool>,
     pub pyspy_gil: Option<bool>,
     pub pyspy_native: Option<bool>,
@@ -75,11 +74,8 @@ impl AppConfig {
                     AppConfig::set("log_level", log_level)?;
                 }
             }
-            if sub_connect.is_present("no_logging") {
-                AppConfig::set("no_logging", "true")?;
-            }
-            if sub_connect.is_present("pyspy_blocking") {
-                AppConfig::set("pyspy_blocking", "true")?;
+            if sub_connect.is_present("blocking") {
+                AppConfig::set("blocking", "true")?;
             }
             if sub_connect.is_present("pyspy_idle") {
                 AppConfig::set("pyspy_idle", "true")?;
@@ -89,9 +85,6 @@ impl AppConfig {
             }
             if sub_connect.is_present("pyspy_native") {
                 AppConfig::set("pyspy_native", "true")?;
-            }
-            if sub_connect.is_present("rbspy_blocking") {
-                AppConfig::set("rbspy_blocking", "true")?;
             }
             if sub_connect.is_present("sample_rate") {
                 if let Some(sample_rate) = sub_connect.value_of("sample_rate") {
@@ -161,11 +154,8 @@ impl AppConfig {
                     AppConfig::set("log_level", log_level)?;
                 }
             }
-            if sub_exec.is_present("no_logging") {
-                AppConfig::set("no_logging", "true")?;
-            }
-            if sub_exec.is_present("pyspy_blocking") {
-                AppConfig::set("pyspy_blocking", "true")?;
+            if sub_exec.is_present("blocking") {
+                AppConfig::set("blocking", "true")?;
             }
             if sub_exec.is_present("pyspy_idle") {
                 AppConfig::set("pyspy_idle", "true")?;
@@ -175,9 +165,6 @@ impl AppConfig {
             }
             if sub_exec.is_present("pyspy_native") {
                 AppConfig::set("pyspy_native", "true")?;
-            }
-            if sub_exec.is_present("rbspy_blocking") {
-                AppConfig::set("rbspy_blocking", "true")?;
             }
             if sub_exec.is_present("sample_rate") {
                 if let Some(sample_rate) = sub_exec.value_of("sample_rate") {
