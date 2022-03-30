@@ -31,6 +31,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: install libunwind (for pprof)
+        run: sudo apt install libunwind8-dev
       - name: publish pyroscope crate
         continue-on-error: true
         run: |
