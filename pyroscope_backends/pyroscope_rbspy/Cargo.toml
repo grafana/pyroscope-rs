@@ -18,7 +18,7 @@ rbspy = "0.11.1"
 pyroscope = { version = "0.4", path = "../../" }
 thiserror ="1.0"
 log = "0.4"
-anyhow = "*"
+anyhow = "1.0.56"
 
 [profile.dev]
 opt-level=0
