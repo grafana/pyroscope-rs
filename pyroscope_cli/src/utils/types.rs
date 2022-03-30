@@ -1,7 +1,7 @@
 use clap::ArgEnum;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Result;
+use super::error::Result;
 use std::str::FromStr;
 
 // TODO: These definitions should be placed in the core workspace.
@@ -23,7 +23,7 @@ pub enum LogLevel {
 }
 
 impl FromStr for LogLevel {
-    type Err = crate::error::Error;
+    type Err = super::error::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
@@ -50,7 +50,7 @@ pub enum OutputFormat {
 }
 
 impl FromStr for OutputFormat {
-    type Err = crate::error::Error;
+    type Err = super::error::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
@@ -72,7 +72,7 @@ pub enum Spy {
 }
 
 impl FromStr for Spy {
-    type Err = crate::error::Error;
+    type Err = super::error::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s {

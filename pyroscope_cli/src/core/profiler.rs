@@ -2,18 +2,20 @@ use pyroscope::PyroscopeAgent;
 use pyroscope_pyspy::{Pyspy, PyspyConfig};
 use pyroscope_rbspy::{Rbspy, RbspyConfig};
 
-use utils::{
+use crate::utils::{
     app_config::AppConfig,
     error::{Error, Result},
     types::Spy,
 };
 
+/// Wrapper for the `pyroscope` library and the `pyroscope_pyspy` and `pyroscope_rbspy` backends.
 #[derive(Debug, Default)]
 pub struct Profiler {
     agent: Option<PyroscopeAgent>,
 }
 
 impl Profiler {
+    /// Creates a new instance of the `Profiler` and initializes the `pyroscope` library and one of the backends.
     pub fn init(&mut self) -> Result<()> {
         let pid: i32 = AppConfig::get::<i32>("pid")?;
 
@@ -26,6 +28,7 @@ impl Profiler {
         // TODO: CLI should probably unify this into a single argument
         let rbspy_blocking: bool = AppConfig::get::<bool>("rbspy_blocking")?;
         let pyspy_blocking: bool = AppConfig::get::<bool>("pyspy_blocking")?;
+
         let pyspy_idle: bool = AppConfig::get::<bool>("pyspy_idle")?;
         let pyspy_gil: bool = AppConfig::get::<bool>("pyspy_gil")?;
         let pyspy_native: bool = AppConfig::get::<bool>("pyspy_native")?;
@@ -70,6 +73,7 @@ impl Profiler {
         Ok(())
     }
 
+    /// Stops the `pyroscope` library agent and the backend.
     pub fn stop(self) -> Result<()> {
         if let Some(mut agent) = self.agent {
             agent.stop()?;
@@ -79,6 +83,7 @@ impl Profiler {
     }
 }
 
+/// Converts a string of semi-colon-separated tags into an array of tags.
 fn tags_to_array(tags: &str) -> Result<Vec<(&str, &str)>> {
     // check if tags is empty
     if tags.is_empty() {
@@ -99,4 +104,32 @@ fn tags_to_array(tags: &str) -> Result<Vec<(&str, &str)>> {
     }
 
     Ok(tags_array)
+}
+
+#[cfg(test)]
+mod test_tags_to_array {
+    use super::*;
+
+    #[test]
+    fn test_tags_to_array_empty() {
+        let tags = tags_to_array("").unwrap();
+        assert_eq!(tags.len(), 0);
+    }
+
+    #[test]
+    fn test_tags_to_array_one_tag() {
+        let tags = tags_to_array("key=value").unwrap();
+
+        assert_eq!(tags.len(), 1);
+
+        assert_eq!(tags, vec![("key", "value")]);
+    }
+
+    #[test]
+    fn test_tags_to_array_multiple_tags() {
+        let tags = tags_to_array("key1=value1;key2=value2").unwrap();
+        assert_eq!(tags.len(), 2);
+
+        assert_eq!(tags, vec![("key1", "value1"), ("key2", "value2")]);
+    }
 }

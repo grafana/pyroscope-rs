@@ -1,17 +1,25 @@
 use duct::cmd;
 use std::os::unix::process::CommandExt;
 
-use utils::error::{Error, Result};
+use crate::utils::error::{Error, Result};
 
+/// Run a command with the given arguments, uid and gid.
+/// This is a wrapper around the duct crate.
 pub struct Executor<'a> {
+    /// The command to run
     cmd: &'a str,
+    /// The arguments to pass to the command
     args: &'a str,
+    /// The user id to run the command as
     uid: Option<u32>,
+    /// The group id to run the command as
     gid: Option<u32>,
+    /// duct thread handle
     handle: Option<duct::Handle>,
 }
 
 impl<'a> Executor<'a> {
+    /// Create a new `Executor` with the given command, arguments, uid and gid.
     pub fn new(cmd: &'a str, args: &'a str, uid: Option<u32>, gid: Option<u32>) -> Executor<'a> {
         Executor {
             cmd,
@@ -22,6 +30,7 @@ impl<'a> Executor<'a> {
         }
     }
 
+    /// Run the command.
     pub fn run(self) -> Result<Self> {
         let handle = cmd!(self.cmd, self.args)
             .before_spawn(move |cmd| {
@@ -45,6 +54,7 @@ impl<'a> Executor<'a> {
         })
     }
 
+    /// Stop the command.
     pub fn stop(self) -> Result<()> {
         self.handle
             .ok_or_else(|| Error::new("handle is not initialized"))?
@@ -53,6 +63,7 @@ impl<'a> Executor<'a> {
         Ok(())
     }
 
+    /// Get the process id of the executed command.
     pub fn get_pid(&self) -> Result<i32> {
         let pid = self
             .handle

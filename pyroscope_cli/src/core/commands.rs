@@ -1,8 +1,8 @@
 use ctrlc;
 use std::sync::mpsc::channel;
 
-use crate::{executor::Executor, profiler::Profiler};
-use utils::{
+use super::{executor::Executor, profiler::Profiler};
+use crate::utils::{
     app_config::AppConfig,
     error::{Error, Result},
     types::Spy,

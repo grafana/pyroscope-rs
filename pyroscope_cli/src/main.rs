@@ -4,9 +4,13 @@ use human_panic::setup_panic;
 #[cfg(debug_assertions)]
 extern crate better_panic;
 
-use utils::{app_config::AppConfig, error::Result};
+pub mod cli;
+pub mod core;
+pub mod utils;
 
-/// The main entry point of the application.
+use crate::utils::{app_config::AppConfig, error::Result};
+
+/// The main entry for the application.
 fn main() -> Result<()> {
     // Human Panic. Only enabled when *not* debugging.
     #[cfg(not(debug_assertions))]
@@ -32,7 +36,7 @@ fn main() -> Result<()> {
     AppConfig::init(Some(config_contents))?;
 
     // Match Commands
-    cli::cli_match()?;
+    crate::cli::lib::cli_match()?;
 
     Ok(())
 }

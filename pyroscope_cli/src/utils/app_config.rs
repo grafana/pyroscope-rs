@@ -5,7 +5,7 @@ use std::sync::RwLock;
 use std::{ops::Deref, path::Path};
 
 use super::error::Result;
-use crate::types::{LogLevel, Spy};
+use super::types::{LogLevel, Spy};
 
 // CONFIG static variable. It's actually an AppConfig
 // inside an RwLock.

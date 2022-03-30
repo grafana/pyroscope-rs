@@ -5,8 +5,8 @@ use clap_complete::{
 };
 use std::path::PathBuf;
 
-use core::commands;
-use utils::{
+use crate::core::commands;
+use crate::utils::{
     app_config::AppConfig,
     error::Result,
     types::{LogLevel, Spy},
@@ -31,7 +31,7 @@ pub struct Cli {
     command: Commands,
 }
 
-/// Pyroscope CLI Commands
+/// Clap Derive for pyroscope-cli commands 
 #[derive(Subcommand, Debug)]
 enum Commands {
     #[clap(
@@ -43,6 +43,7 @@ enum Commands {
         #[clap(subcommand)]
         shell: CompletionShell,
     },
+
     #[clap(
         name = "connect",
         about = "Connect to an existing process and profile it",
@@ -160,6 +161,7 @@ enum Commands {
         )]
         tag: Option<String>,
     },
+
     #[clap(
         name = "exec",
         about = "Start a new process from arguments and profile it",
@@ -320,6 +322,7 @@ pub fn cli_match() -> Result<()> {
     AppConfig::merge_args(app)?;
 
     let mut app = Cli::command();
+
     // Execute the subcommand
     match &cli.command {
         Commands::Exec { .. } => {
