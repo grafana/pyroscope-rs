@@ -1,8 +1,7 @@
 detect_subprocesses = false 
 log_level = "info"
 no_logging = false
-rbspy_blocking = false
-pyspy_blocking = false
+blocking = false
 pyspy_idle = false
 pyspy_gil = false
 pyspy_native = false
