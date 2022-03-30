@@ -36,3 +36,48 @@ jobs:
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_cli/Cargo.toml
+  publish-pprofrs:
+    name: Backend: pprofrs
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.release.tag_name, 'pprofrs-')"
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: publish pprofrs crate
+        continue-on-error: true
+        run: |
+          cargo login ${{ secrets.CARGO_TOKEN }}
+          cargo publish --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
+  publish-pyroscope:
+    name: Backend: rbspy
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.release.tag_name, 'rbspy-')"
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: publish rbspy crate
+        continue-on-error: true
+        run: |
+          cargo login ${{ secrets.CARGO_TOKEN }}
+          cargo publish --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
+  publish-pyroscope:
+    name: Backend: pyspy 
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.release.tag_name, 'pyspy-')"
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: publish pyspy crate
+        continue-on-error: true
+        run: |
+          cargo login ${{ secrets.CARGO_TOKEN }}
+          cargo publish --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
