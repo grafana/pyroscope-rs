@@ -51,7 +51,7 @@ jobs:
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
-  publish-pyroscope:
+  publish-rbspy:
     name: "Backend: rbspy"
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'rbspy-')"
@@ -66,7 +66,7 @@ jobs:
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
-  publish-pyroscope:
+  publish-pyspy:
     name: "Backend: pyspy" 
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'pyspy-')"
