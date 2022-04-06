@@ -23,6 +23,7 @@ members = [
 exclude = [
     "pyroscope_backends",
     "pyroscope_cli",
+    "pyroscope_ffi",
 ]
 
 [[example]]
