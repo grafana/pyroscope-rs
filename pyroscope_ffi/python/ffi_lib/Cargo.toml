@@ -1,0 +1,12 @@
+[package]
+name = "ffi_lib"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "pyroscope_ffi"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyroscope = { path = "../../../" }
+pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy" }

@@ -1,0 +1,22 @@
+*.pyc
+*.swp
+
+# Packages
+*.egg
+!/tests/**/*.egg
+*/*.egg-info
+/dist/*
+/wheelhouse/*
+pip-wheel-metadata
+build
+_build
+.cache
+*.so
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+.pytest_cache
