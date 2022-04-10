@@ -3,7 +3,7 @@ require 'ffi'
 module Rust
   extend FFI::Library
   ffi_lib '/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_ffi/ruby/ffi_lib/target/release/libpyroscope_ffi.' + FFI::Platform::LIBSUFFIX
-  attach_function :initialize_agent, [], :bool
+  attach_function :initialize_agent, [:string, :string, :int, :bool], :bool
 end
 
 module Pyroscope
@@ -26,7 +26,7 @@ module Pyroscope
       # Pass config to the block
       yield @config
 
-      Rust.initialize_agent()
+      Rust.initialize_agent(@config.application_name, @config.server_address, @config.sample_rate, @config.detect_subprocesses)
 
       puts @config
     end

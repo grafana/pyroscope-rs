@@ -5,6 +5,7 @@
 *.egg
 !/tests/**/*.egg
 */*.egg-info
+*.egg-info
 /dist/*
 /wheelhouse/*
 pip-wheel-metadata
@@ -20,3 +21,8 @@ pip-log.txt
 .coverage
 .tox
 .pytest_cache
+
+# Rust Library
+ffi_lib/target/
+ffi_lib/Cargo.lock
+**/*.rs.bk

@@ -8,5 +8,6 @@ name = "pyroscope_ffi"
 crate-type = ["cdylib"]
 
 [dependencies]
+rutie = "0.8.3"
 pyroscope = { path = "../../../" }
 pyroscope_rbspy = { path = "../../../pyroscope_backends/pyroscope_rbspy" }
