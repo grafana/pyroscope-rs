@@ -75,6 +75,7 @@ pub fn initialize_agent(
 
     true
 }
+
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub fn drop_agent() -> bool {
@@ -86,6 +87,11 @@ pub fn drop_agent() -> bool {
 // Convert a string of tags to a Vec<(&str, &str)>
 fn string_to_tags(tags: &'static str) -> Vec<(&'static str, &'static str)> {
     let mut tags_vec = Vec::new();
+    // check if string is empty
+    if tags.is_empty() {
+        return tags_vec;
+    }
+
     for tag in tags.split(',') {
         let mut tag_split = tag.split('=');
         let key = tag_split.next().unwrap();
