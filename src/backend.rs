@@ -33,7 +33,7 @@ pub trait Backend: Send + Debug {
     /// Stop the backend.
     fn stop(&mut self) -> Result<()>;
     /// Generate profiling report
-    fn report(&mut self) -> Result<Vec<u8>>;
+    fn report(&mut self) -> Result<Vec<Report>>;
 }
 
 /// Backend Holder
@@ -115,7 +115,7 @@ impl<T: Backend> BackendImpl<T> {
     }
 
     /// Generate profiling report
-    pub fn report(&mut self) -> Result<Vec<u8>> {
+    pub fn report(&mut self) -> Result<Vec<Report>> {
         // Check if Backend is Running
         if self.state != State::Running {
             return Err(PyroscopeError::new("Backend is not Running"));
@@ -126,7 +126,7 @@ impl<T: Backend> BackendImpl<T> {
 }
 
 /// Report
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Report {
     pub data: HashMap<StackTrace, usize>,
 }
@@ -472,10 +472,10 @@ impl Backend for VoidBackend {
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<u8>> {
-        let report = self.buffer.to_string().into_bytes();
+    fn report(&mut self) -> Result<Vec<Report>> {
+        let reports = vec![self.buffer.clone()];
 
-        Ok(report)
+        Ok(reports)
     }
 }
 
