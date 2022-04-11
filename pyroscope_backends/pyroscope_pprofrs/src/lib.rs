@@ -119,7 +119,7 @@ impl Backend for Pprof<'_> {
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<u8>> {
+    fn report(&mut self) -> Result<Vec<Report>> {
         // Check if Backend is Running
         if self.state != State::Running {
             return Err(PyroscopeError::new("Pprof Backend is not Running"));
@@ -133,15 +133,14 @@ impl Backend for Pprof<'_> {
             .build()
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report))
-            .to_string()
-            .into_bytes();
+        let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report));
+        let reports = vec![new_report];
 
         // Restart Profiler
         self.stop()?;
         self.start()?;
 
-        Ok(new_report)
+        Ok(reports)
     }
 }
 

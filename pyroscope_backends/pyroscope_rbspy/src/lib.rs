@@ -3,9 +3,12 @@ use pyroscope::{
     error::{PyroscopeError, Result},
 };
 use rbspy::sampler::Sampler;
-use std::sync::{
-    mpsc::{channel, sync_channel, Receiver, Sender, SyncSender},
-    Arc, Mutex,
+use std::{
+    ops::Deref,
+    sync::{
+        mpsc::{channel, sync_channel, Receiver, Sender, SyncSender},
+        Arc, Mutex,
+    },
 };
 
 /// Rbspy Configuration
@@ -208,7 +211,7 @@ impl Backend for Rbspy {
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<u8>> {
+    fn report(&mut self) -> Result<Vec<Report>> {
         // Check if Backend is Running
         if self.state != State::Running {
             return Err(PyroscopeError::new("Rbspy: Backend is not Running"));
@@ -246,12 +249,13 @@ impl Backend for Rbspy {
             buffer.lock()?.record(own_trace)?;
         }
 
-        let v8: Vec<u8> = buffer.lock()?.to_string().into_bytes();
+        let v8: Report = buffer.lock()?.deref().to_owned();
+        let reports = vec![v8];
 
         buffer.lock()?.clear();
 
         // Return the writer's buffer
-        Ok(v8)
+        Ok(reports)
     }
 }
 

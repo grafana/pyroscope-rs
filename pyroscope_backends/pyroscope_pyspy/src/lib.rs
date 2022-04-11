@@ -4,6 +4,7 @@ use pyroscope::{
     error::{PyroscopeError, Result},
 };
 use std::{
+    ops::Deref,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -279,7 +280,7 @@ impl Backend for Pyspy {
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<u8>> {
+    fn report(&mut self) -> Result<Vec<Report>> {
         // Check if Backend is Running
         if self.state != State::Running {
             return Err(PyroscopeError::new("Pyspy: Backend is not Running"));
@@ -289,12 +290,13 @@ impl Backend for Pyspy {
         let buffer = self.buffer.clone();
 
         // convert the buffer report into a byte vector
-        let report: Vec<u8> = buffer.lock()?.to_string().into_bytes();
+        let report: Report = buffer.lock()?.deref().to_owned();
+        let reports = vec![report];
 
         // Clear the buffer
         buffer.lock()?.clear();
 
-        Ok(report)
+        Ok(reports)
     }
 }
 
