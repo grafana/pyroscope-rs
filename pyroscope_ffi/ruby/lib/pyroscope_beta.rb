@@ -4,6 +4,7 @@ module Rust
   extend FFI::Library
   ffi_lib '/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_ffi/ruby/ffi_lib/target/release/libpyroscope_ffi.' + FFI::Platform::LIBSUFFIX
   attach_function :initialize_agent, [:string, :string, :int, :bool, :string], :bool
+  attach_function :drop_agent, [], :bool
 end
 
 module Pyroscope

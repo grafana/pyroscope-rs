@@ -1,7 +1,36 @@
 use pyroscope::PyroscopeAgent;
 use pyroscope_rbspy::{Rbspy, RbspyConfig};
 use std::ffi::CStr;
+use std::mem::MaybeUninit;
 use std::os::raw::c_char;
+use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
+use std::sync::{Mutex, Once};
+
+pub enum Signal {
+    Kill,
+    Tag,
+}
+
+pub struct SignalPass {
+    inner_sender: Mutex<SyncSender<Signal>>,
+    inner_receiver: Mutex<Receiver<Signal>>,
+}
+
+fn signalpass() -> &'static SignalPass {
+    static mut SIGNAL_PASS: MaybeUninit<SignalPass> = MaybeUninit::uninit();
+    static ONCE: Once = Once::new();
+
+    ONCE.call_once(|| unsafe {
+        let (sender, receiver) = sync_channel(1);
+        let singleton = SignalPass {
+            inner_sender: Mutex::new(sender),
+            inner_receiver: Mutex::new(receiver),
+        };
+        SIGNAL_PASS = MaybeUninit::new(singleton);
+    });
+
+    unsafe { SIGNAL_PASS.assume_init_ref() }
+}
 
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
@@ -31,8 +60,16 @@ pub fn initialize_agent(
 
         agent.start().unwrap();
 
-        loop {
-            std::thread::sleep(std::time::Duration::from_millis(1000000000));
+        let s = signalpass();
+
+        while let Ok(signal) = s.inner_receiver.lock().unwrap().recv() {
+            match signal {
+                Signal::Kill => {
+                    agent.stop().unwrap();
+                    break;
+                }
+                Signal::Tag => {}
+            }
         }
     });
 
@@ -41,6 +78,8 @@ pub fn initialize_agent(
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub fn drop_agent() -> bool {
+    let s = signalpass();
+    s.inner_sender.lock().unwrap().send(Signal::Kill).unwrap();
     true
 }
 
