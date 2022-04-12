@@ -1,6 +1,6 @@
 use pyroscope::PyroscopeAgent;
-use pyroscope_pyspy::{Pyspy, PyspyConfig};
-use pyroscope_rbspy::{Rbspy, RbspyConfig};
+use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
+use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
 use crate::utils::{
     app_config::AppConfig,
@@ -45,7 +45,7 @@ impl Profiler {
                     .include_idle(pyspy_idle)
                     .gil_only(pyspy_gil)
                     .native(pyspy_native);
-                let backend = Pyspy::new(config);
+                let backend = pyspy_backend(config);
                 PyroscopeAgent::builder(server_address, app_name)
                     .backend(backend)
                     .tags(tags)
@@ -56,7 +56,7 @@ impl Profiler {
                     .sample_rate(sample_rate)
                     .lock_process(blocking)
                     .with_subprocesses(detect_subprocesses);
-                let backend = Rbspy::new(config);
+                let backend = rbspy_backend(config);
                 PyroscopeAgent::builder(server_address, app_name)
                     .backend(backend)
                     .tags(tags)
