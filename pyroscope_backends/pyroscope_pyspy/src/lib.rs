@@ -1,6 +1,6 @@
 use py_spy::{config::Config, sampler::Sampler};
 use pyroscope::{
-    backend::{Backend, Report, StackFrame, StackTrace, State},
+    backend::{Backend, BackendImpl, BackendUninitialized, Report, StackFrame, StackTrace},
     error::{PyroscopeError, Result},
 };
 use std::{
@@ -11,6 +11,10 @@ use std::{
     },
     thread::JoinHandle,
 };
+
+pub fn pyspy_backend(config: PyspyConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Arc::new(Mutex::new(Pyspy::new(config))))
+}
 
 /// Pyspy Configuration
 #[derive(Debug, Clone)]
@@ -112,8 +116,6 @@ impl PyspyConfig {
 /// Pyspy Backend
 #[derive(Default)]
 pub struct Pyspy {
-    /// Pyspy State
-    state: State,
     /// Profiling buffer
     buffer: Arc<Mutex<Report>>,
     /// Pyspy Configuration
@@ -136,7 +138,6 @@ impl Pyspy {
     /// Create a new Pyspy Backend
     pub fn new(config: PyspyConfig) -> Self {
         Pyspy {
-            state: State::Uninitialized,
             buffer: Arc::new(Mutex::new(Report::default())),
             config,
             sampler_config: None,
@@ -147,10 +148,6 @@ impl Pyspy {
 }
 
 impl Backend for Pyspy {
-    fn get_state(&self) -> State {
-        self.state
-    }
-
     fn spy_name(&self) -> Result<String> {
         Ok("pyspy".to_string())
     }
@@ -160,11 +157,6 @@ impl Backend for Pyspy {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        // Check if Backend is Uninitialized
-        if self.state != State::Uninitialized {
-            return Err(PyroscopeError::new("Pyspy: Backend is already Initialized"));
-        }
-
         // Check if a process ID is set
         if self.config.pid.is_none() {
             return Err(PyroscopeError::new("Pyspy: No Process ID Specified"));
@@ -190,18 +182,9 @@ impl Backend for Pyspy {
             ..Config::default()
         });
 
-        // Set State to Ready
-        self.state = State::Ready;
-
-        Ok(())
-    }
-
-    fn start(&mut self) -> Result<()> {
-        // Check if Backend is Ready
-        if self.state != State::Ready {
-            return Err(PyroscopeError::new("Pyspy: Backend is not Ready"));
-        }
-
+        //
+        //
+        //
         // set sampler state to running
         let running = Arc::clone(&self.running);
         running.store(true, Ordering::Relaxed);
@@ -252,40 +235,24 @@ impl Backend for Pyspy {
             Ok(())
         }));
 
-        // Set State to Running
-        self.state = State::Running;
-
         Ok(())
     }
 
-    fn stop(&mut self) -> Result<()> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pyspy: Backend is not Running"));
-        }
-
+    fn shutdown(self) -> Result<()> {
         // set running to false
-        self.running.store(false, Ordering::Relaxed);
+        //self.running.store(false, Ordering::Relaxed);
 
         // wait for sampler thread to finish
         self.sampler_thread
-            .take()
+            //.take()
             .ok_or_else(|| PyroscopeError::new("Pyspy: Failed to unwrap Sampler Thread"))?
             .join()
             .unwrap_or_else(|_| Err(PyroscopeError::new("Pyspy: Failed to join sampler thread")))?;
-
-        // Set State to Running
-        self.state = State::Ready;
 
         Ok(())
     }
 
     fn report(&mut self) -> Result<Vec<Report>> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pyspy: Backend is not Running"));
-        }
-
         // create a new buffer reference
         let buffer = self.buffer.clone();
 

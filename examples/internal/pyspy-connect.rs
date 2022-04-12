@@ -3,7 +3,7 @@ extern crate pyroscope;
 use std::env;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_pyspy::{Pyspy, PyspyConfig};
+use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 
 fn main() -> Result<()> {
     // Force rustc to display the log messages in the console.
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
         .native(false);
 
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "pyspy.basic")
-        .backend(Pyspy::new(config))
+        .backend(pyspy_backend(config))
         .build()?;
 
     // Show start time
