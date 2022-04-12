@@ -20,7 +20,7 @@ fn main() -> Result<()> {
     let report = backend.report()?;
 
     // Print report
-    println!("{}", std::str::from_utf8(&report).unwrap());
+    dbg!(report);
 
     // Stop profiling
     backend.stop()?;

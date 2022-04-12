@@ -285,7 +285,7 @@ mod tests {
                 Ok(())
             }
 
-            fn report(&mut self) -> Result<Vec<u8>> {
+            fn report(&mut self) -> Result<Vec<Report>> {
                 Ok(vec![])
             }
         }
