@@ -8,13 +8,14 @@ use std::{
 };
 
 use crate::{
+    backend::{void_backend, BackendReady, BackendState, BackendUninitialized, VoidConfig},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
     utils::get_time_range,
 };
 
-use crate::backend::{Backend, VoidBackend};
+use crate::backend::{Backend, BackendImpl, VoidBackend};
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -104,7 +105,7 @@ impl PyroscopeConfig {
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
-    backend: Arc<Mutex<dyn Backend>>,
+    backend: BackendImpl<BackendUninitialized>,
     /// Configuration Object
     config: PyroscopeConfig,
 }
@@ -119,7 +120,7 @@ impl PyroscopeAgentBuilder {
     /// ```
     pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
-            backend: Arc::new(Mutex::new(VoidBackend::default())), // Default Backend
+            backend: void_backend(VoidConfig::default()), // Default Backend
             config: PyroscopeConfig::new(url, application_name),
         }
     }
@@ -132,14 +133,8 @@ impl PyroscopeAgentBuilder {
     /// .build()
     /// ?;
     /// ```
-    pub fn backend<T>(self, backend: T) -> Self
-    where
-        T: 'static + Backend,
-    {
-        Self {
-            backend: Arc::new(Mutex::new(backend)),
-            ..self
-        }
+    pub fn backend(self, backend: BackendImpl<BackendUninitialized>) -> Self {
+        Self { backend, ..self }
     }
 
     /// Set tags. Default is empty.
@@ -159,13 +154,14 @@ impl PyroscopeAgentBuilder {
     /// Initialize the backend, timer and return a PyroscopeAgent object.
     pub fn build(self) -> Result<PyroscopeAgent> {
         // Get the backend
-        let backend = Arc::clone(&self.backend);
-        // Initialize the backend
-        backend.lock()?.initialize()?;
+        //let backend = Arc::clone(&self.backend);
 
         // Set Spy Name and Sample Rate from the Backend
-        let config = self.config.sample_rate(backend.lock()?.sample_rate()?);
-        let config = config.spy_name(backend.lock()?.spy_name()?);
+        let config = self.config.sample_rate(self.backend.sample_rate()?);
+        let config = config.spy_name(self.backend.spy_name()?);
+
+        // Initialize the backend
+        let backend_ready = self.backend.initialize()?;
 
         log::trace!(target: LOG_TAG, "Backend initialized");
 
@@ -179,7 +175,7 @@ impl PyroscopeAgentBuilder {
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
-            backend: self.backend,
+            backend: backend_ready,
             config,
             timer,
             session_manager,
@@ -200,7 +196,7 @@ pub struct PyroscopeAgent {
     running: Arc<(Mutex<bool>, Condvar)>,
 
     /// Profiler backend
-    pub backend: Arc<Mutex<dyn Backend>>,
+    pub backend: BackendImpl<BackendReady>,
     /// Configuration Object
     pub config: PyroscopeConfig,
 }
@@ -275,9 +271,8 @@ impl PyroscopeAgent {
         log::debug!(target: LOG_TAG, "Starting");
 
         // Create a clone of Backend
-        let backend = Arc::clone(&self.backend);
+        let backend = Arc::clone(&self.backend.backend);
         // Call start()
-        backend.lock()?.start()?;
 
         // set running to true
         let pair = Arc::clone(&self.running);
@@ -355,9 +350,7 @@ impl PyroscopeAgent {
         let _guard = cvar.wait_while(lock.lock()?, |running| *running)?;
 
         // Create a clone of Backend
-        let backend = Arc::clone(&self.backend);
-        // Call stop()
-        backend.lock()?.stop()?;
+        //let backend = Arc::clone(&self.backend);
 
         Ok(())
     }

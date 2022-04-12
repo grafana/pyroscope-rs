@@ -1,5 +1,9 @@
-use super::error::{PyroscopeError, Result};
-use std::{collections::HashMap, fmt::Debug};
+use super::error::Result;
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
 
 /// Backend State
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -20,108 +24,68 @@ impl Default for State {
 
 /// Backend Trait
 pub trait Backend: Send + Debug {
-    /// Get the backend state.
-    fn get_state(&self) -> State;
     /// Backend Spy Name
     fn spy_name(&self) -> Result<String>;
     /// Get backend configuration.
     fn sample_rate(&self) -> Result<u32>;
     /// Initialize the backend.
     fn initialize(&mut self) -> Result<()>;
-    /// Start the backend.
-    fn start(&mut self) -> Result<()>;
-    /// Stop the backend.
-    fn stop(&mut self) -> Result<()>;
+    /// Drop the backend.
+    fn shutdown(self) -> Result<()>;
     /// Generate profiling report
     fn report(&mut self) -> Result<Vec<Report>>;
 }
 
-/// Backend Holder
-///
-/// This is an experimental holder for the backend Trait. It's goal is to garantuee State
-/// Transitions and avoid State transition implementations in the backend.
-pub struct BackendImpl<T: Backend> {
-    state: State,
-    pub backend: T,
+#[derive(Debug)]
+pub struct BackendUninitialized;
+#[derive(Debug)]
+pub struct BackendReady;
+
+pub trait BackendState {}
+impl BackendState for BackendUninitialized {}
+impl BackendState for BackendReady {}
+
+#[derive(Debug)]
+pub struct BackendImpl<S: BackendState + ?Sized> {
+    pub backend: Arc<Mutex<dyn Backend>>,
+    _state: std::marker::PhantomData<S>,
 }
 
-impl<T: Backend> BackendImpl<T> {
-    /// Create a new backend factory.
-    pub fn new(backend: T) -> Self {
-        Self {
-            state: State::Uninitialized,
-            backend,
-        }
-    }
-
-    /// Get the backend state.
-    pub fn get_state(&self) -> State {
-        self.state
-    }
-
-    /// Return the spyname of the backend.
+impl<S: BackendState> BackendImpl<S> {
     pub fn spy_name(&self) -> Result<String> {
-        self.backend.spy_name()
+        self.backend.lock()?.spy_name()
     }
-
-    /// Return the sample rate of the backend.
     pub fn sample_rate(&self) -> Result<u32> {
-        self.backend.sample_rate()
+        self.backend.lock()?.sample_rate()
+    }
+}
+
+impl BackendImpl<BackendUninitialized> {
+    pub fn new(backend: Arc<Mutex<dyn Backend>>) -> Self {
+        Self {
+            backend,
+            _state: std::marker::PhantomData,
+        }
     }
 
-    /// Initialize the backend.
-    pub fn initialize(&mut self) -> Result<()> {
-        // Check if Backend is Uninitialized
-        if self.state != State::Uninitialized {
-            return Err(PyroscopeError::new("Backend is already Initialized"));
-        }
+    pub fn initialize(self) -> Result<BackendImpl<BackendReady>> {
+        let backend = self.backend.clone();
+        backend.lock()?.initialize()?;
 
-        self.backend.initialize()?;
-
-        // Set State to Ready
-        self.state = State::Ready;
-
+        Ok(BackendImpl {
+            backend,
+            _state: std::marker::PhantomData,
+        })
+    }
+}
+impl BackendImpl<BackendReady> {
+    pub fn shutdown(self) -> Result<()> {
+        //let backend = self.backend.clone();
+        //backend.lock()?.shutdown()?;
         Ok(())
     }
-
-    /// Start the backend.
-    pub fn start(&mut self) -> Result<()> {
-        // Check if Backend is Ready
-        if self.state != State::Ready {
-            return Err(PyroscopeError::new("Backend is not Ready"));
-        }
-
-        self.backend.start()?;
-
-        // Set State to Running
-        self.state = State::Running;
-
-        Ok(())
-    }
-
-    /// Stop the backend.
-    pub fn stop(&mut self) -> Result<()> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Backend is not Running"));
-        }
-
-        self.backend.stop()?;
-
-        // Set State to Ready
-        self.state = State::Ready;
-
-        Ok(())
-    }
-
-    /// Generate profiling report
     pub fn report(&mut self) -> Result<Vec<Report>> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Backend is not Running"));
-        }
-
-        self.backend.report()
+        self.backend.lock()?.report()
     }
 }
 
@@ -427,7 +391,6 @@ impl VoidConfig {
 /// Empty Backend implementation for Testing purposes
 #[derive(Debug, Default)]
 pub struct VoidBackend {
-    state: State,
     config: VoidConfig,
     buffer: Report,
 }
@@ -442,10 +405,6 @@ impl VoidBackend {
 }
 
 impl Backend for VoidBackend {
-    fn get_state(&self) -> State {
-        self.state
-    }
-
     fn spy_name(&self) -> Result<String> {
         Ok("void".to_string())
     }
@@ -464,11 +423,7 @@ impl Backend for VoidBackend {
         Ok(())
     }
 
-    fn start(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    fn stop(&mut self) -> Result<()> {
+    fn shutdown(self) -> Result<()> {
         Ok(())
     }
 
@@ -479,8 +434,8 @@ impl Backend for VoidBackend {
     }
 }
 
-pub fn void_backend(config: VoidConfig) -> BackendImpl<VoidBackend> {
-    BackendImpl::new(VoidBackend::new(config))
+pub fn void_backend(config: VoidConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Arc::new(Mutex::new(VoidBackend::new(config))))
 }
 
 /// Generate a dummy stack trace
