@@ -8,22 +8,16 @@ fn main() -> Result<()> {
     let backend_config = VoidConfig::new().sample_rate(100);
 
     // Create backend
-    let mut backend = void_backend(backend_config);
+    let backend = void_backend(backend_config);
 
     // Initialize backend
-    backend.initialize()?;
-
-    // Start profiling
-    backend.start()?;
+    let mut ready_backend = backend.initialize()?;
 
     // Collect profile data
-    let report = backend.report()?;
+    let report = ready_backend.report()?;
 
     // Print report
     dbg!(report);
-
-    // Stop profiling
-    backend.stop()?;
 
     Ok(())
 }

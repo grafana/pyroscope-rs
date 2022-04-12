@@ -5,23 +5,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-/// Backend State
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum State {
-    /// Backend is uninitialized.
-    Uninitialized,
-    /// Backend is ready to be used.
-    Ready,
-    /// Backend is running.
-    Running,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        State::Uninitialized
-    }
-}
-
 /// Backend Trait
 pub trait Backend: Send + Debug {
     /// Backend Spy Name
@@ -218,54 +201,6 @@ impl std::fmt::Display for StackTrace {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_backend_impl() {
-        // Create mock TestBackend
-        #[derive(Debug)]
-        struct TestBackend;
-        impl Backend for TestBackend {
-            fn get_state(&self) -> State {
-                State::Uninitialized
-            }
-
-            fn spy_name(&self) -> Result<String> {
-                Ok("TestBackend".to_string())
-            }
-
-            fn sample_rate(&self) -> Result<u32> {
-                Ok(100)
-            }
-
-            fn initialize(&mut self) -> Result<()> {
-                Ok(())
-            }
-
-            fn start(&mut self) -> Result<()> {
-                Ok(())
-            }
-
-            fn stop(&mut self) -> Result<()> {
-                Ok(())
-            }
-
-            fn report(&mut self) -> Result<Vec<Report>> {
-                Ok(vec![])
-            }
-        }
-
-        // Create BackendImpl
-        let mut backend = BackendImpl::new(TestBackend);
-
-        // Test State Transitions
-        assert_eq!(backend.get_state(), State::Uninitialized);
-        assert!(backend.initialize().is_ok());
-        assert_eq!(backend.get_state(), State::Ready);
-        assert!(backend.start().is_ok());
-        assert_eq!(backend.get_state(), State::Running);
-        assert!(backend.stop().is_ok());
-        assert_eq!(backend.get_state(), State::Ready);
-    }
 
     #[test]
     fn test_stack_frame_display() {

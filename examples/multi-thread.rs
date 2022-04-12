@@ -1,7 +1,7 @@
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_pprofrs::{Pprof, PprofConfig};
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
@@ -38,7 +38,7 @@ fn hash_rounds2(n: u64) -> u64 {
 
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
-        .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
+        .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .build()?;
 
     // Start Agent

@@ -21,9 +21,6 @@ fn main() -> Result<()> {
     // Initialize backend
     backend.initialize()?;
 
-    // Start profiling
-    backend.start()?;
-
     // Do some work
     fibonacci(45);
 
@@ -34,7 +31,7 @@ fn main() -> Result<()> {
     dbg!(report);
 
     // Stop profiling
-    backend.stop()?;
+    backend.shutdown()?;
 
     Ok(())
 }

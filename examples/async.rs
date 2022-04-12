@@ -1,7 +1,7 @@
 extern crate pyroscope;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_pprofrs::{Pprof, PprofConfig};
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::hash::{Hash, Hasher};
 
 fn hash_rounds1(n: u64) -> u64 {
@@ -35,7 +35,7 @@ fn hash_rounds2(n: u64) -> u64 {
 #[tokio::main]
 async fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.async")
-        .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
+        .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
         .build()?;
 
