@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+    backend::Report,
     pyroscope::PyroscopeConfig,
     utils::{get_time_range, merge_tags_with_app_name},
     Result,
@@ -84,7 +85,7 @@ impl SessionManager {
 #[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
-    pub report: Vec<u8>,
+    pub reports: Vec<Report>,
     // unix time
     pub from: u64,
     // unix time
@@ -100,7 +101,7 @@ impl Session {
     /// let until = 154065120;
     /// let session = Session::new(until, config, report)?;
     /// ```
-    pub fn new(until: u64, config: PyroscopeConfig, report: Vec<u8>) -> Result<Self> {
+    pub fn new(until: u64, config: PyroscopeConfig, reports: Vec<Report>) -> Result<Self> {
         log::info!(target: LOG_TAG, "Creating Session");
 
         // get_time_range should be used with "from". We balance this by reducing
@@ -109,7 +110,7 @@ impl Session {
 
         Ok(Self {
             config,
-            report,
+            reports,
             from: time_range.from - 10,
             until: time_range.until - 10,
         })
@@ -125,6 +126,20 @@ impl Session {
     /// session.send()?;
     /// ```
     pub fn send(self) -> Result<()> {
+        // Check if the report is empty
+        if self.reports.is_empty() {
+            return Ok(());
+        }
+
+        // Loop through the reports and process them
+        for report in &self.reports {
+            self.process(&report)?;
+        }
+
+        Ok(())
+    }
+
+    fn process(&self, report: &Report) -> Result<()> {
         log::info!(
             target: LOG_TAG,
             "Sending Session: {} - {}",
@@ -132,8 +147,11 @@ impl Session {
             self.until
         );
 
+        // Convert a report to a byte array
+        let report_u8 = report.to_string().into_bytes();
+
         // Check if the report is empty
-        if self.report.is_empty() {
+        if report_u8.is_empty() {
             return Ok(());
         }
 
@@ -149,6 +167,8 @@ impl Session {
             self.config.tags.clone(),
         )?;
 
+        // Merge application name with Report Tags
+
         // Create and send the request
         client
             .post(format!("{}/ingest", url))
@@ -161,10 +181,9 @@ impl Session {
                 ("sampleRate", &format!("{}", self.config.sample_rate)),
                 ("spyName", self.config.spy_name.as_str()),
             ])
-            .body(self.report)
+            .body(report_u8)
             .timeout(Duration::from_secs(10))
             .send()?;
-
         Ok(())
     }
 }

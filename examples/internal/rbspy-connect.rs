@@ -3,7 +3,7 @@ extern crate pyroscope;
 use std::env;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_rbspy::{Rbspy, RbspyConfig};
+use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
 fn main() -> Result<()> {
     // Force rustc to display the log messages in the console.
@@ -22,7 +22,7 @@ fn main() -> Result<()> {
         .with_subprocesses(true);
 
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
-        .backend(Rbspy::new(config))
+        .backend(rbspy_backend(config))
         .build()?;
 
     // Show start time

@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     // Create a new agent.
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "void.backend")
-        .backend(backend.backend)
+        .backend(backend)
         .build()?;
 
     // Start Agent

@@ -1,9 +1,17 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
-    backend::{Backend, Report, StackFrame, StackTrace, State},
+    backend::{Backend, BackendImpl, BackendUninitialized, Report, StackFrame, StackTrace},
     error::{PyroscopeError, Result},
 };
-use std::{collections::HashMap, ffi::OsStr};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    sync::{Arc, Mutex},
+};
+
+pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Arc::new(Mutex::new(Pprof::new(config))))
+}
 
 /// Pprof Configuration
 #[derive(Debug)]
@@ -33,7 +41,6 @@ pub struct Pprof<'a> {
     config: PprofConfig,
     inner_builder: Option<ProfilerGuardBuilder>,
     guard: Option<ProfilerGuard<'a>>,
-    state: State,
 }
 
 impl std::fmt::Debug for Pprof<'_> {
@@ -48,16 +55,11 @@ impl<'a> Pprof<'a> {
             config,
             inner_builder: None,
             guard: None,
-            state: State::default(),
         }
     }
 }
 
 impl Backend for Pprof<'_> {
-    fn get_state(&self) -> State {
-        self.state
-    }
-
     fn spy_name(&self) -> std::result::Result<String, PyroscopeError> {
         Ok("pyroscope-rs".to_string())
     }
@@ -66,28 +68,17 @@ impl Backend for Pprof<'_> {
         Ok(self.config.sample_rate)
     }
 
-    fn initialize(&mut self) -> Result<()> {
-        // Check if Backend is Uninitialized
-        if self.state != State::Uninitialized {
-            return Err(PyroscopeError::new("Pprof Backend is already Initialized"));
-        }
-
-        // Construct a ProfilerGuardBuilder
-        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
-        // Set inner_builder field
-        self.inner_builder = Some(profiler);
-
-        // Set State to Ready
-        self.state = State::Ready;
+    fn shutdown(self) -> Result<()> {
+        //drop(self.guard.take());
 
         Ok(())
     }
 
-    fn start(&mut self) -> Result<()> {
-        // Check if Backend is Ready
-        if self.state != State::Ready {
-            return Err(PyroscopeError::new("Pprof Backend is not Ready"));
-        }
+    fn initialize(&mut self) -> Result<()> {
+        // Construct a ProfilerGuardBuilder
+        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
+        // Set inner_builder field
+        self.inner_builder = Some(profiler);
 
         self.guard = Some(
             self.inner_builder
@@ -98,33 +89,10 @@ impl Backend for Pprof<'_> {
                 .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?,
         );
 
-        // Set State to Running
-        self.state = State::Running;
-
         Ok(())
     }
 
-    fn stop(&mut self) -> Result<()> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pprof Backend is not Running"));
-        }
-
-        // drop the guard
-        drop(self.guard.take());
-
-        // Set State to Ready
-        self.state = State::Ready;
-
-        Ok(())
-    }
-
-    fn report(&mut self) -> Result<Vec<u8>> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pprof Backend is not Running"));
-        }
-
+    fn report(&mut self) -> Result<Vec<Report>> {
         let report = self
             .guard
             .as_ref()
@@ -133,15 +101,29 @@ impl Backend for Pprof<'_> {
             .build()
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report))
-            .to_string()
-            .into_bytes();
+        let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report));
+        let reports = vec![new_report];
 
-        // Restart Profiler
-        self.stop()?;
-        self.start()?;
+        self.reset()?;
 
-        Ok(new_report)
+        Ok(reports)
+    }
+}
+
+impl Pprof<'_> {
+    pub fn reset(&mut self) -> Result<()> {
+        drop(self.guard.take());
+
+        self.guard = Some(
+            self.inner_builder
+                .as_ref()
+                .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
+                .clone()
+                .build()
+                .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?,
+        );
+
+        Ok(())
     }
 }
 
