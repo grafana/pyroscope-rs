@@ -1,5 +1,5 @@
 use pyroscope::PyroscopeAgent;
-use pyroscope_rbspy::{Rbspy, RbspyConfig};
+use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 use std::ffi::CStr;
 use std::mem::MaybeUninit;
 use std::os::raw::c_char;
@@ -51,7 +51,7 @@ pub fn initialize_agent(
             .lock_process(false)
             .with_subprocesses(detect_subprocesses);
 
-        let rbspy = Rbspy::new(rbspy_config);
+        let rbspy = rbspy_backend(rbspy_config);
         let mut agent = PyroscopeAgent::builder(server_address, application_name)
             .backend(rbspy)
             .tags(tags)

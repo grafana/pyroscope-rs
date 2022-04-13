@@ -1,5 +1,5 @@
 use pyroscope::PyroscopeAgent;
-use pyroscope_pyspy::{Pyspy, PyspyConfig};
+use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use std::ffi::CStr;
 use std::mem::MaybeUninit;
 use std::os::raw::c_char;
@@ -51,7 +51,7 @@ pub fn initialize_agent(
             .lock_process(false)
             .with_subprocesses(detect_subprocesses);
 
-        let pyspy = Pyspy::new(pyspy_config);
+        let pyspy = pyspy_backend(pyspy_config);
         let mut agent = PyroscopeAgent::builder(server_address, application_name)
             .backend(pyspy)
             .tags(tags)
