@@ -9,6 +9,7 @@ use std::{
         mpsc::{channel, sync_channel, Receiver, Sender, SyncSender},
         Arc, Mutex,
     },
+    thread::JoinHandle,
 };
 
 pub fn rbspy_backend(config: RbspyConfig) -> BackendImpl<BackendUninitialized> {
@@ -157,8 +158,8 @@ impl Backend for Rbspy {
         ) = sync_channel(queue_size);
 
         // Set Error and Stack Receivers
-        self.stack_receiver = Some(stack_receiver);
-        self.error_receiver = Some(error_receiver);
+        //self.stack_receiver = Some(stack_receiver);
+        //self.error_receiver = Some(error_receiver);
 
         // Get the Sampler
         let sampler = self
@@ -170,6 +171,36 @@ impl Backend for Rbspy {
         sampler
             .start(stack_sender, error_sender)
             .map_err(|e| PyroscopeError::new(&format!("Rbspy: Sampler Error: {}", e)))?;
+
+        // Start own thread
+        //
+        // Get an Arc reference to the Report Buffer
+        let buffer = self.buffer.clone();
+        let a: JoinHandle<Result<()>> = std::thread::spawn(move || {
+            // Send Errors to Log
+            //let errors = error_receiver.iter();
+            //for error in errors {
+            //match error {
+            //Ok(_) => {}
+            //Err(e) => {
+            //log::error!("Rbspy: Error in Sampler: {}", e);
+            //}
+            //}
+            //}
+
+            // Collect the StackTrace from the receiver
+            //let stack_trace = stack_receiver.iter();
+
+            // Iterate over the StackTrace
+            while let Ok(stack_trace) = stack_receiver.recv() {
+                dbg!(&stack_trace);
+                // convert StackTrace
+                let own_trace: StackTrace = Into::<StackTraceWrapper>::into(stack_trace).into();
+                buffer.lock()?.record(own_trace)?;
+            }
+
+            Ok(())
+        });
 
         Ok(())
     }
@@ -187,35 +218,6 @@ impl Backend for Rbspy {
     fn report(&mut self) -> Result<Vec<Report>> {
         // Get an Arc reference to the Report Buffer
         let buffer = self.buffer.clone();
-
-        // Send Errors to Log
-        let errors = self
-            .error_receiver
-            .as_ref()
-            .ok_or_else(|| PyroscopeError::new("Rbspy: error receiver is not set"))?
-            .try_iter();
-        for error in errors {
-            match error {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("Rbspy: Error in Sampler: {}", e);
-                }
-            }
-        }
-
-        // Collect the StackTrace from the receiver
-        let stack_trace = self
-            .stack_receiver
-            .as_ref()
-            .ok_or_else(|| PyroscopeError::new("Rbspy: StackTrace receiver is not set"))?
-            .try_iter();
-
-        // Iterate over the StackTrace
-        for trace in stack_trace {
-            // convert StackTrace
-            let own_trace: StackTrace = Into::<StackTraceWrapper>::into(trace).into();
-            buffer.lock()?.record(own_trace)?;
-        }
 
         let v8: Report = buffer.lock()?.deref().to_owned();
         let reports = vec![v8];
