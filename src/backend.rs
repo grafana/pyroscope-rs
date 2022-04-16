@@ -1,9 +1,50 @@
 use super::error::Result;
 use std::{
-    collections::HashMap,
+    collections::{hash_map::DefaultHasher, HashMap},
     fmt::Debug,
+    hash::{Hash, Hasher},
     sync::{Arc, Mutex},
 };
+
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub struct Tag {
+    key: String,
+    value: String,
+}
+
+impl Tag {
+    pub fn new(key: String, value: String) -> Self {
+        Self { key, value }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub enum Rule {
+    GlobalTag(Tag),
+    ThreadTag(Tag),
+}
+
+#[derive(Debug)]
+pub struct Ruleset {
+    rules: Arc<Mutex<Vec<Rule>>>,
+}
+
+impl Ruleset {
+    pub fn new() -> Self {
+        Self {
+            rules: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+    pub fn add_rule(&self, rule: Rule) {
+        let mut rules = self.rules.lock().unwrap();
+        rules.push(rule);
+    }
+
+    pub fn remove_rule(&self, rule: Rule) {
+        let mut rules = self.rules.lock().unwrap();
+        rules.retain(|r| r != &rule);
+    }
+}
 
 /// Backend Trait
 pub trait Backend: Send + Debug {
@@ -17,6 +58,9 @@ pub trait Backend: Send + Debug {
     fn shutdown(self) -> Result<()>;
     /// Generate profiling report
     fn report(&mut self) -> Result<Vec<Report>>;
+
+    fn add_ruleset(&mut self, ruleset: Rule) -> Result<()>;
+    fn remove_ruleset(&mut self, ruleset: Rule) -> Result<()>;
 }
 
 #[derive(Debug)]
@@ -72,15 +116,93 @@ impl BackendImpl<BackendReady> {
     }
 }
 
+/// Stack buffer
+#[derive(Debug, Default, Clone)]
+pub struct StackBuffer {
+    pub data: HashMap<StackTrace, usize>,
+}
+
+impl StackBuffer {
+    pub fn new(data: HashMap<StackTrace, usize>) -> Self {
+        Self { data }
+    }
+
+    pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
+        *self.data.entry(stack_trace).or_insert(0) += 1;
+
+        Ok(())
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+}
+
+impl From<StackBuffer> for Vec<Report> {
+    fn from(stack_buffer: StackBuffer) -> Self {
+        let ss: HashMap<usize, Report> =
+            stack_buffer
+                .data
+                .iter()
+                .fold(HashMap::new(), |mut acc, (k, v)| {
+                    if let Some(v) = acc.get_mut(&k.metadata.get_id()) {
+                        v.record(k.to_owned());
+                    } else {
+                        let stacktrace = k.to_owned();
+                        let report = Report::new(HashMap::new());
+                        let mut report = report.metadata(stacktrace.metadata.clone());
+                        report.record(stacktrace);
+                        acc.insert(k.metadata.get_id(), report);
+                    }
+                    acc
+                });
+        // convert ss to vector
+        ss.iter().map(|(_, v)| v.clone()).collect()
+    }
+}
+
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+pub struct Metadata {
+    pub tags: Vec<Tag>,
+}
+
+impl Metadata {
+    pub fn add_tag(&mut self, tag: Tag) {
+        self.tags.push(tag);
+    }
+    pub fn get_id(&self) -> usize {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish() as usize
+    }
+}
+
 /// Report
 #[derive(Debug, Default, Clone)]
 pub struct Report {
     pub data: HashMap<StackTrace, usize>,
+    pub metadata: Metadata,
+}
+
+impl Hash for Report {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.metadata.hash(state);
+    }
 }
 
 impl Report {
     pub fn new(data: HashMap<StackTrace, usize>) -> Self {
-        Self { data }
+        Self {
+            data,
+            metadata: Metadata::default(),
+        }
+    }
+
+    pub fn metadata(self, metadata: Metadata) -> Self {
+        Self {
+            data: self.data,
+            metadata,
+        }
     }
 
     pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
@@ -118,6 +240,8 @@ pub struct StackTrace {
     pub thread_name: Option<String>,
     /// Stack Trace
     pub frames: Vec<StackFrame>,
+    /// Metadata
+    pub metadata: Metadata,
 }
 
 impl StackTrace {
@@ -126,11 +250,22 @@ impl StackTrace {
         pid: Option<u32>, thread_id: Option<u64>, thread_name: Option<String>,
         frames: Vec<StackFrame>,
     ) -> Self {
+        let mut metadata = Metadata::default();
+        if let Some(pid) = pid {
+            metadata.add_tag(Tag::new("pid".to_owned(), pid.to_string()));
+        }
+        if let Some(thread_id) = thread_id {
+            metadata.add_tag(Tag::new("thread_id".to_owned(), thread_id.to_string()));
+        }
+        if let Some(thread_name) = thread_name.clone() {
+            metadata.add_tag(Tag::new("thread_name".to_owned(), thread_name));
+        }
         Self {
             pid,
             thread_id,
             thread_name,
             frames,
+            metadata,
         }
     }
 }
@@ -301,6 +436,23 @@ mod tests {
     }
 }
 
+/// Generate a dummy stack trace
+fn generate_stack_trace() -> Result<Vec<StackTrace>> {
+    let frames = vec![StackFrame::new(
+        None,
+        Some("void".to_string()),
+        Some("void.rs".to_string()),
+        None,
+        None,
+        Some(0),
+    )];
+    let stack_trace_1 = StackTrace::new(None, Some(1), None, frames.clone());
+
+    let stack_trace_2 = StackTrace::new(None, Some(2), None, frames);
+
+    Ok(vec![stack_trace_1, stack_trace_2])
+}
+
 #[derive(Debug)]
 pub struct VoidConfig {
     sample_rate: u32,
@@ -327,7 +479,7 @@ impl VoidConfig {
 #[derive(Debug, Default)]
 pub struct VoidBackend {
     config: VoidConfig,
-    buffer: Report,
+    buffer: StackBuffer,
 }
 
 impl VoidBackend {
@@ -350,10 +502,12 @@ impl Backend for VoidBackend {
 
     fn initialize(&mut self) -> Result<()> {
         // Generate a dummy Stack Trace
-        let stack_trace = generate_stack_trace()?;
+        let stack_traces = generate_stack_trace()?;
 
         // Add the StackTrace to the buffer
-        self.buffer.record(stack_trace)?;
+        for stack_trace in stack_traces {
+            self.buffer.record(stack_trace)?;
+        }
 
         Ok(())
     }
@@ -363,9 +517,16 @@ impl Backend for VoidBackend {
     }
 
     fn report(&mut self) -> Result<Vec<Report>> {
-        let reports = vec![self.buffer.clone()];
+        let reports = self.buffer.clone().into();
 
         Ok(reports)
+    }
+
+    fn add_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+        Ok(())
+    }
+    fn remove_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -373,17 +534,73 @@ pub fn void_backend(config: VoidConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Arc::new(Mutex::new(VoidBackend::new(config))))
 }
 
-/// Generate a dummy stack trace
-fn generate_stack_trace() -> Result<StackTrace> {
-    let frames = vec![StackFrame::new(
-        None,
-        Some("void".to_string()),
-        Some("void.rs".to_string()),
-        None,
-        None,
-        Some(0),
-    )];
-    let stack_trace = StackTrace::new(None, None, None, frames);
+#[cfg(test)]
+mod ruleset_tests {
+    use super::*;
 
-    Ok(stack_trace)
+    #[test]
+    fn test_tag_new() {
+        let tag = Tag::new("key".to_string(), "value".to_string());
+
+        assert_eq!(tag.key, "key");
+        assert_eq!(tag.value, "value");
+    }
+
+    #[test]
+    fn test_rule_new() {
+        let rule = Rule::ThreadTag(Tag::new("key".to_string(), "value".to_string()));
+
+        assert_eq!(
+            rule,
+            Rule::ThreadTag(Tag::new("key".to_string(), "value".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_ruleset_new() {
+        let ruleset = Ruleset::new();
+
+        assert_eq!(ruleset.rules.lock().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_ruleset_add_rule() {
+        let ruleset = Ruleset::new();
+
+        let rule = Rule::ThreadTag(Tag::new("key".to_string(), "value".to_string()));
+
+        ruleset.add_rule(rule);
+
+        assert_eq!(ruleset.rules.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_ruleset_remove_rule() {
+        let ruleset = Ruleset::new();
+
+        let add_rule = Rule::ThreadTag(Tag::new("key".to_string(), "value".to_string()));
+
+        ruleset.add_rule(add_rule);
+
+        assert_eq!(ruleset.rules.lock().unwrap().len(), 1);
+
+        let remove_rule = Rule::ThreadTag(Tag::new("key".to_string(), "value".to_string()));
+
+        ruleset.remove_rule(remove_rule);
+
+        assert_eq!(ruleset.rules.lock().unwrap().len(), 0);
+    }
+}
+pub fn merge_tags_with_app_name(application_name: String, tags: Vec<Tag>) -> Result<String> {
+    let mut merged_tags = String::new();
+
+    if tags.is_empty() {
+        return Ok(application_name);
+    }
+
+    for tag in tags {
+        merged_tags.push_str(&format!("{}={},", tag.key, tag.value));
+    }
+
+    Ok(format!("{}{{{}}}", application_name, merged_tags))
 }
