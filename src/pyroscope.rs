@@ -160,6 +160,15 @@ impl PyroscopeAgentBuilder {
         let config = self.config.sample_rate(self.backend.sample_rate()?);
         let config = config.spy_name(self.backend.spy_name()?);
 
+        // Set Global Tags
+        for (k, v) in config.tags.iter() {
+            self.backend
+                .add_rule(crate::backend::Rule::GlobalTag(Tag::new(
+                    k.to_owned(),
+                    v.to_owned(),
+                )));
+        }
+
         // Initialize the backend
         let backend_ready = self.backend.initialize()?;
 

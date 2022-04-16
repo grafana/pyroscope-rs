@@ -21,12 +21,12 @@ impl Tag {
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub enum Rule {
     GlobalTag(Tag),
-    ThreadTag(Tag),
+    ThreadTag(u64, Tag),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Ruleset {
-    rules: Arc<Mutex<Vec<Rule>>>,
+    pub rules: Arc<Mutex<Vec<Rule>>>,
 }
 
 impl Ruleset {
@@ -35,14 +35,33 @@ impl Ruleset {
             rules: Arc::new(Mutex::new(Vec::new())),
         }
     }
-    pub fn add_rule(&self, rule: Rule) {
-        let mut rules = self.rules.lock().unwrap();
-        rules.push(rule);
+    pub fn add_rule(&self, rule: Rule) -> Result<()> {
+        let rules = self.rules.clone();
+        rules.lock()?.push(rule);
+
+        Ok(())
     }
 
-    pub fn remove_rule(&self, rule: Rule) {
-        let mut rules = self.rules.lock().unwrap();
-        rules.retain(|r| r != &rule);
+    pub fn remove_rule(&self, rule: Rule) -> Result<()> {
+        let rules = self.rules.clone();
+        rules.lock()?.retain(|r| r != &rule);
+
+        Ok(())
+    }
+
+    pub fn get_global_tags(&self) -> Result<Vec<Tag>> {
+        let rules = self.rules.clone();
+        let rules = rules.lock()?;
+
+        let mut tags = Vec::new();
+        for rule in rules.iter() {
+            match rule {
+                Rule::GlobalTag(tag) => tags.push(tag.to_owned()),
+                _ => (),
+            }
+        }
+
+        Ok(tags)
     }
 }
 
@@ -59,8 +78,8 @@ pub trait Backend: Send + Debug {
     /// Generate profiling report
     fn report(&mut self) -> Result<Vec<Report>>;
 
-    fn add_ruleset(&mut self, ruleset: Rule) -> Result<()>;
-    fn remove_ruleset(&mut self, ruleset: Rule) -> Result<()>;
+    fn add_rule(&self, ruleset: Rule) -> Result<()>;
+    fn remove_rule(&self, ruleset: Rule) -> Result<()>;
 }
 
 #[derive(Debug)]
@@ -84,6 +103,12 @@ impl<S: BackendState> BackendImpl<S> {
     }
     pub fn sample_rate(&self) -> Result<u32> {
         self.backend.lock()?.sample_rate()
+    }
+    pub fn add_rule(&self, rule: Rule) -> Result<()> {
+        self.backend.lock()?.add_rule(rule)
+    }
+    pub fn remove_rule(&self, rule: Rule) -> Result<()> {
+        self.backend.lock()?.remove_rule(rule)
     }
 }
 
@@ -277,6 +302,43 @@ impl StackTrace {
             thread_id,
             thread_name,
             frames,
+            metadata,
+        }
+    }
+}
+
+impl std::ops::Add<&Ruleset> for StackTrace {
+    type Output = Self;
+    fn add(self, other: &Ruleset) -> Self {
+        // Get global Tags
+        let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or(Vec::new());
+
+        // Get Stack Tags
+        let mut stack_tags: Vec<Tag> = Vec::new();
+        for rule in other.rules.lock().unwrap().iter() {
+            match rule {
+                Rule::ThreadTag(thread_id, tag) => {
+                    if let Some(stack_thread_id) = self.thread_id {
+                        if thread_id == &stack_thread_id {
+                            stack_tags.push(tag.clone());
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Add tags to metadata
+        let mut metadata = self.metadata.clone();
+        for tag in global_tags.iter().chain(stack_tags.iter()) {
+            metadata.add_tag(tag.clone());
+        }
+
+        Self {
+            pid: self.pid,
+            thread_id: self.thread_id,
+            thread_name: self.thread_name,
+            frames: self.frames,
             metadata,
         }
     }
@@ -492,6 +554,7 @@ impl VoidConfig {
 pub struct VoidBackend {
     config: VoidConfig,
     buffer: StackBuffer,
+    ruleset: Ruleset,
 }
 
 impl VoidBackend {
@@ -518,6 +581,7 @@ impl Backend for VoidBackend {
 
         // Add the StackTrace to the buffer
         for stack_trace in stack_traces {
+            let stack_trace = stack_trace + &self.ruleset;
             self.buffer.record(stack_trace)?;
         }
 
@@ -534,10 +598,14 @@ impl Backend for VoidBackend {
         Ok(reports)
     }
 
-    fn add_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+    fn add_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.add_rule(rule)?;
+
         Ok(())
     }
-    fn remove_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+    fn remove_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.remove_rule(rule)?;
+
         Ok(())
     }
 }

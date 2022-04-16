@@ -1,7 +1,7 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
-        Backend, BackendImpl, BackendUninitialized, Report, Rule, StackBuffer, StackFrame,
+        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
         StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -44,6 +44,7 @@ pub struct Pprof<'a> {
     config: PprofConfig,
     inner_builder: Option<ProfilerGuardBuilder>,
     guard: Option<ProfilerGuard<'a>>,
+    ruleset: Ruleset,
 }
 
 impl std::fmt::Debug for Pprof<'_> {
@@ -58,6 +59,7 @@ impl<'a> Pprof<'a> {
             config,
             inner_builder: None,
             guard: None,
+            ruleset: Ruleset::default(),
         }
     }
 }
@@ -114,10 +116,10 @@ impl Backend for Pprof<'_> {
         Ok(reports)
     }
 
-    fn add_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+    fn add_rule(&self, _ruleset: Rule) -> Result<()> {
         Ok(())
     }
-    fn remove_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+    fn remove_rule(&self, _ruleset: Rule) -> Result<()> {
         Ok(())
     }
 }

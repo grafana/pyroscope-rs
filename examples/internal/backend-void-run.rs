@@ -22,6 +22,7 @@ fn main() -> Result<()> {
 
     // Create a new agent.
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "void.backend")
+        .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
         .backend(backend)
         .build()?;
 

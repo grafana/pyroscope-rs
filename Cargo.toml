@@ -61,8 +61,6 @@ tokio = { version = "1.13", features = ["full"] }
 pretty_env_logger = "0.4.0"
 assert_matches = "1"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
-pyroscope_rbspy = { path = "pyroscope_backends/pyroscope_rbspy" }
-pyroscope_pyspy = { path = "pyroscope_backends/pyroscope_pyspy" }
 
 [profile.dev]
 opt-level=0
