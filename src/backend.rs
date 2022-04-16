@@ -133,6 +133,12 @@ impl StackBuffer {
         Ok(())
     }
 
+    pub fn record_with_count(&mut self, stack_trace: StackTrace, count: usize) -> Result<()> {
+        *self.data.entry(stack_trace).or_insert(0) += count;
+
+        Ok(())
+    }
+
     pub fn clear(&mut self) {
         self.data.clear();
     }
@@ -145,8 +151,8 @@ impl From<StackBuffer> for Vec<Report> {
                 .data
                 .iter()
                 .fold(HashMap::new(), |mut acc, (k, v)| {
-                    if let Some(v) = acc.get_mut(&k.metadata.get_id()) {
-                        v.record(k.to_owned());
+                    if let Some(report) = acc.get_mut(&k.metadata.get_id()) {
+                        report.record_with_count(k.to_owned(), v.to_owned());
                     } else {
                         let stacktrace = k.to_owned();
                         let report = Report::new(HashMap::new());
@@ -207,6 +213,12 @@ impl Report {
 
     pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
         *self.data.entry(stack_trace).or_insert(0) += 1;
+
+        Ok(())
+    }
+
+    pub fn record_with_count(&mut self, stack_trace: StackTrace, count: usize) -> Result<()> {
+        *self.data.entry(stack_trace).or_insert(0) += count;
 
         Ok(())
     }

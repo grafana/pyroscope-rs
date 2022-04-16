@@ -1,6 +1,9 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
-    backend::{Backend, BackendImpl, BackendUninitialized, Report, StackFrame, StackTrace},
+    backend::{
+        Backend, BackendImpl, BackendUninitialized, Report, Rule, StackBuffer, StackFrame,
+        StackTrace,
+    },
     error::{PyroscopeError, Result},
 };
 use std::{
@@ -101,12 +104,21 @@ impl Backend for Pprof<'_> {
             .build()
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report));
-        let reports = vec![new_report];
+        let stack_buffer = Into::<StackBuffer>::into(Into::<StackBufferWrapper>::into(report));
+        let reports = stack_buffer.into();
+        //let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report));
+        //let reports = vec![new_report];
 
         self.reset()?;
 
         Ok(reports)
+    }
+
+    fn add_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+        Ok(())
+    }
+    fn remove_ruleset(&mut self, _ruleset: Rule) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -149,6 +161,31 @@ impl From<pprof::Report> for ReportWrapper {
             })
             .collect();
         ReportWrapper(Report::new(report_data))
+    }
+}
+
+struct StackBufferWrapper(StackBuffer);
+
+impl From<StackBufferWrapper> for StackBuffer {
+    fn from(stackbuffer: StackBufferWrapper) -> Self {
+        stackbuffer.0
+    }
+}
+
+impl From<pprof::Report> for StackBufferWrapper {
+    fn from(report: pprof::Report) -> Self {
+        //convert report to stackbuffer
+        let buffer_data: HashMap<StackTrace, usize> = report
+            .data
+            .iter()
+            .map(|(key, value)| {
+                (
+                    Into::<StackTraceWrapper>::into(key.to_owned()).into(),
+                    value.to_owned() as usize,
+                )
+            })
+            .collect();
+        StackBufferWrapper(StackBuffer::new(buffer_data))
     }
 }
 
