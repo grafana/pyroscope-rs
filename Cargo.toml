@@ -62,6 +62,7 @@ pretty_env_logger = "0.4.0"
 assert_matches = "1"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 pyroscope_pyspy = { path = "pyroscope_backends/pyroscope_pyspy" }
+pyroscope_rbspy = { path = "pyroscope_backends/pyroscope_rbspy" }
 
 [profile.dev]
 opt-level=0

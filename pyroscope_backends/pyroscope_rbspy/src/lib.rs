@@ -1,5 +1,8 @@
 use pyroscope::{
-    backend::{Backend, BackendImpl, BackendUninitialized, Report, StackFrame, StackTrace},
+    backend::{
+        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
+        StackTrace,
+    },
     error::{PyroscopeError, Result},
 };
 use rbspy::sampler::Sampler;
@@ -90,7 +93,9 @@ pub struct Rbspy {
     /// Error Receiver
     error_receiver: Option<Receiver<std::result::Result<(), anyhow::Error>>>,
     /// Profiling buffer
-    buffer: Arc<Mutex<Report>>,
+    buffer: Arc<Mutex<StackBuffer>>,
+    /// Rulset
+    ruleset: Ruleset,
 }
 
 impl std::fmt::Debug for Rbspy {
@@ -106,7 +111,8 @@ impl Rbspy {
             stack_receiver: None,
             error_receiver: None,
             config,
-            buffer: Arc::new(Mutex::new(Report::default())),
+            buffer: Arc::new(Mutex::new(StackBuffer::default())),
+            ruleset: Ruleset::default(),
         }
     }
 }
@@ -122,6 +128,18 @@ impl Backend for Rbspy {
 
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
+    }
+
+    fn add_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.add_rule(rule)?;
+
+        Ok(())
+    }
+
+    fn remove_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.remove_rule(rule)?;
+
+        Ok(())
     }
 
     fn initialize(&mut self) -> Result<()> {
@@ -176,6 +194,10 @@ impl Backend for Rbspy {
         //
         // Get an Arc reference to the Report Buffer
         let buffer = self.buffer.clone();
+
+        // ruleset reference
+        let ruleset = self.ruleset.clone();
+
         let a: JoinHandle<Result<()>> = std::thread::spawn(move || {
             // Send Errors to Log
             //let errors = error_receiver.iter();
@@ -193,10 +215,12 @@ impl Backend for Rbspy {
 
             // Iterate over the StackTrace
             while let Ok(stack_trace) = stack_receiver.recv() {
-                dbg!(&stack_trace);
                 // convert StackTrace
                 let own_trace: StackTrace = Into::<StackTraceWrapper>::into(stack_trace).into();
-                buffer.lock()?.record(own_trace)?;
+
+                let stacktrace = own_trace + &ruleset;
+
+                buffer.lock()?.record(stacktrace)?;
             }
 
             Ok(())
@@ -219,8 +243,8 @@ impl Backend for Rbspy {
         // Get an Arc reference to the Report Buffer
         let buffer = self.buffer.clone();
 
-        let v8: Report = buffer.lock()?.deref().to_owned();
-        let reports = vec![v8];
+        let v8: StackBuffer = buffer.lock()?.deref().to_owned();
+        let reports: Vec<Report> = v8.into();
 
         buffer.lock()?.clear();
 
@@ -260,14 +284,14 @@ impl From<StackTraceWrapper> for StackTrace {
 
 impl From<rbspy::StackTrace> for StackTraceWrapper {
     fn from(trace: rbspy::StackTrace) -> Self {
-        StackTraceWrapper(StackTrace {
-            pid: trace.pid.map(|pid| pid as u32),
-            thread_id: trace.thread_id.map(|id| id as u64),
-            thread_name: None,
-            frames: trace
+        StackTraceWrapper(StackTrace::new(
+            trace.pid.map(|pid| pid as u32),
+            trace.thread_id.map(|id| id as u64),
+            None,
+            trace
                 .iter()
                 .map(|frame| Into::<StackFrameWrapper>::into(frame.clone()).into())
                 .collect(),
-        })
+        ))
     }
 }

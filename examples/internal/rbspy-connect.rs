@@ -22,6 +22,7 @@ fn main() -> Result<()> {
         .with_subprocesses(true);
 
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
+        .tags([("Host", "Ruby")].to_vec())
         .backend(rbspy_backend(config))
         .build()?;
 
