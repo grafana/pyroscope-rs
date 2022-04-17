@@ -412,7 +412,6 @@ impl PyroscopeAgent {
 
     pub fn add_t_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
-        dbg!(&rule);
         self.backend.add_rule(rule)?;
 
         Ok(())

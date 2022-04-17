@@ -173,43 +173,6 @@ impl StackTrace {
     }
 }
 
-impl std::ops::Add<&Ruleset> for StackTrace {
-    type Output = Self;
-    fn add(self, other: &Ruleset) -> Self {
-        // Get global Tags
-        let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or(Vec::new());
-
-        // Get Stack Tags
-        let mut stack_tags: Vec<Tag> = Vec::new();
-        for rule in other.rules.lock().unwrap().iter() {
-            match rule {
-                Rule::ThreadTag(thread_id, tag) => {
-                    if let Some(stack_thread_id) = self.thread_id {
-                        if thread_id == &stack_thread_id {
-                            stack_tags.push(tag.clone());
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        // Add tags to metadata
-        let mut metadata = self.metadata.clone();
-        for tag in global_tags.iter().chain(stack_tags.iter()) {
-            metadata.add_tag(tag.clone());
-        }
-
-        Self {
-            pid: self.pid,
-            thread_id: self.thread_id,
-            thread_name: self.thread_name,
-            frames: self.frames,
-            metadata,
-        }
-    }
-}
-
 /// StackFrame
 /// A representation of a stack frame.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]

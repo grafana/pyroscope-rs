@@ -8,9 +8,9 @@ R = ffi.dlopen("/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_
 
 ffi.cdef("bool initialize_agent(char[], char[], int, bool, char[]);")
 
-ffi.cdef("bool add_tag(long double, char[], char[]);")
+ffi.cdef("bool add_tag(long long, char[], char[]);")
 
-ffi.cdef("bool remove_tag(long double, char[], char[]);")
+ffi.cdef("bool remove_tag(long long, char[], char[]);")
 
 def configure(application_name=None, server_address="http://localhost:4040", sample_rate=100, detect_subprocesses=False, log_level="info", tags=None):
     # Print all arguments
