@@ -130,7 +130,7 @@ pub struct Pyspy {
     /// Atomic flag to stop the sampler
     running: Arc<AtomicBool>,
     /// Ruleset
-    ruleset: Ruleset,
+    ruleset: Arc<Mutex<Ruleset>>,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -148,7 +148,7 @@ impl Pyspy {
             sampler_config: None,
             sampler_thread: None,
             running: Arc::new(AtomicBool::new(false)),
-            ruleset: Ruleset::default(),
+            ruleset: Arc::new(Mutex::new(Ruleset::default())),
         }
     }
 }
@@ -163,13 +163,13 @@ impl Backend for Pyspy {
     }
 
     fn add_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.add_rule(rule)?;
+        self.ruleset.lock()?.add_rule(rule)?;
 
         Ok(())
     }
 
     fn remove_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.remove_rule(rule)?;
+        self.ruleset.lock()?.remove_rule(rule)?;
 
         Ok(())
     }
@@ -248,7 +248,7 @@ impl Backend for Pyspy {
                         Into::<StackTraceWrapper>::into(trace.clone()).into();
 
                     // apply ruleset
-                    let stacktrace = own_trace + &ruleset;
+                    let stacktrace = own_trace + &ruleset.lock()?.clone();
 
                     // Add the trace to the buffer
                     buffer.lock()?.record(stacktrace)?;

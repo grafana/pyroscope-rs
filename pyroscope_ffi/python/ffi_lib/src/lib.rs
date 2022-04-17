@@ -1,3 +1,4 @@
+use pyroscope::backend::Tag;
 use pyroscope::PyroscopeAgent;
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use std::ffi::CStr;
@@ -8,7 +9,7 @@ use std::sync::{Mutex, Once};
 
 pub enum Signal {
     Kill,
-    Tag,
+    Tag(u64, String, String),
 }
 
 pub struct SignalPass {
@@ -68,7 +69,10 @@ pub fn initialize_agent(
                     agent.stop().unwrap();
                     break;
                 }
-                Signal::Tag => {}
+                Signal::Tag(thread_id, key, value) => {
+                    let tag = Tag::new(key, value);
+                    agent.add_t_tag(thread_id, tag).unwrap();
+                }
             }
         }
     });
@@ -81,6 +85,29 @@ pub fn initialize_agent(
 pub fn drop_agent() -> bool {
     let s = signalpass();
     s.inner_sender.lock().unwrap().send(Signal::Kill).unwrap();
+    true
+}
+#[link(name = "pyroscope_ffi", vers = "0.1")]
+#[no_mangle]
+pub fn add_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+    let s = signalpass();
+    //let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
+    //let value = unsafe { CStr::from_ptr(value) }
+    //.to_str()
+    //.unwrap()
+    //.to_owned();
+    s.inner_sender
+        .lock()
+        .unwrap()
+        .send(Signal::Tag(thread_id, "hash".to_string(), "3".to_string()))
+        .unwrap();
+    true
+}
+
+#[link(name = "pyroscope_ffi", vers = "0.1")]
+#[no_mangle]
+pub fn remove_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+    dbg!(thread_id);
     true
 }
 

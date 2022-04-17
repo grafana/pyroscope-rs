@@ -8,7 +8,9 @@ use std::{
 };
 
 use crate::{
-    backend::{void_backend, BackendReady, BackendState, BackendUninitialized, Tag, VoidConfig},
+    backend::{
+        void_backend, BackendReady, BackendState, BackendUninitialized, Rule, Tag, VoidConfig,
+    },
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
@@ -408,11 +410,18 @@ impl PyroscopeAgent {
         Ok(())
     }
 
-    pub fn add_t_tags(&mut self, tags: Vec<Tag>) -> Result<()> {
+    pub fn add_t_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
+        let rule = Rule::ThreadTag(thread_id, tag);
+        dbg!(&rule);
+        self.backend.add_rule(rule)?;
+
         Ok(())
     }
 
-    pub fn remove_t_tags(&mut self, tags: Vec<Tag>) -> Result<()> {
+    pub fn remove_t_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
+        let rule = Rule::ThreadTag(thread_id, tag);
+        self.backend.remove_rule(rule)?;
+
         Ok(())
     }
 

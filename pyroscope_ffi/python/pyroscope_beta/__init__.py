@@ -8,6 +8,10 @@ R = ffi.dlopen("/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_
 
 ffi.cdef("bool initialize_agent(char[], char[], int, bool, char[]);")
 
+ffi.cdef("bool add_tag(long double, char[], char[]);")
+
+ffi.cdef("bool remove_tag(long double, char[], char[]);")
+
 def configure(application_name=None, server_address="http://localhost:4040", sample_rate=100, detect_subprocesses=False, log_level="info", tags=None):
     # Print all arguments
     print("Application name: {}".format(application_name))
@@ -19,6 +23,12 @@ def configure(application_name=None, server_address="http://localhost:4040", sam
     R.initialize_agent(application_name.encode("UTF-8"),
             server_address.encode("UTF-8"), sample_rate, detect_subprocesses,
             tags_to_string(tags).encode("UTF-8"))
+
+def add_tag(thread_id, key, value):
+    R.add_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
+
+def remove_tag(thread_id, key, value):
+    R.remove_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
 
 # Convert a struct of tags to a string
 def tags_to_string(tags):
