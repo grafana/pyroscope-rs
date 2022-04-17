@@ -4,6 +4,8 @@ module Rust
   extend FFI::Library
   ffi_lib '/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_ffi/ruby/ffi_lib/target/release/libpyroscope_ffi.' + FFI::Platform::LIBSUFFIX
   attach_function :initialize_agent, [:string, :string, :int, :bool, :string], :bool
+  attach_function :add_tag, [:uint64, :string, :string], :bool
+  attach_function :remove_tag, [:uint64, :string, :string], :bool
   attach_function :drop_agent, [], :bool
 end
 
@@ -30,6 +32,12 @@ module Pyroscope
       Rust.initialize_agent(@config.application_name, @config.server_address, @config.sample_rate, @config.detect_subprocesses, tags_to_string(@config.tags))
 
       puts @config
+    end
+    def add_tag(thread_id, tag_name, tag_value)
+      Rust.add_tag(thread_id, tag_name, tag_value)
+    end
+    def remove_tag(thread_id, tag_name, tag_value)
+      Rust.remove_tag(thread_id, tag_name, tag_value)
     end
 
     def drop

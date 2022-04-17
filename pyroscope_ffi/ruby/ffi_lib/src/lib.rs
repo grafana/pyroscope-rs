@@ -1,3 +1,4 @@
+use pyroscope::backend::Tag;
 use pyroscope::PyroscopeAgent;
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 use std::ffi::CStr;
@@ -8,7 +9,8 @@ use std::sync::{Mutex, Once};
 
 pub enum Signal {
     Kill,
-    Tag,
+    AddTag(u64, String, String),
+    RemoveTag(u64, String, String),
 }
 
 pub struct SignalPass {
@@ -40,17 +42,25 @@ pub fn initialize_agent(
 ) -> bool {
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()
-        .unwrap();
-    let server_address = unsafe { CStr::from_ptr(server_address) }.to_str().unwrap();
-    let tags_string = unsafe { CStr::from_ptr(tags) }.to_str().unwrap();
-    let tags = string_to_tags(tags_string);
+        .unwrap()
+        .to_string();
+    let server_address = unsafe { CStr::from_ptr(server_address) }
+        .to_str()
+        .unwrap()
+        .to_string();
+    let tags_string = unsafe { CStr::from_ptr(tags) }
+        .to_str()
+        .unwrap()
+        .to_string();
+    let pid = std::process::id();
     std::thread::spawn(move || {
-        let pid = std::process::id();
         let rbspy_config = RbspyConfig::new(pid.try_into().unwrap())
             .sample_rate(sample_rate)
             .lock_process(false)
             .with_subprocesses(detect_subprocesses);
 
+        let tags_ref = tags_string.as_str();
+        let tags = string_to_tags(tags_ref);
         let rbspy = rbspy_backend(rbspy_config);
         let mut agent = PyroscopeAgent::builder(server_address, application_name)
             .backend(rbspy)
@@ -68,7 +78,14 @@ pub fn initialize_agent(
                     agent.stop().unwrap();
                     break;
                 }
-                Signal::Tag => {}
+                Signal::AddTag(thread_id, key, value) => {
+                    let tag = Tag::new(key, value);
+                    agent.add_t_tag(thread_id, tag).unwrap();
+                }
+                Signal::RemoveTag(thread_id, key, value) => {
+                    let tag = Tag::new(key, value);
+                    agent.remove_t_tag(thread_id, tag).unwrap();
+                }
             }
         }
     });
@@ -84,8 +101,42 @@ pub fn drop_agent() -> bool {
     true
 }
 
+#[link(name = "pyroscope_ffi", vers = "0.1")]
+#[no_mangle]
+pub fn add_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+    let s = signalpass();
+    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
+    let value = unsafe { CStr::from_ptr(value) }
+        .to_str()
+        .unwrap()
+        .to_owned();
+    s.inner_sender
+        .lock()
+        .unwrap()
+        .send(Signal::AddTag(thread_id, key, value))
+        .unwrap();
+    true
+}
+
+#[link(name = "pyroscope_ffi", vers = "0.1")]
+#[no_mangle]
+pub fn remove_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+    let s = signalpass();
+    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
+    let value = unsafe { CStr::from_ptr(value) }
+        .to_str()
+        .unwrap()
+        .to_owned();
+    s.inner_sender
+        .lock()
+        .unwrap()
+        .send(Signal::RemoveTag(thread_id, key, value))
+        .unwrap();
+    true
+}
+
 // Convert a string of tags to a Vec<(&str, &str)>
-fn string_to_tags(tags: &'static str) -> Vec<(&'static str, &'static str)> {
+fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     let mut tags_vec = Vec::new();
     // check if string is empty
     if tags.is_empty() {
