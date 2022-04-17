@@ -25,6 +25,7 @@ fn main() -> Result<()> {
         .native(false);
 
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "pyspy.basic")
+        .tags([("Host", "Python")].to_vec())
         .backend(pyspy_backend(config))
         .build()?;
 

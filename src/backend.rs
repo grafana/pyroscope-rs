@@ -24,7 +24,7 @@ pub enum Rule {
     ThreadTag(u64, Tag),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Ruleset {
     pub rules: Arc<Mutex<Vec<Rule>>>,
 }
@@ -35,6 +35,7 @@ impl Ruleset {
             rules: Arc::new(Mutex::new(Vec::new())),
         }
     }
+
     pub fn add_rule(&self, rule: Rule) -> Result<()> {
         let rules = self.rules.clone();
         rules.lock()?.push(rule);

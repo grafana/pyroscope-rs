@@ -1,6 +1,9 @@
 use py_spy::{config::Config, sampler::Sampler};
 use pyroscope::{
-    backend::{Backend, BackendImpl, BackendUninitialized, Report, StackFrame, StackTrace},
+    backend::{
+        Backend, BackendImpl, BackendUninitialized, Metadata, Report, Rule, Ruleset, StackBuffer,
+        StackFrame, StackTrace,
+    },
     error::{PyroscopeError, Result},
 };
 use std::{
@@ -117,7 +120,7 @@ impl PyspyConfig {
 #[derive(Default)]
 pub struct Pyspy {
     /// Profiling buffer
-    buffer: Arc<Mutex<Report>>,
+    buffer: Arc<Mutex<StackBuffer>>,
     /// Pyspy Configuration
     config: PyspyConfig,
     /// Sampler configuration
@@ -126,6 +129,8 @@ pub struct Pyspy {
     sampler_thread: Option<JoinHandle<Result<()>>>,
     /// Atomic flag to stop the sampler
     running: Arc<AtomicBool>,
+    /// Ruleset
+    ruleset: Ruleset,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -138,11 +143,12 @@ impl Pyspy {
     /// Create a new Pyspy Backend
     pub fn new(config: PyspyConfig) -> Self {
         Pyspy {
-            buffer: Arc::new(Mutex::new(Report::default())),
+            buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
             sampler_config: None,
             sampler_thread: None,
             running: Arc::new(AtomicBool::new(false)),
+            ruleset: Ruleset::default(),
         }
     }
 }
@@ -154,6 +160,18 @@ impl Backend for Pyspy {
 
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
+    }
+
+    fn add_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.add_rule(rule)?;
+
+        Ok(())
+    }
+
+    fn remove_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.remove_rule(rule)?;
+
+        Ok(())
     }
 
     fn initialize(&mut self) -> Result<()> {
@@ -198,6 +216,8 @@ impl Backend for Pyspy {
             .clone()
             .ok_or_else(|| PyroscopeError::new("Pyspy: Sampler configuration is not set"))?;
 
+        let ruleset = self.ruleset.clone();
+
         self.sampler_thread = Some(std::thread::spawn(move || {
             // Get PID
             // TODO: we are doing lots of these checks, we should probably do this once
@@ -227,8 +247,11 @@ impl Backend for Pyspy {
                     let own_trace: StackTrace =
                         Into::<StackTraceWrapper>::into(trace.clone()).into();
 
+                    // apply ruleset
+                    let stacktrace = own_trace + &ruleset;
+
                     // Add the trace to the buffer
-                    buffer.lock()?.record(own_trace)?;
+                    buffer.lock()?.record(stacktrace)?;
                 }
             }
 
@@ -257,8 +280,8 @@ impl Backend for Pyspy {
         let buffer = self.buffer.clone();
 
         // convert the buffer report into a byte vector
-        let report: Report = buffer.lock()?.deref().to_owned();
-        let reports = vec![report];
+        let report: StackBuffer = buffer.lock()?.deref().to_owned();
+        let reports: Vec<Report> = report.into();
 
         // Clear the buffer
         buffer.lock()?.clear();
@@ -298,15 +321,16 @@ impl From<StackTraceWrapper> for StackTrace {
 
 impl From<py_spy::StackTrace> for StackTraceWrapper {
     fn from(trace: py_spy::StackTrace) -> Self {
-        StackTraceWrapper(StackTrace {
-            pid: Some(trace.pid as u32),
-            thread_id: Some(trace.thread_id as u64),
-            thread_name: trace.thread_name.clone(),
-            frames: trace
+        let stacktrace = StackTrace::new(
+            Some(trace.pid as u32),
+            Some(trace.thread_id as u64),
+            trace.thread_name.clone(),
+            trace
                 .frames
                 .iter()
                 .map(|frame| Into::<StackFrameWrapper>::into(frame.clone()).into())
                 .collect(),
-        })
+        );
+        StackTraceWrapper(stacktrace)
     }
 }
