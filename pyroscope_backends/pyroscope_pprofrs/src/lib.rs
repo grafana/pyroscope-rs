@@ -107,6 +107,18 @@ impl Backend for Pprof<'_> {
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
         let stack_buffer = Into::<StackBuffer>::into(Into::<StackBufferWrapper>::into(report));
+
+        // apply ruleset to stack_buffer
+        let data = stack_buffer
+            .data
+            .iter()
+            .map(|(stacktrace, ss)| {
+                let stacktrace = stacktrace.to_owned() + &self.ruleset;
+                (stacktrace, ss.to_owned())
+            })
+            .collect();
+        let stack_buffer = StackBuffer::new(data);
+
         let reports = stack_buffer.into();
         //let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report));
         //let reports = vec![new_report];
@@ -116,10 +128,14 @@ impl Backend for Pprof<'_> {
         Ok(reports)
     }
 
-    fn add_rule(&self, _ruleset: Rule) -> Result<()> {
+    fn add_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.add_rule(rule)?;
+
         Ok(())
     }
-    fn remove_rule(&self, _ruleset: Rule) -> Result<()> {
+    fn remove_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.remove_rule(rule)?;
+
         Ok(())
     }
 }

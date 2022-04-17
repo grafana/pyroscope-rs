@@ -38,7 +38,7 @@ fn hash_rounds2(n: u64) -> u64 {
 
 fn main() -> Result<()> {
     let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
-        .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
+        .tags([("Host", "Rust")].to_vec())
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .build()?;
 
