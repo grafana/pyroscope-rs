@@ -5,7 +5,17 @@ use std::{
 
 use crate::error::Result;
 
-use super::{Rule, Ruleset, Tag};
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub struct Tag {
+    pub key: String,
+    pub value: String,
+}
+
+impl Tag {
+    pub fn new(key: String, value: String) -> Self {
+        Self { key, value }
+    }
+}
 
 /// Stack buffer
 #[derive(Debug, Default, Clone)]

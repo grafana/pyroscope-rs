@@ -1,3 +1,4 @@
+use crate::backend::Tag;
 use crate::{error::Result, PyroscopeError};
 
 use std::collections::HashMap;
@@ -47,6 +48,20 @@ mod merge_tags_with_app_name_tests {
             "my.awesome.app.cpu".to_string()
         )
     }
+}
+
+pub fn merge_tags_with_app_name_v2(application_name: String, tags: Vec<Tag>) -> Result<String> {
+    let mut merged_tags = String::new();
+
+    if tags.is_empty() {
+        return Ok(application_name);
+    }
+
+    for tag in tags {
+        merged_tags.push_str(&format!("{}={},", tag.key, tag.value));
+    }
+
+    Ok(format!("{}{{{}}}", application_name, merged_tags))
 }
 
 /// Error Wrapper for libc return. Only check for errors.
