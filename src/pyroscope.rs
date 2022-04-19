@@ -309,7 +309,7 @@ impl PyroscopeAgent {
                         log::trace!(target: LOG_TAG, "Sending session {}", until);
 
                         // Generate report from backend
-                        let report = backend.lock()?.report()?;
+                        let report = backend.lock()?.as_mut().unwrap().report()?;
 
                         // Send new Session to SessionManager
                         stx.send(SessionSignal::Session(Session::new(

@@ -16,7 +16,7 @@ use std::{
 };
 
 pub fn rbspy_backend(config: RbspyConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Arc::new(Mutex::new(Rbspy::new(config))))
+    BackendImpl::new(Box::new(Rbspy::new(config)))
 }
 
 /// Rbspy Configuration
@@ -229,7 +229,7 @@ impl Backend for Rbspy {
         Ok(())
     }
 
-    fn shutdown(self) -> Result<()> {
+    fn shutdown(self: Box<Self>) -> Result<()> {
         // Stop Sampler
         self.sampler
             .as_ref()

@@ -83,7 +83,7 @@ impl Backend for VoidBackend {
         Ok(())
     }
 
-    fn shutdown(self) -> Result<()> {
+    fn shutdown(self: Box<Self>) -> Result<()> {
         Ok(())
     }
 
@@ -106,5 +106,5 @@ impl Backend for VoidBackend {
 }
 
 pub fn void_backend(config: VoidConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Arc::new(Mutex::new(VoidBackend::new(config))))
+    BackendImpl::new(Box::new(VoidBackend::new(config)))
 }

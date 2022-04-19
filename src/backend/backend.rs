@@ -1,4 +1,7 @@
-use crate::{backend::Rule, error::Result};
+use crate::{
+    backend::Rule,
+    error::{PyroscopeError, Result},
+};
 use std::{
     fmt::Debug,
     sync::{Arc, Mutex},
@@ -15,7 +18,7 @@ pub trait Backend: Send + Debug {
     /// Initialize the backend.
     fn initialize(&mut self) -> Result<()>;
     /// Drop the backend.
-    fn shutdown(self) -> Result<()>;
+    fn shutdown(self: Box<Self>) -> Result<()>;
     /// Generate profiling report
     fn report(&mut self) -> Result<Vec<Report>>;
     /// Add a report-splitting rule to the backend.
@@ -43,7 +46,7 @@ impl BackendState for BackendUninitialized {}
 impl BackendState for BackendReady {}
 
 /// Backend Accessibility Trait
-pub trait BackendAccessible {}
+pub trait BackendAccessible: BackendState {}
 impl BackendAccessible for BackendUninitialized {}
 impl BackendAccessible for BackendReady {}
 
@@ -54,7 +57,7 @@ impl BackendAccessible for BackendReady {}
 #[derive(Debug)]
 pub struct BackendImpl<S: BackendState + ?Sized> {
     /// Backend
-    pub backend: Arc<Mutex<dyn Backend>>,
+    pub backend: Arc<Mutex<Option<Box<dyn Backend>>>>,
 
     /// Backend State
     _state: std::marker::PhantomData<S>,
@@ -62,9 +65,9 @@ pub struct BackendImpl<S: BackendState + ?Sized> {
 
 impl BackendImpl<BackendBare> {
     /// Create a new BackendImpl instance
-    pub fn new(backend: Arc<Mutex<dyn Backend>>) -> BackendImpl<BackendUninitialized> {
+    pub fn new(backend_box: Box<dyn Backend>) -> BackendImpl<BackendUninitialized> {
         BackendImpl {
-            backend,
+            backend: Arc::new(Mutex::new(Some(backend_box))),
             _state: std::marker::PhantomData,
         }
     }
@@ -74,7 +77,11 @@ impl BackendImpl<BackendUninitialized> {
     /// Initialize the backend
     pub fn initialize(self) -> Result<BackendImpl<BackendReady>> {
         let backend = self.backend.clone();
-        backend.lock()?.initialize()?;
+        backend
+            .lock()?
+            .as_mut()
+            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .initialize()?;
 
         Ok(BackendImpl {
             backend,
@@ -83,38 +90,61 @@ impl BackendImpl<BackendUninitialized> {
     }
 }
 
-impl<S: BackendState + BackendAccessible> BackendImpl<S> {
+impl<S: BackendAccessible> BackendImpl<S> {
     /// Return the backend name
     pub fn spy_name(&self) -> Result<String> {
-        self.backend.lock()?.spy_name()
+        self.backend
+            .lock()?
+            .as_ref()
+            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .spy_name()
     }
 
     /// Return the backend sample rate
     pub fn sample_rate(&self) -> Result<u32> {
-        self.backend.lock()?.sample_rate()
+        self.backend
+            .lock()?
+            .as_ref()
+            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .sample_rate()
     }
 
     /// Add a report-splitting rule to the backend
     pub fn add_rule(&self, rule: Rule) -> Result<()> {
-        self.backend.lock()?.add_rule(rule)
+        self.backend
+            .lock()?
+            .as_ref()
+            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .add_rule(rule)
     }
 
     /// Remove a report-splitting rule from the backend
     pub fn remove_rule(&self, rule: Rule) -> Result<()> {
-        self.backend.lock()?.remove_rule(rule)
+        self.backend
+            .lock()?
+            .as_ref()
+            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .remove_rule(rule)
     }
 }
 
 impl BackendImpl<BackendReady> {
     /// Shutdown the backend and destroy BackendImpl
     pub fn shutdown(self) -> Result<()> {
-        //let backend = self.backend.clone();
-        //backend.lock()?.shutdown()?;
+        self.backend
+            .lock()?
+            .take()
+            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .shutdown()?;
 
         Ok(())
     }
     /// Generate profiling report
     pub fn report(&mut self) -> Result<Vec<Report>> {
-        self.backend.lock()?.report()
+        self.backend
+            .lock()?
+            .as_mut()
+            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .report()
     }
 }

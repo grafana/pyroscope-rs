@@ -13,7 +13,7 @@ use std::{
 };
 
 pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Arc::new(Mutex::new(Pprof::new(config))))
+    BackendImpl::new(Box::new(Pprof::new(config)))
 }
 
 /// Pprof Configuration
@@ -73,7 +73,7 @@ impl Backend for Pprof<'_> {
         Ok(self.config.sample_rate)
     }
 
-    fn shutdown(self) -> Result<()> {
+    fn shutdown(self: Box<Self>) -> Result<()> {
         //drop(self.guard.take());
 
         Ok(())

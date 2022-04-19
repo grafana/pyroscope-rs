@@ -16,7 +16,7 @@ use std::{
 };
 
 pub fn pyspy_backend(config: PyspyConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Arc::new(Mutex::new(Pyspy::new(config))))
+    BackendImpl::new(Box::new(Pyspy::new(config)))
 }
 
 /// Pyspy Configuration
@@ -261,7 +261,7 @@ impl Backend for Pyspy {
         Ok(())
     }
 
-    fn shutdown(self) -> Result<()> {
+    fn shutdown(self: Box<Self>) -> Result<()> {
         // set running to false
         //self.running.store(false, Ordering::Relaxed);
 
