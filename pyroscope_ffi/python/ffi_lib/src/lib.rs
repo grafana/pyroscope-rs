@@ -9,8 +9,10 @@ use std::sync::{Mutex, Once};
 
 pub enum Signal {
     Kill,
-    AddTag(u64, String, String),
-    RemoveTag(u64, String, String),
+    AddGlobalTag(String, String),
+    RemoveGlobalTag(String, String),
+    AddThreadTag(u64, String, String),
+    RemoveThreadTag(u64, String, String),
 }
 
 pub struct SignalPass {
@@ -78,13 +80,19 @@ pub fn initialize_agent(
                     agent.stop().unwrap();
                     break;
                 }
-                Signal::AddTag(thread_id, key, value) => {
-                    let tag = Tag::new(key, value);
-                    agent.add_t_tag(thread_id, tag).unwrap();
+                Signal::AddGlobalTag(name, value) => {
+                    agent.add_global_tag(Tag::new(name, value));
                 }
-                Signal::RemoveTag(thread_id, key, value) => {
+                Signal::RemoveGlobalTag(name, value) => {
+                    agent.remove_global_tag(Tag::new(name, value));
+                }
+                Signal::AddThreadTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
-                    agent.remove_t_tag(thread_id, tag).unwrap();
+                    agent.add_thread_tag(thread_id, tag).unwrap();
+                }
+                Signal::RemoveThreadTag(thread_id, key, value) => {
+                    let tag = Tag::new(key, value);
+                    agent.remove_thread_tag(thread_id, tag).unwrap();
                 }
             }
         }
@@ -102,7 +110,7 @@ pub fn drop_agent() -> bool {
 }
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn add_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+pub fn add_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
@@ -112,14 +120,14 @@ pub fn add_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool
     s.inner_sender
         .lock()
         .unwrap()
-        .send(Signal::AddTag(thread_id, key, value))
+        .send(Signal::AddThreadTag(thread_id, key, value))
         .unwrap();
     true
 }
 
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn remove_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+pub fn remove_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
@@ -129,11 +137,44 @@ pub fn remove_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> b
     s.inner_sender
         .lock()
         .unwrap()
-        .send(Signal::RemoveTag(thread_id, key, value))
+        .send(Signal::RemoveThreadTag(thread_id, key, value))
         .unwrap();
     true
 }
 
+#[link(name = "pyroscope_ffi", vers = "0.1")]
+#[no_mangle]
+pub fn add_global_tag(key: *const c_char, value: *const c_char) -> bool {
+    let s = signalpass();
+    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
+    let value = unsafe { CStr::from_ptr(value) }
+        .to_str()
+        .unwrap()
+        .to_owned();
+    s.inner_sender
+        .lock()
+        .unwrap()
+        .send(Signal::AddGlobalTag(key, value))
+        .unwrap();
+    true
+}
+
+#[link(name = "pyroscope_ffi", vers = "0.1")]
+#[no_mangle]
+pub fn remove_global_tag(key: *const c_char, value: *const c_char) -> bool {
+    let s = signalpass();
+    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
+    let value = unsafe { CStr::from_ptr(value) }
+        .to_str()
+        .unwrap()
+        .to_owned();
+    s.inner_sender
+        .lock()
+        .unwrap()
+        .send(Signal::RemoveGlobalTag(key, value))
+        .unwrap();
+    true
+}
 // Convert a string of tags to a Vec<(&str, &str)>
 fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     let mut tags_vec = Vec::new();

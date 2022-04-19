@@ -402,22 +402,28 @@ impl PyroscopeAgent {
         Ok(())
     }
 
-    pub fn add_g_tags(&mut self, tags: Vec<Tag>) -> Result<()> {
+    pub fn add_global_tag(&mut self, tag: Tag) -> Result<()> {
+        let rule = Rule::GlobalTag(tag);
+        self.backend.add_rule(rule)?;
+
         Ok(())
     }
 
-    pub fn remove_g_tags(&mut self, tags: Vec<Tag>) -> Result<()> {
+    pub fn remove_global_tag(&mut self, tag: Tag) -> Result<()> {
+        let rule = Rule::GlobalTag(tag);
+        self.backend.remove_rule(rule)?;
+
         Ok(())
     }
 
-    pub fn add_t_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
+    pub fn add_thread_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
         self.backend.add_rule(rule)?;
 
         Ok(())
     }
 
-    pub fn remove_t_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
+    pub fn remove_thread_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
         self.backend.remove_rule(rule)?;
 
