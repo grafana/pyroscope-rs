@@ -7,7 +7,7 @@ use std::{
 use crate::{
     backend::Report,
     pyroscope::PyroscopeConfig,
-    utils::{get_time_range, merge_tags_with_app_name_v2},
+    utils::{get_time_range, merge_tags_with_app_name},
     Result,
 };
 
@@ -169,7 +169,7 @@ impl Session {
         //)?;
 
         // New Merge
-        let application_name = merge_tags_with_app_name_v2(
+        let application_name = merge_tags_with_app_name(
             self.config.application_name.clone(),
             report.metadata.tags.clone().into_iter().collect(),
         )?;

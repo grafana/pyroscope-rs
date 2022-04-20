@@ -5,6 +5,7 @@ use std::{
 
 use crate::error::Result;
 
+/// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
 pub struct Tag {
     pub key: String,
@@ -12,8 +13,15 @@ pub struct Tag {
 }
 
 impl Tag {
+    /// Create a new Tag
     pub fn new(key: String, value: String) -> Self {
         Self { key, value }
+    }
+}
+
+impl std::fmt::Display for Tag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}={}", self.key, self.value)
     }
 }
 
