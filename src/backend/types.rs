@@ -1,11 +1,11 @@
 use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
+    collections::{hash_map::DefaultHasher, BTreeSet, HashMap},
     hash::{Hash, Hasher},
 };
 
 use crate::error::Result;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
 pub struct Tag {
     pub key: String,
     pub value: String,
@@ -70,13 +70,14 @@ impl From<StackBuffer> for Vec<Report> {
 
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct Metadata {
-    pub tags: Vec<Tag>,
+    pub tags: BTreeSet<Tag>,
 }
 
 impl Metadata {
     pub fn add_tag(&mut self, tag: Tag) {
-        self.tags.push(tag);
+        self.tags.insert(tag);
     }
+
     pub fn get_id(&self) -> usize {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);

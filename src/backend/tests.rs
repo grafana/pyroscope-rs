@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::*;
 
@@ -151,4 +151,190 @@ fn test_ruleset_remove_rule() {
     ruleset.remove_rule(remove_rule);
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 0);
+}
+
+#[test]
+fn test_ruleset() {
+    let ruleset = Ruleset::new();
+
+    assert_eq!(ruleset.get_global_tags().unwrap(), Vec::new());
+
+    ruleset
+        .add_rule(Rule::GlobalTag(Tag::new(
+            "key1".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+
+    ruleset
+        .add_rule(Rule::GlobalTag(Tag::new(
+            "key2".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+
+    ruleset
+        .add_rule(Rule::ThreadTag(
+            1,
+            Tag::new("key1".to_string(), "value".to_string()),
+        ))
+        .unwrap();
+
+    ruleset
+        .add_rule(Rule::ThreadTag(
+            2,
+            Tag::new("key1".to_string(), "value".to_string()),
+        ))
+        .unwrap();
+
+    ruleset
+        .add_rule(Rule::ThreadTag(
+            3,
+            Tag::new("key1".to_string(), "value".to_string()),
+        ))
+        .unwrap();
+
+    // Remove ThreadTag number 2
+    ruleset
+        .remove_rule(Rule::ThreadTag(
+            2,
+            Tag::new("key1".to_string(), "value".to_string()),
+        ))
+        .unwrap();
+
+    // Verify ThreadTag number 2 is removed from the ruleset Vector
+    assert_eq!(
+        ruleset.rules.lock().unwrap().clone(),
+        HashSet::from([
+            Rule::GlobalTag(Tag::new("key1".to_string(), "value".to_string(),)),
+            Rule::GlobalTag(Tag::new("key2".to_string(), "value".to_string(),)),
+            Rule::ThreadTag(1, Tag::new("key1".to_string(), "value".to_string(),)),
+            Rule::ThreadTag(3, Tag::new("key1".to_string(), "value".to_string(),))
+        ])
+    );
+}
+
+#[test]
+fn test_ruleset_duplicates() {
+    let ruleset = Ruleset::new();
+
+    ruleset
+        .add_rule(Rule::GlobalTag(Tag::new(
+            "key1".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+
+    ruleset
+        .add_rule(Rule::GlobalTag(Tag::new(
+            "key1".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+    assert_eq!(
+        ruleset.get_global_tags().unwrap(),
+        vec![Tag::new("key1".to_string(), "value".to_string())]
+    );
+}
+
+#[test]
+fn test_ruleset_remove_nonexistent() {
+    let ruleset = Ruleset::new();
+
+    ruleset
+        .add_rule(Rule::GlobalTag(Tag::new(
+            "key1".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+
+    ruleset
+        .remove_rule(Rule::GlobalTag(Tag::new(
+            "key2".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+
+    assert_eq!(
+        ruleset.get_global_tags().unwrap(),
+        vec![Tag::new("key1".to_string(), "value".to_string())]
+    );
+}
+
+#[test]
+fn test_stacktrace_add() {
+    // Create a Ruleset
+    let ruleset = Ruleset::new();
+
+    // Two global Tags
+    ruleset
+        .add_rule(Rule::GlobalTag(Tag::new(
+            "key1".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+    ruleset
+        .add_rule(Rule::GlobalTag(Tag::new(
+            "key2".to_string(),
+            "value".to_string(),
+        )))
+        .unwrap();
+
+    // One Thread tag with id 55
+    ruleset
+        .add_rule(Rule::ThreadTag(
+            55,
+            Tag::new("keyA".to_string(), "valueA".to_string()),
+        ))
+        .unwrap();
+
+    // One Thread tag with id 100
+    ruleset
+        .add_rule(Rule::ThreadTag(
+            100,
+            Tag::new("keyB".to_string(), "valueB".to_string()),
+        ))
+        .unwrap();
+
+    // Create Stacktrace with id 55
+    let stacktrace = StackTrace::new(
+        Some(1),
+        Some(55),
+        Some("thread_name".to_string()),
+        vec![crate::backend::StackFrame::new(
+            Some("file1".to_string()),
+            Some("function1".to_string()),
+            Some("file1".to_string()),
+            Some("file1".to_string()),
+            Some("file1".to_string()),
+            Some(1),
+        )],
+    );
+
+    // assert initial metadata of the stacktrace
+    let mut initial_metadata = crate::backend::Metadata::default();
+    initial_metadata.add_tag(Tag::new("pid".to_string(), "1".to_string()));
+    initial_metadata.add_tag(Tag::new("thread_id".to_string(), "55".to_string()));
+    initial_metadata.add_tag(Tag::new(
+        "thread_name".to_string(),
+        "thread_name".to_string(),
+    ));
+
+    assert_eq!(stacktrace.metadata, initial_metadata);
+
+    // Add the Stacktrace to the Ruleset
+    let applied_stacktrace = stacktrace + &ruleset;
+
+    initial_metadata.add_tag(Tag::new("key1".to_string(), "value".to_string()));
+    initial_metadata.add_tag(Tag::new("key2".to_string(), "value".to_string()));
+    initial_metadata.add_tag(Tag::new("keyA".to_string(), "valueA".to_string()));
+
+    // assert that the metadata of the stacktrace is updated
+    assert_eq!(applied_stacktrace.metadata, initial_metadata);
+
+    // Re-apply the Ruleset
+    let re_applied_stacktrace = applied_stacktrace + &ruleset;
+
+    // assert that the metadata of the stacktrace is the same
+    assert_eq!(re_applied_stacktrace.metadata, initial_metadata);
 }

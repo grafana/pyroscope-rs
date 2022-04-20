@@ -80,7 +80,7 @@ impl BackendImpl<BackendUninitialized> {
         backend
             .lock()?
             .as_mut()
-            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .ok_or(PyroscopeError::BackendImpl)?
             .initialize()?;
 
         Ok(BackendImpl {
@@ -96,7 +96,7 @@ impl<S: BackendAccessible> BackendImpl<S> {
         self.backend
             .lock()?
             .as_ref()
-            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .ok_or(PyroscopeError::BackendImpl)?
             .spy_name()
     }
 
@@ -105,7 +105,7 @@ impl<S: BackendAccessible> BackendImpl<S> {
         self.backend
             .lock()?
             .as_ref()
-            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .ok_or(PyroscopeError::BackendImpl)?
             .sample_rate()
     }
 
@@ -114,7 +114,7 @@ impl<S: BackendAccessible> BackendImpl<S> {
         self.backend
             .lock()?
             .as_ref()
-            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .ok_or(PyroscopeError::BackendImpl)?
             .add_rule(rule)
     }
 
@@ -123,7 +123,7 @@ impl<S: BackendAccessible> BackendImpl<S> {
         self.backend
             .lock()?
             .as_ref()
-            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .ok_or(PyroscopeError::BackendImpl)?
             .remove_rule(rule)
     }
 }
@@ -134,7 +134,7 @@ impl BackendImpl<BackendReady> {
         self.backend
             .lock()?
             .take()
-            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .ok_or(PyroscopeError::BackendImpl)?
             .shutdown()?;
 
         Ok(())
@@ -144,7 +144,7 @@ impl BackendImpl<BackendReady> {
         self.backend
             .lock()?
             .as_mut()
-            .ok_or_else(|| PyroscopeError::BackendImpl)?
+            .ok_or(PyroscopeError::BackendImpl)?
             .report()
     }
 }

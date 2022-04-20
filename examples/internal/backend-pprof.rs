@@ -31,7 +31,7 @@ fn main() -> Result<()> {
     dbg!(report);
 
     // Stop profiling
-    backend.shutdown()?;
+    Box::new(backend).shutdown()?;
 
     Ok(())
 }

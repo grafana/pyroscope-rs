@@ -171,7 +171,7 @@ impl Session {
         // New Merge
         let application_name = merge_tags_with_app_name_v2(
             self.config.application_name.clone(),
-            report.metadata.tags.clone(),
+            report.metadata.tags.clone().into_iter().collect(),
         )?;
 
         // Merge application name with Report Tags
