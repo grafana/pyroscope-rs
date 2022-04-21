@@ -338,3 +338,88 @@ fn test_stacktrace_add() {
     // assert that the metadata of the stacktrace is the same
     assert_eq!(re_applied_stacktrace.metadata, initial_metadata);
 }
+
+#[test]
+fn test_stackbuffer_record() {
+    let mut buffer = StackBuffer::new(HashMap::new());
+    let stack_trace = StackTrace::new(
+        None,
+        None,
+        None,
+        vec![StackFrame::new(
+            None,
+            Some("test_record".to_string()),
+            None,
+            None,
+            None,
+            None,
+        )],
+    );
+    // First record
+    buffer.record(stack_trace.clone()).unwrap();
+    assert_eq!(buffer.data.len(), 1);
+    assert_eq!(buffer.data[&stack_trace], 1);
+
+    // Second record
+    buffer.record(stack_trace.clone()).unwrap();
+    assert_eq!(buffer.data.len(), 1);
+    assert_eq!(buffer.data[&stack_trace], 2);
+}
+
+#[test]
+fn test_stackbuffer_record_with_count() {
+    let mut buffer = StackBuffer::new(HashMap::new());
+    let stack_trace = StackTrace::new(
+        None,
+        None,
+        None,
+        vec![StackFrame::new(
+            None,
+            Some("test_record".to_string()),
+            None,
+            None,
+            None,
+            None,
+        )],
+    );
+    // First record
+    buffer.record_with_count(stack_trace.clone(), 1).unwrap();
+    assert_eq!(buffer.data.len(), 1);
+    assert_eq!(buffer.data[&stack_trace], 1);
+
+    // Second record
+    buffer.record_with_count(stack_trace.clone(), 2).unwrap();
+    assert_eq!(buffer.data.len(), 1);
+    assert_eq!(buffer.data[&stack_trace], 3);
+}
+
+#[test]
+fn test_stackbuffer_clear() {
+    let mut buffer = StackBuffer::new(HashMap::new());
+    let stack_trace = StackTrace::new(
+        None,
+        None,
+        None,
+        vec![StackFrame::new(
+            None,
+            Some("test_record".to_string()),
+            None,
+            None,
+            None,
+            None,
+        )],
+    );
+    // First record
+    buffer.record(stack_trace.clone()).unwrap();
+    assert_eq!(buffer.data.len(), 1);
+    assert_eq!(buffer.data[&stack_trace], 1);
+
+    // Second record
+    buffer.record(stack_trace.clone()).unwrap();
+    assert_eq!(buffer.data.len(), 1);
+    assert_eq!(buffer.data[&stack_trace], 2);
+
+    // Clear
+    buffer.clear();
+    assert_eq!(buffer.data.len(), 0);
+}

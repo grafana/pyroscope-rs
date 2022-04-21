@@ -3,7 +3,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::error::Result;
+use crate::{error::Result, PyroscopeError};
 
 /// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
@@ -32,47 +32,65 @@ pub struct StackBuffer {
 }
 
 impl StackBuffer {
+    /// Create a new StackBuffer with the given data
     pub fn new(data: HashMap<StackTrace, usize>) -> Self {
         Self { data }
     }
 
+    /// Record a new stack trace
     pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
         *self.data.entry(stack_trace).or_insert(0) += 1;
 
         Ok(())
     }
 
+    /// Record a new stack trace with count
     pub fn record_with_count(&mut self, stack_trace: StackTrace, count: usize) -> Result<()> {
         *self.data.entry(stack_trace).or_insert(0) += count;
 
         Ok(())
     }
 
+    /// Clear the buffer
     pub fn clear(&mut self) {
         self.data.clear();
     }
 }
 
+/// Split a Stack Buffer into Reports
 impl From<StackBuffer> for Vec<Report> {
     fn from(stack_buffer: StackBuffer) -> Self {
-        let ss: HashMap<usize, Report> =
-            stack_buffer
-                .data
-                .iter()
-                .fold(HashMap::new(), |mut acc, (k, v)| {
-                    if let Some(report) = acc.get_mut(&k.metadata.get_id()) {
-                        report.record_with_count(k.to_owned(), v.to_owned());
+        stack_buffer
+            .data
+            .into_iter()
+            .fold(
+                Ok(HashMap::new()),
+                |acc: Result<HashMap<usize, Report>>, (stacktrace, count): (StackTrace, usize)| {
+                    let mut acc = acc?;
+                    // if a report exists for this stacktrace, add the count to it
+                    if let Some(report) = acc.get_mut(&stacktrace.metadata.get_id()) {
+                        // record the count
+                        report.record_with_count(stacktrace, count)?;
+                    // if no report exists,
                     } else {
-                        let stacktrace = k.to_owned();
+                        // create a new report
                         let report = Report::new(HashMap::new());
+                        let report_id = stacktrace.metadata.get_id();
+                        // set the metadata of the report, from the stacktrace own metadata.
                         let mut report = report.metadata(stacktrace.metadata.clone());
-                        report.record(stacktrace);
-                        acc.insert(k.metadata.get_id(), report);
+                        // record the stacktrace. The count should be 1.
+                        report.record(stacktrace)?;
+                        // add the report to the accumulator.
+                        acc.insert(report_id, report);
                     }
-                    acc
-                });
-        // convert ss to vector
-        ss.iter().map(|(_, v)| v.clone()).collect()
+                    // return the accumulator
+                    Ok(acc)
+                },
+            )
+            .unwrap_or(HashMap::new())
+            .into_iter()
+            .map(|(_, v)| v)
+            .collect()
     }
 }
 
