@@ -6,11 +6,7 @@ use pyroscope::{
     },
     error::{PyroscopeError, Result},
 };
-use std::{
-    collections::HashMap,
-    ffi::OsStr,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, ffi::OsStr};
 
 pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Pprof::new(config)))

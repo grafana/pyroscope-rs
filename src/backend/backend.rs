@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception)]
+
 use crate::{
     backend::Rule,
     error::{PyroscopeError, Result},

@@ -1,6 +1,7 @@
+#[cfg(test)]
+use crate::backend::{Report, Rule, Ruleset, StackBuffer, StackFrame, StackTrace, Tag};
+#[cfg(test)]
 use std::collections::{HashMap, HashSet};
-
-use super::*;
 
 #[test]
 fn test_stack_frame_display() {
@@ -131,7 +132,7 @@ fn test_ruleset_add_rule() {
 
     let rule = Rule::ThreadTag(0, Tag::new("key".to_string(), "value".to_string()));
 
-    ruleset.add_rule(rule);
+    ruleset.add_rule(rule).unwrap();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 1);
 }
@@ -142,13 +143,13 @@ fn test_ruleset_remove_rule() {
 
     let add_rule = Rule::ThreadTag(0, Tag::new("key".to_string(), "value".to_string()));
 
-    ruleset.add_rule(add_rule);
+    ruleset.add_rule(add_rule).unwrap();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 1);
 
     let remove_rule = Rule::ThreadTag(0, Tag::new("key".to_string(), "value".to_string()));
 
-    ruleset.remove_rule(remove_rule);
+    ruleset.remove_rule(remove_rule).unwrap();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 0);
 }

@@ -133,8 +133,7 @@ impl Session {
 
         // Loop through the reports and process them
         for report in &self.reports {
-            dbg!(&report.metadata);
-            self.process(&report)?;
+            self.process(report)?;
         }
 
         Ok(())
@@ -163,18 +162,10 @@ impl Session {
         let url = self.config.url.clone();
 
         // Merge application name with Tags
-        //let application_name = merge_tags_with_app_name(
-        //self.config.application_name.clone(),
-        //self.config.tags.clone(),
-        //)?;
-
-        // New Merge
         let application_name = merge_tags_with_app_name(
             self.config.application_name.clone(),
             report.metadata.tags.clone().into_iter().collect(),
         )?;
-
-        // Merge application name with Report Tags
 
         // Create and send the request
         client

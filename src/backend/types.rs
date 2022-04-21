@@ -3,7 +3,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::{error::Result, PyroscopeError};
+use crate::error::Result;
 
 /// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
@@ -87,23 +87,28 @@ impl From<StackBuffer> for Vec<Report> {
                     Ok(acc)
                 },
             )
-            .unwrap_or(HashMap::new())
+            .unwrap_or_default()
             .into_iter()
-            .map(|(_, v)| v)
+            .map(|(_, report)| report)
             .collect()
     }
 }
 
+/// Metdata
+/// Metadata attached to a StackTrace or a Report. For now, this is just tags.
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct Metadata {
+    /// Tags
     pub tags: BTreeSet<Tag>,
 }
 
 impl Metadata {
+    /// Add a tag to the metadata
     pub fn add_tag(&mut self, tag: Tag) {
         self.tags.insert(tag);
     }
 
+    /// Get the id of the metadata. This uses the hash of the Metadata type.
     pub fn get_id(&self) -> usize {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
@@ -114,10 +119,14 @@ impl Metadata {
 /// Report
 #[derive(Debug, Default, Clone)]
 pub struct Report {
+    /// Report StackTraces
     pub data: HashMap<StackTrace, usize>,
+    /// Metadata
     pub metadata: Metadata,
 }
 
+/// Custom implementation of the Hash trait for Report.
+/// Only the metadata is hashed.
 impl Hash for Report {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.metadata.hash(state);
@@ -125,6 +134,7 @@ impl Hash for Report {
 }
 
 impl Report {
+    /// Create a new Report.
     pub fn new(data: HashMap<StackTrace, usize>) -> Self {
         Self {
             data,
@@ -132,6 +142,7 @@ impl Report {
         }
     }
 
+    /// Set the metadata of the report.
     pub fn metadata(self, metadata: Metadata) -> Self {
         Self {
             data: self.data,
@@ -139,18 +150,21 @@ impl Report {
         }
     }
 
+    /// Record a new stack trace.
     pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
         *self.data.entry(stack_trace).or_insert(0) += 1;
 
         Ok(())
     }
 
+    /// Record a new stack trace with count.
     pub fn record_with_count(&mut self, stack_trace: StackTrace, count: usize) -> Result<()> {
         *self.data.entry(stack_trace).or_insert(0) += count;
 
         Ok(())
     }
 
+    /// Clear the report data buffer.
     pub fn clear(&mut self) {
         self.data.clear();
     }
@@ -184,22 +198,43 @@ pub struct StackTrace {
     pub metadata: Metadata,
 }
 
+impl std::fmt::Display for StackTrace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            &self
+                .frames
+                .iter()
+                .rev()
+                .map(|frame| format!("{}", frame))
+                .collect::<Vec<_>>()
+                .join(";")
+        )
+    }
+}
+
 impl StackTrace {
     /// Create a new StackTrace
     pub fn new(
         pid: Option<u32>, thread_id: Option<u64>, thread_name: Option<String>,
         frames: Vec<StackFrame>,
     ) -> Self {
+        // Set StackTrace specific tags
         let mut metadata = Metadata::default();
+
         if let Some(pid) = pid {
             metadata.add_tag(Tag::new("pid".to_owned(), pid.to_string()));
         }
+
         if let Some(thread_id) = thread_id {
             metadata.add_tag(Tag::new("thread_id".to_owned(), thread_id.to_string()));
         }
+
         if let Some(thread_name) = thread_name.clone() {
             metadata.add_tag(Tag::new("thread_name".to_owned(), thread_name));
         }
+
         Self {
             pid,
             thread_id,
@@ -253,22 +288,6 @@ impl std::fmt::Display for StackFrame {
             self.filename.as_ref().unwrap_or(&"".to_string()),
             self.line.unwrap_or(0),
             self.name.as_ref().unwrap_or(&"".to_string())
-        )
-    }
-}
-
-impl std::fmt::Display for StackTrace {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            &self
-                .frames
-                .iter()
-                .rev()
-                .map(|frame| format!("{}", frame))
-                .collect::<Vec<_>>()
-                .join(";")
         )
     }
 }

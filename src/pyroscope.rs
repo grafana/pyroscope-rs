@@ -8,16 +8,14 @@ use std::{
 };
 
 use crate::{
-    backend::{
-        void_backend, BackendReady, BackendState, BackendUninitialized, Rule, Tag, VoidConfig,
-    },
+    backend::{void_backend, BackendReady, BackendUninitialized, Rule, Tag, VoidConfig},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
     utils::get_time_range,
 };
 
-use crate::backend::{Backend, BackendImpl, VoidBackend};
+use crate::backend::BackendImpl;
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -168,7 +166,7 @@ impl PyroscopeAgentBuilder {
                 .add_rule(crate::backend::Rule::GlobalTag(Tag::new(
                     k.to_owned(),
                     v.to_owned(),
-                )));
+                )))?;
         }
 
         // Initialize the backend

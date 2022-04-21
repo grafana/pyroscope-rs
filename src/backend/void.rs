@@ -3,7 +3,6 @@ use super::{
     StackTrace,
 };
 use crate::error::Result;
-use std::sync::{Arc, Mutex};
 
 /// Generate a dummy stack trace
 fn generate_stack_trace() -> Result<Vec<StackTrace>> {
@@ -24,6 +23,7 @@ fn generate_stack_trace() -> Result<Vec<StackTrace>> {
 
 #[derive(Debug)]
 pub struct VoidConfig {
+    /// Sample rate.
     sample_rate: u32,
 }
 
@@ -35,10 +35,12 @@ impl Default for VoidConfig {
     }
 }
 impl VoidConfig {
+    /// Create a new VoidConfig
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Set the sample rate
     pub fn sample_rate(self, sample_rate: u32) -> Self {
         Self { sample_rate }
     }
@@ -47,12 +49,16 @@ impl VoidConfig {
 /// Empty Backend implementation for Testing purposes
 #[derive(Debug, Default)]
 pub struct VoidBackend {
+    /// Backend configuration
     config: VoidConfig,
+    /// Backend StackTrace Buffer
     buffer: StackBuffer,
+    /// Backend RuleSet
     ruleset: Ruleset,
 }
 
 impl VoidBackend {
+    /// Create a new VoidBackend
     pub fn new(config: VoidConfig) -> Self {
         Self {
             config,
@@ -62,14 +68,17 @@ impl VoidBackend {
 }
 
 impl Backend for VoidBackend {
+    /// Return the Backend name.
     fn spy_name(&self) -> Result<String> {
         Ok("void".to_string())
     }
 
+    /// Return the set sample rate.
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
     }
 
+    /// Initialize the Backend.
     fn initialize(&mut self) -> Result<()> {
         // Generate a dummy Stack Trace
         let stack_traces = generate_stack_trace()?;
@@ -83,21 +92,26 @@ impl Backend for VoidBackend {
         Ok(())
     }
 
+    /// Shutdown the Backend.
     fn shutdown(self: Box<Self>) -> Result<()> {
         Ok(())
     }
 
+    /// Generate a report.
     fn report(&mut self) -> Result<Vec<Report>> {
         let reports = self.buffer.clone().into();
 
         Ok(reports)
     }
 
+    /// Add a Rule to the Backend.
     fn add_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.add_rule(rule)?;
 
         Ok(())
     }
+
+    /// Remove a Rule from the Backend.
     fn remove_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.remove_rule(rule)?;
 
@@ -105,6 +119,7 @@ impl Backend for VoidBackend {
     }
 }
 
+/// A Backend implementation for testing purposes.
 pub fn void_backend(config: VoidConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(VoidBackend::new(config)))
 }

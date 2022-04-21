@@ -1,8 +1,8 @@
 use py_spy::{config::Config, sampler::Sampler};
 use pyroscope::{
     backend::{
-        Backend, BackendImpl, BackendUninitialized, Metadata, Report, Rule, Ruleset, StackBuffer,
-        StackFrame, StackTrace,
+        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
+        StackTrace,
     },
     error::{PyroscopeError, Result},
 };

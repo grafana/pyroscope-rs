@@ -70,7 +70,7 @@ impl std::ops::Add<&Ruleset> for StackTrace {
     type Output = Self;
     fn add(self, other: &Ruleset) -> Self {
         // Get global Tags
-        let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or(Vec::new());
+        let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or_default();
 
         // Filter Thread Tags
         let stack_tags: Vec<Tag> = other
