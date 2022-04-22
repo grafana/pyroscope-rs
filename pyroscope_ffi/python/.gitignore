@@ -23,6 +23,6 @@ pip-log.txt
 .pytest_cache
 
 # Rust Library
-ffi_lib/target/
-ffi_lib/Cargo.lock
+lib/target/
+lib/Cargo.lock
 **/*.rs.bk

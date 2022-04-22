@@ -38,7 +38,7 @@ fn signalpass() -> &'static SignalPass {
 
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn initialize_agent(
+pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, sample_rate: u32,
     detect_subprocesses: bool, tags: *const c_char,
 ) -> bool {
@@ -103,14 +103,14 @@ pub fn initialize_agent(
 
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn drop_agent() -> bool {
+pub extern "C" fn drop_agent() -> bool {
     let s = signalpass();
     s.inner_sender.lock().unwrap().send(Signal::Kill).unwrap();
     true
 }
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn add_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+pub extern "C" fn add_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
@@ -127,7 +127,9 @@ pub fn add_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) 
 
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn remove_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
+pub extern "C" fn remove_thread_tag(
+    thread_id: u64, key: *const c_char, value: *const c_char,
+) -> bool {
     let s = signalpass();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
@@ -144,7 +146,7 @@ pub fn remove_thread_tag(thread_id: u64, key: *const c_char, value: *const c_cha
 
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn add_global_tag(key: *const c_char, value: *const c_char) -> bool {
+pub extern "C" fn add_global_tag(key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
@@ -161,7 +163,7 @@ pub fn add_global_tag(key: *const c_char, value: *const c_char) -> bool {
 
 #[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
-pub fn remove_global_tag(key: *const c_char, value: *const c_char) -> bool {
+pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
