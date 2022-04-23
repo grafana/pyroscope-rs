@@ -22,18 +22,6 @@ def build_native(spec):
             rtld_flags=['NOW', 'NODELETE']
     )
 
-# Long description
-with open('README.md', 'r', encoding='utf-8') as f:
-    long_description = f.read()
-
-
-
 setup(
-    packages=find_packages(),
-    include_package_data=True,
-    setup_requires=['milksnake'],
-    install_requires=['milksnake'],
     milksnake_tasks=[build_native],
-    python_requires='>=3.6',
-    milksnake_universal=False,
 )
