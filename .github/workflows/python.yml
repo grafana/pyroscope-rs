@@ -24,15 +24,12 @@ jobs:
       run:
         working-directory: ./pyroscope_ffi/python
 
+    env:
+      CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y && yum install -y openssl-devel"
+      CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
+
     steps:
       - uses: actions/checkout@v2
-
-      - name: Install stable toolchain
-        uses: omarabid-forks/rs-toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
 
       - uses: actions/setup-python@v2
 
