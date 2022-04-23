@@ -1,12 +1,19 @@
 [package]
 name = "pyroscope_ffi"
 version = "0.1.0"
+authors = ["Abid Omar <contact@pyroscope.io>"]
 edition = "2021"
 
 [lib]
-name = "pyroscope_ffi"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 pyroscope = { path = "../../../" }
 pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy" }
+
+[build-dependencies]
+cbindgen = "0.20.0"
+
+[profile.release]
+lto = true
+codegen-units = 1

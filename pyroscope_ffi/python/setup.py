@@ -1,16 +1,24 @@
-from setuptools import setup, find_packages
+import os
+from setuptools import find_packages, setup
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+os.chdir(SCRIPT_DIR)
+LIB_DIR = str(SCRIPT_DIR / "lib")
 
 def build_native(spec):
     # Step 1: build the rust library
     build = spec.add_external_build(
         cmd=['cargo', 'build', '--release'],
-        path='./lib'
+        path=LIB_DIR
     )
 
     # Step 2: package the compiled library
-    spec.add_cffi_module(module_path='lib._lowlevel',
-            dylib=lambda: build.find_dylib('pyroscope_ffi', in_path='target/release'),
-            header_filename=lambda: build.find_header('libpyroscope_ffi.h', in_path='include'),
+    spec.add_cffi_module(module_path='pyroscope_beta._native',
+            dylib=lambda: build.find_dylib('pyroscope_ffi',
+                in_path='target/release'),
+            header_filename=lambda:
+            build.find_header('pyroscope_ffi.h',in_path='include'),
             rtld_flags=['NOW', 'NODELETE']
     )
 
@@ -21,19 +29,11 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 
 setup(
-    name='pyroscope_beta',
-    version='0.1.0',
-    author='Abid Omar',
-    description='Pyroscope Python integration',
-    long_description=long_description,
-    long_description_content_type='text/markdown',
     packages=find_packages(),
     include_package_data=True,
-    zip_safe=False,
-    platforms='any',
-    setup_requires=['milksnakex'],
-    install_requires=['milksnakex'],
-    milksnake_tasks=[
-        build_native,
-    ]
+    setup_requires=['milksnake'],
+    install_requires=['milksnake'],
+    milksnake_tasks=[build_native],
+    python_requires='>=3.6',
+    milksnake_universal=False,
 )

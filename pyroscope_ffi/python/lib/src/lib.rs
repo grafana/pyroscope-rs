@@ -36,7 +36,6 @@ fn signalpass() -> &'static SignalPass {
     unsafe { SIGNAL_PASS.assume_init_ref() }
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, sample_rate: u32,
@@ -101,14 +100,13 @@ pub extern "C" fn initialize_agent(
     true
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn drop_agent() -> bool {
     let s = signalpass();
     s.inner_sender.lock().unwrap().send(Signal::Kill).unwrap();
     true
 }
-#[link(name = "pyroscope_ffi", vers = "0.1")]
+
 #[no_mangle]
 pub extern "C" fn add_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
@@ -125,7 +123,6 @@ pub extern "C" fn add_thread_tag(thread_id: u64, key: *const c_char, value: *con
     true
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn remove_thread_tag(
     thread_id: u64, key: *const c_char, value: *const c_char,
@@ -144,7 +141,6 @@ pub extern "C" fn remove_thread_tag(
     true
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn add_global_tag(key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
@@ -161,7 +157,6 @@ pub extern "C" fn add_global_tag(key: *const c_char, value: *const c_char) -> bo
     true
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
