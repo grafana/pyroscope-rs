@@ -1,4 +1,4 @@
-name: Python Package 
+name: Python Package
 
 on: [push, pull_request]
 
@@ -29,7 +29,7 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
 
-      - name: Display repo 
+      - name: Display repo
         shell: bash
         run: |
           cd wheelhouse
