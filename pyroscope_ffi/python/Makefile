@@ -3,6 +3,7 @@ clean:
 	rm -rf build
 	rm -rf dist
 	rm -rf wheelhouse
+	rm -rf pyroscope_beta.egg-info
 
 .PHONY: build
 build: clean
