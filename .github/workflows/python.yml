@@ -4,9 +4,11 @@ on:
   push:
     paths:
     - 'pyroscope_ffi/python/**'
+    - '.github/workflows/python.yml'
   pull_request:
     paths: 
     - 'pyroscope_ffi/python/**'
+    - '.github/workflows/python.yml'
 
 jobs:
   build_wheels:
