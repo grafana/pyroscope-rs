@@ -15,5 +15,7 @@ pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy" }
 cbindgen = "0.20.0"
 
 [profile.release]
+opt-level= "z"
+debug = false
 lto = true
 codegen-units = 1
