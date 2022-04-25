@@ -1,6 +1,12 @@
 name: Python Package
 
-on: [push, pull_request]
+on: 
+  push:
+    paths:
+    - 'pyroscope_ffi/python/**'
+  pull_request:
+    paths: 
+    - 'pyroscope_ffi/python/**'
 
 jobs:
   build_wheels:
