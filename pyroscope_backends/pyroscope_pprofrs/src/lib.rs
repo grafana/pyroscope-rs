@@ -6,7 +6,12 @@ use pyroscope::{
     },
     error::{PyroscopeError, Result},
 };
-use std::{collections::HashMap, ffi::OsStr};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    ops::Deref,
+    sync::{Arc, Mutex},
+};
 
 pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Pprof::new(config)))
@@ -37,9 +42,15 @@ impl PprofConfig {
 /// Pprof Backend
 #[derive(Default)]
 pub struct Pprof<'a> {
+    /// Profling buffer
+    buffer: Arc<Mutex<StackBuffer>>,
+    /// pprof-rs Configuration
     config: PprofConfig,
-    inner_builder: Option<ProfilerGuardBuilder>,
-    guard: Option<ProfilerGuard<'a>>,
+    /// pprof-rs profiler Guard Builder
+    inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
+    /// pprof-rs profiler Guard
+    guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
+    /// Ruleset
     ruleset: Ruleset,
 }
 
@@ -52,9 +63,10 @@ impl std::fmt::Debug for Pprof<'_> {
 impl<'a> Pprof<'a> {
     pub fn new(config: PprofConfig) -> Self {
         Pprof {
+            buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
-            inner_builder: None,
-            guard: None,
+            inner_builder: Arc::new(Mutex::new(None)),
+            guard: Arc::new(Mutex::new(None)),
             ruleset: Ruleset::default(),
         }
     }
@@ -78,11 +90,13 @@ impl Backend for Pprof<'_> {
     fn initialize(&mut self) -> Result<()> {
         // Construct a ProfilerGuardBuilder
         let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
-        // Set inner_builder field
-        self.inner_builder = Some(profiler);
 
-        self.guard = Some(
+        // Set inner_builder field
+        *self.inner_builder.lock()? = Some(profiler);
+
+        *self.guard.lock()? = Some(
             self.inner_builder
+                .lock()?
                 .as_ref()
                 .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
                 .clone()
@@ -94,8 +108,44 @@ impl Backend for Pprof<'_> {
     }
 
     fn report(&mut self) -> Result<Vec<Report>> {
+        self.dump_report()?;
+
+        let buffer = self.buffer.clone();
+
+        let report: StackBuffer = buffer.lock()?.deref().to_owned();
+
+        let reports: Vec<Report> = report.into();
+
+        buffer.lock()?.clear();
+
+        Ok(reports)
+    }
+
+    fn add_rule(&self, rule: Rule) -> Result<()> {
+        if self.guard.lock()?.as_ref().is_some() {
+            self.dump_report()?;
+        }
+
+        self.ruleset.add_rule(rule)?;
+
+        Ok(())
+    }
+    fn remove_rule(&self, rule: Rule) -> Result<()> {
+        if self.guard.lock()?.as_ref().is_some() {
+            self.dump_report()?;
+        }
+
+        self.ruleset.remove_rule(rule)?;
+
+        Ok(())
+    }
+}
+
+impl Pprof<'_> {
+    pub fn dump_report(&self) -> Result<()> {
         let report = self
             .guard
+            .lock()?
             .as_ref()
             .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuard report error"))?
             .report()
@@ -105,7 +155,7 @@ impl Backend for Pprof<'_> {
         let stack_buffer = Into::<StackBuffer>::into(Into::<StackBufferWrapper>::into(report));
 
         // apply ruleset to stack_buffer
-        let data = stack_buffer
+        let data: HashMap<StackTrace, usize> = stack_buffer
             .data
             .iter()
             .map(|(stacktrace, ss)| {
@@ -113,35 +163,24 @@ impl Backend for Pprof<'_> {
                 (stacktrace, ss.to_owned())
             })
             .collect();
-        let stack_buffer = StackBuffer::new(data);
 
-        let reports = stack_buffer.into();
-        //let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report));
-        //let reports = vec![new_report];
+        let buffer = self.buffer.clone();
+
+        for (stacktrace, count) in data {
+            buffer.lock()?.record_with_count(stacktrace, count)?;
+        }
 
         self.reset()?;
 
-        Ok(reports)
-    }
-
-    fn add_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.add_rule(rule)?;
-
         Ok(())
     }
-    fn remove_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.remove_rule(rule)?;
 
-        Ok(())
-    }
-}
+    pub fn reset(&self) -> Result<()> {
+        drop(self.guard.lock()?.take());
 
-impl Pprof<'_> {
-    pub fn reset(&mut self) -> Result<()> {
-        drop(self.guard.take());
-
-        self.guard = Some(
+        *self.guard.lock()? = Some(
             self.inner_builder
+                .lock()?
                 .as_ref()
                 .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
                 .clone()

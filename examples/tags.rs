@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::{backend::Tag, PyroscopeAgent, Result};
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::hash::{Hash, Hasher};
 
@@ -27,14 +27,32 @@ fn main() -> Result<()> {
     // Start Agent
     agent.start()?;
 
+    // Show start time
+    let start = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Start Time: {}", start);
+
+    // Add Tags
+    agent.add_global_tag(Tag::new("series".to_string(), "Number 1".to_string()))?;
+
     // Make some calculation
     let _result = hash_rounds(300_000);
 
     // Add Tags
-    agent.add_tags(&[("series", "Number 2")])?;
+    agent.remove_global_tag(Tag::new("series".to_string(), "Number 1".to_string()))?;
+    agent.add_global_tag(Tag::new("series".to_string(), "Number 2".to_string()))?;
 
     // Do more calculation
     let _result = hash_rounds(500_000);
+
+    // Show stop time
+    let stop = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Stop Time: {}", stop);
 
     // Stop Agent
     agent.stop()?;
