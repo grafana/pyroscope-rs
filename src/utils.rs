@@ -3,54 +3,6 @@ use crate::{error::Result, PyroscopeError};
 
 use std::collections::HashMap;
 
-// Copyright: https://github.com/cobbinma - https://github.com/YangKeao/pprof-rs/pull/14
-/// Format application_name with tags.
-pub fn _merge_tags_with_app_name(
-    application_name: String, tags: HashMap<String, String>,
-) -> Result<String> {
-    let mut tags_vec = tags
-        .into_iter()
-        .filter(|(k, _)| k != "__name__")
-        .map(|(k, v)| format!("{}={}", k, v))
-        .collect::<Vec<String>>();
-    tags_vec.sort();
-    let tags_str = tags_vec.join(",");
-
-    if !tags_str.is_empty() {
-        Ok(format!("{}{{{}}}", application_name, tags_str,))
-    } else {
-        Ok(application_name)
-    }
-}
-
-#[cfg(test)]
-mod merge_tags_with_app_name_tests {
-    use std::collections::HashMap;
-
-    use crate::utils::_merge_tags_with_app_name;
-
-    #[test]
-    fn merge_tags_with_app_name_with_tags() {
-        let mut tags = HashMap::new();
-        tags.insert("env".to_string(), "staging".to_string());
-        tags.insert("region".to_string(), "us-west-1".to_string());
-        tags.insert("__name__".to_string(), "reserved".to_string());
-        assert_eq!(
-            _merge_tags_with_app_name("my.awesome.app.cpu".to_string(), tags).unwrap(),
-            "my.awesome.app.cpu{env=staging,region=us-west-1}".to_string()
-        )
-    }
-
-    #[test]
-    fn merge_tags_with_app_name_without_tags() {
-        assert_eq!(
-            _merge_tags_with_app_name("my.awesome.app.cpu".to_string(), HashMap::default())
-                .unwrap(),
-            "my.awesome.app.cpu".to_string()
-        )
-    }
-}
-
 /// Format application_name with tags.
 pub fn merge_tags_with_app_name(application_name: String, tags: Vec<Tag>) -> Result<String> {
     // tags empty, return application_name
@@ -74,7 +26,7 @@ pub fn merge_tags_with_app_name(application_name: String, tags: Vec<Tag>) -> Res
 }
 
 #[cfg(test)]
-mod merge_tags_with_app_name_tests_2 {
+mod merge_tags_with_app_name_tests {
     use crate::{backend::Tag, utils::merge_tags_with_app_name};
 
     #[test]
@@ -120,6 +72,22 @@ mod check_err_tests {
     #[test]
     fn check_err_error() {
         assert!(check_err(-1).is_err())
+    }
+}
+
+/// libc::epoll_ctl wrapper
+pub fn pthread_self() -> Result<u64> {
+    let thread_id = check_err(unsafe { libc::pthread_self() })?;
+    Ok(thread_id)
+}
+
+mod pthread_self_tests {
+    use crate::utils::pthread_self;
+
+    #[test]
+    fn pthread_self_success() {
+        // This function should always succeeds.
+        assert!(pthread_self().is_ok())
     }
 }
 
