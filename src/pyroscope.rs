@@ -400,6 +400,35 @@ impl PyroscopeAgent {
         Ok(())
     }
 
+    pub fn tag_wrapper(
+        &self,
+    ) -> (
+        impl Fn(String, String) -> Result<()>,
+        impl Fn(String, String) -> Result<()>,
+    ) {
+        let backend_add = self.backend.backend.clone();
+        let backend_remove = self.backend.backend.clone();
+
+        (
+            move |key, value| {
+                let thread_id = crate::utils::pthread_self()?;
+                let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
+                let backend = backend_add.lock()?;
+                backend.as_ref().unwrap().add_rule(rule)?;
+
+                Ok(())
+            },
+            move |key, value| {
+                let thread_id = crate::utils::pthread_self()?;
+                let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
+                let backend = backend_remove.lock()?;
+                backend.as_ref().unwrap().remove_rule(rule)?;
+
+                Ok(())
+            },
+        )
+    }
+
     pub fn add_global_tag(&mut self, tag: Tag) -> Result<()> {
         let rule = Rule::GlobalTag(tag);
         self.backend.add_rule(rule)?;

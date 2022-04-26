@@ -81,6 +81,7 @@ pub fn pthread_self() -> Result<u64> {
     Ok(thread_id)
 }
 
+#[cfg(test)]
 mod pthread_self_tests {
     use crate::utils::pthread_self;
 
