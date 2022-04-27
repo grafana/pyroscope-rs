@@ -221,7 +221,22 @@ pub struct PyroscopeAgent<S: PyroscopeAgentState> {
     _state: PhantomData<S>,
 }
 
-/// Gracefully stop the profiler.
+impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
+    /// Transition the PyroscopeAgent to a new state.
+    fn transition<D: PyroscopeAgentState>(self) -> PyroscopeAgent<D> {
+        PyroscopeAgent {
+            timer: self.timer,
+            session_manager: self.session_manager,
+            tx: self.tx,
+            handle: self.handle,
+            running: self.running,
+            backend: self.backend,
+            config: self.config,
+            _state: PhantomData,
+        }
+    }
+}
+
 impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
     /// Properly shutdown the agent.
     pub fn shutdown(mut self) {
@@ -344,18 +359,18 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
             Ok(())
         }));
 
-        let agent_running = PyroscopeAgent {
-            timer: self.timer,
-            session_manager: self.session_manager,
-            tx: self.tx,
-            handle: self.handle,
-            running: self.running,
-            backend: self.backend,
-            config: self.config,
-            _state: PhantomData,
-        };
+        //let agent_running = PyroscopeAgent {
+        //timer: self.timer,
+        //session_manager: self.session_manager,
+        //tx: self.tx,
+        //handle: self.handle,
+        //running: self.running,
+        //backend: self.backend,
+        //config: self.config,
+        //_state: PhantomData,
+        //};
 
-        Ok(agent_running)
+        Ok(self.transition())
     }
 }
 impl PyroscopeAgent<PyroscopeAgentRunning> {
@@ -386,18 +401,18 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         // Create a clone of Backend
         //let backend = Arc::clone(&self.backend);
 
-        let agent_running = PyroscopeAgent {
-            timer: self.timer,
-            session_manager: self.session_manager,
-            tx: self.tx,
-            handle: self.handle,
-            running: self.running,
-            backend: self.backend,
-            config: self.config,
-            _state: PhantomData,
-        };
+        //let agent_running = PyroscopeAgent {
+        //timer: self.timer,
+        //session_manager: self.session_manager,
+        //tx: self.tx,
+        //handle: self.handle,
+        //running: self.running,
+        //backend: self.backend,
+        //config: self.config,
+        //_state: PhantomData,
+        //};
 
-        Ok(agent_running)
+        Ok(self.transition())
     }
 
     pub fn tag_wrapper(
