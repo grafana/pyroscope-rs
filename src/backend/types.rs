@@ -8,7 +8,9 @@ use crate::error::Result;
 /// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
 pub struct Tag {
+    /// Tag key
     pub key: String,
+    /// Tag value
     pub value: String,
 }
 
@@ -28,6 +30,7 @@ impl std::fmt::Display for Tag {
 /// Stack buffer
 #[derive(Debug, Default, Clone)]
 pub struct StackBuffer {
+    /// Buffer data bucket
     pub data: HashMap<StackTrace, usize>,
 }
 

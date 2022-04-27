@@ -1,14 +1,14 @@
 [package]
 name = "pyroscope"
 description = """
-Pyroscope Profiler
+Pyroscope Profiler Agent for continuous profiling of Rust, Python and Ruby applications.
 """
-keywords = ["pyroscope", "profiler"]
+keywords = ["pyroscope", "profiler", "profiling", "pprof"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 license = "Apache-2.0"
-homepage = "https://pyroscope.io"
+homepage = "https://pyroscope.io/docs/rust"
 documentation  = "https://docs.rs/pyroscope"
 repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
@@ -54,10 +54,10 @@ path = "examples/internal/rbspy-connect.rs"
 thiserror ="1.0"
 log = "0.4"
 reqwest = { version = "0.11", features = ["blocking"]}
-libc = "^0.2.66"
+libc = "^0.2.124"
 
 [dev-dependencies]
-tokio = { version = "1.13", features = ["full"] }
+tokio = { version = "1.18", features = ["full"] }
 pretty_env_logger = "0.4.0"
 assert_matches = "1"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }

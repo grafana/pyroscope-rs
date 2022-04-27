@@ -139,6 +139,7 @@ impl Session {
         Ok(())
     }
 
+    /// Process a report and send it to the server.
     fn process(&self, report: &Report) -> Result<()> {
         log::info!(
             target: LOG_TAG,

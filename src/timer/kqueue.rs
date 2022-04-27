@@ -13,6 +13,8 @@ use std::{
     time::Duration,
 };
 
+const LOG_TAG: &str = "Pyroscope::Timer";
+
 /// A thread that sends a notification every 10th second
 ///
 /// Timer will send an event to attached listeners (mpsc::Sender) every 10th
@@ -33,6 +35,8 @@ pub struct Timer {
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
     pub fn initialize(cycle: Duration) -> Result<Self> {
+        log::info!(target: LOG_TAG, "Initializing Timer");
+
         let txs = Arc::new(Mutex::new(Vec::new()));
 
         // Add Default tx
@@ -56,6 +60,7 @@ impl Timer {
                     // Exit thread if there are no listeners
                     if txs.lock()?.len() == 0 {
                         // TODO: should close file descriptors?
+                        log::info!(target: LOG_TAG, "Timer thread terminated");
                         return Ok(());
                     }
 
@@ -66,8 +71,15 @@ impl Timer {
                     txs.lock()?.iter().for_each(|tx| {
                         // Send event to attached Sender
                         match tx.send(from) {
-                            Ok(_) => {}
-                            Err(_) => {}
+                            Ok(_) => {
+                                log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", &tx)
+                            }
+                            Err(e) => log::warn!(
+                                target: LOG_TAG,
+                                "Failed to send event to listener @ {:?} - {}",
+                                &tx,
+                                e
+                            ),
                         }
                     });
 

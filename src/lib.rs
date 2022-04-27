@@ -2,18 +2,18 @@
 //!
 //! # Quick Start
 //!
-//! ## Add Pyroscope and pprof-rs backend to Cargo.toml
+//! ## Add the Pyroscope Library and the pprof-rs backend to Cargo.toml
 //!
 //! ```toml
 //! [dependencies]
 //! pyroscope = "0.5"
-//! pyroscope-pprofrs = "0.1"
+//! pyroscope-pprofrs = "0.2"
 //! ```
 //!
 //! ## Configure a Pyroscope Agent
 //!
 //! ```ignore
-//! let mut agent =
+//! let agent =
 //!     PyroscopeAgent::builder("http://localhost:4040", "myapp")
 //!     .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
 //!     .build()?;
@@ -24,13 +24,19 @@
 //! To start profiling code and sending data.
 //!
 //! ```ignore
-//!  agent.start();
+//!  let agent_running = agent.start()?;
 //! ```
 //!
 //! To stop profiling code. You can restart the profiling at a later point.
 //!
 //! ```ignore
-//!  agent.stop();
+//!  let agent_ready = agent.stop()?;
+//! ```
+//!
+//! Before you drop the variable, make sure to shutdown the agent.
+//!
+//! ```ignore
+//! agent_ready.shutdown();
 //! ```
 
 // Re-exports structs

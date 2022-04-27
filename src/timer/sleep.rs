@@ -10,6 +10,8 @@ use std::{
     time::Duration,
 };
 
+const LOG_TAG: &str = "Pyroscope::Timer";
+
 /// A thread that sends a notification every 10th second
 ///
 /// Timer will send an event to attached listeners (mpsc::Sender) every 10th
@@ -30,6 +32,8 @@ pub struct Timer {
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
     pub fn initialize(cycle: Duration) -> Result<Self> {
+        log::info!(target: LOG_TAG, "Initializing Timer");
+
         let txs = Arc::new(Mutex::new(Vec::new()));
 
         // Add Default tx
@@ -50,16 +54,31 @@ impl Timer {
                 loop {
                     // Exit thread if there are no listeners
                     if txs.lock()?.len() == 0 {
+                        log::info!(target: LOG_TAG, "Timer thread terminated");
+
                         return Ok(());
                     }
 
                     // Get current time
-                    let current = TimerSignal::NextSnapshot(get_time_range(0)?.from);
+                    let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
+
+                    log::trace!(target: LOG_TAG, "Timer fired @ {}", from);
 
                     // Iterate through Senders
                     txs.lock()?.iter().for_each(|tx| {
                         // Send event to attached Sender
-                        let _res = tx.send(current);
+                        // Send event to attached Sender
+                        match tx.send(from) {
+                            Ok(_) => {
+                                log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", &tx)
+                            }
+                            Err(e) => log::warn!(
+                                target: LOG_TAG,
+                                "Failed to send event to listener @ {:?} - {}",
+                                &tx,
+                                e
+                            ),
+                        }
                     });
 
                     // Sleep for 10s
