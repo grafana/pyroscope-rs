@@ -19,13 +19,10 @@ fn hash_rounds(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.tags")
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.tags")
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .tags([("Hostname", "pyroscope")].to_vec())
         .build()?;
-
-    // Start Agent
-    agent.start()?;
 
     // Show start time
     let start = std::time::SystemTime::now()
@@ -34,15 +31,20 @@ fn main() -> Result<()> {
         .as_secs();
     println!("Start Time: {}", start);
 
+    // Start Agent
+    let agent_running = agent.start()?;
+
+    let (add_tag, remove_tag) = agent_running.tag_wrapper();
+
     // Add Tags
-    agent.add_global_tag(Tag::new("series".to_string(), "Number 1".to_string()))?;
+    add_tag("series".to_string(), "Number 1".to_string())?;
 
     // Make some calculation
     let _result = hash_rounds(300_000);
 
-    // Add Tags
-    agent.remove_global_tag(Tag::new("series".to_string(), "Number 1".to_string()))?;
-    agent.add_global_tag(Tag::new("series".to_string(), "Number 2".to_string()))?;
+    // Changing Tags
+    remove_tag("series".to_string(), "Number 1".to_string())?;
+    add_tag("series".to_string(), "Number 2".to_string())?;
 
     // Do more calculation
     let _result = hash_rounds(500_000);
@@ -55,7 +57,17 @@ fn main() -> Result<()> {
     println!("Stop Time: {}", stop);
 
     // Stop Agent
-    agent.stop()?;
+    let agent_ready = agent_running.stop()?;
+
+    // Shutdown the Agent
+    agent_ready.shutdown();
+
+    // Show program exit time
+    let exit = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Exit Time: {}", exit);
 
     Ok(())
 }

@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{backend::Tag, PyroscopeAgent, Result};
+use pyroscope::{PyroscopeAgent, Result};
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::{
     collections::hash_map::DefaultHasher,
@@ -65,7 +65,7 @@ fn extra_rounds2(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
         .tags([("Host", "Rust")].to_vec())
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .build()?;
@@ -78,9 +78,9 @@ fn main() -> Result<()> {
     println!("Start Time: {}", start);
 
     // Start Agent
-    agent.start()?;
+    let agent_running = agent.start()?;
 
-    let (add_tag, remove_tag) = agent.tag_wrapper();
+    let (add_tag, remove_tag) = agent_running.tag_wrapper();
 
     let handle_1 = thread::Builder::new()
         .name("thread-1".to_string())
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
             remove_tag("extra".to_string(), "round-1".to_string()).unwrap();
         })?;
 
-    let (add_tag, remove_tag) = agent.tag_wrapper();
+    let (add_tag, remove_tag) = agent_running.tag_wrapper();
 
     let handle_2 = thread::Builder::new()
         .name("thread-2".to_string())
@@ -107,9 +107,10 @@ fn main() -> Result<()> {
     handle_2.join().unwrap();
 
     // Stop Agent
-    agent.stop()?;
+    let agent_ready = agent_running.stop()?;
 
-    drop(agent);
+    // Shutdown the Agent
+    agent_ready.shutdown();
 
     // Show program exit time
     let exit = std::time::SystemTime::now()

@@ -30,17 +30,41 @@ fn main() -> Result<()> {
     info!("With Logger example");
 
     // Create a new agent.
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.logger")
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.logger")
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .build()?;
 
+    // Show start time
+    let start = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Start Time: {}", start);
+
     // Start Agent
-    agent.start()?;
+    let agent_running = agent.start()?;
 
     let _result = hash_rounds(300_000);
 
+    // Show stop time
+    let stop = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Stop Time: {}", stop);
+
     // Stop Agent
-    agent.stop()?;
+    let agent_ready = agent_running.stop()?;
+
+    // Shutdown the Agent
+    agent_ready.shutdown();
+
+    // Show program exit time
+    let exit = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Exit Time: {}", exit);
 
     Ok(())
 }

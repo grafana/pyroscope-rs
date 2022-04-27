@@ -19,7 +19,7 @@ fn hash_rounds(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "example.basic")
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.basic")
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
         .build()?;
@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     println!("Start Time: {}", start);
 
     // Start Agent
-    agent.start()?;
+    let agent_running = agent.start()?;
 
     let _result = hash_rounds(300_000);
 
@@ -44,9 +44,10 @@ fn main() -> Result<()> {
     println!("Stop Time: {}", stop);
 
     // Stop Agent
-    agent.stop()?;
+    let agent_ready = agent_running.stop()?;
 
-    drop(agent);
+    // Shutdown the Agent
+    agent_ready.shutdown();
 
     // Show program exit time
     let exit = std::time::SystemTime::now()

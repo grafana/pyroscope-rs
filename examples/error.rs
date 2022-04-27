@@ -17,19 +17,19 @@ fn main() -> Result<()> {
     // Initialize the logger.
     pretty_env_logger::init_timed();
 
-    let mut agent = PyroscopeAgent::builder("http://invalid_url", "example.error")
+    let agent = PyroscopeAgent::builder("http://invalid_url", "example.error")
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .build()
         .unwrap();
     // Start Agent
-    agent.start()?;
+    let agent_running = agent.start()?;
 
     let _result = fibonacci(47);
 
     // Stop Agent
-    agent.stop()?;
+    let agent_ready = agent_running.stop()?;
 
-    drop(agent);
+    agent_ready.shutdown();
 
     Ok(())
 }
