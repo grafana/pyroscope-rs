@@ -6,7 +6,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! pyroscope = "0.4"
+//! pyroscope = "0.5"
 //! pyroscope-pprofrs = "0.1"
 //! ```
 //!

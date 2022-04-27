@@ -21,7 +21,7 @@ fn main() -> Result<()> {
         .lock_process(true)
         .with_subprocesses(true);
 
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
         .tags([("Host", "Ruby")].to_vec())
         .backend(rbspy_backend(config))
         .build()?;
@@ -34,21 +34,29 @@ fn main() -> Result<()> {
     println!("Start Time: {}", start);
 
     // Start Agent
-    agent.start()?;
+    let agent_running = agent.start()?;
 
     // Profile for around 1 minute
-    std::thread::sleep(std::time::Duration::from_secs(120));
+    std::thread::sleep(std::time::Duration::from_secs(60));
 
-    agent.stop()?;
+    // Show stop time
+    let stop = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Stop Time: {}", stop);
 
-    drop(agent);
+    // Stop Agent
+    let agent_ready = agent_running.stop()?;
+
+    // Shutdown the Agent
+    agent_ready.shutdown();
 
     // Show program exit time
     let exit = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-
     println!("Exit Time: {}", exit);
 
     Ok(())

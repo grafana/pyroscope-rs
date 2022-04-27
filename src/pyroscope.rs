@@ -191,7 +191,11 @@ impl PyroscopeAgentBuilder {
             session_manager,
             tx: None,
             handle: None,
-            running: Arc::new((Mutex::new(false), Condvar::new())),
+            running: Arc::new((
+                #[allow(clippy::mutex_atomic)]
+                Mutex::new(false),
+                Condvar::new(),
+            )),
             _state: PhantomData,
         })
     }
@@ -208,16 +212,21 @@ impl PyroscopeAgentState for PyroscopeAgentRunning {}
 /// PyroscopeAgent is the main object of the library. It is used to start and stop the profiler, schedule the timer, and send the profiler data to the server.
 #[derive(Debug)]
 pub struct PyroscopeAgent<S: PyroscopeAgentState> {
+    /// Instance of the Timer
     timer: Timer,
+    /// Instance of the SessionManager
     session_manager: SessionManager,
+    /// Channel sender for the timer thread
     tx: Option<Sender<TimerSignal>>,
+    /// Handle to the thread that runs the Pyroscope Agent
     handle: Option<JoinHandle<Result<()>>>,
+    /// A structure to signal thread termination
     running: Arc<(Mutex<bool>, Condvar)>,
-
     /// Profiler backend
     pub backend: BackendImpl<BackendReady>,
     /// Configuration Object
     pub config: PyroscopeConfig,
+    /// PyroscopeAgent State
     _state: PhantomData<S>,
 }
 
@@ -280,7 +289,7 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
             }
         }
 
-        log::debug!(target: LOG_TAG, "Agent Dropped");
+        log::debug!(target: LOG_TAG, "Agent Shutdown");
     }
 }
 
@@ -387,7 +396,8 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
             // Send last session
-            let _ = sender.send(TimerSignal::NextSnapshot(get_time_range(0)?.until));
+            sender.send(TimerSignal::NextSnapshot(get_time_range(0)?.until))?;
+            // Terminate PyroscopeAgent internal thread
             sender.send(TimerSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")
@@ -397,20 +407,6 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         let pair = Arc::clone(&self.running);
         let (lock, cvar) = &*pair;
         let _guard = cvar.wait_while(lock.lock()?, |running| *running)?;
-
-        // Create a clone of Backend
-        //let backend = Arc::clone(&self.backend);
-
-        //let agent_running = PyroscopeAgent {
-        //timer: self.timer,
-        //session_manager: self.session_manager,
-        //tx: self.tx,
-        //handle: self.handle,
-        //running: self.running,
-        //backend: self.backend,
-        //config: self.config,
-        //_state: PhantomData,
-        //};
 
         Ok(self.transition())
     }
@@ -444,29 +440,28 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         )
     }
 
-    // TODO: change &mut self to &self
-    pub fn add_global_tag(&mut self, tag: Tag) -> Result<()> {
+    pub fn add_global_tag(&self, tag: Tag) -> Result<()> {
         let rule = Rule::GlobalTag(tag);
         self.backend.add_rule(rule)?;
 
         Ok(())
     }
 
-    pub fn remove_global_tag(&mut self, tag: Tag) -> Result<()> {
+    pub fn remove_global_tag(&self, tag: Tag) -> Result<()> {
         let rule = Rule::GlobalTag(tag);
         self.backend.remove_rule(rule)?;
 
         Ok(())
     }
 
-    pub fn add_thread_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
+    pub fn add_thread_tag(&self, thread_id: u64, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
         self.backend.add_rule(rule)?;
 
         Ok(())
     }
 
-    pub fn remove_thread_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
+    pub fn remove_thread_tag(&self, thread_id: u64, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
         self.backend.remove_rule(rule)?;
 

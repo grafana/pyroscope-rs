@@ -1,8 +1,6 @@
 use crate::backend::Tag;
 use crate::{error::Result, PyroscopeError};
 
-use std::collections::HashMap;
-
 /// Format application_name with tags.
 pub fn merge_tags_with_app_name(application_name: String, tags: Vec<Tag>) -> Result<String> {
     // tags empty, return application_name

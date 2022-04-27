@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{backend::Tag, PyroscopeAgent, Result};
+use pyroscope::{PyroscopeAgent, Result};
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::hash::{Hash, Hasher};
 
