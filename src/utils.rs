@@ -77,7 +77,7 @@ mod check_err_tests {
 
 /// libc::epoll_ctl wrapper
 pub fn pthread_self() -> Result<u64> {
-    let thread_id = check_err(unsafe { libc::pthread_self() })?;
+    let thread_id = check_err(unsafe { libc::pthread_self() })? as u64;
     Ok(thread_id)
 }
 
