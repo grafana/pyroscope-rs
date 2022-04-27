@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    marker::PhantomData,
     sync::{
         mpsc::{self, Sender},
         Arc, Condvar, Mutex,
@@ -152,7 +153,7 @@ impl PyroscopeAgentBuilder {
     }
 
     /// Initialize the backend, timer and return a PyroscopeAgent object.
-    pub fn build(self) -> Result<PyroscopeAgent> {
+    pub fn build(self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
         // Get the backend
         //let backend = Arc::clone(&self.backend);
 
@@ -191,13 +192,22 @@ impl PyroscopeAgentBuilder {
             tx: None,
             handle: None,
             running: Arc::new((Mutex::new(false), Condvar::new())),
+            _state: PhantomData,
         })
     }
 }
 
+pub trait PyroscopeAgentState {}
+pub struct PyroscopeAgentBare;
+pub struct PyroscopeAgentReady;
+pub struct PyroscopeAgentRunning;
+impl PyroscopeAgentState for PyroscopeAgentBare {}
+impl PyroscopeAgentState for PyroscopeAgentReady {}
+impl PyroscopeAgentState for PyroscopeAgentRunning {}
+
 /// PyroscopeAgent is the main object of the library. It is used to start and stop the profiler, schedule the timer, and send the profiler data to the server.
 #[derive(Debug)]
-pub struct PyroscopeAgent {
+pub struct PyroscopeAgent<S: PyroscopeAgentState> {
     timer: Timer,
     session_manager: SessionManager,
     tx: Option<Sender<TimerSignal>>,
@@ -208,12 +218,13 @@ pub struct PyroscopeAgent {
     pub backend: BackendImpl<BackendReady>,
     /// Configuration Object
     pub config: PyroscopeConfig,
+    _state: PhantomData<S>,
 }
 
 /// Gracefully stop the profiler.
-impl Drop for PyroscopeAgent {
+impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
     /// Properly shutdown the agent.
-    fn drop(&mut self) {
+    pub fn shutdown(mut self) {
         log::debug!(target: LOG_TAG, "PyroscopeAgent::drop()");
 
         // Drop Timer listeners
@@ -258,7 +269,7 @@ impl Drop for PyroscopeAgent {
     }
 }
 
-impl PyroscopeAgent {
+impl PyroscopeAgent<PyroscopeAgentBare> {
     /// Short-hand for PyroscopeAgentBuilder::build(). This is a convenience method.
     ///
     /// # Example
@@ -269,14 +280,16 @@ impl PyroscopeAgent {
         // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
     }
+}
 
+impl PyroscopeAgent<PyroscopeAgentReady> {
     /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
     /// agent.start()?;
     /// ```
-    pub fn start(&mut self) -> Result<()> {
+    pub fn start(mut self) -> Result<PyroscopeAgent<PyroscopeAgentRunning>> {
         log::debug!(target: LOG_TAG, "Starting");
 
         // Create a clone of Backend
@@ -331,9 +344,21 @@ impl PyroscopeAgent {
             Ok(())
         }));
 
-        Ok(())
-    }
+        let agent_running = PyroscopeAgent {
+            timer: self.timer,
+            session_manager: self.session_manager,
+            tx: self.tx,
+            handle: self.handle,
+            running: self.running,
+            backend: self.backend,
+            config: self.config,
+            _state: PhantomData,
+        };
 
+        Ok(agent_running)
+    }
+}
+impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     /// # Example
     /// ```ignore
@@ -342,7 +367,7 @@ impl PyroscopeAgent {
     /// // Expensive operation
     /// agent.stop();
     /// ```
-    pub fn stop(&mut self) -> Result<()> {
+    pub fn stop(mut self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
@@ -361,43 +386,18 @@ impl PyroscopeAgent {
         // Create a clone of Backend
         //let backend = Arc::clone(&self.backend);
 
-        Ok(())
-    }
+        let agent_running = PyroscopeAgent {
+            timer: self.timer,
+            session_manager: self.session_manager,
+            tx: self.tx,
+            handle: self.handle,
+            running: self.running,
+            backend: self.backend,
+            config: self.config,
+            _state: PhantomData,
+        };
 
-    /// Add tags. This will restart the agent.
-    /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// agent.start()?;
-    /// // Expensive operation
-    /// agent.add_tags(vec!["tag", "value"])?;
-    /// // Tagged operation
-    /// agent.stop()?;
-    /// ```
-    pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
-        log::debug!(target: LOG_TAG, "Adding tags");
-        // Check that tags are not empty
-        if tags.is_empty() {
-            return Ok(());
-        }
-
-        // Stop Agent
-        self.stop()?;
-
-        // Convert &[(&str, &str)] to HashMap(String, String)
-        let tags_hashmap: HashMap<String, String> = tags
-            .to_owned()
-            .iter()
-            .cloned()
-            .map(|(a, b)| (a.to_owned(), b.to_owned()))
-            .collect();
-
-        self.config.tags.extend(tags_hashmap);
-
-        // Restart Agent
-        self.start()?;
-
-        Ok(())
+        Ok(agent_running)
     }
 
     pub fn tag_wrapper(
@@ -429,6 +429,7 @@ impl PyroscopeAgent {
         )
     }
 
+    // TODO: change &mut self to &self
     pub fn add_global_tag(&mut self, tag: Tag) -> Result<()> {
         let rule = Rule::GlobalTag(tag);
         self.backend.add_rule(rule)?;
@@ -453,46 +454,6 @@ impl PyroscopeAgent {
     pub fn remove_thread_tag(&mut self, thread_id: u64, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
         self.backend.remove_rule(rule)?;
-
-        Ok(())
-    }
-
-    /// Remove tags. This will restart the agent.
-    /// # Example
-    /// ```ignore
-    /// # use pyroscope::*;
-    /// # use std::result;
-    /// # fn main() -> result::Result<(), error::PyroscopeError> {
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app")
-    /// .tags(vec![("tag", "value")])
-    /// .build()?;
-    /// agent.start()?;
-    /// // Expensive operation
-    /// agent.remove_tags(vec!["tag"])?;
-    /// // Un-Tagged operation
-    /// agent.stop()?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
-        log::debug!(target: LOG_TAG, "Removing tags");
-
-        // Check that tags are not empty
-        if tags.is_empty() {
-            return Ok(());
-        }
-
-        // Stop Agent
-        self.stop()?;
-
-        // Iterate through every tag
-        tags.iter().for_each(|key| {
-            // Remove tag
-            self.config.tags.remove(key.to_owned());
-        });
-
-        // Restart Agent
-        self.start()?;
 
         Ok(())
     }
