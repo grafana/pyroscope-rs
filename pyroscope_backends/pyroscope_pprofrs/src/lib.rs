@@ -30,10 +30,12 @@ impl Default for PprofConfig {
 }
 
 impl PprofConfig {
+    /// Create a new Pprof configuration
     pub fn new() -> Self {
         PprofConfig::default()
     }
 
+    /// Set the sample rate
     pub fn sample_rate(self, sample_rate: u32) -> Self {
         PprofConfig { sample_rate }
     }
@@ -61,6 +63,7 @@ impl std::fmt::Debug for Pprof<'_> {
 }
 
 impl<'a> Pprof<'a> {
+    /// Create a new Pprof Backend
     pub fn new(config: PprofConfig) -> Self {
         Pprof {
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
@@ -130,6 +133,7 @@ impl Backend for Pprof<'_> {
 
         Ok(())
     }
+
     fn remove_rule(&self, rule: Rule) -> Result<()> {
         if self.guard.lock()?.as_ref().is_some() {
             self.dump_report()?;
@@ -142,6 +146,7 @@ impl Backend for Pprof<'_> {
 }
 
 impl Pprof<'_> {
+    /// Workaround for pprof-rs to interupt the profiler
     pub fn dump_report(&self) -> Result<()> {
         let report = self
             .guard
