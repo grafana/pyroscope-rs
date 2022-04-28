@@ -18,10 +18,10 @@ readme = "README.md"
 human-panic = "1.0.3"
 pretty_env_logger = "0.4.0"
 better-panic = "0.3.0"
-log = "=0.4.11"
+log = "=0.4.16"
 clap_complete = "3.1"
 names= "0.13.0"
-ctrlc = "3.2.1"
+ctrlc = "3.2.2"
 duct = "0.13.5"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0.30"
@@ -39,7 +39,7 @@ pyroscope_rbspy = {version = "0.2", path = "../pyroscope_backends/pyroscope_rbsp
 pyroscope_pyspy = {version = "0.2", path = "../pyroscope_backends/pyroscope_pyspy" }
 
 [dependencies.clap]
-version = "=3.1.6"
+version = "=3.1.12"
 features = ["cargo", "derive"]
 
 [dev-dependencies]

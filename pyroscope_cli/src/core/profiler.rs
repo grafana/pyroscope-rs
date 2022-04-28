@@ -1,7 +1,4 @@
-use pyroscope::{
-    pyroscope::{PyroscopeAgentReady, PyroscopeAgentRunning, PyroscopeAgentState},
-    PyroscopeAgent,
-};
+use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
