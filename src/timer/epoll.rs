@@ -13,6 +13,8 @@ use std::{
     time::Duration,
 };
 
+const LOG_TAG: &str = "Pyroscope::Timer";
+
 /// A thread that sends a notification every 10th second
 ///
 /// Timer will send an event to attached listeners (mpsc::Sender) every 10th
@@ -33,6 +35,8 @@ pub struct Timer {
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
     pub fn initialize(cycle: Duration) -> Result<Self> {
+        log::info!(target: LOG_TAG, "Initializing Timer");
+
         let txs = Arc::new(Mutex::new(Vec::new()));
 
         // Add a dummy tx so the below thread does not terminate early
@@ -51,6 +55,9 @@ impl Timer {
                         // Close file descriptors
                         unsafe { libc::close(timer_fd) };
                         unsafe { libc::close(epoll_fd) };
+
+                        log::info!(target: LOG_TAG, "Timer thread terminated");
+
                         return Ok::<_, PyroscopeError>(());
                     }
 
@@ -60,10 +67,22 @@ impl Timer {
                     // Get the current time range
                     let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
 
+                    log::trace!(target: LOG_TAG, "Timer fired @ {}", from);
+
                     // Iterate through Senders
                     txs.lock()?.iter().for_each(|tx| {
                         // Send event to attached Sender
-                        if tx.send(from).is_ok() {}
+                        match tx.send(from) {
+                            Ok(_) => {
+                                log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", &tx)
+                            }
+                            Err(e) => log::warn!(
+                                target: LOG_TAG,
+                                "Failed to send event to listener @ {:?} - {}",
+                                &tx,
+                                e
+                            ),
+                        }
                     });
                 }
             })

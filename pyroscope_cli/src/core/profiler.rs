@@ -1,6 +1,6 @@
-use pyroscope::PyroscopeAgent;
-use pyroscope_pyspy::{Pyspy, PyspyConfig};
-use pyroscope_rbspy::{Rbspy, RbspyConfig};
+use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
+use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
+use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
 use crate::utils::{
     app_config::AppConfig,
@@ -11,7 +11,7 @@ use crate::utils::{
 /// Wrapper for the `pyroscope` library and the `pyroscope_pyspy` and `pyroscope_rbspy` backends.
 #[derive(Debug, Default)]
 pub struct Profiler {
-    agent: Option<PyroscopeAgent>,
+    agent: Option<PyroscopeAgent<PyroscopeAgentRunning>>,
 }
 
 impl Profiler {
@@ -36,7 +36,7 @@ impl Profiler {
         let tag_str = &AppConfig::get::<String>("tag")?;
         let tags = tags_to_array(tag_str)?;
 
-        let mut agent = match AppConfig::get::<Spy>("spy_name")? {
+        let agent = match AppConfig::get::<Spy>("spy_name")? {
             Spy::Pyspy => {
                 let config = PyspyConfig::new(pid)
                     .sample_rate(sample_rate)
@@ -45,7 +45,7 @@ impl Profiler {
                     .include_idle(pyspy_idle)
                     .gil_only(pyspy_gil)
                     .native(pyspy_native);
-                let backend = Pyspy::new(config);
+                let backend = pyspy_backend(config);
                 PyroscopeAgent::builder(server_address, app_name)
                     .backend(backend)
                     .tags(tags)
@@ -56,7 +56,7 @@ impl Profiler {
                     .sample_rate(sample_rate)
                     .lock_process(blocking)
                     .with_subprocesses(detect_subprocesses);
-                let backend = Rbspy::new(config);
+                let backend = rbspy_backend(config);
                 PyroscopeAgent::builder(server_address, app_name)
                     .backend(backend)
                     .tags(tags)
@@ -64,17 +64,18 @@ impl Profiler {
             }
         };
 
-        agent.start()?;
+        let agent_running = agent.start()?;
 
-        self.agent = Some(agent);
+        self.agent = Some(agent_running);
 
         Ok(())
     }
 
     /// Stops the `pyroscope` library agent and the backend.
     pub fn stop(self) -> Result<()> {
-        if let Some(mut agent) = self.agent {
-            agent.stop()?;
+        if let Some(agent_running) = self.agent {
+            let agent_ready = agent_running.stop()?;
+            agent_ready.shutdown();
         }
 
         Ok(())

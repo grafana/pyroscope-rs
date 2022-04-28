@@ -21,9 +21,6 @@ fn main() -> Result<()> {
     // Initialize backend
     backend.initialize()?;
 
-    // Start profiling
-    backend.start()?;
-
     // Do some work
     fibonacci(45);
 
@@ -31,10 +28,10 @@ fn main() -> Result<()> {
     let report = backend.report()?;
 
     // Print report
-    println!("{}", std::str::from_utf8(&report).unwrap());
+    dbg!(report);
 
     // Stop profiling
-    backend.stop()?;
+    Box::new(backend).shutdown()?;
 
     Ok(())
 }

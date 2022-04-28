@@ -3,7 +3,7 @@ extern crate pyroscope;
 use std::env;
 
 use pyroscope::{PyroscopeAgent, Result};
-use pyroscope_pyspy::{Pyspy, PyspyConfig};
+use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 
 fn main() -> Result<()> {
     // Force rustc to display the log messages in the console.
@@ -24,8 +24,9 @@ fn main() -> Result<()> {
         .include_idle(false)
         .native(false);
 
-    let mut agent = PyroscopeAgent::builder("http://localhost:4040", "pyspy.basic")
-        .backend(Pyspy::new(config))
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "pyspy.basic")
+        .tags([("Host", "Python")].to_vec())
+        .backend(pyspy_backend(config))
         .build()?;
 
     // Show start time
@@ -36,30 +37,29 @@ fn main() -> Result<()> {
     println!("Start Time: {}", start);
 
     // Start Agent
-    agent.start()?;
+    let agent_running = agent.start()?;
 
     // Profile for around 1 minute
-    std::thread::sleep(std::time::Duration::from_secs(20));
+    std::thread::sleep(std::time::Duration::from_secs(60));
 
-    println!("Stopping agent");
+    // Show stop time
+    let stop = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("Stop Time: {}", stop);
+
     // Stop Agent
-    agent.stop()?;
+    let agent_ready = agent_running.stop()?;
 
-    println!("Done");
-
-    agent.start()?;
-    std::thread::sleep(std::time::Duration::from_secs(40));
-
-    agent.stop()?;
-
-    drop(agent);
+    // Shutdown the Agent
+    agent_ready.shutdown();
 
     // Show program exit time
     let exit = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-
     println!("Exit Time: {}", exit);
 
     Ok(())

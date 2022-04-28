@@ -1,4 +1,5 @@
 use pyroscope::{
+    backend::Report,
     pyroscope::PyroscopeConfig,
     session::{Session, SessionManager, SessionSignal},
 };
@@ -27,7 +28,7 @@ fn test_session_new() {
         spy_name: "test-rs".to_string(),
     };
 
-    let report = vec![1, 2, 3];
+    let report = vec![Report::new(HashMap::new())];
 
     let session = Session::new(1950, config, report).unwrap();
 
@@ -45,9 +46,7 @@ fn test_session_send_error() {
         spy_name: "test-rs".to_string(),
     };
 
-    let report = vec![1, 2, 3];
+    let report = vec![Report::new(HashMap::new())];
 
     let _session = Session::new(1950, config, report).unwrap();
-
-    // TODO: to figure this out
 }

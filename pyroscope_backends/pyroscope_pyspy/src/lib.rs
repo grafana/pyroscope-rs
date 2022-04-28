@@ -1,15 +1,23 @@
 use py_spy::{config::Config, sampler::Sampler};
 use pyroscope::{
-    backend::{Backend, Report, StackFrame, StackTrace, State},
+    backend::{
+        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
+        StackTrace,
+    },
     error::{PyroscopeError, Result},
 };
 use std::{
+    ops::Deref,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
     },
     thread::JoinHandle,
 };
+
+pub fn pyspy_backend(config: PyspyConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Box::new(Pyspy::new(config)))
+}
 
 /// Pyspy Configuration
 #[derive(Debug, Clone)]
@@ -111,10 +119,8 @@ impl PyspyConfig {
 /// Pyspy Backend
 #[derive(Default)]
 pub struct Pyspy {
-    /// Pyspy State
-    state: State,
     /// Profiling buffer
-    buffer: Arc<Mutex<Report>>,
+    buffer: Arc<Mutex<StackBuffer>>,
     /// Pyspy Configuration
     config: PyspyConfig,
     /// Sampler configuration
@@ -123,6 +129,8 @@ pub struct Pyspy {
     sampler_thread: Option<JoinHandle<Result<()>>>,
     /// Atomic flag to stop the sampler
     running: Arc<AtomicBool>,
+    /// Ruleset
+    ruleset: Arc<Mutex<Ruleset>>,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -135,21 +143,17 @@ impl Pyspy {
     /// Create a new Pyspy Backend
     pub fn new(config: PyspyConfig) -> Self {
         Pyspy {
-            state: State::Uninitialized,
-            buffer: Arc::new(Mutex::new(Report::default())),
+            buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
             sampler_config: None,
             sampler_thread: None,
             running: Arc::new(AtomicBool::new(false)),
+            ruleset: Arc::new(Mutex::new(Ruleset::default())),
         }
     }
 }
 
 impl Backend for Pyspy {
-    fn get_state(&self) -> State {
-        self.state
-    }
-
     fn spy_name(&self) -> Result<String> {
         Ok("pyspy".to_string())
     }
@@ -158,12 +162,19 @@ impl Backend for Pyspy {
         Ok(self.config.sample_rate)
     }
 
-    fn initialize(&mut self) -> Result<()> {
-        // Check if Backend is Uninitialized
-        if self.state != State::Uninitialized {
-            return Err(PyroscopeError::new("Pyspy: Backend is already Initialized"));
-        }
+    fn add_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.lock()?.add_rule(rule)?;
 
+        Ok(())
+    }
+
+    fn remove_rule(&self, rule: Rule) -> Result<()> {
+        self.ruleset.lock()?.remove_rule(rule)?;
+
+        Ok(())
+    }
+
+    fn initialize(&mut self) -> Result<()> {
         // Check if a process ID is set
         if self.config.pid.is_none() {
             return Err(PyroscopeError::new("Pyspy: No Process ID Specified"));
@@ -189,18 +200,9 @@ impl Backend for Pyspy {
             ..Config::default()
         });
 
-        // Set State to Ready
-        self.state = State::Ready;
-
-        Ok(())
-    }
-
-    fn start(&mut self) -> Result<()> {
-        // Check if Backend is Ready
-        if self.state != State::Ready {
-            return Err(PyroscopeError::new("Pyspy: Backend is not Ready"));
-        }
-
+        //
+        //
+        //
         // set sampler state to running
         let running = Arc::clone(&self.running);
         running.store(true, Ordering::Relaxed);
@@ -213,6 +215,8 @@ impl Backend for Pyspy {
             .sampler_config
             .clone()
             .ok_or_else(|| PyroscopeError::new("Pyspy: Sampler configuration is not set"))?;
+
+        let ruleset = self.ruleset.clone();
 
         self.sampler_thread = Some(std::thread::spawn(move || {
             // Get PID
@@ -243,58 +247,46 @@ impl Backend for Pyspy {
                     let own_trace: StackTrace =
                         Into::<StackTraceWrapper>::into(trace.clone()).into();
 
+                    // apply ruleset
+                    let stacktrace = own_trace + &ruleset.lock()?.clone();
+
                     // Add the trace to the buffer
-                    buffer.lock()?.record(own_trace)?;
+                    buffer.lock()?.record(stacktrace)?;
                 }
             }
 
             Ok(())
         }));
 
-        // Set State to Running
-        self.state = State::Running;
-
         Ok(())
     }
 
-    fn stop(&mut self) -> Result<()> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pyspy: Backend is not Running"));
-        }
-
+    fn shutdown(self: Box<Self>) -> Result<()> {
         // set running to false
-        self.running.store(false, Ordering::Relaxed);
+        //self.running.store(false, Ordering::Relaxed);
 
         // wait for sampler thread to finish
         self.sampler_thread
-            .take()
+            //.take()
             .ok_or_else(|| PyroscopeError::new("Pyspy: Failed to unwrap Sampler Thread"))?
             .join()
             .unwrap_or_else(|_| Err(PyroscopeError::new("Pyspy: Failed to join sampler thread")))?;
 
-        // Set State to Running
-        self.state = State::Ready;
-
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<u8>> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pyspy: Backend is not Running"));
-        }
-
+    fn report(&mut self) -> Result<Vec<Report>> {
         // create a new buffer reference
         let buffer = self.buffer.clone();
 
         // convert the buffer report into a byte vector
-        let report: Vec<u8> = buffer.lock()?.to_string().into_bytes();
+        let report: StackBuffer = buffer.lock()?.deref().to_owned();
+        let reports: Vec<Report> = report.into();
 
         // Clear the buffer
         buffer.lock()?.clear();
 
-        Ok(report)
+        Ok(reports)
     }
 }
 
@@ -329,15 +321,16 @@ impl From<StackTraceWrapper> for StackTrace {
 
 impl From<py_spy::StackTrace> for StackTraceWrapper {
     fn from(trace: py_spy::StackTrace) -> Self {
-        StackTraceWrapper(StackTrace {
-            pid: Some(trace.pid as u32),
-            thread_id: Some(trace.thread_id as u64),
-            thread_name: trace.thread_name.clone(),
-            frames: trace
+        let stacktrace = StackTrace::new(
+            Some(trace.pid as u32),
+            Some(trace.thread_id as u64),
+            trace.thread_name.clone(),
+            trace
                 .frames
                 .iter()
                 .map(|frame| Into::<StackFrameWrapper>::into(frame.clone()).into())
                 .collect(),
-        })
+        );
+        StackTraceWrapper(stacktrace)
     }
 }

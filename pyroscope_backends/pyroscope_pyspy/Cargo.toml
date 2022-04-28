@@ -5,7 +5,7 @@ pyspy backend for Pyroscope Profiler.
 """
 keywords = ["pyroscope", "profiler", "pyspy"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
@@ -15,7 +15,7 @@ readme = "README.md"
 
 [dependencies]
 py-spy = "0.3.11"
-pyroscope = { version = "0.4.0", path = "../../" }
+pyroscope = { version = "0.5.0", path = "../../" }
 thiserror ="1.0"
 
 [profile.dev]

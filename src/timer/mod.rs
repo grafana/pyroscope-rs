@@ -18,9 +18,11 @@ impl std::fmt::Display for TimerSignal {
         }
     }
 }
+
 // Possibly: ios, netbsd, openbsd, freebsd
 #[cfg(target_os = "macos")]
 pub mod kqueue;
+
 #[cfg(target_os = "macos")]
 pub use kqueue::Timer;
 

@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    marker::PhantomData,
     sync::{
         mpsc::{self, Sender},
         Arc, Condvar, Mutex,
@@ -8,17 +9,20 @@ use std::{
 };
 
 use crate::{
+    backend::{void_backend, BackendReady, BackendUninitialized, Rule, Tag, VoidConfig},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
     utils::get_time_range,
+    PyroscopeError,
 };
 
-use crate::backend::{Backend, VoidBackend};
+use crate::backend::BackendImpl;
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
+///
 /// # Example
 /// ```
 /// use pyroscope::pyroscope::PyroscopeConfig;
@@ -41,6 +45,7 @@ pub struct PyroscopeConfig {
 impl PyroscopeConfig {
     /// Create a new PyroscopeConfig object. url and application_name are required.
     /// tags and sample_rate are optional. If sample_rate is not specified, it will default to 100.
+    ///
     /// # Example
     /// ```ignore
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
@@ -68,7 +73,8 @@ impl PyroscopeConfig {
         Self { spy_name, ..self }
     }
 
-    /// Set the tags
+    /// Set the tags.
+    ///
     /// # Example
     /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeConfig;
@@ -104,7 +110,7 @@ impl PyroscopeConfig {
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
-    backend: Arc<Mutex<dyn Backend>>,
+    backend: BackendImpl<BackendUninitialized>,
     /// Configuration Object
     config: PyroscopeConfig,
 }
@@ -119,30 +125,26 @@ impl PyroscopeAgentBuilder {
     /// ```
     pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
         Self {
-            backend: Arc::new(Mutex::new(VoidBackend::default())), // Default Backend
+            backend: void_backend(VoidConfig::default()), // Default Backend
             config: PyroscopeConfig::new(url, application_name),
         }
     }
 
-    /// Set the agent backend. Default is pprof.
+    /// Set the agent backend. Default is void-backend.
+    ///
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .backend(Pprof::default())
+    /// .backend(PprofConfig::new().sample_rate(100))
     /// .build()
     /// ?;
     /// ```
-    pub fn backend<T>(self, backend: T) -> Self
-    where
-        T: 'static + Backend,
-    {
-        Self {
-            backend: Arc::new(Mutex::new(backend)),
-            ..self
-        }
+    pub fn backend(self, backend: BackendImpl<BackendUninitialized>) -> Self {
+        Self { backend, ..self }
     }
 
     /// Set tags. Default is empty.
+    ///
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
@@ -156,20 +158,28 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// Initialize the backend, timer and return a PyroscopeAgent object.
-    pub fn build(self) -> Result<PyroscopeAgent> {
-        // Get the backend
-        let backend = Arc::clone(&self.backend);
-        // Initialize the backend
-        backend.lock()?.initialize()?;
-
+    /// Initialize the backend, timer and return a PyroscopeAgent with Ready
+    /// state. While you can call this method, you should call it through the
+    /// `PyroscopeAgent.build()` method.
+    pub fn build(self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
         // Set Spy Name and Sample Rate from the Backend
-        let config = self.config.sample_rate(backend.lock()?.sample_rate()?);
-        let config = config.spy_name(backend.lock()?.spy_name()?);
+        let config = self.config.sample_rate(self.backend.sample_rate()?);
+        let config = config.spy_name(self.backend.spy_name()?);
 
+        // Set Global Tags
+        for (key, value) in config.tags.iter() {
+            self.backend
+                .add_rule(crate::backend::Rule::GlobalTag(Tag::new(
+                    key.to_owned(),
+                    value.to_owned(),
+                )))?;
+        }
+
+        // Initialize the Backend
+        let backend_ready = self.backend.initialize()?;
         log::trace!(target: LOG_TAG, "Backend initialized");
 
-        // Start Timer
+        // Start the Timer
         let timer = Timer::initialize(std::time::Duration::from_secs(10))?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
@@ -179,36 +189,81 @@ impl PyroscopeAgentBuilder {
 
         // Return PyroscopeAgent
         Ok(PyroscopeAgent {
-            backend: self.backend,
+            backend: backend_ready,
             config,
             timer,
             session_manager,
             tx: None,
             handle: None,
-            running: Arc::new((Mutex::new(false), Condvar::new())),
+            running: Arc::new((
+                #[allow(clippy::mutex_atomic)]
+                Mutex::new(false),
+                Condvar::new(),
+            )),
+            _state: PhantomData,
         })
     }
 }
 
+/// This trait is used to encode the state of the agent.
+pub trait PyroscopeAgentState {}
+
+/// Marker struct for an Uninitialized state.
+#[derive(Debug)]
+pub struct PyroscopeAgentBare;
+
+/// Marker struct for a Ready state.
+#[derive(Debug)]
+pub struct PyroscopeAgentReady;
+
+/// Marker struct for a Running state.
+#[derive(Debug)]
+pub struct PyroscopeAgentRunning;
+
+impl PyroscopeAgentState for PyroscopeAgentBare {}
+impl PyroscopeAgentState for PyroscopeAgentReady {}
+impl PyroscopeAgentState for PyroscopeAgentRunning {}
+
 /// PyroscopeAgent is the main object of the library. It is used to start and stop the profiler, schedule the timer, and send the profiler data to the server.
 #[derive(Debug)]
-pub struct PyroscopeAgent {
+pub struct PyroscopeAgent<S: PyroscopeAgentState> {
+    /// Instance of the Timer
     timer: Timer,
+    /// Instance of the SessionManager
     session_manager: SessionManager,
+    /// Channel sender for the timer thread
     tx: Option<Sender<TimerSignal>>,
+    /// Handle to the thread that runs the Pyroscope Agent
     handle: Option<JoinHandle<Result<()>>>,
+    /// A structure to signal thread termination
     running: Arc<(Mutex<bool>, Condvar)>,
-
     /// Profiler backend
-    pub backend: Arc<Mutex<dyn Backend>>,
+    pub backend: BackendImpl<BackendReady>,
     /// Configuration Object
     pub config: PyroscopeConfig,
+    /// PyroscopeAgent State
+    _state: PhantomData<S>,
 }
 
-/// Gracefully stop the profiler.
-impl Drop for PyroscopeAgent {
+impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
+    /// Transition the PyroscopeAgent to a new state.
+    fn transition<D: PyroscopeAgentState>(self) -> PyroscopeAgent<D> {
+        PyroscopeAgent {
+            timer: self.timer,
+            session_manager: self.session_manager,
+            tx: self.tx,
+            handle: self.handle,
+            running: self.running,
+            backend: self.backend,
+            config: self.config,
+            _state: PhantomData,
+        }
+    }
+}
+
+impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
     /// Properly shutdown the agent.
-    fn drop(&mut self) {
+    pub fn shutdown(mut self) {
         log::debug!(target: LOG_TAG, "PyroscopeAgent::drop()");
 
         // Drop Timer listeners
@@ -249,11 +304,11 @@ impl Drop for PyroscopeAgent {
             }
         }
 
-        log::debug!(target: LOG_TAG, "Agent Dropped");
+        log::debug!(target: LOG_TAG, "Agent Shutdown");
     }
 }
 
-impl PyroscopeAgent {
+impl PyroscopeAgent<PyroscopeAgentBare> {
     /// Short-hand for PyroscopeAgentBuilder::build(). This is a convenience method.
     ///
     /// # Example
@@ -264,20 +319,22 @@ impl PyroscopeAgent {
         // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
     }
+}
 
-    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s secondy.
+impl PyroscopeAgent<PyroscopeAgentReady> {
+    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s seconds.
+    ///
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// agent.start()?;
+    /// let agent_running = agent.start()?;
     /// ```
-    pub fn start(&mut self) -> Result<()> {
+    pub fn start(mut self) -> Result<PyroscopeAgent<PyroscopeAgentRunning>> {
         log::debug!(target: LOG_TAG, "Starting");
 
         // Create a clone of Backend
-        let backend = Arc::clone(&self.backend);
+        let backend = Arc::clone(&self.backend.backend);
         // Call start()
-        backend.lock()?.start()?;
 
         // set running to true
         let pair = Arc::clone(&self.running);
@@ -286,12 +343,14 @@ impl PyroscopeAgent {
         *running = true;
         drop(running);
 
+        // Create a channel to listen for timer signals
         let (tx, rx) = mpsc::channel();
         self.timer.attach_listener(tx.clone())?;
         self.tx = Some(tx);
 
         let config = self.config.clone();
 
+        // Clone SessionManager Sender
         let stx = self.session_manager.tx.clone();
 
         self.handle = Some(std::thread::spawn(move || {
@@ -303,7 +362,15 @@ impl PyroscopeAgent {
                         log::trace!(target: LOG_TAG, "Sending session {}", until);
 
                         // Generate report from backend
-                        let report = backend.lock()?.report()?;
+                        let report = backend
+                            .lock()?
+                            .as_mut()
+                            .ok_or_else(|| {
+                                PyroscopeError::AdHoc(
+                                    "PyroscopeAgent - Failed to unwrap backend".to_string(),
+                                )
+                            })?
+                            .report()?;
 
                         // Send new Session to SessionManager
                         stx.send(SessionSignal::Session(Session::new(
@@ -315,11 +382,13 @@ impl PyroscopeAgent {
                     TimerSignal::Terminate => {
                         log::trace!(target: LOG_TAG, "Session Killed");
 
+                        // Notify the Stop function
                         let (lock, cvar) = &*pair;
                         let mut running = lock.lock()?;
                         *running = false;
                         cvar.notify_one();
 
+                        // Kill the internal thread
                         return Ok(());
                     }
                 }
@@ -327,23 +396,26 @@ impl PyroscopeAgent {
             Ok(())
         }));
 
-        Ok(())
+        Ok(self.transition())
     }
-
+}
+impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
+    ///
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// agent.start()?;
+    /// let agent_running = agent.start()?;
     /// // Expensive operation
-    /// agent.stop();
+    /// let agent_ready = agent_running.stop();
     /// ```
-    pub fn stop(&mut self) -> Result<()> {
+    pub fn stop(mut self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
             // Send last session
-            let _ = sender.send(TimerSignal::NextSnapshot(get_time_range(0)?.until));
+            sender.send(TimerSignal::NextSnapshot(get_time_range(0)?.until))?;
+            // Terminate PyroscopeAgent internal thread
             sender.send(TimerSignal::Terminate)?;
         } else {
             log::error!("PyroscopeAgent - Missing sender")
@@ -354,86 +426,102 @@ impl PyroscopeAgent {
         let (lock, cvar) = &*pair;
         let _guard = cvar.wait_while(lock.lock()?, |running| *running)?;
 
-        // Create a clone of Backend
-        let backend = Arc::clone(&self.backend);
-        // Call stop()
-        backend.lock()?.stop()?;
-
-        Ok(())
+        Ok(self.transition())
     }
 
-    /// Add tags. This will restart the agent.
+    /// Return a tuple of functions to add and remove tags to the agent across
+    /// thread boundaries. This function can be called multiple times.
+    ///
     /// # Example
     /// ```ignore
     /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// agent.start()?;
-    /// // Expensive operation
-    /// agent.add_tags(vec!["tag", "value"])?;
-    /// // Tagged operation
-    /// agent.stop()?;
+    /// let agent_running = agent.start()?;
+    /// let (add_tag, remove_tag) = agent_running.tag_wrapper();
     /// ```
-    pub fn add_tags(&mut self, tags: &[(&str, &str)]) -> Result<()> {
-        log::debug!(target: LOG_TAG, "Adding tags");
-        // Check that tags are not empty
-        if tags.is_empty() {
-            return Ok(());
-        }
+    ///
+    /// The functions can be later called from any thread.
+    ///
+    /// # Example
+    /// ```ignore
+    /// add_tag("key".to_string(), "value".to_string());
+    /// // some computation
+    /// remove_tag("key".to_string(), "value".to_string());
+    /// ```
+    pub fn tag_wrapper(
+        &self,
+    ) -> (
+        impl Fn(String, String) -> Result<()>,
+        impl Fn(String, String) -> Result<()>,
+    ) {
+        let backend_add = self.backend.backend.clone();
+        let backend_remove = self.backend.backend.clone();
 
-        // Stop Agent
-        self.stop()?;
+        (
+            move |key, value| {
+                let thread_id = crate::utils::pthread_self()?;
+                let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
+                let backend = backend_add.lock()?;
+                backend
+                    .as_ref()
+                    .ok_or_else(|| {
+                        PyroscopeError::AdHoc(
+                            "PyroscopeAgent - Failed to unwrap backend".to_string(),
+                        )
+                    })?
+                    .add_rule(rule)?;
 
-        // Convert &[(&str, &str)] to HashMap(String, String)
-        let tags_hashmap: HashMap<String, String> = tags
-            .to_owned()
-            .iter()
-            .cloned()
-            .map(|(a, b)| (a.to_owned(), b.to_owned()))
-            .collect();
+                Ok(())
+            },
+            move |key, value| {
+                let thread_id = crate::utils::pthread_self()?;
+                let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
+                let backend = backend_remove.lock()?;
+                backend
+                    .as_ref()
+                    .ok_or_else(|| {
+                        PyroscopeError::AdHoc(
+                            "PyroscopeAgent - Failed to unwrap backend".to_string(),
+                        )
+                    })?
+                    .remove_rule(rule)?;
 
-        self.config.tags.extend(tags_hashmap);
+                Ok(())
+            },
+        )
+    }
 
-        // Restart Agent
-        self.start()?;
+    /// Add a global Tag rule to the backend Ruleset. For tagging, it's
+    /// recommended to use the `tag_wrapper` function.
+    pub fn add_global_tag(&self, tag: Tag) -> Result<()> {
+        let rule = Rule::GlobalTag(tag);
+        self.backend.add_rule(rule)?;
 
         Ok(())
     }
 
-    /// Remove tags. This will restart the agent.
-    /// # Example
-    /// ```ignore
-    /// # use pyroscope::*;
-    /// # use std::result;
-    /// # fn main() -> result::Result<(), error::PyroscopeError> {
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app")
-    /// .tags(vec![("tag", "value")])
-    /// .build()?;
-    /// agent.start()?;
-    /// // Expensive operation
-    /// agent.remove_tags(vec!["tag"])?;
-    /// // Un-Tagged operation
-    /// agent.stop()?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn remove_tags(&mut self, tags: &[&str]) -> Result<()> {
-        log::debug!(target: LOG_TAG, "Removing tags");
+    /// Remove a global Tag rule from the backend Ruleset. For tagging, it's
+    /// recommended to use the `tag_wrapper` function.
+    pub fn remove_global_tag(&self, tag: Tag) -> Result<()> {
+        let rule = Rule::GlobalTag(tag);
+        self.backend.remove_rule(rule)?;
 
-        // Check that tags are not empty
-        if tags.is_empty() {
-            return Ok(());
-        }
+        Ok(())
+    }
 
-        // Stop Agent
-        self.stop()?;
+    /// Add a thread Tag rule to the backend Ruleset. For tagging, it's
+    /// recommended to use the `tag_wrapper` function.
+    pub fn add_thread_tag(&self, thread_id: u64, tag: Tag) -> Result<()> {
+        let rule = Rule::ThreadTag(thread_id, tag);
+        self.backend.add_rule(rule)?;
 
-        // Iterate through every tag
-        tags.iter().for_each(|key| {
-            // Remove tag
-            self.config.tags.remove(key.to_owned());
-        });
+        Ok(())
+    }
 
-        // Restart Agent
-        self.start()?;
+    /// Remove a thread Tag rule from the backend Ruleset. For tagging, it's
+    /// recommended to use the `tag_wrapper` function.
+    pub fn remove_thread_tag(&self, thread_id: u64, tag: Tag) -> Result<()> {
+        let rule = Rule::ThreadTag(thread_id, tag);
+        self.backend.remove_rule(rule)?;
 
         Ok(())
     }

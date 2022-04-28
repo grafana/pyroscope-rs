@@ -1,9 +1,21 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
-    backend::{Backend, Report, StackFrame, StackTrace, State},
+    backend::{
+        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
+        StackTrace,
+    },
     error::{PyroscopeError, Result},
 };
-use std::{collections::HashMap, ffi::OsStr};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    ops::Deref,
+    sync::{Arc, Mutex},
+};
+
+pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Box::new(Pprof::new(config)))
+}
 
 /// Pprof Configuration
 #[derive(Debug)]
@@ -30,10 +42,16 @@ impl PprofConfig {
 /// Pprof Backend
 #[derive(Default)]
 pub struct Pprof<'a> {
+    /// Profling buffer
+    buffer: Arc<Mutex<StackBuffer>>,
+    /// pprof-rs Configuration
     config: PprofConfig,
-    inner_builder: Option<ProfilerGuardBuilder>,
-    guard: Option<ProfilerGuard<'a>>,
-    state: State,
+    /// pprof-rs profiler Guard Builder
+    inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
+    /// pprof-rs profiler Guard
+    guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
+    /// Ruleset
+    ruleset: Ruleset,
 }
 
 impl std::fmt::Debug for Pprof<'_> {
@@ -45,19 +63,16 @@ impl std::fmt::Debug for Pprof<'_> {
 impl<'a> Pprof<'a> {
     pub fn new(config: PprofConfig) -> Self {
         Pprof {
+            buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
-            inner_builder: None,
-            guard: None,
-            state: State::default(),
+            inner_builder: Arc::new(Mutex::new(None)),
+            guard: Arc::new(Mutex::new(None)),
+            ruleset: Ruleset::default(),
         }
     }
 }
 
 impl Backend for Pprof<'_> {
-    fn get_state(&self) -> State {
-        self.state
-    }
-
     fn spy_name(&self) -> std::result::Result<String, PyroscopeError> {
         Ok("pyroscope-rs".to_string())
     }
@@ -66,31 +81,22 @@ impl Backend for Pprof<'_> {
         Ok(self.config.sample_rate)
     }
 
-    fn initialize(&mut self) -> Result<()> {
-        // Check if Backend is Uninitialized
-        if self.state != State::Uninitialized {
-            return Err(PyroscopeError::new("Pprof Backend is already Initialized"));
-        }
-
-        // Construct a ProfilerGuardBuilder
-        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
-        // Set inner_builder field
-        self.inner_builder = Some(profiler);
-
-        // Set State to Ready
-        self.state = State::Ready;
+    fn shutdown(self: Box<Self>) -> Result<()> {
+        //drop(self.guard.take());
 
         Ok(())
     }
 
-    fn start(&mut self) -> Result<()> {
-        // Check if Backend is Ready
-        if self.state != State::Ready {
-            return Err(PyroscopeError::new("Pprof Backend is not Ready"));
-        }
+    fn initialize(&mut self) -> Result<()> {
+        // Construct a ProfilerGuardBuilder
+        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
 
-        self.guard = Some(
+        // Set inner_builder field
+        *self.inner_builder.lock()? = Some(profiler);
+
+        *self.guard.lock()? = Some(
             self.inner_builder
+                .lock()?
                 .as_ref()
                 .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
                 .clone()
@@ -98,50 +104,91 @@ impl Backend for Pprof<'_> {
                 .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?,
         );
 
-        // Set State to Running
-        self.state = State::Running;
-
         Ok(())
     }
 
-    fn stop(&mut self) -> Result<()> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pprof Backend is not Running"));
+    fn report(&mut self) -> Result<Vec<Report>> {
+        self.dump_report()?;
+
+        let buffer = self.buffer.clone();
+
+        let report: StackBuffer = buffer.lock()?.deref().to_owned();
+
+        let reports: Vec<Report> = report.into();
+
+        buffer.lock()?.clear();
+
+        Ok(reports)
+    }
+
+    fn add_rule(&self, rule: Rule) -> Result<()> {
+        if self.guard.lock()?.as_ref().is_some() {
+            self.dump_report()?;
         }
 
-        // drop the guard
-        drop(self.guard.take());
-
-        // Set State to Ready
-        self.state = State::Ready;
+        self.ruleset.add_rule(rule)?;
 
         Ok(())
     }
-
-    fn report(&mut self) -> Result<Vec<u8>> {
-        // Check if Backend is Running
-        if self.state != State::Running {
-            return Err(PyroscopeError::new("Pprof Backend is not Running"));
+    fn remove_rule(&self, rule: Rule) -> Result<()> {
+        if self.guard.lock()?.as_ref().is_some() {
+            self.dump_report()?;
         }
 
+        self.ruleset.remove_rule(rule)?;
+
+        Ok(())
+    }
+}
+
+impl Pprof<'_> {
+    pub fn dump_report(&self) -> Result<()> {
         let report = self
             .guard
+            .lock()?
             .as_ref()
             .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuard report error"))?
             .report()
             .build()
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        let new_report = Into::<Report>::into(Into::<ReportWrapper>::into(report))
-            .to_string()
-            .into_bytes();
+        let stack_buffer = Into::<StackBuffer>::into(Into::<StackBufferWrapper>::into(report));
 
-        // Restart Profiler
-        self.stop()?;
-        self.start()?;
+        // apply ruleset to stack_buffer
+        let data: HashMap<StackTrace, usize> = stack_buffer
+            .data
+            .iter()
+            .map(|(stacktrace, ss)| {
+                let stacktrace = stacktrace.to_owned() + &self.ruleset;
+                (stacktrace, ss.to_owned())
+            })
+            .collect();
 
-        Ok(new_report)
+        let buffer = self.buffer.clone();
+
+        for (stacktrace, count) in data {
+            buffer.lock()?.record_with_count(stacktrace, count)?;
+        }
+
+        self.reset()?;
+
+        Ok(())
+    }
+
+    pub fn reset(&self) -> Result<()> {
+        drop(self.guard.lock()?.take());
+
+        *self.guard.lock()? = Some(
+            self.inner_builder
+                .lock()?
+                .as_ref()
+                .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
+                .clone()
+                .build()
+                .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?,
+        );
+
+        Ok(())
     }
 }
 
@@ -167,6 +214,31 @@ impl From<pprof::Report> for ReportWrapper {
             })
             .collect();
         ReportWrapper(Report::new(report_data))
+    }
+}
+
+struct StackBufferWrapper(StackBuffer);
+
+impl From<StackBufferWrapper> for StackBuffer {
+    fn from(stackbuffer: StackBufferWrapper) -> Self {
+        stackbuffer.0
+    }
+}
+
+impl From<pprof::Report> for StackBufferWrapper {
+    fn from(report: pprof::Report) -> Self {
+        //convert report to stackbuffer
+        let buffer_data: HashMap<StackTrace, usize> = report
+            .data
+            .iter()
+            .map(|(key, value)| {
+                (
+                    Into::<StackTraceWrapper>::into(key.to_owned()).into(),
+                    value.to_owned() as usize,
+                )
+            })
+            .collect();
+        StackBufferWrapper(StackBuffer::new(buffer_data))
     }
 }
 

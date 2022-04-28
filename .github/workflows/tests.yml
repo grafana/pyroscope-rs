@@ -1,6 +1,20 @@
 name: Tests
 
-on: [push, pull_request]
+on: 
+  push:
+    paths:
+    - 'pyroscope_backends/**'
+    - 'pyroscope_cli/**'
+    - 'src/**'
+    - 'tests/**'
+    - '.github/workflows/tests.yml'
+  pull_request:
+    paths: 
+    - 'pyroscope_backends/**'
+    - 'pyroscope_cli/**'
+    - 'src/**'
+    - 'tests/**'
+    - '.github/workflows/tests.yml'
 
 jobs:
   test:
