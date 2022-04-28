@@ -17,6 +17,7 @@ readme = "README.md"
 py-spy = "0.3.11"
 pyroscope = { version = "0.5.0", path = "../../" }
 thiserror ="1.0"
+log = "0.4"
 
 [profile.dev]
 opt-level=0

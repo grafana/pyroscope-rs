@@ -15,6 +15,9 @@ use std::{
     thread::JoinHandle,
 };
 
+const LOG_TAG: &str = "Pyroscope::Pyspy";
+
+/// Short-hand function for creating a new Pyspy backend.
 pub fn pyspy_backend(config: PyspyConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Pyspy::new(config)))
 }
@@ -140,7 +143,7 @@ impl std::fmt::Debug for Pyspy {
 }
 
 impl Pyspy {
-    /// Create a new Pyspy Backend
+    /// Create a new Pyspy Backend.
     pub fn new(config: PyspyConfig) -> Self {
         Pyspy {
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
@@ -154,26 +157,31 @@ impl Pyspy {
 }
 
 impl Backend for Pyspy {
+    /// Return the name of the backend.
     fn spy_name(&self) -> Result<String> {
         Ok("pyspy".to_string())
     }
 
+    /// Return the sample rate.
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
     }
 
+    /// Add a rule to the ruleset.
     fn add_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.lock()?.add_rule(rule)?;
 
         Ok(())
     }
 
+    /// Remove a rule from the ruleset.
     fn remove_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.lock()?.remove_rule(rule)?;
 
         Ok(())
     }
 
+    /// Initialize the backend.
     fn initialize(&mut self) -> Result<()> {
         // Check if a process ID is set
         if self.config.pid.is_none() {
@@ -200,9 +208,6 @@ impl Backend for Pyspy {
             ..Config::default()
         });
 
-        //
-        //
-        //
         // set sampler state to running
         let running = Arc::clone(&self.running);
         running.store(true, Ordering::Relaxed);
@@ -216,11 +221,11 @@ impl Backend for Pyspy {
             .clone()
             .ok_or_else(|| PyroscopeError::new("Pyspy: Sampler configuration is not set"))?;
 
+        // create a new ruleset reference
         let ruleset = self.ruleset.clone();
 
         self.sampler_thread = Some(std::thread::spawn(move || {
             // Get PID
-            // TODO: we are doing lots of these checks, we should probably do this once
             let pid = config
                 .pid
                 .ok_or_else(|| PyroscopeError::new("Pyspy: PID is not set"))?;
@@ -235,10 +240,12 @@ impl Backend for Pyspy {
             // Collect the sampler output
             for sample in sampler_output {
                 for trace in sample.traces {
+                    // idle config
                     if !(config.include_idle || trace.active) {
                         continue;
                     }
 
+                    // gil config
                     if config.gil_only && !trace.owns_gil {
                         continue;
                     }
@@ -261,13 +268,15 @@ impl Backend for Pyspy {
         Ok(())
     }
 
+    /// Shutdown the backend.
     fn shutdown(self: Box<Self>) -> Result<()> {
-        // set running to false
-        //self.running.store(false, Ordering::Relaxed);
+        log::trace!(target: LOG_TAG, "Shutting down sampler thread");
+
+        // set running to false, terminate sampler thread
+        self.running.store(false, Ordering::Relaxed);
 
         // wait for sampler thread to finish
         self.sampler_thread
-            //.take()
             .ok_or_else(|| PyroscopeError::new("Pyspy: Failed to unwrap Sampler Thread"))?
             .join()
             .unwrap_or_else(|_| Err(PyroscopeError::new("Pyspy: Failed to join sampler thread")))?;
@@ -275,21 +284,21 @@ impl Backend for Pyspy {
         Ok(())
     }
 
+    /// Report buffer
     fn report(&mut self) -> Result<Vec<Report>> {
-        // create a new buffer reference
-        let buffer = self.buffer.clone();
-
         // convert the buffer report into a byte vector
-        let report: StackBuffer = buffer.lock()?.deref().to_owned();
+        let report: StackBuffer = self.buffer.lock()?.deref().to_owned();
         let reports: Vec<Report> = report.into();
 
         // Clear the buffer
-        buffer.lock()?.clear();
+        self.buffer.lock()?.clear();
 
         Ok(reports)
     }
 }
 
+/// Wrapper for StackFrame. This is needed because both StackFrame and
+/// py_spy::Frame are not defined in the same module.
 struct StackFrameWrapper(StackFrame);
 
 impl From<StackFrameWrapper> for StackFrame {
@@ -311,6 +320,8 @@ impl From<py_spy::Frame> for StackFrameWrapper {
     }
 }
 
+/// Wrapper for StackTrace. This is needed because both StackTrace and
+/// py_spy::StackTrace are not defined in the same module.
 struct StackTraceWrapper(StackTrace);
 
 impl From<StackTraceWrapper> for StackTrace {
