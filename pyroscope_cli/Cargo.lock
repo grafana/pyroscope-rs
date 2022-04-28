@@ -443,6 +443,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6184e33543162437515c2e2b48714794e37845ec9851711914eec9d308f6ebe8"
 
 [[package]]
+name = "directories"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f51c5d4ddabd36886dd3e1438cb358cdcb0d7c499cb99cb4ac2e38e18b5cb210"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
 name = "dirs-next"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -450,6 +459,17 @@ checksum = "b98cf8ebf19c3d1b223e151f99a4f9f0690dca41414773390fc824184ac833e1"
 dependencies = [
  "cfg-if 1.0.0",
  "dirs-sys-next",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
+dependencies = [
+ "libc",
+ "redox_users",
+ "winapi",
 ]
 
 [[package]]
@@ -953,6 +973,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "inferno"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89efa0d58cc7d17076d8fcaa4ea2b408a799eaed1682e1d60b8a9e03a061be82"
+dependencies = [
+ "ahash",
+ "atty",
+ "clap 3.1.6",
+ "crossbeam-channel",
+ "crossbeam-utils",
+ "dashmap",
+ "env_logger 0.9.0",
+ "indexmap",
+ "itoa 1.0.1",
+ "lazy_static",
+ "log",
+ "num-format",
+ "num_cpus",
+ "quick-xml",
+ "rgb",
+ "str_stack",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1024,9 +1068,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.121"
+version = "0.2.124"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efaa7b300f3b5fe8eb6bf21ce3895e1751d9665086af2d64b42f19701015ff4f"
+checksum = "21a41fed9d98f27ab1c6d161da622a4fa35e8a54a8adc24bbf3ddd0ef70b0e50"
 
 [[package]]
 name = "libloading"
@@ -1472,9 +1516,9 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "pprof"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c090facb9ab04a4fb15fe27f8861059f195dd0847e6f1042016244e129eddeb2"
+checksum = "f2324292407eab69d4ace0eed1524fe612ac37c98aa22b0d868355b17fada530"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -1585,9 +1629,9 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "444879275cb4fd84958b1a1d5420d15e6fcf7c235fe47f053c9c2a80aceb6001"
+checksum = "a07b0857a71a8cb765763950499cae2413c3f9cede1133478c43600d9e146890"
 dependencies = [
  "bytes",
  "prost-derive",
@@ -1595,9 +1639,9 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9cc1a3263e07e0bf68e96268f37665207b49560d98739662cdfaae215c720fe"
+checksum = "7b670f45da57fb8542ebdbb6105a925fe571b67f9e7ed9f47a06a84e72b4e7cc"
 dependencies = [
  "anyhow",
  "itertools",
@@ -1621,7 +1665,7 @@ dependencies = [
  "failure",
  "goblin",
  "indicatif",
- "inferno",
+ "inferno 0.10.12",
  "lazy_static",
  "libc",
  "log",
@@ -1642,7 +1686,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "libc",
  "log",
@@ -1683,7 +1727,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pprofrs"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pprof",
  "pyroscope",
@@ -1692,7 +1736,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pyspy"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "py-spy",
  "pyroscope",
@@ -1701,7 +1745,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_rbspy"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "log",
@@ -1804,18 +1848,19 @@ dependencies = [
 
 [[package]]
 name = "rbspy"
-version = "0.11.1"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d05c4d9570aebe9cd2bd5bffec29b31b82e72a1ebdf7b24ce37bd78302a5450"
+checksum = "bcbebdf0037de5a92722b0bca2965ce0a76cd5c962225cf355e31ac668ea653f"
 dependencies = [
  "anyhow",
  "chrono",
- "clap 2.34.0",
+ "clap 3.1.6",
  "ctrlc",
+ "directories",
  "elf",
  "env_logger 0.9.0",
  "flate2",
- "inferno",
+ "inferno 0.11.2",
  "libc",
  "libproc",
  "log",
@@ -1836,9 +1881,9 @@ dependencies = [
 
 [[package]]
 name = "rbspy-ruby-structs"
-version = "0.11.1"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37ed28145d8e724457cc1b46a03d94398e8e569417081b5cc5db8f6ca8e106c4"
+checksum = "321d7adbbd5dc84af13b4cacceb22973186ed1dc19d55248fa53d5277ae40e02"
 
 [[package]]
 name = "rdrand"

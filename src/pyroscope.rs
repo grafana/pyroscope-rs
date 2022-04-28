@@ -207,12 +207,19 @@ impl PyroscopeAgentBuilder {
 
 /// This trait is used to encode the state of the agent.
 pub trait PyroscopeAgentState {}
+
 /// Marker struct for an Uninitialized state.
+#[derive(Debug)]
 pub struct PyroscopeAgentBare;
+
 /// Marker struct for a Ready state.
+#[derive(Debug)]
 pub struct PyroscopeAgentReady;
+
 /// Marker struct for a Running state.
+#[derive(Debug)]
 pub struct PyroscopeAgentRunning;
+
 impl PyroscopeAgentState for PyroscopeAgentBare {}
 impl PyroscopeAgentState for PyroscopeAgentReady {}
 impl PyroscopeAgentState for PyroscopeAgentRunning {}
