@@ -266,6 +266,12 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
     pub fn shutdown(mut self) {
         log::debug!(target: LOG_TAG, "PyroscopeAgent::drop()");
 
+        // Shutdown Backend
+        match self.backend.shutdown() {
+            Ok(_) => log::debug!(target: LOG_TAG, "Backend shutdown"),
+            Err(e) => log::error!(target: LOG_TAG, "Backend shutdown error: {}", e),
+        }
+
         // Drop Timer listeners
         match self.timer.drop_listeners() {
             Ok(_) => log::trace!(target: LOG_TAG, "Dropped timer listeners"),
