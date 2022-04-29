@@ -1,4 +1,8 @@
 require 'ffi'
+require 'fiddle'
+
+$libm = Fiddle.dlopen('/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_ffi/ruby/ext/thread_id/target/release/libthread_id.so')
+
 
 module Rust
   extend FFI::Library
@@ -42,6 +46,10 @@ module Pyroscope
 
     def drop
       Rust.drop_agent
+    end
+    def thread_id
+      thread_id = Fiddle::Function.new($libm['thread_id'], [], Fiddle::TYPE_INT64_T)
+      thread_id.call.to_s
     end
   end
 end
