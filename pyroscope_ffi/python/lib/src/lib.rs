@@ -63,35 +63,37 @@ pub extern "C" fn initialize_agent(
         let tags_ref = tags_string.as_str();
         let tags = string_to_tags(tags_ref);
         let pyspy = pyspy_backend(pyspy_config);
-        let mut agent = PyroscopeAgent::builder(server_address, application_name)
+        let agent = PyroscopeAgent::builder(server_address, application_name)
             .backend(pyspy)
             .tags(tags)
             .build()
             .unwrap();
 
-        agent.start().unwrap();
+        let agent_running = agent.start().unwrap();
 
         let s = signalpass();
 
         while let Ok(signal) = s.inner_receiver.lock().unwrap().recv() {
             match signal {
                 Signal::Kill => {
-                    agent.stop().unwrap();
+                    agent_running.stop().unwrap();
                     break;
                 }
                 Signal::AddGlobalTag(name, value) => {
-                    agent.add_global_tag(Tag::new(name, value));
+                    agent_running.add_global_tag(Tag::new(name, value)).unwrap();
                 }
                 Signal::RemoveGlobalTag(name, value) => {
-                    agent.remove_global_tag(Tag::new(name, value));
+                    agent_running
+                        .remove_global_tag(Tag::new(name, value))
+                        .unwrap();
                 }
                 Signal::AddThreadTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
-                    agent.add_thread_tag(thread_id, tag).unwrap();
+                    agent_running.add_thread_tag(thread_id, tag).unwrap();
                 }
                 Signal::RemoveThreadTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
-                    agent.remove_thread_tag(thread_id, tag).unwrap();
+                    agent_running.remove_thread_tag(thread_id, tag).unwrap();
                 }
             }
         }
