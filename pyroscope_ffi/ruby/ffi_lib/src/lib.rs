@@ -52,7 +52,11 @@ pub fn initialize_agent(
         .to_str()
         .unwrap()
         .to_string();
+
     let pid = std::process::id();
+
+    let s = signalpass();
+
     std::thread::spawn(move || {
         let rbspy_config = RbspyConfig::new(pid.try_into().unwrap())
             .sample_rate(sample_rate)
@@ -62,29 +66,27 @@ pub fn initialize_agent(
         let tags_ref = tags_string.as_str();
         let tags = string_to_tags(tags_ref);
         let rbspy = rbspy_backend(rbspy_config);
-        let mut agent = PyroscopeAgent::builder(server_address, application_name)
+        let agent = PyroscopeAgent::builder(server_address, application_name)
             .backend(rbspy)
             .tags(tags)
             .build()
             .unwrap();
 
-        agent.start().unwrap();
-
-        let s = signalpass();
+        let agent_running = agent.start().unwrap();
 
         while let Ok(signal) = s.inner_receiver.lock().unwrap().recv() {
             match signal {
                 Signal::Kill => {
-                    agent.stop().unwrap();
+                    agent_running.stop().unwrap();
                     break;
                 }
                 Signal::AddTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
-                    agent.add_t_tag(thread_id, tag).unwrap();
+                    agent_running.add_thread_tag(thread_id, tag).unwrap();
                 }
                 Signal::RemoveTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
-                    agent.remove_t_tag(thread_id, tag).unwrap();
+                    agent_running.remove_thread_tag(thread_id, tag).unwrap();
                 }
             }
         }
