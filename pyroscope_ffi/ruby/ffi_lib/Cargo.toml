@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "pyroscope_ffi"
-crate-type = ["cdylib"]
+crate-type = ["dylib"]
 
 [dependencies]
 rutie = "0.8.3"
