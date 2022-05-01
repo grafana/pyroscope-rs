@@ -1,14 +1,14 @@
-name: Build Pyspy Backend
+name: CI Pyspy Backend
 
 on: 
   push:
     paths:
     - 'pyroscope_backends/pyroscope_pyspy/**'
-    - '.github/workflows/build-backend-pyspy.yml'
+    - '.github/workflows/ci-backend-pyspy.yml'
   pull_request:
     paths: 
     - 'pyroscope_backends/pyroscope_pyspy/**'
-    - '.github/workflows/build-backend-pyspy.yml'
+    - '.github/workflows/ci-backend-pyspy.yml'
 
 jobs:
   build:
@@ -48,3 +48,9 @@ jobs:
         with:
           args: --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
           command: build
+
+      - name: Tests for pyspy
+        uses: omarabid-forks/rs-cargo@v1
+        with:
+          args: --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
+          command: test

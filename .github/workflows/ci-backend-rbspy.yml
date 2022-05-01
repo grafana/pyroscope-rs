@@ -1,14 +1,14 @@
-name: Build Rbspy Backend
+name: CI Rbspy Backend
 
 on: 
   push:
     paths:
     - 'pyroscope_backends/pyroscope_rbspy/**'
-    - '.github/workflows/build-backend-rbspy.yml'
+    - '.github/workflows/ci-backend-rbspy.yml'
   pull_request:
     paths: 
     - 'pyroscope_backends/pyroscope_rbspy/**'
-    - '.github/workflows/build-backend-rbspy.yml'
+    - '.github/workflows/ci-backend-rbspy.yml'
 
 jobs:
   build:
@@ -43,3 +43,9 @@ jobs:
         with:
           args: --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
           command: build
+
+      - name: Tests for Rbspy 
+        uses: omarabid-forks/rs-cargo@v1
+        with:
+          args: --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
+          command: test

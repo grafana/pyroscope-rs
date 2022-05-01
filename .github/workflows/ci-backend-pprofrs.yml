@@ -1,4 +1,4 @@
-name: Build pprof-rs Backend
+name: CI pprof-rs Backend
 
 on: 
   push:
