@@ -3,15 +3,11 @@ name: Build
 on: 
   push:
     paths:
-    - 'pyroscope_backends/**'
-    - 'pyroscope_cli/**'
     - 'src/**'
     - 'tests/**'
     - '.github/workflows/build.yml'
   pull_request:
     paths: 
-    - 'pyroscope_backends/**'
-    - 'pyroscope_cli/**'
     - 'src/**'
     - 'tests/**'
     - '.github/workflows/build.yml'
