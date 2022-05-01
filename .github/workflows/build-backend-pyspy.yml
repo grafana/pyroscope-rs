@@ -1,4 +1,4 @@
-name: Build pprof-rs Backend
+name: Build Pyspy Backend
 
 on: 
   push:
