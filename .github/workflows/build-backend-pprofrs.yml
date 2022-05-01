@@ -1,0 +1,50 @@
+name: Build pprof-rs Backend
+
+on: 
+  push:
+    paths:
+    - 'pyroscope_backends/pyroscope_pprofrs/**'
+    - '.github/workflows/build-backend-pprof.yml'
+  pull_request:
+    paths: 
+    - 'pyroscope_backends/pyroscope_pprofrs/**'
+    - '.github/workflows/build-backend-pprof.yml'
+
+jobs:
+  build:
+    name: ${{ matrix.os }} - ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
+        exclude:
+        - os: ubuntu-latest
+          target: x86_64-apple-darwin
+        - os: ubuntu-latest
+          target: aarch64-apple-darwin
+        - os: macos-latest
+          target: x86_64-unknown-linux-gnu
+        - os: macos-latest
+          target: aarch64-unknown-linux-gnu
+    steps:
+      - name: install libunwind (for pprof)
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: sudo apt install libunwind8-dev
+
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: omarabid-forks/rs-toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Cargo build for pprof-rs
+        uses: omarabid-forks/rs-cargo@v1
+        with:
+          args: --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
+          command: build
