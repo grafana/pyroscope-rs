@@ -1,11 +1,11 @@
 [package]
-name = "ffi_lib"
+name = "rbspy"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "pyroscope_ffi"
-crate-type = ["dylib"]
+name = "rbspy"
+crate-type = ["cdylib"]
 
 [dependencies]
 rutie = "0.8.3"

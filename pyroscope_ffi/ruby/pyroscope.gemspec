@@ -21,7 +21,8 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.require_paths = ['lib']
 
-  s.add_development_dependency 'rake', '~> 10.0'
+  s.extensions = ['ext/rbspy/extconf.rb', 'ext/thread_id/extconf.rb']
 
   s.add_dependency 'ffi', '~> 1.9'
+  s.add_dependency 'rake', '~> 10.0'
 end

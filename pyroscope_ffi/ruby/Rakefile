@@ -1,5 +1,10 @@
-task default: %w[test]
+# frozen_string_literal: true
 
-task :test do
-  puts 'test'
+load File.expand_path('./ext/rbspy/Rakefile', __dir__)
+load File.expand_path('./ext/thread_id/Rakefile', __dir__)
+
+task default: %w[hello]
+
+task :hello do
+  puts 'Hello!'
 end
