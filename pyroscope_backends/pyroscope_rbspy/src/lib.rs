@@ -15,6 +15,7 @@ use std::{
     thread::JoinHandle,
 };
 
+/// Short-hand function for creating a new Rbspy backend.
 pub fn rbspy_backend(config: RbspyConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Rbspy::new(config)))
 }
@@ -55,6 +56,7 @@ impl RbspyConfig {
         }
     }
 
+    /// Set the sampling rate
     pub fn sample_rate(self, sample_rate: u32) -> Self {
         RbspyConfig {
             sample_rate,
@@ -62,6 +64,7 @@ impl RbspyConfig {
         }
     }
 
+    /// Set the lock process flag
     pub fn lock_process(self, lock_process: bool) -> Self {
         RbspyConfig {
             lock_process,
@@ -69,10 +72,12 @@ impl RbspyConfig {
         }
     }
 
+    /// Set the time limit
     pub fn time_limit(self, time_limit: Option<core::time::Duration>) -> Self {
         RbspyConfig { time_limit, ..self }
     }
 
+    /// Include subprocesses
     pub fn with_subprocesses(self, with_subprocesses: bool) -> Self {
         RbspyConfig {
             with_subprocesses,
@@ -89,7 +94,7 @@ pub struct Rbspy {
     /// Rbspy Sampler
     sampler: Option<Sampler>,
     /// StackTrace Receiver
-    stack_receiver: Option<Receiver<rbspy::StackTrace>>,
+    //stack_receiver: Option<Receiver<rbspy::StackTrace>>,
     /// Error Receiver
     error_receiver: Option<Receiver<std::result::Result<(), anyhow::Error>>>,
     /// Profiling buffer
@@ -105,10 +110,11 @@ impl std::fmt::Debug for Rbspy {
 }
 
 impl Rbspy {
+    /// Create a new Rbspy instance
     pub fn new(config: RbspyConfig) -> Self {
         Rbspy {
             sampler: None,
-            stack_receiver: None,
+            //stack_receiver: None,
             error_receiver: None,
             config,
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
@@ -122,26 +128,31 @@ type ErrorSender = Sender<std::result::Result<(), anyhow::Error>>;
 type ErrorReceiver = Receiver<std::result::Result<(), anyhow::Error>>;
 
 impl Backend for Rbspy {
+    /// Return the backend name
     fn spy_name(&self) -> Result<String> {
         Ok("rbspy".to_string())
     }
 
+    /// Return the sample rate
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
     }
 
+    /// Add a rule to the ruleset
     fn add_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.add_rule(rule)?;
 
         Ok(())
     }
 
+    /// Remove a rule from the ruleset
     fn remove_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.remove_rule(rule)?;
 
         Ok(())
     }
 
+    /// Initialize the backend
     fn initialize(&mut self) -> Result<()> {
         // Check if a process ID is set
         if self.config.pid.is_none() {
@@ -174,7 +185,7 @@ impl Backend for Rbspy {
 
         // Set Error and Stack Receivers
         //self.stack_receiver = Some(stack_receiver);
-        //self.error_receiver = Some(error_receiver);
+        self.error_receiver = Some(error_receiver);
 
         // Get the Sampler
         let sampler = self
@@ -195,21 +206,7 @@ impl Backend for Rbspy {
         // ruleset reference
         let ruleset = self.ruleset.clone();
 
-        let a: JoinHandle<Result<()>> = std::thread::spawn(move || {
-            // Send Errors to Log
-            //let errors = error_receiver.iter();
-            //for error in errors {
-            //match error {
-            //Ok(_) => {}
-            //Err(e) => {
-            //log::error!("Rbspy: Error in Sampler: {}", e);
-            //}
-            //}
-            //}
-
-            // Collect the StackTrace from the receiver
-            //let stack_trace = stack_receiver.iter();
-
+        let _: JoinHandle<Result<()>> = std::thread::spawn(move || {
             // Iterate over the StackTrace
             while let Ok(stack_trace) = stack_receiver.recv() {
                 // convert StackTrace
