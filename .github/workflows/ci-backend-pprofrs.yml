@@ -48,3 +48,9 @@ jobs:
         with:
           args: --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
           command: build
+
+      - name: Tests for pprof-rs
+        uses: omarabid-forks/rs-cargo@v1
+        with:
+          args: --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
+          command: test
