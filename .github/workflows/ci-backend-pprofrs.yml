@@ -1,24 +1,21 @@
-name: Build
+name: CI pprof-rs Backend
 
 on: 
   push:
     paths:
-    - 'src/**'
-    - 'tests/**'
-    - '.github/workflows/build.yml'
+    - 'pyroscope_backends/pyroscope_pprofrs/**'
+    - '.github/workflows/ci-backend-pprof.yml'
   pull_request:
     paths: 
-    - 'src/**'
-    - 'tests/**'
-    - '.github/workflows/build.yml'
+    - 'pyroscope_backends/pyroscope_pprofrs/**'
+    - '.github/workflows/ci-backend-pprof.yml'
 
 jobs:
   build:
-    name: ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.target }}
+    name: ${{ matrix.os }} - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        package: [lib, cli, pprofrs, pyspy, rbspy]
         os: [ubuntu-latest, macos-latest]
         target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
         exclude:
@@ -46,36 +43,14 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Cargo build for pyroscope library 
-        uses: omarabid-forks/rs-cargo@v1
-        if: matrix.package == 'lib'
-        with:
-          command: build
-
-      - name: Cargo build for pyrosocpe-cli 
-        uses: omarabid-forks/rs-cargo@v1
-        if: matrix.package == 'cli'
-        with:
-          args: --manifest-path pyroscope_cli/Cargo.toml
-          command: build
-
       - name: Cargo build for pprof-rs
         uses: omarabid-forks/rs-cargo@v1
-        if: matrix.package == 'pprofrs'
         with:
           args: --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
           command: build
 
-      - name: Cargo build for pyspy 
+      - name: Tests for pprof-rs
         uses: omarabid-forks/rs-cargo@v1
-        if: matrix.package == 'pyspy'
         with:
-          args: --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
-          command: build
-
-      - name: Cargo build for rbspy 
-        uses: omarabid-forks/rs-cargo@v1
-        if: matrix.package == 'rbspy'
-        with:
-          args: --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
-          command: build
+          args: --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
+          command: test
