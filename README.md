@@ -36,11 +36,11 @@ pyroscope = "0.5.0"
 pyroscope-pprofrs = "0.2"
 ```
 
-Configure and create the backend (pprof-rs)
+Include Pyroscope and pprof-rs dependencies:
 
 ```rust
-let pprof_config = PprofConfig::new().sample_rate(100);
-let pprof_backend = Pprof::new(pprof_config);
+use pyroscope::PyroscopeAgent;
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 ```
 
 Configure the Pyroscope agent:
@@ -48,7 +48,7 @@ Configure the Pyroscope agent:
 ```rust
  let agent =
      PyroscopeAgent::builder("http://localhost:4040", "myapp-profile")
-     .backend(pprof_backend)
+     .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
      .build()?;
 ```
 
