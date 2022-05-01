@@ -4,11 +4,11 @@ on:
   push:
     paths:
     - 'pyroscope_backends/pyroscope_pprofrs/**'
-    - '.github/workflows/build-backend-pprof.yml'
+    - '.github/workflows/ci-backend-pprof.yml'
   pull_request:
     paths: 
     - 'pyroscope_backends/pyroscope_pprofrs/**'
-    - '.github/workflows/build-backend-pprof.yml'
+    - '.github/workflows/ci-backend-pprof.yml'
 
 jobs:
   build:
