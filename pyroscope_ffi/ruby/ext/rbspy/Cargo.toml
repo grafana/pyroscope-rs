@@ -9,5 +9,5 @@ crate-type = ["dylib"]
 
 [dependencies]
 rutie = "0.8.3"
-pyroscope = {version = "0.5", path = "../../../" }
-pyroscope_rbspy = { version = "0.2", path = "../../../pyroscope_backends/pyroscope_rbspy" }
+pyroscope = {version = "0.5" }
+pyroscope_rbspy = { version = "0.2" }
