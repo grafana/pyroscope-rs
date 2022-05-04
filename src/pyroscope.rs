@@ -28,7 +28,7 @@ const LOG_TAG: &str = "Pyroscope::Agent";
 /// use pyroscope::pyroscope::PyroscopeConfig;
 /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
 /// ```
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct PyroscopeConfig {
     /// Pyroscope Server Address
     pub url: String,
@@ -42,6 +42,22 @@ pub struct PyroscopeConfig {
     pub spy_name: String,
     /// Authentication Token
     pub auth_token: Option<String>,
+}
+
+impl Default for PyroscopeConfig {
+    fn default() -> Self {
+        Self {
+            url: "http://localhost:4040".to_string(),
+            application_name: names::Generator::default()
+                .next()
+                .unwrap_or_else(|| "unassigned.app".to_string())
+                .replace('-', "."),
+            tags: HashMap::new(),
+            sample_rate: 100u32,
+            spy_name: "undefined".to_string(),
+            auth_token: None,
+        }
+    }
 }
 
 impl PyroscopeConfig {
@@ -60,6 +76,22 @@ impl PyroscopeConfig {
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
+        }
+    }
+
+    // Set the Pyroscope Server URL
+    pub fn url(self, url: impl AsRef<str>) -> Self {
+        Self {
+            url: url.as_ref().to_owned(),
+            ..self
+        }
+    }
+
+    // Set the Application Name
+    pub fn application_name(self, application_name: impl AsRef<str>) -> Self {
+        Self {
+            application_name: application_name.as_ref().to_owned(),
+            ..self
         }
     }
 
@@ -126,6 +158,15 @@ pub struct PyroscopeAgentBuilder {
     config: PyroscopeConfig,
 }
 
+impl Default for PyroscopeAgentBuilder {
+    fn default() -> Self {
+        Self {
+            backend: void_backend(VoidConfig::default()),
+            config: PyroscopeConfig::default(),
+        }
+    }
+}
+
 impl PyroscopeAgentBuilder {
     /// Create a new PyroscopeAgentBuilder object. url and application_name are required.
     /// tags and sample_rate are optional.
@@ -141,14 +182,45 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    /// Set the Pyroscope Server URL. This can be used if the Builder was initialized with the default
+    /// trait. Default is "http://localhost:4040".
+    ///
+    /// # Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::default()
+    /// .url("http://localhost:8080")
+    /// .build()?;
+    /// ```
+    pub fn url(self, url: impl AsRef<str>) -> Self {
+        Self {
+            config: self.config.url(url),
+            ..self
+        }
+    }
+
+    /// Set the Application Name. This can be used if the Builder was initialized with the default
+    /// trait. Default is a randomly generated name.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::default()
+    /// .application_name("my-app")
+    /// .build()?;
+    /// ```
+    pub fn application_name(self, application_name: impl AsRef<str>) -> Self {
+        Self {
+            config: self.config.application_name(application_name),
+            ..self
+        }
+    }
+
     /// Set the agent backend. Default is void-backend.
     ///
     /// # Example
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
     /// .backend(PprofConfig::new().sample_rate(100))
-    /// .build()
-    /// ?;
+    /// .build()?;
     /// ```
     pub fn backend(self, backend: BackendImpl<BackendUninitialized>) -> Self {
         Self { backend, ..self }
