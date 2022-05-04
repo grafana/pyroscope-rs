@@ -168,10 +168,22 @@ impl Session {
             report.metadata.tags.clone().into_iter().collect(),
         )?;
 
-        // Create and send the request
-        client
+        // Create Reqwest builder
+        let mut req_builder = client
             .post(format!("{}/ingest", url))
-            .header("Content-Type", "binary/octet-stream")
+            .header("Content-Type", "binary/octet-stream");
+
+        // Set authentication token
+        //if self.config.auth_token.is_some() {
+        //req_builder = req_builder.bearer_auth(self.config.auth_token.clone().unwrap());
+        //}
+        // rewrite with let some
+        if let Some(auth_token) = self.config.auth_token.clone() {
+            req_builder = req_builder.bearer_auth(auth_token);
+        }
+
+        // Send the request
+        req_builder
             .query(&[
                 ("name", application_name.as_str()),
                 ("from", &format!("{}", self.from)),

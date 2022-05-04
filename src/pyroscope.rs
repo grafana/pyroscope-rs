@@ -28,7 +28,7 @@ const LOG_TAG: &str = "Pyroscope::Agent";
 /// use pyroscope::pyroscope::PyroscopeConfig;
 /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PyroscopeConfig {
     /// Pyroscope Server Address
     pub url: String,
@@ -40,6 +40,8 @@ pub struct PyroscopeConfig {
     pub sample_rate: u32,
     /// Spy Name
     pub spy_name: String,
+    /// Authentication Token
+    pub auth_token: Option<String>,
 }
 
 impl PyroscopeConfig {
@@ -57,6 +59,7 @@ impl PyroscopeConfig {
             tags: HashMap::new(),         // Empty tags
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
+            auth_token: None,             // No authentication token
         }
     }
 
@@ -71,6 +74,14 @@ impl PyroscopeConfig {
     /// Set the Spy Name.
     pub fn spy_name(self, spy_name: String) -> Self {
         Self { spy_name, ..self }
+    }
+
+    /// Set the Authentication Token.
+    pub fn auth_token(self, auth_token: String) -> Self {
+        Self {
+            auth_token: Some(auth_token),
+            ..self
+        }
     }
 
     /// Set the tags.
@@ -141,6 +152,23 @@ impl PyroscopeAgentBuilder {
     /// ```
     pub fn backend(self, backend: BackendImpl<BackendUninitialized>) -> Self {
         Self { backend, ..self }
+    }
+
+    /// Set JWT authentication token.
+    /// This is optional. If not set, the agent will not send any authentication token.
+    ///
+    /// #Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .auth_token("my-token")
+    /// .build()
+    /// ?;
+    /// ```
+    pub fn auth_token(self, auth_token: impl AsRef<str>) -> Self {
+        Self {
+            config: self.config.auth_token(auth_token.as_ref().to_owned()),
+            ..self
+        }
     }
 
     /// Set tags. Default is empty.

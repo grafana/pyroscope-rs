@@ -26,6 +26,7 @@ fn test_session_new() {
         tags: HashMap::new(),
         sample_rate: 100u32,
         spy_name: "test-rs".to_string(),
+        ..Default::default()
     };
 
     let report = vec![Report::new(HashMap::new())];
@@ -44,6 +45,7 @@ fn test_session_send_error() {
         tags: HashMap::new(),
         sample_rate: 100u32,
         spy_name: "test-rs".to_string(),
+        ..Default::default()
     };
 
     let report = vec![Report::new(HashMap::new())];
