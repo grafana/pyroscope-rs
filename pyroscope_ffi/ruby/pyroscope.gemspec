@@ -24,5 +24,6 @@ Gem::Specification.new do |s|
   s.extensions = ['ext/rbspy/extconf.rb', 'ext/thread_id/extconf.rb']
 
   s.add_dependency 'ffi', '~> 1.9'
-  s.add_dependency 'rake', '~> 10.0'
+  s.add_dependency 'fiddle', '~> 1.1'
+  s.add_dependency 'rake', '>= 10.0'
 end

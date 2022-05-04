@@ -1,12 +1,12 @@
 require 'ffi'
 require 'fiddle'
 
-$libm = Fiddle.dlopen('/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_ffi/ruby/ext/thread_id/target/release/libthread_id.so')
+$libm = Fiddle.dlopen(File.expand_path(File.dirname(__FILE__)) + '/thread_id/thread_id.so')
 
 
 module Rust
   extend FFI::Library
-  ffi_lib '/home/omarabid/Documents/Projects/Pyroscope/pyroscope/pyroscope_ffi/ruby/ffi_lib/target/release/libpyroscope_ffi.' + FFI::Platform::LIBSUFFIX
+  ffi_lib File.expand_path(File.dirname(__FILE__)) + '/rbspy/rbspy.' + FFI::Platform::LIBSUFFIX
   attach_function :initialize_agent, [:string, :string, :int, :bool, :string], :bool
   attach_function :add_tag, [:uint64, :string, :string], :bool
   attach_function :remove_tag, [:uint64, :string, :string], :bool
