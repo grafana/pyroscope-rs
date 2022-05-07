@@ -1,0 +1,13 @@
+[package]
+name = "rbspy"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rbspy"
+crate-type = ["cdylib"]
+
+[dependencies]
+rutie = "0.8.3"
+pyroscope = {version = "0.5" }
+pyroscope_rbspy = { version = "0.2" }

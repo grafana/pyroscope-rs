@@ -7,7 +7,7 @@
 //! ```toml
 //! [dependencies]
 //! pyroscope = "0.5"
-//! pyroscope-pprofrs = "0.2"
+//! pyroscope_pprofrs = "0.2"
 //! ```
 //!
 //! ## Configure a Pyroscope Agent
