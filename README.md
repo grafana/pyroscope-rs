@@ -33,7 +33,7 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 pyroscope = "0.5.0"
-pyroscope-pprofrs = "0.2"
+pyroscope_pprofrs = "0.2"
 ```
 
 Include Pyroscope and pprof-rs dependencies:
