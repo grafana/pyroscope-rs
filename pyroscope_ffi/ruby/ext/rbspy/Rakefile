@@ -2,7 +2,7 @@
 
 require "shellwords"
 
-class RakeCargoHelper
+class RbspyRakeCargoHelper
   attr_reader :gemname
 
   def initialize(gemname=File.basename(__dir__))
@@ -104,18 +104,19 @@ class RakeCargoHelper
 
 end
 
-task default: [:install, :clean]
+task default: [:rbspy_install, :rbspy_clean]
+task rbspy: [:rbspy_install, :rbspy_clean]
 
 desc "set dev mode for subsequent task, run like `rake dev install`"
-task :dev do
+task :rbspy_dev do
   @dev = true
 end
 
 desc "build gem native extension and copy to lib"
-task install: [:cd, :build] do
-  helper = RakeCargoHelper.new
+task rbspy_install: [:rbspy_cd, :rbspy_build] do
+  helper = RbspyRakeCargoHelper.new
   profile_dir = @dev ? "debug" : "release"
-  source = File.join(RakeCargoHelper.cargo_target_dir, profile_dir, helper.rust_name)
+  source = File.join(RbspyRakeCargoHelper.cargo_target_dir, profile_dir, helper.rust_name)
   dest = File.join(helper.install_dir, helper.ruby_name)
   mkdir_p(helper.install_dir)
   rm(dest) if File.exist?(dest)
@@ -123,35 +124,35 @@ task install: [:cd, :build] do
 end
 
 desc "build gem native extension"
-task build: [:cargo, :cd] do
-  sh "cargo", "rustc", *(["--locked", "--release"] unless @dev), "--", *RakeCargoHelper.flags
+task rbspy_build: [:rbspy_cargo, :rbspy_cd] do
+  sh "cargo", "rustc", *(["--locked", "--release"] unless @dev), "--", *RbspyRakeCargoHelper.flags
 end
 
 desc "clean up release build artifacts"
-task clean: [:cargo, :cd] do
+task rbspy_clean: [:rbspy_cargo, :rbspy_cd] do
   sh "cargo clean --release"
 end
 
 desc "clean up build artifacts"
-task clobber: [:cargo, :cd] do
+task rbspy_clobber: [:rbspy_cargo, :rbspy_cd] do
   sh "cargo clean"
 end
 
 desc "check for cargo"
-task :cargo do
-  raise <<-MSG unless RakeCargoHelper.command?("cargo")
+task :rbspy_cargo do
+  raise <<-MSG unless RbspyRakeCargoHelper.command?("cargo")
     This gem requires a Rust compiler and the `cargo' build tool to build the
     gem's native extension. See https://www.rust-lang.org/tools/install for
     how to install Rust. `cargo' is usually part of the Rust installation.
   MSG
 
-  raise <<-MSG if Gem.win_platform? && RakeCargoHelper.rust_toolchain !~ /gnu/
-    Found Rust toolchain `#{RakeCargoHelper.rust_toolchain}' but the gem native
+  raise <<-MSG if Gem.win_platform? && RbspyRakeCargoHelper.rust_toolchain !~ /gnu/
+    Found Rust toolchain `#{RbspyRakeCargoHelper.rust_toolchain}' but the gem native
     extension requires the gnu toolchain on Windows.
   MSG
 end
 
 # ensure task is running in the right dir
-task :cd do
+task :rbspy_cd do
   cd(__dir__) unless __dir__ == pwd
 end

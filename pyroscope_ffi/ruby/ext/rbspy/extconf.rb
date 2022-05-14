@@ -1,11 +1,12 @@
 require 'mkmf'
+require 'rb_sys/mkmf'
 require 'rake'
 
-create_makefile('rbspy')
+create_rust_makefile('rbspy')
 
 app = Rake.application
 app.init
 app.add_import 'Rakefile'
 app.load_rakefile
 
-app['default'].invoke
+app['rbspy'].invoke
