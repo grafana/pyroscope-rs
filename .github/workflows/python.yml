@@ -29,4 +29,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
-          path: pyroscope_ffi/python/py/dist/*
+          path: pyroscope_ffi/python/dist/*
