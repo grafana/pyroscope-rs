@@ -14,12 +14,15 @@ def build_native(spec):
     )
 
     # Step 2: package the compiled library
+    rtld_flags = ["NOW"]
+    if sys.platform == "darwin":
+        rtld_flags.append("NODELETE")
     spec.add_cffi_module(module_path='pyroscope_beta._native',
             dylib=lambda: build.find_dylib('pyroscope_ffi',
                 in_path='target/release'),
             header_filename=lambda:
             build.find_header('pyroscope_ffi.h',in_path='include'),
-            rtld_flags=['NOW']
+            rtld_flags=rtld_flags,
     )
 
 setup(
