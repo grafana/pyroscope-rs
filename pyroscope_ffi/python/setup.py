@@ -14,10 +14,16 @@ def build_native(spec):
         path=LIB_DIR
     )
 
+    build = spec.add_external_build(
+        cmd=['pwd', '&&', 'ls'],
+        path=LIB_DIR
+    )
+
     # Step 2: package the compiled library
     rtld_flags = ["NOW"]
     if sys.platform == "darwin":
         rtld_flags.append("NODELETE")
+
     spec.add_cffi_module(module_path='pyroscope_beta._native',
             dylib=lambda: build.find_dylib('pyroscope_ffi',
                 in_path='target/release'),
