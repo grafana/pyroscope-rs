@@ -2,7 +2,7 @@
 set -e
 
 # Install tooling
-yum -y -q install wget gcc libffi-devel
+yum -y -q install wget gcc libffi-devel openssl-devel
 
 # Install Rust
 curl https://sh.rustup.rs -sSf | sh -s -- -y
