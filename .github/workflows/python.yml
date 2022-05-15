@@ -11,46 +11,22 @@ on:
     - '.github/workflows/python.yml'
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
-        exclude:
-        - os: ubuntu-latest
-          target: x86_64-apple-darwin
-        - os: ubuntu-latest
-          target: aarch64-apple-darwin
-        - os: macos-latest
-          target: x86_64-unknown-linux-gnu
-        - os: macos-latest
-          target: aarch64-unknown-linux-gnu
-
-    env:
-      CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y && apt update && apt install -y libssl-dev libunwind8-dev"
-      CIBW_BUILD_VERBOSITY: "1"
-      CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
-      CIBW_MANYLINUX_X86_64_IMAGE: "quay.io/pypa/manylinux_2_24_x86_64:latest"
+  sdist:
+    name: Python sdist
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.4.0
-
-      - name: Build wheels
-        run: python pyroscope_ffi/python -m cibuildwheel --output-dir wheelhouse
+      - name: Build sdist
+        run: python setup.py sdist --format=zip
+        working-directory: pyroscope_ffi/python
 
       - uses: actions/upload-artifact@v2
         with:
-          path: ./wheelhouse/*.whl
-
-      - name: Display repo
-        shell: bash
-        run: |
-          cd wheelhouse
-          ls -la
+          name: ${{ github.sha }}
+          path: pyroscope_ffi/python/py/dist/*
