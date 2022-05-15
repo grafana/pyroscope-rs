@@ -15,6 +15,7 @@ cd libunwind-1.6.2
 ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation
 make
 make install
+cd ..
 
 # Build wheels
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel
