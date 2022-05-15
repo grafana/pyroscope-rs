@@ -11,6 +11,37 @@ on:
     - '.github/workflows/python.yml'
 
 jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-arch:
+          - manylinux2010_i686
+          - manylinux2010_x86_64
+          - manylinux2014_aarch64
+
+    name: Python Linux ${{ matrix.build-arch }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - if: matrix.build-arch == 'manylinux2014_aarch64'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: arm64
+
+      - name: Build in Docker
+        run: pyroscope_ffi/python/scripts/docker.sh
+        env:
+          BUILD_ARCH: ${{ matrix.build-arch }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: pyroscope_ffi/python/dist/*
   sdist:
     name: Python sdist
     runs-on: ubuntu-latest
