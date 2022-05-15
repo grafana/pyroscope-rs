@@ -15,7 +15,7 @@ def build_native(spec):
     )
 
     build = spec.add_external_build(
-        cmd=['ls'],
+        cmd=['cd target', 'ls', 'cd release', 'ls'],
         path=LIB_DIR
     )
 
