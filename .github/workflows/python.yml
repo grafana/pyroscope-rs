@@ -23,7 +23,7 @@ jobs:
           python-version: 3.7
 
       - name: Build sdist
-        run: python setup.py sdist --format=zip
+        run: python setup.py sdist
         working-directory: pyroscope_ffi/python
 
       - uses: actions/upload-artifact@v2
