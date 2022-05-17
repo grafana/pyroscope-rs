@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
     end
   end
 
-  s.platform = Gem::Platform::RUBY
+  s.platform = Gem::Platform::CURRENT
   s.require_paths = ['lib']
 
   s.extensions = ['ext/rbspy/extconf.rb', 'ext/thread_id/extconf.rb']
