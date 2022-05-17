@@ -14,11 +14,6 @@ def build_native(spec):
         path=LIB_DIR
     )
 
-    build = spec.add_external_build(
-        cmd=['cd target', 'ls', 'cd release', 'ls'],
-        path=LIB_DIR
-    )
-
     # Step 2: package the compiled library
     rtld_flags = ["NOW"]
     if sys.platform == "darwin":
