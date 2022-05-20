@@ -2,5 +2,10 @@
 .DS_Store
 **/target
 *.so
-tmp
-pkg
+Gemfile.lock
+/pkg
+/doc
+/coverage
+/tmp
+/vendor
+/.bundle
