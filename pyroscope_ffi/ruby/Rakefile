@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-require "rubygems/package_task"
+require 'rubygems/package_task'
 require 'rake/extensiontask'
 require_relative 'lib/pyroscope/version'
 
 exec(*(["bundle", "exec", $PROGRAM_NAME] + ARGV)) if ENV['BUNDLE_GEMFILE'].nil?
+
 begin
 	Bundler.setup(:default, :development)
 rescue Bundler::BundlerError => e
@@ -74,6 +75,9 @@ namespace :gem do
           set -e
 
           # For cross-building ring; see https://github.com/briansmith/ring/blob/main/BUILDING.md#cross-compiling
+          apt-get update
+          apt-get install -y libssl-dev
+
           if [ -d "/opt/osxcross/target/bin" ]; then
             # This string replacement is a workaround for https://github.com/oxidize-rb/rb-sys/pull/23
             TARGET_CC="${CARGO_BUILD_TARGET/darwin/darwin20.2}-cc"
@@ -81,8 +85,6 @@ namespace :gem do
           else
             TARGET_CC="#{platform}-gnu-gcc"
             TARGET_AR="#{platform}-gnu-ar"
-            yum -y -q update
-            yum -y -q install openssl-dev
           fi
           export TARGET_CC TARGET_AR
           export GVB_VERSION_OVERRIDE="#{spec.version}"
@@ -92,7 +94,7 @@ namespace :gem do
           [ "#{platform}" = "arm64-darwin" ] && rustup target add aarch64-apple-darwin
           [ "#{platform}" = "aarch64-linux" ] && rustup target add aarch64-unknown-linux-gnu
           bundle install
-          rake native:#{platform} gem RUBY_CC_VERSION=3.1.0:3.0.0:2.7.0
+          rake native:#{platform} gem
         EOT
       end
     end
@@ -106,6 +108,9 @@ namespace :gem do
         RakeCompilerDock.sh <<-EOT, platform: platform, image: "rbsys/rcd:#{platform}"
           set -e
           # For cross-building ring; see https://github.com/briansmith/ring/blob/main/BUILDING.md#cross-compiling
+          apt-get update
+          apt-get install -y libssl-dev
+
           if [ -d "/opt/osxcross/target/bin" ]; then
             # This string replacement is a workaround for https://github.com/oxidize-rb/rb-sys/pull/23
             TARGET_CC="${CARGO_BUILD_TARGET/darwin/darwin20.2}-cc"
@@ -122,7 +127,7 @@ namespace :gem do
           [ "#{platform}" = "arm64-darwin" ] && rustup target add aarch64-apple-darwin
           [ "#{platform}" = "aarch64-linux" ] && rustup target add aarch64-unknown-linux-gnu
           bundle install
-          rake native:#{platform} gem RUBY_CC_VERSION=3.1.0:3.0.0:2.7.0
+          rake native:#{platform} gem
         EOT
       end
     end
