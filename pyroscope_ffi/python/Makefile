@@ -4,6 +4,7 @@ clean:
 	rm -rf dist
 	rm -rf wheelhouse
 	rm -rf pyroscope_beta.egg-info
+	rm -rf lib/target
 
 .PHONY: build
 build: clean

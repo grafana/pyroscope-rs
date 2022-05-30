@@ -3,6 +3,7 @@
 
 # Packages
 *.egg
+.eggs/
 !/tests/**/*.egg
 */*.egg-info
 *.egg-info

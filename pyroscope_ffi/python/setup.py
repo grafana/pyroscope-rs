@@ -19,9 +19,11 @@ def build_native(spec):
                 in_path='target/release'),
             header_filename=lambda:
             build.find_header('pyroscope_ffi.h',in_path='include'),
-            rtld_flags=['NOW', 'NODELETE']
+            rtld_flags=['NOW']
     )
 
 setup(
+    platforms="any",
     milksnake_tasks=[build_native],
+    setup_requires=["milksnakex>=0.1.6"],
 )
