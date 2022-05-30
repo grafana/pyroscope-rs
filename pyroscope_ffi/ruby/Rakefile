@@ -74,10 +74,6 @@ namespace :gem do
         RakeCompilerDock.sh <<-EOT, platform: platform, image: "rbsys/rcd:#{platform}"
           set -e
 
-          # For cross-building ring; see https://github.com/briansmith/ring/blob/main/BUILDING.md#cross-compiling
-          #apt-get update
-          #apt-get install -y libssl-dev
-
           if [ -d "/opt/osxcross/target/bin" ]; then
             # This string replacement is a workaround for https://github.com/oxidize-rb/rb-sys/pull/23
             TARGET_CC="${CARGO_BUILD_TARGET/darwin/darwin20.2}-cc"
@@ -88,6 +84,7 @@ namespace :gem do
           fi
           export TARGET_CC TARGET_AR
           export GVB_VERSION_OVERRIDE="#{spec.version}"
+          [[ "#{platform}" =~ ^a ]] && apt-get update && apt-get install -y libssl-dev
           [[ "#{platform}" =~ ^a ]] && rustup default nightly
           # This re-installs the nightly version of the relevant target after
           # we so rudely switch the default toolchain
@@ -107,7 +104,7 @@ namespace :gem do
       task platform => :prepare do
         RakeCompilerDock.sh <<-EOT, platform: platform, image: "rbsys/rcd:#{platform}"
           set -e
-          # For cross-building ring; see https://github.com/briansmith/ring/blob/main/BUILDING.md#cross-compiling
+
           #apt-get update
           #apt-get install -y libssl-dev
 
@@ -121,6 +118,7 @@ namespace :gem do
           fi
           export TARGET_CC TARGET_AR
           export GVB_VERSION_OVERRIDE="#{spec.version}"
+          [[ "#{platform}" =~ ^a ]] && apt-get update && apt-get install -y libssl-dev
           [[ "#{platform}" =~ ^a ]] && rustup default nightly
           # This re-installs the nightly version of the relevant target after
           # we so rudely switch the default toolchain
