@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.5.0"
+pyroscope = "0.5.2"
 pyroscope_pprofrs = "0.2"
 ```
 
@@ -83,8 +83,7 @@ The Pyroscope Agent doesn't do any profiling. The agent role is to orchasrate a 
 ### Limitations
 
 - **Backend**: The Pyroscope Agent uses [pprof-rs](https://github.com/tikv/pprof-rs) as a backend. As a result, the [limitations](https://github.com/tikv/pprof-rs#why-not-) for pprof-rs also applies.
-- **Tagging**: ~~Adding or removing tags is not possible within threads. In general, the [Pyroscope Agent](https://docs.rs/pyroscope/latest/pyroscope/pyroscope/struct.PyroscopeAgent.html) is not Sync; and as a result a reference cannot be shared between threads. A multi-threaded program could be profiled but the agent is not thread-aware and a particular thread cannot be tagged.~~
-As of 0.5.0, the Pyroscope Agent support tagging within threads. Check the [Tags](examples/tags.rs) and [Multi-Thread](examples/multi-thread.rs) examples for usage.
+- **Tagging**: As of 0.5.0, the Pyroscope Agent support tagging within threads. Check the [Tags](examples/tags.rs) and [Multi-Thread](examples/multi-thread.rs) examples for usage.
 - **Timer**: epoll (for Linux) and kqueue (for macOS) are required for a more precise timer.
 - **Shutdown**: The Pyroscope Agent might take some time (usually less than 10 seconds) to shutdown properly and drop its threads. For a proper shutdown, it's recommended that you run the `shutdown` function before dropping the Agent.
 

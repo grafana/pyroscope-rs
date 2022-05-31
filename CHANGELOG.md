@@ -1,3 +1,21 @@
+# v0.5.2
+## New features
+- Authentication Token support
+
+## API Changes
+- use rust-tls instead of openssl
+
+# v0.5.1
+## API Changes
+- Backend shutdown bug
+- Docs update
+
+# v0.5.0
+## API Changes
+- New API for building, starting and stopping the profiling agent.
+- Backend supports reporting multiple threads.
+- Tagging within local thread-scope
+
 # v0.4.0
 ## API Changes
 - Backend now support passing a configuration struct.
