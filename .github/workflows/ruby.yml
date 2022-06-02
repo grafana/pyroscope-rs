@@ -24,6 +24,10 @@ jobs:
         with:
           ruby-version: '3.1'
 
+      - name: Install bundles 
+        run: bundle
+        working-directory: pyroscope_ffi/ruby
+
       - name: Build source gem
         run: rake gem
         working-directory: pyroscope_ffi/ruby
