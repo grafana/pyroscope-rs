@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'rubygems/package_task'
-require 'rake/extensiontask'
 require_relative 'lib/pyroscope/version'
 
 exec(*(["bundle", "exec", $PROGRAM_NAME] + ARGV)) if ENV['BUNDLE_GEMFILE'].nil?
@@ -23,40 +22,48 @@ task :hello do
   puts 'Hello!'
 end
 
-spec = Bundler.load_gemspec('pyroscope.gemspec')
 
 namespace :source do
+  spec = Bundler.load_gemspec('pyroscope.gemspec')
   Gem::PackageTask.new(spec) do |pkg|
   end
 end
 
 namespace :x86_64_darwin do
+  spec = Bundler.load_gemspec('pyroscope.gemspec')
   spec.platform = 'x86_64-darwin'
-  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
+  spec.files += FileList['lib/rbspy/rbspy.*']
+  spec.files += FileList['lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
 end
 
 namespace :arm64_darwin do
+  spec = Bundler.load_gemspec('pyroscope.gemspec')
   spec.platform = 'arm64-darwin'
-  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
+  spec.files += FileList['lib/rbspy/rbspy.*']
+  spec.files += FileList['lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
 end
 
 namespace :x86_64_linux do
+  spec = Bundler.load_gemspec('pyroscope.gemspec')
   spec.platform = 'x86_64-linux'
-  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
+  spec.files += FileList['lib/rbspy/rbspy.*']
+  spec.files += FileList['lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
 end
 
 namespace :aarch64_linux do
+  spec = Bundler.load_gemspec('pyroscope.gemspec')
   spec.platform = 'aarch64-linux'
-  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
+  spec.files += FileList['lib/rbspy/rbspy.*']
+  spec.files += FileList['lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
