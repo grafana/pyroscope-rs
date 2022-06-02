@@ -61,6 +61,62 @@ jobs:
           name: ${{ github.sha }}
           path: pyroscope_ffi/ruby/pkg/*.gem
 
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - macos-version: "10.15"
+            target: x86_64-apple-darwin
+            py-platform: macosx-10_15_x86_64
+          - macos-version: "11.0"
+            target: aarch64-apple-darwin
+            py-platform: macosx-11_0_arm64
+
+    name: macOS - ${{ matrix.platform }}
+    runs-on: macos-${{ matrix.macos-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+
+      - name: Install bundles 
+        run: bundle
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build native extensions
+        run: rake rbspy_install
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build native extensions
+        run: rake thread_id_install
+        working-directory: pyroscope_ffi/ruby
+
+      - if: matrix.build-arch == 'x86_64-apple-darwin'
+        name: Build macos gem
+        run: rake x86_64_darwin:gem
+        working-directory: pyroscope_ffi/ruby
+
+      - if: matrix.build-arch == 'aarch64-apple-darwin'
+        name: Build macos gem
+        run: rake arm64_linux:gem
+        working-directory: pyroscope_ffi/ruby
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: pyroscope_ffi/ruby/pkg/*.gem
+
   source:
     name: source 
     runs-on: ubuntu-latest
