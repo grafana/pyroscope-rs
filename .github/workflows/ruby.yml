@@ -77,7 +77,7 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - name: Build source gem
-        run: rake gem
+        run: rake source:gem
         working-directory: pyroscope_ffi/ruby
 
       - uses: actions/upload-artifact@v2

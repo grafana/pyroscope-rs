@@ -32,7 +32,7 @@ end
 
 namespace :x86_64_darwin do
   spec.platform = 'x86_64-darwin'
-  spec.files += ['lib/rbspy/rbspy.bundle', 'lib/thread_id/thread_id.bundle']
+  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
@@ -40,7 +40,7 @@ end
 
 namespace :arm64_darwin do
   spec.platform = 'arm64-darwin'
-  spec.files += ['lib/rbspy/rbspy.bundle', 'lib/thread_id/thread_id.bundle']
+  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
@@ -48,7 +48,7 @@ end
 
 namespace :x86_64_linux do
   spec.platform = 'x86_64-linux'
-  spec.files += ['lib/rbspy/rbspy.bundle', 'lib/thread_id/thread_id.bundle']
+  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
@@ -56,7 +56,7 @@ end
 
 namespace :aarch64_linux do
   spec.platform = 'aarch64-linux'
-  spec.files += ['lib/rbspy/rbspy.bundle', 'lib/thread_id/thread_id.bundle']
+  spec.files += ['lib/rbspy/rbspy.*', 'lib/thread_id/thread_id.*']
 
   Gem::PackageTask.new(spec) do |pkg|
   end
