@@ -11,7 +11,55 @@ on:
     - '.github/workflows/ruby.yml'
 
 jobs:
-  
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-arch:
+          - x86_64
+          - aarch64
+
+    name: Linux - ${{ matrix.build-arch }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - if: matrix.build-arch == 'aarch64'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: arm64
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+
+      - name: Install bundles 
+        run: bundle
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build native extensions
+        run: rake rbspy_install
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build native extensions
+        run: rake thread_id_install
+        working-directory: pyroscope_ffi/ruby
+
+      - if: matrix.build-arch == 'x86_64'
+        name: Build linux gem
+        run: rake x86_64_linux:gem
+        working-directory: pyroscope_ffi/ruby
+
+      - if: matrix.build-arch == 'aarch64'
+        name: Build linux gem
+        run: rake aarch64_linux:gem
+        working-directory: pyroscope_ffi/ruby
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: pyroscope_ffi/ruby/pkg/*.gem
 
   source:
     name: source 
