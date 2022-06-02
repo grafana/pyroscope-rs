@@ -1,0 +1,34 @@
+name: Ruby Package
+
+on: 
+  push:
+    paths:
+    - 'pyroscope_ffi/ruby/**'
+    - '.github/workflows/ruby.yml'
+  pull_request:
+    paths: 
+    - 'pyroscope_ffi/ruby/**'
+    - '.github/workflows/ruby.yml'
+
+jobs:
+  
+
+  source:
+    name: source 
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+
+      - name: Build source gem
+        run: rake gem
+        working-directory: pyroscope_ffi/ruby
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: pyroscope_ffi/ruby/pkg/*.gem
