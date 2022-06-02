@@ -102,12 +102,12 @@ jobs:
         run: rake thread_id_install
         working-directory: pyroscope_ffi/ruby
 
-      - if: matrix.build-arch == 'x86_64-apple-darwin'
+      - if: matrix.target == 'x86_64-apple-darwin'
         name: Build macos gem
         run: rake x86_64_darwin:gem
         working-directory: pyroscope_ffi/ruby
 
-      - if: matrix.build-arch == 'aarch64-apple-darwin'
+      - if: matrix.target == 'aarch64-apple-darwin'
         name: Build macos gem
         run: rake arm64_linux:gem
         working-directory: pyroscope_ffi/ruby
