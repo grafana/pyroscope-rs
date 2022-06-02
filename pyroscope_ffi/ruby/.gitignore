@@ -2,6 +2,7 @@
 .DS_Store
 **/target
 *.so
+*.bundle
 Gemfile.lock
 /pkg
 /doc

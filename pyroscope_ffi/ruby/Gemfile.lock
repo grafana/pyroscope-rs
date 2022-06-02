@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    pyroscope_beta (0.1.5)
+    pyroscope_beta (0.1.6)
       ffi (~> 1.9)
       fiddle (~> 1.1)
 

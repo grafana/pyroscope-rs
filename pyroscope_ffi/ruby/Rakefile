@@ -14,8 +14,8 @@ rescue Bundler::BundlerError => e
 	exit e.status_code
 end
 
-#load File.expand_path('./ext/thread_id/Rakefile', __dir__)
-#load File.expand_path('./ext/rbspy/Rakefile', __dir__)
+load File.expand_path('./ext/thread_id/Rakefile', __dir__)
+load File.expand_path('./ext/rbspy/Rakefile', __dir__)
 
 task default: %w[hello]
 
@@ -27,107 +27,4 @@ spec = Bundler.load_gemspec('pyroscope.gemspec')
 
 # add your default gem packing task
 Gem::PackageTask.new(spec) do |pkg|
-end
-
-exttask1 = Rake::ExtensionTask.new('thread_id', spec) do |ext|
-  ext.lib_dir = 'lib'
-  ext.source_pattern = '*.{rs,toml}'
-  ext.cross_compile  = true
-  ext.cross_platform = %w[x86_64-linux x86_64-darwin arm64-darwin aarch64-linux]
-end
-
-exttask2 = Rake::ExtensionTask.new('rbspy', spec) do |ext|
-  ext.lib_dir = 'lib'
-  ext.source_pattern = '*.{rs,toml}'
-  ext.cross_compile  = true
-  ext.cross_platform = %w[x86_64-linux x86_64-darwin arm64-darwin aarch64-linux]
-end
-
-namespace :gem do
-  desc "Push all freshly-built gems to RubyGems"
-  task :push do
-    Rake::Task.tasks.select { |t| t.name =~ %r{^pkg/#{spec.name}-.*\.gem} && t.already_invoked }.each do |pkgtask|
-      sh "gem", "push", pkgtask.name
-    end
-
-    Rake::Task.tasks
-      .select { |t| t.name =~ %r{^gem:cross:} && exttask1.cross_platform.include?(t.name.split(":").last) }
-      .select(&:already_invoked)
-      .each do |task|
-      platform = task.name.split(":").last
-      sh "gem", "push", "pkg/#{spec.full_name}-#{platform}.gem"
-    end
-   end
-
-  namespace :cross do
-    task :prepare do
-      require "rake_compiler_dock"
-      sh "bundle package"
-    end
-
-    exttask1.cross_platform.each do |platform|
-      desc "Cross-compile all native gems in parallel"
-      multitask :all => platform
-
-      desc "Cross-compile a binary gem for #{platform}"
-      task platform => :prepare do
-        RakeCompilerDock.sh <<-EOT, platform: platform, image: "rbsys/rcd:#{platform}"
-          set -e
-
-          if [ -d "/opt/osxcross/target/bin" ]; then
-            # This string replacement is a workaround for https://github.com/oxidize-rb/rb-sys/pull/23
-            TARGET_CC="${CARGO_BUILD_TARGET/darwin/darwin20.2}-cc"
-            TARGET_AR="${CARGO_BUILD_TARGET/darwin/darwin20.2}-ar"
-          else
-            TARGET_CC="#{platform}-gnu-gcc"
-            TARGET_AR="#{platform}-gnu-ar"
-          fi
-          export TARGET_CC TARGET_AR
-          export GVB_VERSION_OVERRIDE="#{spec.version}"
-          [[ "#{platform}" =~ ^a ]] && apt-get update && apt-get install -y libssl-dev
-          [[ "#{platform}" =~ ^a ]] && rustup default nightly
-          # This re-installs the nightly version of the relevant target after
-          # we so rudely switch the default toolchain
-          [ "#{platform}" = "arm64-darwin" ] && rustup target add aarch64-apple-darwin
-          [ "#{platform}" = "aarch64-linux" ] && rustup target add aarch64-unknown-linux-gnu
-          bundle install
-          rake native:#{platform} gem RUBY_CC_VERSION=3.1.0
-        EOT
-      end
-    end
-
-    exttask2.cross_platform.each do |platform|
-      desc "Cross-compile all native gems in parallel"
-      multitask :all => platform
-
-      desc "Cross-compile a binary gem for #{platform}"
-      task platform => :prepare do
-        RakeCompilerDock.sh <<-EOT, platform: platform, image: "rbsys/rcd:#{platform}"
-          set -e
-
-          #apt-get update
-          #apt-get install -y libssl-dev
-
-          if [ -d "/opt/osxcross/target/bin" ]; then
-            # This string replacement is a workaround for https://github.com/oxidize-rb/rb-sys/pull/23
-            TARGET_CC="${CARGO_BUILD_TARGET/darwin/darwin20.2}-cc"
-            TARGET_AR="${CARGO_BUILD_TARGET/darwin/darwin20.2}-ar"
-          else
-            TARGET_CC="#{platform}-gnu-gcc"
-            TARGET_AR="#{platform}-gnu-ar"
-          fi
-          export TARGET_CC TARGET_AR
-          export GVB_VERSION_OVERRIDE="#{spec.version}"
-          [[ "#{platform}" =~ ^a ]] && apt-get update && apt-get install -y libssl-dev
-          [[ "#{platform}" =~ ^a ]] && rustup default nightly
-          # This re-installs the nightly version of the relevant target after
-          # we so rudely switch the default toolchain
-          [ "#{platform}" = "arm64-darwin" ] && rustup target add aarch64-apple-darwin
-          [ "#{platform}" = "aarch64-linux" ] && rustup target add aarch64-unknown-linux-gnu
-          bundle install
-          rake native:#{platform} gem RUBY_CC_VERSION=3.1.0
-        EOT
-      end
-    end
-  end
 end
