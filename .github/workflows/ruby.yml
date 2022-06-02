@@ -109,7 +109,7 @@ jobs:
 
       - if: matrix.target == 'aarch64-apple-darwin'
         name: Build macos gem
-        run: rake arm64_linux:gem
+        run: rake arm64_darwin:gem
         working-directory: pyroscope_ffi/ruby
 
       - uses: actions/upload-artifact@v2
