@@ -1,3 +1,6 @@
+# v0.2.2
+- update pprof to 0.9.1
+
 # v0.2.1
 - update pyroscope-lib to 0.5.2
 
