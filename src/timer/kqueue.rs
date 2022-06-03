@@ -157,7 +157,7 @@ impl Timer {
         };
 
         // add loop event
-        let ke = kevent(
+        let _ke = kevent(
             kqueue,
             [loop_event].as_ptr() as *const libc::kevent,
             1,
