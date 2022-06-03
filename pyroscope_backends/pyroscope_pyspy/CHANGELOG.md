@@ -1,3 +1,6 @@
+# v0.2.2
+- update py-spy to 0.3.12
+
 # v0.2.1
 - update pyroscope-lib to 0.5.2
 
