@@ -2,7 +2,7 @@
 set -e
 
 # Install tooling
-yum -y -q install wget gcc libffi-devel
+yum -y -q install wget gcc libffi-devel openssl-devel
 
 # Install Rust
 curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -15,6 +15,7 @@ cd libunwind-1.6.2
 ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation
 make
 make install
+cd ..
 
 # Build wheels
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel

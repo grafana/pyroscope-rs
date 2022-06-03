@@ -94,7 +94,6 @@ pub extern "C" fn initialize_agent(
     true
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn drop_agent() -> bool {
     let s = signalpass();
@@ -102,7 +101,6 @@ pub extern "C" fn drop_agent() -> bool {
     true
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn add_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();
@@ -119,7 +117,6 @@ pub extern "C" fn add_tag(thread_id: u64, key: *const c_char, value: *const c_ch
     true
 }
 
-#[link(name = "pyroscope_ffi", vers = "0.1")]
 #[no_mangle]
 pub extern "C" fn remove_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
     let s = signalpass();

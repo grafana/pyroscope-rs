@@ -8,4 +8,4 @@ app.init
 app.add_import 'Rakefile'
 app.load_rakefile
 
-app['thread_id'].invoke
+app['default'].invoke

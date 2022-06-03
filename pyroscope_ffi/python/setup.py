@@ -1,4 +1,5 @@
 import os
+import sys
 from setuptools import find_packages, setup
 from pathlib import Path
 
@@ -13,13 +14,24 @@ def build_native(spec):
         path=LIB_DIR
     )
 
+    def find_dylib():
+        cargo_target = os.environ.get('CARGO_BUILD_TARGET')
+        if cargo_target:
+            in_path = 'target/%s/release' % (cargo_target)
+        else:
+            in_path = 'target/release'
+        return build.find_dylib('pyroscope_ffi', in_path=in_path)
+
     # Step 2: package the compiled library
+    rtld_flags = ["NOW"]
+    if sys.platform == "darwin":
+        rtld_flags.append("NODELETE")
+
     spec.add_cffi_module(module_path='pyroscope_beta._native',
-            dylib=lambda: build.find_dylib('pyroscope_ffi',
-                in_path='target/release'),
+            dylib=find_dylib,
             header_filename=lambda:
             build.find_header('pyroscope_ffi.h',in_path='include'),
-            rtld_flags=['NOW']
+            rtld_flags=rtld_flags,
     )
 
 setup(
