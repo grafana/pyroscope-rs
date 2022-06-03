@@ -34,6 +34,7 @@ namespace :x86_64_darwin do
   spec.platform = 'x86_64-darwin'
   spec.files += FileList['lib/rbspy/rbspy.*']
   spec.files += FileList['lib/thread_id/thread_id.*']
+  spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|
   end
@@ -44,6 +45,7 @@ namespace :arm64_darwin do
   spec.platform = 'arm64-darwin'
   spec.files += FileList['lib/rbspy/rbspy.*']
   spec.files += FileList['lib/thread_id/thread_id.*']
+  spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|
   end
@@ -54,6 +56,7 @@ namespace :x86_64_linux do
   spec.platform = 'x86_64-linux'
   spec.files += FileList['lib/rbspy/rbspy.*']
   spec.files += FileList['lib/thread_id/thread_id.*']
+  spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|
   end
@@ -64,6 +67,7 @@ namespace :aarch64_linux do
   spec.platform = 'aarch64-linux'
   spec.files += FileList['lib/rbspy/rbspy.*']
   spec.files += FileList['lib/thread_id/thread_id.*']
+  spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|
   end
