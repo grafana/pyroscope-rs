@@ -120,7 +120,8 @@ desc "build gem native extension and copy to lib"
 task thread_id_install: [:thread_id_cd, :thread_id_build] do
   helper = ThreadIdRakeCargoHelper.new
   profile_dir = @dev ? "debug" : "release"
-  source = File.join(ThreadIdRakeCargoHelper.cargo_target_dir, profile_dir, helper.rust_name)
+  arch_dir = RbspyRakeCargoHelper.rust_toolchain
+  source = File.join(ThreadIdRakeCargoHelper.cargo_target_dir, arch_dir, profile_dir, helper.rust_name)
   dest = File.join(helper.install_dir, helper.ruby_name)
   mkdir_p(helper.install_dir)
   rm(dest) if File.exist?(dest)

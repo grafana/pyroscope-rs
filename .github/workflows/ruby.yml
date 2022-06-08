@@ -22,7 +22,7 @@ jobs:
           - build-arch: x86_64
             target: x86_64-unknown-linux-gnu
           - build-arch: aarch64
-            target: aarch64-unknown-linux-gnu
+            target: arm-unknown-linux-gnueabihf
 
     name: Linux - ${{ matrix.build-arch }}
     runs-on: ubuntu-latest
