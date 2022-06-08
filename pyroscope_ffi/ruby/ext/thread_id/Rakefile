@@ -20,6 +20,10 @@ class ThreadIdRakeCargoHelper
   end
 
   def self.rust_toolchain
+    # return env variable if set
+    target = ENV["RUST_TARGET"]
+    return target if target
+
     str = `rustc --version --verbose`
     info = str.lines.map {|l| l.chomp.split(/:\s+/, 2)}.drop(1).to_h
     info["host"]
@@ -125,7 +129,7 @@ end
 
 desc "build gem native extension"
 task thread_id_build: [:thread_id_cargo, :thread_id_cd] do
-  sh "cargo", "rustc", *(["--locked", "--release"] unless @dev), "--", *ThreadIdRakeCargoHelper.flags
+  sh "cargo", "rustc", *(["--locked", "--release"] unless @dev), "--target=#{RbspyRakeCargoHelper.rust_toolchain}", "--", *RbspyRakeCargoHelper.flags
 end
 
 desc "clean up release build artifacts"

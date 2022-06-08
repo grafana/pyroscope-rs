@@ -18,12 +18,27 @@ jobs:
         build-arch:
           - x86_64
           - aarch64
+        include:
+          - build-arch: x86_64
+            target: x86_64-unknown-linux-gnu
+          - build-arch: aarch64
+            target: aarch64-unknown-linux-gnu
 
     name: Linux - ${{ matrix.build-arch }}
     runs-on: ubuntu-latest
 
+    env:
+      RUST_TARGET: ${{ matrix.target }}
+
     steps:
       - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
 
       - if: matrix.build-arch == 'aarch64'
         uses: docker/setup-qemu-action@v1
@@ -75,6 +90,9 @@ jobs:
 
     name: macOS - ${{ matrix.platform }}
     runs-on: macos-${{ matrix.macos-version }}
+
+    env:
+      RUST_TARGET: ${{ matrix.target }}
 
     steps:
       - uses: actions/checkout@v2

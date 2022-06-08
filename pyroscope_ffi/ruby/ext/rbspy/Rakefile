@@ -20,6 +20,10 @@ class RbspyRakeCargoHelper
   end
 
   def self.rust_toolchain
+    # return env variable if set
+    target = ENV["RUST_TARGET"]
+    return target if target
+
     str = `rustc --version --verbose`
     info = str.lines.map {|l| l.chomp.split(/:\s+/, 2)}.drop(1).to_h
     info["host"]
@@ -45,7 +49,8 @@ class RbspyRakeCargoHelper
       *cc_flags.flat_map {|a| ["-C", "link-arg=#{a}"] },
       "-L", "native=#{RbConfig::CONFIG["libdir"]}",
       *dld_flags,
-      *platform_flags]
+      *platform_flags,
+    ]
   end
 
   def self.dld_flags
@@ -116,7 +121,8 @@ desc "build gem native extension and copy to lib"
 task rbspy_install: [:rbspy_cd, :rbspy_build] do
   helper = RbspyRakeCargoHelper.new
   profile_dir = @dev ? "debug" : "release"
-  source = File.join(RbspyRakeCargoHelper.cargo_target_dir, profile_dir, helper.rust_name)
+  arch_dir = RbspyRakeCargoHelper.rust_toolchain
+  source = File.join(RbspyRakeCargoHelper.cargo_target_dir, arch_dir, profile_dir, helper.rust_name)
   dest = File.join(helper.install_dir, helper.ruby_name)
   mkdir_p(helper.install_dir)
   rm(dest) if File.exist?(dest)
@@ -125,7 +131,7 @@ end
 
 desc "build gem native extension"
 task rbspy_build: [:rbspy_cargo, :rbspy_cd] do
-  sh "cargo", "rustc", *(["--locked", "--release"] unless @dev), "--", *RbspyRakeCargoHelper.flags
+  sh "cargo", "rustc", *(["--locked", "--release"] unless @dev), "--target=#{RbspyRakeCargoHelper.rust_toolchain}", "--", *RbspyRakeCargoHelper.flags
 end
 
 desc "clean up release build artifacts"
