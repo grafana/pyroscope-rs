@@ -24,9 +24,6 @@ jobs:
     name: Linux - ${{ matrix.build-arch }}
     runs-on: ubuntu-latest
 
-    env:
-      RUST_TARGET: ${{ matrix.target }}
-
     steps:
       - uses: actions/checkout@v2
 
