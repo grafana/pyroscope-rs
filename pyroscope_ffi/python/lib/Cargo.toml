@@ -8,8 +8,8 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyroscope = { version = "0.5.2" }
-pyroscope_pyspy = { version = "0.2.2" }
+pyroscope = { path = "../../../", version = "0.5.2" }
+pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy", version = "0.2.2" }
 
 [build-dependencies]
 cbindgen = "0.20.0"
