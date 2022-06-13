@@ -21,23 +21,13 @@ Gem::Specification.new do |s|
 
   s.platform = Gem::Platform::RUBY
 
-  s.required_ruby_version = ">= 2.7.0"
+  s.required_ruby_version = ">= 2.5.9"
 
   s.extensions = ['ext/rbspy/extconf.rb', 'ext/thread_id/extconf.rb']
 
-  s.add_dependency 'ffi', '~> 1.9'
-  s.add_dependency 'fiddle', '~> 1.1'
+  s.add_dependency 'ffi'
+  s.add_dependency 'fiddle'
 
   s.add_development_dependency 'bundler'
-  s.add_development_dependency 'github-release'
-  s.add_development_dependency 'guard-rspec'
   s.add_development_dependency 'rake', '~> 13.0'
-  s.add_development_dependency 'rake-compiler', '~> 1.2'
-  s.add_development_dependency 'rake-compiler-dock', '~> 1.2'
-  s.add_development_dependency 'rb-inotify', '~> 0.9'
-  s.add_development_dependency 'rb_sys', '~> 0.1'
-  s.add_development_dependency 'redcarpet'
-  s.add_development_dependency 'rspec'
-  s.add_development_dependency 'simplecov'
-  s.add_development_dependency 'yard'
 end

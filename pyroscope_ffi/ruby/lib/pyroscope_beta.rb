@@ -66,7 +66,7 @@ end
 
 # get thread id
 def thread_id
-  thread_id = Fiddle::Function.new($libm['thread_id'], [], Fiddle::TYPE_INT64_T)
+  thread_id = Fiddle::Function.new($libm['thread_id'], [], Fiddle::TYPE_LONG_LONG)
   thread_id.call
 end
 
