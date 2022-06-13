@@ -36,17 +36,24 @@ fn signalpass() -> &'static SignalPass {
 
 #[no_mangle]
 pub extern "C" fn initialize_agent(
-    application_name: *const c_char, server_address: *const c_char, sample_rate: u32,
-    detect_subprocesses: bool, tags: *const c_char,
+    application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
+    sample_rate: u32, detect_subprocesses: bool, tags: *const c_char,
 ) -> bool {
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()
         .unwrap()
         .to_string();
+
     let server_address = unsafe { CStr::from_ptr(server_address) }
         .to_str()
         .unwrap()
         .to_string();
+
+    let auth_token = unsafe { CStr::from_ptr(auth_token) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
     let tags_string = unsafe { CStr::from_ptr(tags) }
         .to_str()
         .unwrap()
@@ -65,11 +72,16 @@ pub extern "C" fn initialize_agent(
         let tags_ref = tags_string.as_str();
         let tags = string_to_tags(tags_ref);
         let rbspy = rbspy_backend(rbspy_config);
-        let agent = PyroscopeAgent::builder(server_address, application_name)
+
+        let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
             .backend(rbspy)
-            .tags(tags)
-            .build()
-            .unwrap();
+            .tags(tags);
+
+        if auth_token != "" {
+            agent_builder = agent_builder.auth_token(auth_token);
+        }
+
+        let agent = agent_builder.build().unwrap();
 
         let agent_running = agent.start().unwrap();
 

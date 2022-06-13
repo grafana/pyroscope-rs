@@ -3,7 +3,7 @@ require 'ffi'
 module Rust
   extend FFI::Library
   ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
-  attach_function :initialize_agent, [:string, :string, :int, :bool, :string], :bool
+  attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :string], :bool
   attach_function :add_tag, [:uint64, :string, :string], :bool
   attach_function :remove_tag, [:uint64, :string, :string], :bool
   attach_function :drop_agent, [], :bool
@@ -16,11 +16,12 @@ module Utils
 end
 
 module Pyroscope
-  Config = Struct.new(:application_name, :server_address, :sample_rate, :detect_subprocesses, :log_level, :tags) do
+  Config = Struct.new(:application_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :log_level, :tags) do
     def initialize(*)
       super
       self.application_name ||= ''
       self.server_address ||= 'http://localhost:4040'
+      self.auth_token ||= ''
       self.sample_rate ||= 100
       self.detect_subprocesses ||= true
       self.log_level ||= 'info'
@@ -38,6 +39,7 @@ module Pyroscope
       Rust.initialize_agent(
         @config.application_name,
         @config.server_address,
+        @config.auth_token,
         @config.sample_rate,
         @config.detect_subprocesses,
         tags_to_string(@config.tags)
