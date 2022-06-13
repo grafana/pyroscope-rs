@@ -1,8 +1,4 @@
 require 'ffi'
-require 'fiddle'
-
-$libm = Fiddle.dlopen(File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}")
-
 
 module Rust
   extend FFI::Library
@@ -11,6 +7,12 @@ module Rust
   attach_function :add_tag, [:uint64, :string, :string], :bool
   attach_function :remove_tag, [:uint64, :string, :string], :bool
   attach_function :drop_agent, [], :bool
+end
+
+module Utils
+     extend FFI::Library
+     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}"
+     attach_function :thread_id, [], :uint64
 end
 
 module Pyroscope
@@ -66,8 +68,7 @@ end
 
 # get thread id
 def thread_id
-  thread_id = Fiddle::Function.new($libm['thread_id'], [], Fiddle::TYPE_LONG_LONG)
-  thread_id.call
+  return Utils.thread_id()
 end
 
 # add tags
