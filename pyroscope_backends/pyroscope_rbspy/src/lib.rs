@@ -234,13 +234,10 @@ impl Backend for Rbspy {
     }
 
     fn report(&mut self) -> Result<Vec<Report>> {
-        // Get an Arc reference to the Report Buffer
-        let buffer = self.buffer.clone();
-
-        let v8: StackBuffer = buffer.lock()?.deref().to_owned();
+        let v8: StackBuffer = self.buffer.lock()?.deref().to_owned();
         let reports: Vec<Report> = v8.into();
 
-        buffer.lock()?.clear();
+        self.buffer.lock()?.clear();
 
         // Return the writer's buffer
         Ok(reports)

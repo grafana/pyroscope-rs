@@ -82,7 +82,7 @@ impl From<StackBuffer> for Vec<Report> {
                         // set the metadata of the report, from the stacktrace own metadata.
                         let mut report = report.metadata(stacktrace.metadata.clone());
                         // record the stacktrace. The count should be 1.
-                        report.record(stacktrace)?;
+                        report.record_with_count(stacktrace, count)?;
                         // add the report to the accumulator.
                         acc.insert(report_id, report);
                     }
