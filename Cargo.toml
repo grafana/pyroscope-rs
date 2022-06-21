@@ -57,6 +57,10 @@ names = "0.13.0"
 reqwest = { version = "0.11", features = ["blocking", "rustls-tls-native-roots"]}
 libc = "^0.2.124"
 
+#[patch.crates-io]
+#rbspy = {path = "../forks/rbspy"}
+#read-process-memory = {git = "https://github.com/omarabid/read-process-memorbgit", branch = "0.1.4-fix"}
+
 [dev-dependencies]
 tokio = { version = "1.18", features = ["full"] }
 pretty_env_logger = "0.4.0"
