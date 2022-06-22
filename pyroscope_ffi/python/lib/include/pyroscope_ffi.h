@@ -16,6 +16,9 @@ bool initialize_agent(const char *application_name,
                       const char *server_address,
                       uint32_t sample_rate,
                       bool detect_subprocesses,
+                      bool oncpu,
+                      bool native,
+                      bool gil_only,
                       const char *tags);
 
 bool drop_agent(void);
