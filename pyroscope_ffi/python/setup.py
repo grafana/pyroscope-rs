@@ -27,7 +27,7 @@ def build_native(spec):
     if sys.platform == "darwin":
         rtld_flags.append("NODELETE")
 
-    spec.add_cffi_module(module_path='pyroscope_beta._native',
+    spec.add_cffi_module(module_path='pyroscope._native',
             dylib=find_dylib,
             header_filename=lambda:
             build.find_header('pyroscope_ffi.h',in_path='include'),

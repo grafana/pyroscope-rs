@@ -1,6 +1,6 @@
 import threading
 from collections import namedtuple
-from pyroscope_beta._native import ffi, lib
+from pyroscope._native import ffi, lib
 from contextlib import contextmanager
 
 Config = namedtuple('Config', ('application_name', 'server_address', 'auth_token', 'sample_rate', 'detect_subprocesses','oncpu', 'native', 'gil_only', 'log_level'))
