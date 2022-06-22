@@ -14,6 +14,7 @@
 
 bool initialize_agent(const char *application_name,
                       const char *server_address,
+                      const char *auth_token,
                       uint32_t sample_rate,
                       bool detect_subprocesses,
                       bool oncpu,
