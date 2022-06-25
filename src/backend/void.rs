@@ -1,6 +1,6 @@
 use super::{
-    Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
-    StackTrace,
+    Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer,
+    StackFrame, StackTrace,
 };
 use crate::error::Result;
 
@@ -14,9 +14,15 @@ fn generate_stack_trace() -> Result<Vec<StackTrace>> {
         None,
         Some(0),
     )];
-    let stack_trace_1 = StackTrace::new(None, Some(1), None, frames.clone());
+    let stack_trace_1 = StackTrace::new(
+        BackendConfig::default(),
+        None,
+        Some(1),
+        None,
+        frames.clone(),
+    );
 
-    let stack_trace_2 = StackTrace::new(None, Some(2), None, frames);
+    let stack_trace_2 = StackTrace::new(BackendConfig::default(), None, Some(2), None, frames);
 
     Ok(vec![stack_trace_1, stack_trace_2])
 }
@@ -109,6 +115,16 @@ impl Backend for VoidBackend {
         Ok(reports)
     }
 
+    /// Set the configuration.
+    fn set_config(&self, config: BackendConfig) -> Result<()> {
+        Ok(())
+    }
+
+    /// Return the configuration.
+    fn get_config(&self) -> Result<BackendConfig> {
+        Ok(BackendConfig::default())
+    }
+
     /// Add a Rule to the Backend.
     fn add_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.add_rule(rule)?;
@@ -126,5 +142,5 @@ impl Backend for VoidBackend {
 
 /// A Backend implementation for testing purposes.
 pub fn void_backend(config: VoidConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Box::new(VoidBackend::new(config)))
+    BackendImpl::new(Box::new(VoidBackend::new(config)), None)
 }
