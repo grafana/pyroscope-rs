@@ -73,6 +73,11 @@ impl Backend for VoidBackend {
         Ok("void".to_string())
     }
 
+    /// Return the Backend extension.
+    fn spy_extension(&self) -> Result<Option<String>> {
+        Ok(Some("void".to_string()))
+    }
+
     /// Return the set sample rate.
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
