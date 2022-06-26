@@ -12,6 +12,7 @@ use std::{
 use super::Report;
 
 /// Backend Config
+#[derive(Debug, Copy, Clone)]
 pub struct BackendConfig {
     pub report_thread_id: bool,
     pub report_thread_name: bool,
@@ -49,7 +50,7 @@ pub trait Backend: Send + Debug {
     /// Remove a report-splitting rule from the backend.
     fn remove_rule(&self, ruleset: Rule) -> Result<()>;
     /// Set the backend's configuration.
-    fn set_config(&self, config: BackendConfig) -> Result<()>;
+    fn set_config(&self, config: BackendConfig);
     /// Get the backend's configuration.
     fn get_config(&self) -> Result<BackendConfig>;
 }
