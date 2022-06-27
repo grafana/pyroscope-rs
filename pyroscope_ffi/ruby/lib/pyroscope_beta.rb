@@ -1,24 +1,27 @@
 require 'ffi'
-require 'fiddle'
-
-$libm = Fiddle.dlopen(File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}")
-
 
 module Rust
   extend FFI::Library
   ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
-  attach_function :initialize_agent, [:string, :string, :int, :bool, :string], :bool
+  attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :string], :bool
   attach_function :add_tag, [:uint64, :string, :string], :bool
   attach_function :remove_tag, [:uint64, :string, :string], :bool
   attach_function :drop_agent, [], :bool
 end
 
+module Utils
+     extend FFI::Library
+     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}"
+     attach_function :thread_id, [], :uint64
+end
+
 module Pyroscope
-  Config = Struct.new(:application_name, :server_address, :sample_rate, :detect_subprocesses, :log_level, :tags) do
+  Config = Struct.new(:application_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :log_level, :tags) do
     def initialize(*)
       super
       self.application_name ||= ''
       self.server_address ||= 'http://localhost:4040'
+      self.auth_token ||= ''
       self.sample_rate ||= 100
       self.detect_subprocesses ||= true
       self.log_level ||= 'info'
@@ -36,6 +39,7 @@ module Pyroscope
       Rust.initialize_agent(
         @config.application_name,
         @config.server_address,
+        @config.auth_token,
         @config.sample_rate,
         @config.detect_subprocesses,
         tags_to_string(@config.tags)
@@ -66,8 +70,7 @@ end
 
 # get thread id
 def thread_id
-  thread_id = Fiddle::Function.new($libm['thread_id'], [], Fiddle::TYPE_LONG_LONG)
-  thread_id.call
+  return Utils.thread_id()
 end
 
 # add tags

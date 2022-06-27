@@ -55,6 +55,7 @@ namespace :x86_64_linux do
   spec = Bundler.load_gemspec('pyroscope.gemspec')
   spec.platform = 'x86_64-linux'
   spec.files += FileList['lib/rbspy/rbspy.*']
+  spec.files += FileList['lib/rbspy.libs/*']
   spec.files += FileList['lib/thread_id/thread_id.*']
   spec.extensions = []
 

@@ -1,7 +1,7 @@
 *.gem
 .DS_Store
 **/target
-*.so
+*.so*
 *.bundle
 Gemfile.lock
 /pkg
@@ -10,3 +10,9 @@ Gemfile.lock
 /tmp
 /vendor
 /.bundle
+.eggs
+ext/*/include
+elflib/*/build
+elflib/*/dist
+elflib/*/wheelhouse
+elflib/*/*egg-info
