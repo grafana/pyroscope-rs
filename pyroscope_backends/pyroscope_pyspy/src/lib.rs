@@ -162,6 +162,11 @@ impl Backend for Pyspy {
         Ok("pyspy".to_string())
     }
 
+    /// Return the extension of the backend.
+    fn spy_extension(&self) -> Result<Option<String>> {
+        Ok(Some("cpu".to_string()))
+    }
+
     /// Return the sample rate.
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
