@@ -14,17 +14,14 @@ repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 
 [dependencies]
-rbspy = "0.12.1"
+rbspy= {package = "rbspy-oncpu", version = "0.12.1"}
 pyroscope = { version = "0.5.2", path = "../../" }
 thiserror ="1.0"
 log = "0.4"
 anyhow = "1.0.56"
 
 [patch.crates-io]
-rbspy = {git = "https://github.com/omarabid/rbspy.git", branch="oncpu-fix"}
 read-process-memory = {git = "https://github.com/omarabid/read-process-memory.git", branch = "0.1.4-fix"}
-
-
 
 [profile.dev]
 opt-level=0
