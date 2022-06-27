@@ -1,7 +1,7 @@
 use pyroscope::{
     backend::{
-        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
-        StackTrace,
+        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
 };
@@ -17,7 +17,11 @@ use std::{
 
 /// Short-hand function for creating a new Rbspy backend.
 pub fn rbspy_backend(config: RbspyConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Box::new(Rbspy::new(config)))
+    // Clone BackendConfig to pass to the backend object.
+    let backend_config = config.backend_config.clone();
+
+    // Create a new backend object.
+    BackendImpl::new(Box::new(Rbspy::new(config)), Some(backend_config))
 }
 
 /// Rbspy Configuration
@@ -27,6 +31,8 @@ pub struct RbspyConfig {
     pid: Option<i32>,
     /// Sampling rate
     sample_rate: u32,
+    /// Backend Config
+    backend_config: BackendConfig,
     /// Lock Process while sampling
     lock_process: bool,
     /// Profiling duration. None for infinite.
@@ -40,6 +46,7 @@ impl Default for RbspyConfig {
         RbspyConfig {
             pid: None,
             sample_rate: 100,
+            backend_config: BackendConfig::default(),
             lock_process: false,
             time_limit: None,
             with_subprocesses: false,
@@ -60,6 +67,45 @@ impl RbspyConfig {
     pub fn sample_rate(self, sample_rate: u32) -> Self {
         RbspyConfig {
             sample_rate,
+            ..self
+        }
+    }
+
+    /// Tag thread id in report
+    pub fn report_pid(self) -> Self {
+        let backend_config = BackendConfig {
+            report_pid: true,
+            ..self.backend_config
+        };
+
+        RbspyConfig {
+            backend_config,
+            ..self
+        }
+    }
+
+    /// Tag thread id in report
+    pub fn report_thread_id(self) -> Self {
+        let backend_config = BackendConfig {
+            report_thread_id: true,
+            ..self.backend_config
+        };
+
+        RbspyConfig {
+            backend_config,
+            ..self
+        }
+    }
+
+    /// Tag thread name in report
+    pub fn report_thread_name(self) -> Self {
+        let backend_config = BackendConfig {
+            report_thread_name: true,
+            ..self.backend_config
+        };
+
+        RbspyConfig {
+            backend_config,
             ..self
         }
     }
@@ -133,9 +179,20 @@ impl Backend for Rbspy {
         Ok("rbspy".to_string())
     }
 
+    /// Return the backend extension
+    fn spy_extension(&self) -> Result<Option<String>> {
+        Ok(Some("cpu".to_string()))
+    }
+
     /// Return the sample rate
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
+    }
+
+    fn set_config(&self, config: BackendConfig) {}
+
+    fn get_config(&self) -> Result<BackendConfig> {
+        Ok(self.config.backend_config)
     }
 
     /// Add a rule to the ruleset
@@ -206,11 +263,14 @@ impl Backend for Rbspy {
         // ruleset reference
         let ruleset = self.ruleset.clone();
 
+        let backend_config = self.config.backend_config.clone();
+
         let _: JoinHandle<Result<()>> = std::thread::spawn(move || {
             // Iterate over the StackTrace
             while let Ok(stack_trace) = stack_receiver.recv() {
                 // convert StackTrace
-                let own_trace: StackTrace = Into::<StackTraceWrapper>::into(stack_trace).into();
+                let own_trace: StackTrace =
+                    Into::<StackTraceWrapper>::into((stack_trace, &backend_config)).into();
 
                 let stacktrace = own_trace + &ruleset;
 
@@ -276,9 +336,12 @@ impl From<StackTraceWrapper> for StackTrace {
     }
 }
 
-impl From<rbspy::StackTrace> for StackTraceWrapper {
-    fn from(trace: rbspy::StackTrace) -> Self {
+impl From<(rbspy::StackTrace, &BackendConfig)> for StackTraceWrapper {
+    fn from(arg: (rbspy::StackTrace, &BackendConfig)) -> Self {
+        let (trace, config) = arg;
+
         StackTraceWrapper(StackTrace::new(
+            config,
             trace.pid.map(|pid| pid as u32),
             trace.thread_id.map(|id| id as u64),
             None,
