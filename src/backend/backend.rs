@@ -11,10 +11,32 @@ use std::{
 
 use super::Report;
 
+/// Backend Config
+#[derive(Debug, Copy, Clone)]
+pub struct BackendConfig {
+    pub report_thread_id: bool,
+    pub report_thread_name: bool,
+    pub report_pid: bool,
+    pub report_oncpu: bool,
+}
+
+impl Default for BackendConfig {
+    fn default() -> Self {
+        Self {
+            report_thread_id: false,
+            report_thread_name: false,
+            report_pid: false,
+            report_oncpu: false,
+        }
+    }
+}
+
 /// Backend Trait
 pub trait Backend: Send + Debug {
     /// Backend Spy Name
     fn spy_name(&self) -> Result<String>;
+    /// Backend name extension
+    fn spy_extension(&self) -> Result<Option<String>>;
     /// Get backend configuration.
     fn sample_rate(&self) -> Result<u32>;
     /// Initialize the backend.
@@ -27,6 +49,10 @@ pub trait Backend: Send + Debug {
     fn add_rule(&self, ruleset: Rule) -> Result<()>;
     /// Remove a report-splitting rule from the backend.
     fn remove_rule(&self, ruleset: Rule) -> Result<()>;
+    /// Set the backend's configuration.
+    fn set_config(&self, config: BackendConfig);
+    /// Get the backend's configuration.
+    fn get_config(&self) -> Result<BackendConfig>;
 }
 
 /// Marker struct for Empty BackendImpl
@@ -67,7 +93,17 @@ pub struct BackendImpl<S: BackendState + ?Sized> {
 
 impl BackendImpl<BackendBare> {
     /// Create a new BackendImpl instance
-    pub fn new(backend_box: Box<dyn Backend>) -> BackendImpl<BackendUninitialized> {
+    pub fn new(
+        backend_box: Box<dyn Backend>, config: Option<BackendConfig>,
+    ) -> BackendImpl<BackendUninitialized> {
+        // Set the backend's configuration if it exists.
+        if let Some(config) = config {
+            backend_box.set_config(config);
+        } else {
+            backend_box.set_config(BackendConfig::default());
+        }
+
+        // Transition to BackendUninitialized
         BackendImpl {
             backend: Arc::new(Mutex::new(Some(backend_box))),
             _state: std::marker::PhantomData,
@@ -79,12 +115,15 @@ impl BackendImpl<BackendUninitialized> {
     /// Initialize the backend
     pub fn initialize(self) -> Result<BackendImpl<BackendReady>> {
         let backend = self.backend.clone();
+
+        // Initialize the backend
         backend
             .lock()?
             .as_mut()
             .ok_or(PyroscopeError::BackendImpl)?
             .initialize()?;
 
+        // Transition to BackendReady
         Ok(BackendImpl {
             backend,
             _state: std::marker::PhantomData,
@@ -102,6 +141,15 @@ impl<S: BackendAccessible> BackendImpl<S> {
             .spy_name()
     }
 
+    /// Return the backend extension
+    pub fn spy_extension(&self) -> Result<Option<String>> {
+        self.backend
+            .lock()?
+            .as_ref()
+            .ok_or(PyroscopeError::BackendImpl)?
+            .spy_extension()
+    }
+
     /// Return the backend sample rate
     pub fn sample_rate(&self) -> Result<u32> {
         self.backend
@@ -109,6 +157,15 @@ impl<S: BackendAccessible> BackendImpl<S> {
             .as_ref()
             .ok_or(PyroscopeError::BackendImpl)?
             .sample_rate()
+    }
+
+    /// Return the backend configuration
+    pub fn get_config(&self) -> Result<BackendConfig> {
+        self.backend
+            .lock()?
+            .as_ref()
+            .ok_or(PyroscopeError::BackendImpl)?
+            .get_config()
     }
 
     /// Add a report-splitting rule to the backend

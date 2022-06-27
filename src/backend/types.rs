@@ -5,6 +5,8 @@ use std::{
 
 use crate::error::Result;
 
+use super::BackendConfig;
+
 /// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
 pub struct Tag {
@@ -82,7 +84,7 @@ impl From<StackBuffer> for Vec<Report> {
                         // set the metadata of the report, from the stacktrace own metadata.
                         let mut report = report.metadata(stacktrace.metadata.clone());
                         // record the stacktrace. The count should be 1.
-                        report.record(stacktrace)?;
+                        report.record_with_count(stacktrace, count)?;
                         // add the report to the accumulator.
                         acc.insert(report_id, report);
                     }
@@ -220,22 +222,28 @@ impl std::fmt::Display for StackTrace {
 impl StackTrace {
     /// Create a new StackTrace
     pub fn new(
-        pid: Option<u32>, thread_id: Option<u64>, thread_name: Option<String>,
-        frames: Vec<StackFrame>,
+        config: &BackendConfig, pid: Option<u32>, thread_id: Option<u64>,
+        thread_name: Option<String>, frames: Vec<StackFrame>,
     ) -> Self {
         // Set StackTrace specific tags
         let mut metadata = Metadata::default();
 
-        if let Some(pid) = pid {
-            metadata.add_tag(Tag::new("pid".to_owned(), pid.to_string()));
+        if config.report_pid {
+            if let Some(pid) = pid {
+                metadata.add_tag(Tag::new("pid".to_owned(), pid.to_string()));
+            }
         }
 
-        if let Some(thread_id) = thread_id {
-            metadata.add_tag(Tag::new("thread_id".to_owned(), thread_id.to_string()));
+        if config.report_thread_id {
+            if let Some(thread_id) = thread_id {
+                metadata.add_tag(Tag::new("thread_id".to_owned(), thread_id.to_string()));
+            }
         }
 
-        if let Some(thread_name) = thread_name.clone() {
-            metadata.add_tag(Tag::new("thread_name".to_owned(), thread_name));
+        if config.report_thread_name {
+            if let Some(thread_name) = thread_name.clone() {
+                metadata.add_tag(Tag::new("thread_name".to_owned(), thread_name));
+            }
         }
 
         Self {

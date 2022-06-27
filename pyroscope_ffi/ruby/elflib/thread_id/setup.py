@@ -4,8 +4,13 @@ from setuptools import find_packages, setup
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+
 os.chdir(SCRIPT_DIR)
-LIB_DIR = str(SCRIPT_DIR / "lib")
+
+# print script_dir
+print(SCRIPT_DIR)
+
+LIB_DIR = str(SCRIPT_DIR / "../../ext/thread_id")
 
 def build_native(spec):
     # Step 1: build the rust library
@@ -20,17 +25,17 @@ def build_native(spec):
             in_path = 'target/%s/release' % (cargo_target)
         else:
             in_path = 'target/release'
-        return build.find_dylib('pyroscope_ffi', in_path=in_path)
+        return build.find_dylib('thread_id', in_path=in_path)
 
     # Step 2: package the compiled library
     rtld_flags = ["NOW"]
     if sys.platform == "darwin":
         rtld_flags.append("NODELETE")
 
-    spec.add_cffi_module(module_path='pyroscope._native',
+    spec.add_cffi_module(module_path='thread_id._native',
             dylib=find_dylib,
             header_filename=lambda:
-            build.find_header('pyroscope_ffi.h',in_path='include'),
+            build.find_header('thread_id.h',in_path='include'),
             rtld_flags=rtld_flags,
     )
 

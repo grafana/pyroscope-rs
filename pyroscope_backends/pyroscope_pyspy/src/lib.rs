@@ -1,8 +1,8 @@
 use py_spy::{config::Config, sampler::Sampler};
 use pyroscope::{
     backend::{
-        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
-        StackTrace,
+        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
 };
@@ -19,7 +19,10 @@ const LOG_TAG: &str = "Pyroscope::Pyspy";
 
 /// Short-hand function for creating a new Pyspy backend.
 pub fn pyspy_backend(config: PyspyConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Box::new(Pyspy::new(config)))
+    // Clone BackendConfig to pass to the backend object.
+    let backend_config = config.backend_config.clone();
+
+    BackendImpl::new(Box::new(Pyspy::new(config)), Some(backend_config))
 }
 
 /// Pyspy Configuration
@@ -29,6 +32,8 @@ pub struct PyspyConfig {
     pid: Option<i32>,
     /// Sampling rate
     sample_rate: u32,
+    /// Backend Config
+    backend_config: BackendConfig,
     /// Lock Process while sampling
     lock_process: py_spy::config::LockingStrategy,
     /// Profiling duration (None for infinite)
@@ -48,6 +53,7 @@ impl Default for PyspyConfig {
         PyspyConfig {
             pid: Some(0),
             sample_rate: 100,
+            backend_config: BackendConfig::default(),
             lock_process: py_spy::config::LockingStrategy::NonBlocking,
             time_limit: None,
             with_subprocesses: false,
@@ -71,6 +77,45 @@ impl PyspyConfig {
     pub fn sample_rate(self, sample_rate: u32) -> Self {
         PyspyConfig {
             sample_rate,
+            ..self
+        }
+    }
+
+    /// Tag thread id in report
+    pub fn report_pid(self) -> Self {
+        let backend_config = BackendConfig {
+            report_pid: true,
+            ..self.backend_config
+        };
+
+        PyspyConfig {
+            backend_config,
+            ..self
+        }
+    }
+
+    /// Tag thread id in report
+    pub fn report_thread_id(self) -> Self {
+        let backend_config = BackendConfig {
+            report_thread_id: true,
+            ..self.backend_config
+        };
+
+        PyspyConfig {
+            backend_config,
+            ..self
+        }
+    }
+
+    /// Tag thread name in report
+    pub fn report_thread_name(self) -> Self {
+        let backend_config = BackendConfig {
+            report_thread_name: true,
+            ..self.backend_config
+        };
+
+        PyspyConfig {
+            backend_config,
             ..self
         }
     }
@@ -162,9 +207,20 @@ impl Backend for Pyspy {
         Ok("pyspy".to_string())
     }
 
+    /// Return the extension of the backend.
+    fn spy_extension(&self) -> Result<Option<String>> {
+        Ok(Some("cpu".to_string()))
+    }
+
     /// Return the sample rate.
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
+    }
+
+    fn set_config(&self, config: BackendConfig) {}
+
+    fn get_config(&self) -> Result<BackendConfig> {
+        Ok(self.config.backend_config)
     }
 
     /// Add a rule to the ruleset.
@@ -224,6 +280,8 @@ impl Backend for Pyspy {
         // create a new ruleset reference
         let ruleset = self.ruleset.clone();
 
+        let backend_config = self.config.backend_config.clone();
+
         self.sampler_thread = Some(std::thread::spawn(move || {
             // Get PID
             let pid = config
@@ -252,7 +310,7 @@ impl Backend for Pyspy {
 
                     // Convert py-spy trace to a Pyroscope trace
                     let own_trace: StackTrace =
-                        Into::<StackTraceWrapper>::into(trace.clone()).into();
+                        Into::<StackTraceWrapper>::into((trace.clone(), &backend_config)).into();
 
                     // apply ruleset
                     let stacktrace = own_trace + &ruleset.lock()?.clone();
@@ -330,13 +388,15 @@ impl From<StackTraceWrapper> for StackTrace {
     }
 }
 
-impl From<py_spy::StackTrace> for StackTraceWrapper {
-    fn from(trace: py_spy::StackTrace) -> Self {
+impl From<(py_spy::StackTrace, &BackendConfig)> for StackTraceWrapper {
+    fn from(arg: (py_spy::StackTrace, &BackendConfig)) -> Self {
+        let (stack_trace, config) = arg;
         let stacktrace = StackTrace::new(
-            Some(trace.pid as u32),
-            Some(trace.thread_id as u64),
-            trace.thread_name.clone(),
-            trace
+            config,
+            Some(stack_trace.pid as u32),
+            Some(stack_trace.thread_id as u64),
+            stack_trace.thread_name.clone(),
+            stack_trace
                 .frames
                 .iter()
                 .map(|frame| Into::<StackFrameWrapper>::into(frame.clone()).into())

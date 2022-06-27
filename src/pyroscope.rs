@@ -262,9 +262,18 @@ impl PyroscopeAgentBuilder {
     /// state. While you can call this method, you should call it through the
     /// `PyroscopeAgent.build()` method.
     pub fn build(self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
-        // Set Spy Name and Sample Rate from the Backend
+        // Set Spy Name, Spy Extension and Sample Rate from the Backend
         let config = self.config.sample_rate(self.backend.sample_rate()?);
         let config = config.spy_name(self.backend.spy_name()?);
+
+        // use match instead of if let to avoid the need to borrow
+        let config = match self.backend.spy_extension()? {
+            Some(extension) => {
+                let application_name = config.application_name.clone();
+                config.application_name(format!("{}.{}", application_name, extension))
+            }
+            None => config,
+        };
 
         // Set Global Tags
         for (key, value) in config.tags.iter() {

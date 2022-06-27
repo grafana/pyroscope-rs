@@ -1,8 +1,9 @@
-Pyroscope Python Integration --Beta--
-=====================================
+Pyroscope Python Integration
+============================
 
-**note**: This is a beta release. It requires local compilation, might be
-buggy and is frequently updated. For the initial implementation, find it [here](https://github.com/pyroscope-io/pyroscope-python). Please report any [issues](https://github.com/pyroscope-io/pyroscope-rs/issues).
+**note**: This is an early release. It might require local compilation, might be
+buggy and will be frequently updated. For the initial implementation, revert
+to version 2.x.
 
 ## Installation
 
@@ -39,9 +40,9 @@ make install
 Configuration is similar to the old package except for `application_name`:
 
 ```
-import pyroscope_beta
+import pyroscope
 
-pyroscope_beta.configure(
+pyroscope.configure(
   application_name       = "python.app",
   server_address         = "http://localhost:4040",
 
@@ -56,6 +57,6 @@ pyroscope_beta.configure(
 Tags passed to configure are global. To tag code locally, you can use:
 
 ```
-with pyroscope_beta.tag_wrapper({ "profile": "profile-1" }):
+with pyroscope.tag_wrapper({ "profile": "profile-1" }):
     // Tagged profile
 ```

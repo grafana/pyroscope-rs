@@ -15,7 +15,7 @@ readme = "README.md"
 
 
 [dependencies]
-pprof = "0.9.1"
+pprof = "0.10.0"
 pyroscope = {version = "0.5.2", path = "../../" }
 thiserror ="1.0"
 

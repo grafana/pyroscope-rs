@@ -1,8 +1,8 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
-        Backend, BackendImpl, BackendUninitialized, Report, Rule, Ruleset, StackBuffer, StackFrame,
-        StackTrace,
+        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
 };
@@ -14,18 +14,23 @@ use std::{
 };
 
 pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Box::new(Pprof::new(config)))
+    let backend_config = config.backend_config.clone();
+    BackendImpl::new(Box::new(Pprof::new(config)), Some(backend_config))
 }
 
 /// Pprof Configuration
 #[derive(Debug)]
 pub struct PprofConfig {
     sample_rate: u32,
+    backend_config: BackendConfig,
 }
 
 impl Default for PprofConfig {
     fn default() -> Self {
-        PprofConfig { sample_rate: 100 }
+        PprofConfig {
+            sample_rate: 100,
+            backend_config: BackendConfig::default(),
+        }
     }
 }
 
@@ -37,7 +42,36 @@ impl PprofConfig {
 
     /// Set the sample rate
     pub fn sample_rate(self, sample_rate: u32) -> Self {
-        PprofConfig { sample_rate }
+        PprofConfig {
+            sample_rate,
+            ..self
+        }
+    }
+
+    /// Tag thread id in report
+    pub fn report_thread_id(self) -> Self {
+        let backend_config = BackendConfig {
+            report_thread_id: true,
+            ..self.backend_config
+        };
+
+        PprofConfig {
+            backend_config,
+            ..self
+        }
+    }
+
+    /// Tag thread name in report
+    pub fn report_thread_name(self) -> Self {
+        let backend_config = BackendConfig {
+            report_thread_name: true,
+            ..self.backend_config
+        };
+
+        PprofConfig {
+            backend_config,
+            ..self
+        }
     }
 }
 
@@ -48,6 +82,8 @@ pub struct Pprof<'a> {
     buffer: Arc<Mutex<StackBuffer>>,
     /// pprof-rs Configuration
     config: PprofConfig,
+    /// Backend Configuration
+    backend_config: BackendConfig,
     /// pprof-rs profiler Guard Builder
     inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
     /// pprof-rs profiler Guard
@@ -65,9 +101,11 @@ impl std::fmt::Debug for Pprof<'_> {
 impl<'a> Pprof<'a> {
     /// Create a new Pprof Backend
     pub fn new(config: PprofConfig) -> Self {
+        let backend_config = config.backend_config.clone();
         Pprof {
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
+            backend_config: backend_config,
             inner_builder: Arc::new(Mutex::new(None)),
             guard: Arc::new(Mutex::new(None)),
             ruleset: Ruleset::default(),
@@ -78,6 +116,10 @@ impl<'a> Pprof<'a> {
 impl Backend for Pprof<'_> {
     fn spy_name(&self) -> std::result::Result<String, PyroscopeError> {
         Ok("pyroscope-rs".to_string())
+    }
+
+    fn spy_extension(&self) -> std::result::Result<Option<String>, PyroscopeError> {
+        Ok(Some("cpu".to_string()))
     }
 
     fn sample_rate(&self) -> Result<u32> {
@@ -124,6 +166,12 @@ impl Backend for Pprof<'_> {
         Ok(reports)
     }
 
+    fn set_config(&self, config: BackendConfig) {}
+
+    fn get_config(&self) -> Result<BackendConfig> {
+        Ok(self.backend_config)
+    }
+
     fn add_rule(&self, rule: Rule) -> Result<()> {
         if self.guard.lock()?.as_ref().is_some() {
             self.dump_report()?;
@@ -157,7 +205,10 @@ impl Pprof<'_> {
             .build()
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        let stack_buffer = Into::<StackBuffer>::into(Into::<StackBufferWrapper>::into(report));
+        let stack_buffer = Into::<StackBuffer>::into(Into::<StackBufferWrapper>::into((
+            report,
+            &self.backend_config,
+        )));
 
         // apply ruleset to stack_buffer
         let data: HashMap<StackTrace, usize> = stack_buffer
@@ -197,31 +248,6 @@ impl Pprof<'_> {
     }
 }
 
-struct ReportWrapper(Report);
-
-impl From<ReportWrapper> for Report {
-    fn from(report: ReportWrapper) -> Self {
-        report.0
-    }
-}
-
-impl From<pprof::Report> for ReportWrapper {
-    fn from(report: pprof::Report) -> Self {
-        //convert report to Report
-        let report_data: HashMap<StackTrace, usize> = report
-            .data
-            .iter()
-            .map(|(key, value)| {
-                (
-                    Into::<StackTraceWrapper>::into(key.to_owned()).into(),
-                    value.to_owned() as usize,
-                )
-            })
-            .collect();
-        ReportWrapper(Report::new(report_data))
-    }
-}
-
 struct StackBufferWrapper(StackBuffer);
 
 impl From<StackBufferWrapper> for StackBuffer {
@@ -230,15 +256,16 @@ impl From<StackBufferWrapper> for StackBuffer {
     }
 }
 
-impl From<pprof::Report> for StackBufferWrapper {
-    fn from(report: pprof::Report) -> Self {
+impl From<(pprof::Report, &BackendConfig)> for StackBufferWrapper {
+    fn from(arg: (pprof::Report, &BackendConfig)) -> Self {
+        let (report, config) = arg;
         //convert report to stackbuffer
         let buffer_data: HashMap<StackTrace, usize> = report
             .data
             .iter()
             .map(|(key, value)| {
                 (
-                    Into::<StackTraceWrapper>::into(key.to_owned()).into(),
+                    Into::<StackTraceWrapper>::into((key.to_owned(), config)).into(),
                     value.to_owned() as usize,
                 )
             })
@@ -255,9 +282,11 @@ impl From<StackTraceWrapper> for StackTrace {
     }
 }
 
-impl From<pprof::Frames> for StackTraceWrapper {
-    fn from(frames: pprof::Frames) -> Self {
+impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
+    fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
+        let (frames, config) = arg;
         StackTraceWrapper(StackTrace::new(
+            config,
             None,
             Some(frames.thread_id),
             Some(frames.thread_name),
