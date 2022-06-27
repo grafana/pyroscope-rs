@@ -1,5 +1,7 @@
 #[cfg(test)]
-use crate::backend::{Report, Rule, Ruleset, StackBuffer, StackFrame, StackTrace, Tag};
+use crate::backend::{
+    BackendConfig, Report, Rule, Ruleset, StackBuffer, StackFrame, StackTrace, Tag,
+};
 #[cfg(test)]
 use std::collections::{HashMap, HashSet};
 
@@ -37,7 +39,7 @@ fn test_stack_trace_display() {
         Some(2),
     ));
 
-    let stack_trace = StackTrace::new(None, None, None, frames);
+    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, frames);
 
     assert_eq!(
         format!("{}", stack_trace),
@@ -49,7 +51,7 @@ fn test_stack_trace_display() {
 fn test_report_record() {
     let mut report = Report::new(HashMap::new());
 
-    let stack_trace = StackTrace::new(None, None, None, vec![]);
+    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![]);
 
     assert!(report.record(stack_trace).is_ok());
     assert_eq!(report.data.len(), 1);
@@ -59,7 +61,7 @@ fn test_report_record() {
 fn test_report_clear() {
     let mut report = Report::new(HashMap::new());
 
-    let stack_trace = StackTrace::new(None, None, None, vec![]);
+    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![]);
 
     assert!(report.record(stack_trace).is_ok());
 
@@ -88,7 +90,8 @@ fn test_report_display() {
         Some("relative_path".to_string()),
         Some(2),
     ));
-    let stack_trace = StackTrace::new(None, None, None, frames);
+
+    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, frames);
 
     let mut report = Report::new(HashMap::new());
 
@@ -297,8 +300,14 @@ fn test_stacktrace_add() {
         ))
         .unwrap();
 
+    let mut backend_config = BackendConfig::default();
+    backend_config.report_pid = true;
+    backend_config.report_thread_id = true;
+    backend_config.report_thread_name = true;
+
     // Create Stacktrace with id 55
     let stacktrace = StackTrace::new(
+        &backend_config,
         Some(1),
         Some(55),
         Some("thread_name".to_string()),
@@ -344,6 +353,7 @@ fn test_stacktrace_add() {
 fn test_stackbuffer_record() {
     let mut buffer = StackBuffer::new(HashMap::new());
     let stack_trace = StackTrace::new(
+        &BackendConfig::default(),
         None,
         None,
         None,
@@ -371,6 +381,7 @@ fn test_stackbuffer_record() {
 fn test_stackbuffer_record_with_count() {
     let mut buffer = StackBuffer::new(HashMap::new());
     let stack_trace = StackTrace::new(
+        &BackendConfig::default(),
         None,
         None,
         None,
@@ -398,6 +409,7 @@ fn test_stackbuffer_record_with_count() {
 fn test_stackbuffer_clear() {
     let mut buffer = StackBuffer::new(HashMap::new());
     let stack_trace = StackTrace::new(
+        &BackendConfig::default(),
         None,
         None,
         None,
