@@ -97,19 +97,6 @@ impl RbspyConfig {
         }
     }
 
-    /// Tag thread name in report
-    pub fn report_thread_name(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_name: true,
-            ..self.backend_config
-        };
-
-        RbspyConfig {
-            backend_config,
-            ..self
-        }
-    }
-
     /// Set the lock process flag
     pub fn lock_process(self, lock_process: bool) -> Self {
         RbspyConfig {
