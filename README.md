@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.5.2"
+pyroscope = "0.5.3"
 pyroscope_pprofrs = "0.2"
 ```
 

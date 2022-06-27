@@ -1,3 +1,12 @@
+# v0.5.3
+## New features
+- Add BackendConfig to make reporting of pid, thread_id and thread_name
+  optional. 
+- Backends can add a suffix to the "application_name"
+
+## Bug Fixes
+- **main**: fixed an obsecure bug when counting stacktraces ([Abid Omar](https://github.com/pyroscope-io/pyroscope-rs/commit/bdecaa13aeae3ce7d4c3d97f88bdd104ec35e7c5))
+
 # v0.5.2
 ## New features
 - Authentication Token support
