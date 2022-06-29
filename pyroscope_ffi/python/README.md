@@ -1,62 +1,45 @@
-Pyroscope Python Integration
-============================
+# Pyroscope Python Integration
 
-**note**: This is an early release. It might require local compilation, might be
-buggy and will be frequently updated. For the initial implementation, revert
-to version 2.x.
+### What is Pyroscope
+[Pyroscope](https://github.com/pyroscope-io/pyroscope) is a tool that lets you continuously profile your applications to prevent and debug performance issues in your code. It consists of a low-overhead agent which sends data to the Pyroscope server which includes a custom-built storage engine. This allows for you to store and query any applications profiling data in an extremely efficient and cost effective way.
 
-## Installation
 
-1. You need the Rust toolchain to compile the library locally. To install
-   Rust:
-
+### How to install Pyroscope for Python Applications
 ```
-curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y 
-export PATH=$PATH:/root/.cargo/bin
+pip install pyroscope-io
 ```
 
-2. libunwind8-dev is also required. For Ubuntu:
-
+### Basic Usage of Pyroscope
 ```
-apt-get install -y libunwind8-dev 
-```
-
-3. Building/Insalling from PyPi package
-
-```
-pip install pyroscope_beta
-```
-
-4. Building/Installing from source
-
-Change directory to `pyroscope_ffi/python` and run
-
-```
-make install
-```
-
-## Configuration
-
-Configuration is similar to the old package except for `application_name`:
-
-```
-import pyroscope
+import pyroscope_io as pyroscope
 
 pyroscope.configure(
-  application_name       = "python.app",
-  server_address         = "http://localhost:4040",
-
-  tags = {
-    "key": "value",
-  }
+  application_name       = "my.python.app", # replace this with some name for your application
+  server_address         = "http://my-pyroscope-server:4040", # replace this with the address of your pyroscope server
 )
 ```
 
-## Adding tags
-
-Tags passed to configure are global. To tag code locally, you can use:
+### Adding Tags
+Tags allow for users to view their data at different levels of granularity depending on what "slices" make sense for their application. This can be anything from region or microservice to more dynamic tags like controller or api route.
 
 ```
-with pyroscope.tag_wrapper({ "profile": "profile-1" }):
-    // Tagged profile
+import os
+import pyroscope
+
+pyroscope.configure(
+  application_name       = "simple.python.app",
+  server_address = "http://my-pyroscope-server:4040",
+
+  tags = {
+    "hostname": os.getenv("HOSTNAME"),
+  }
+)
+
+# You can use a wrapper:
+with pyroscope.tag_wrapper({ "controller": "slow_controller_i_want_to_profile" }):
+  slow_code()
 ```
+
+
+### Examples
+For more examples see [examples/python](https://github.com/pyroscope-io/pyroscope/tree/main/examples/python) in the main repo.
