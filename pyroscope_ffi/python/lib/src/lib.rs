@@ -40,7 +40,7 @@ fn signalpass() -> &'static SignalPass {
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
     sample_rate: u32, detect_subprocesses: bool, oncpu: bool, native: bool, gil_only: bool,
-    tags: *const c_char,
+    report_pid: bool, report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
 ) -> bool {
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()
@@ -58,15 +58,28 @@ pub extern "C" fn initialize_agent(
         .to_str()
         .unwrap()
         .to_string();
+
     let pid = std::process::id();
     std::thread::spawn(move || {
-        let pyspy_config = PyspyConfig::new(pid.try_into().unwrap())
+        let mut pyspy_config = PyspyConfig::new(pid.try_into().unwrap())
             .sample_rate(sample_rate)
             .lock_process(false)
             .with_subprocesses(detect_subprocesses)
             .include_idle(!oncpu)
             .native(native)
             .gil_only(gil_only);
+
+        if report_pid {
+            pyspy_config = pyspy_config.report_pid();
+        }
+
+        if report_thread_id {
+            pyspy_config = pyspy_config.report_thread_id();
+        }
+
+        if report_thread_name {
+            pyspy_config = pyspy_config.report_thread_name();
+        }
 
         let tags_ref = tags_string.as_str();
         let tags = string_to_tags(tags_ref);

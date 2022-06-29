@@ -4,12 +4,18 @@ from collections import namedtuple
 from pyroscope._native import ffi, lib
 from contextlib import contextmanager
 
-Config = namedtuple('Config', ('application_name', 'server_address', 'auth_token', 'sample_rate', 'detect_subprocesses','oncpu', 'native', 'gil_only', 'log_level'))
+Config = namedtuple('Config', ('app_name', 'application_name', 'server_address', 'auth_token', 'sample_rate', 'detect_subprocesses','oncpu', 'native', 'gil_only', 'log_level'))
 
-def configure(application_name=None, server_address="http://localhost:4040",
+def configure(app_name=None, application_name=None, server_address="http://localhost:4040",
         auth_token = "", sample_rate=100, detect_subprocesses=False,
         oncpu=False, native=False, gil_only=False, report_pid=False, report_thread_id=False,
         report_thread_name=False, log_level="info", tags=None): 
+
+    # app_name deprecation warning
+    if app_name is not None:
+        warnings.warn("app_name is deprecated, use application_name", DeprecationWarning)
+        application_name = app_name
+
     lib.initialize_agent(application_name.encode("UTF-8"),
             server_address.encode("UTF-8"), auth_token.encode("UTF-8"), sample_rate, detect_subprocesses,
             oncpu, native, gil_only, report_pid, report_thread_id,

@@ -20,6 +20,9 @@ bool initialize_agent(const char *application_name,
                       bool oncpu,
                       bool native,
                       bool gil_only,
+                      bool report_pid,
+                      bool report_thread_id,
+                      bool report_thread_name,
                       const char *tags);
 
 bool drop_agent(void);
