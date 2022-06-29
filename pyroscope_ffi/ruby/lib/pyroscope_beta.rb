@@ -16,7 +16,7 @@ module Utils
 end
 
 module Pyroscope
-  Config = Struct.new(:application_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :log_level, :tags) do
+  Config = Struct.new(:application_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :log_level, :tags) do
     def initialize(*)
       super
       self.application_name ||= ''
@@ -24,6 +24,9 @@ module Pyroscope
       self.auth_token ||= ''
       self.sample_rate ||= 100
       self.detect_subprocesses ||= true
+      self.on_cpu ||= true
+      self.report_pid ||= false
+      self.report_thread_id ||= false
       self.log_level ||= 'info'
       self.tags ||= []
     end
@@ -42,6 +45,9 @@ module Pyroscope
         @config.auth_token,
         @config.sample_rate,
         @config.detect_subprocesses,
+        @config.on_cpu,
+        @config.report_pid,
+        @config.report_thread_id,
         tags_to_string(@config.tags)
       )
 

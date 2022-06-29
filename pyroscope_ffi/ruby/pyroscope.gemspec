@@ -1,9 +1,9 @@
 require_relative "lib/pyroscope/version"
 
 Gem::Specification.new do |s|
-  s.name = 'pyroscope_beta'
+  s.name = 'pyroscope'
   s.version = Pyroscope::VERSION
-  s.summary = 'Pyroscope Beta'
+  s.summary = 'Pyroscope'
   s.description = 'Pyroscope FFI Integration for Ruby'
   s.authors = ['Pyroscope Team']
   s.email = ['contact@pyroscope.io']
