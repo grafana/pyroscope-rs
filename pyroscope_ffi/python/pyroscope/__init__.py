@@ -8,7 +8,7 @@ Config = namedtuple('Config', ('app_name', 'application_name', 'server_address',
 
 def configure(app_name=None, application_name=None, server_address="http://localhost:4040",
         auth_token = "", sample_rate=100, detect_subprocesses=False,
-        oncpu=False, native=False, gil_only=False, report_pid=False, report_thread_id=False,
+        oncpu=True, native=True, gil_only=True, report_pid=False, report_thread_id=False,
         report_thread_name=False, log_level="info", tags=None): 
 
     # app_name deprecation warning
