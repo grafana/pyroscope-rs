@@ -50,16 +50,15 @@ module Pyroscope
         @config.report_thread_id,
         tags_to_string(@config.tags)
       )
-
-      puts @config
     end
 
     def tag_wrapper(tags)
-      add_tags(tags)
+      tid = thread_id
+      _add_tags(tid, tags)
       begin
         yield
       ensure
-        remove_tags(tags)
+        _remove_tags(tid, tags)
       end
     end
 
@@ -67,31 +66,33 @@ module Pyroscope
       warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
     end
 
-# convert tags object to string
-def tags_to_string(tags)
-  tags.map { |k, v| "#{k}=#{v}" }.join(',')
-end
+    def remove_tags(*tags)
+      warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
+    end
 
-# get thread id
-def thread_id
-  return Utils.thread_id()
-end
+    # convert tags object to string
+    def tags_to_string(tags)
+      tags.map { |k, v| "#{k}=#{v}" }.join(',')
+    end
 
-# add tags
-def add_tags(tags)
-  tags.each do |tag_name, tag_value|
-    thread_id = thread_id()
-    Rust.add_tag(thread_id, tag_name.to_s, tag_value.to_s)
-  end
-end
+    # get thread id
+    def thread_id
+      return Utils.thread_id
+    end
 
-# remove tags
-def remove_tags(tags)
-  tags.each do |tag_name, tag_value|
-    thread_id = thread_id()
-    Rust.remove_tag(thread_id, tag_name.to_s, tag_value.to_s)
-  end
-end
+    # add tags
+    def _add_tags(thread_id, tags)
+      tags.each do |tag_name, tag_value|
+        Rust.add_tag(thread_id, tag_name.to_s, tag_value.to_s)
+      end
+    end
+
+    # remove tags
+    def _remove_tags(thread_id, tags)
+      tags.each do |tag_name, tag_value|
+        Rust.remove_tag(thread_id, tag_name.to_s, tag_value.to_s)
+      end
+    end
 
     def drop
       Rust.drop_agent
