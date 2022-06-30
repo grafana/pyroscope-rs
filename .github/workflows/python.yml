@@ -36,7 +36,7 @@ jobs:
         env:
           BUILD_ARCH: ${{ matrix.build-arch }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*
@@ -66,7 +66,7 @@ jobs:
         env:
           BUILD_ARCH: ${{ matrix.build-arch }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*
@@ -108,7 +108,7 @@ jobs:
         env:
           CARGO_BUILD_TARGET: ${{ matrix.target }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*
@@ -128,7 +128,7 @@ jobs:
         run: python setup.py sdist
         working-directory: pyroscope_ffi/python
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*
