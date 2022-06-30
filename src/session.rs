@@ -4,6 +4,8 @@ use std::{
     time::Duration,
 };
 
+use reqwest::Url;
+
 use crate::{
     backend::Report,
     pyroscope::PyroscopeConfig,
@@ -168,9 +170,14 @@ impl Session {
             report.metadata.tags.clone().into_iter().collect(),
         )?;
 
+        // Parse URL
+        let parsed_url = Url::parse(&url)?;
+        let joined = parsed_url.join("ingest")?;
+
         // Create Reqwest builder
+        dbg!(joined.as_str());
         let mut req_builder = client
-            .post(format!("{}/ingest", url))
+            .post(joined.as_str())
             .header("Content-Type", "binary/octet-stream");
 
         // Set authentication token

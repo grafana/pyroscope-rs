@@ -22,6 +22,9 @@ pub enum PyroscopeError {
     Reqwest(#[from] reqwest::Error),
 
     #[error(transparent)]
+    ParseError(#[from] url::ParseError),
+
+    #[error(transparent)]
     TimeSource(#[from] std::time::SystemTimeError),
 
     #[error(transparent)]
