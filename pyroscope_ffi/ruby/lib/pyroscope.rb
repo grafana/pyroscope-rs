@@ -67,16 +67,6 @@ module Pyroscope
       warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
     end
 
-    def remove_tags(*keys)
-      warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
-    end
-
-    def drop
-      Rust.drop_agent
-    end
-  end
-end
-
 # convert tags object to string
 def tags_to_string(tags)
   tags.map { |k, v| "#{k}=#{v}" }.join(',')
@@ -100,5 +90,11 @@ def remove_tags(tags)
   tags.each do |tag_name, tag_value|
     thread_id = thread_id()
     Rust.remove_tag(thread_id, tag_name.to_s, tag_value.to_s)
+  end
+end
+
+    def drop
+      Rust.drop_agent
+    end
   end
 end
