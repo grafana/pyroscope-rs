@@ -175,7 +175,6 @@ impl Session {
         let joined = parsed_url.join("ingest")?;
 
         // Create Reqwest builder
-        dbg!(joined.as_str());
         let mut req_builder = client
             .post(joined.as_str())
             .header("Content-Type", "binary/octet-stream");
