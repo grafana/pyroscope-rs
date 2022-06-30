@@ -49,7 +49,7 @@ jobs:
           - manylinux2014_aarch64
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: [self-hosted, linux, ARM64] 
+    runs-on: [self-hosted, Linux, ARM64] 
 
     steps:
       - uses: actions/checkout@v2
