@@ -3,7 +3,7 @@ require 'ffi'
 module Rust
   extend FFI::Library
   ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
-  attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :string], :bool
+  attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string], :bool
   attach_function :add_tag, [:uint64, :string, :string], :bool
   attach_function :remove_tag, [:uint64, :string, :string], :bool
   attach_function :drop_agent, [], :bool
