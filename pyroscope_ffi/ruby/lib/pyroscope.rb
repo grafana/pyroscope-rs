@@ -10,13 +10,13 @@ module Rust
 end
 
 module Utils
-     extend FFI::Library
-     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}"
-     attach_function :thread_id, [], :uint64
+  extend FFI::Library
+  ffi_lib File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}"
+  attach_function :thread_id, [], :uint64
 end
 
 module Pyroscope
-  Config = Struct.new(:application_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :log_level, :tags) do
+  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :log_level, :tags) do
     def initialize(*)
       super
       self.application_name ||= ''
@@ -40,7 +40,7 @@ module Pyroscope
       yield @config
 
       Rust.initialize_agent(
-        @config.application_name,
+        @config.app_name || @config.application_name,
         @config.server_address,
         @config.auth_token,
         @config.sample_rate,
@@ -63,10 +63,18 @@ module Pyroscope
       end
     end
 
+    def tag(tags)
+      warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
+    end
+
+    def remove_tags(*keys)
+      warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
+    end
+
     def drop
       Rust.drop_agent
     end
-end
+  end
 end
 
 # convert tags object to string
