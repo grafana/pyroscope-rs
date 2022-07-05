@@ -40,15 +40,15 @@ module Pyroscope
       yield @config
 
       Rust.initialize_agent(
-        @config.app_name || @config.application_name,
-        @config.server_address,
-        @config.auth_token,
-        @config.sample_rate,
-        @config.detect_subprocesses,
-        @config.on_cpu,
-        @config.report_pid,
-        @config.report_thread_id,
-        tags_to_string(@config.tags)
+        @config.app_name || @config.application_name || "",
+        @config.server_address || "",
+        @config.auth_token || "",
+        @config.sample_rate || 100,
+        @config.detect_subprocesses || false,
+        @config.on_cpu || false,
+        @config.report_pid || false,
+        @config.report_thread_id || false,
+        tags_to_string(@config.tags || {})
       )
     end
 
