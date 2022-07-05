@@ -18,17 +18,17 @@ end
 module Pyroscope
   Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :log_level, :tags) do
     def initialize(*)
+      self.application_name = ''
+      self.server_address = 'http://localhost:4040'
+      self.auth_token = ''
+      self.sample_rate = 100
+      self.detect_subprocesses = false
+      self.on_cpu = true
+      self.report_pid = false
+      self.report_thread_id = false
+      self.log_level = 'info'
+      self.tags = {}
       super
-      self.application_name ||= ''
-      self.server_address ||= 'http://localhost:4040'
-      self.auth_token ||= ''
-      self.sample_rate ||= 100
-      self.detect_subprocesses ||= true
-      self.on_cpu ||= true
-      self.report_pid ||= false
-      self.report_thread_id ||= false
-      self.log_level ||= 'info'
-      self.tags ||= []
     end
   end
 
