@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 [dependencies]
 pyroscope = { version = "0.5.3" }
 pyroscope_pyspy = { version = "0.2.3" }
+interprocess = { version = "1.1.1" }
 
 [patch.crates-io]
 read-process-memory = {git = "https://github.com/omarabid/read-process-memory.git", branch = "0.1.4-fix"}

@@ -1,12 +1,18 @@
+use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
 use pyroscope::backend::Tag;
 use pyroscope::PyroscopeAgent;
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use std::ffi::CStr;
+use std::io::{Read, Write};
 use std::mem::MaybeUninit;
 use std::os::raw::c_char;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
-use std::sync::{Mutex, Once};
+use std::sync::{Arc, Mutex, Once, RwLock};
 
+static PARENT_ID: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Debug)]
 pub enum Signal {
     Kill,
     AddGlobalTag(String, String),
@@ -15,12 +21,24 @@ pub enum Signal {
     RemoveThreadTag(u64, String, String),
 }
 
+#[derive(Debug)]
 pub struct SignalPass {
     inner_sender: Mutex<SyncSender<Signal>>,
     inner_receiver: Mutex<Receiver<Signal>>,
 }
 
 fn signalpass() -> &'static SignalPass {
+    if PARENT_ID.load(Ordering::Relaxed) != std::process::id() {
+        let mut conn = LocalSocketStream::connect(format!(
+            "/tmp/PYROSCOPE-{}.sock",
+            PARENT_ID.load(Ordering::Relaxed)
+        ))
+        .unwrap();
+        conn.write_all(b"Hello from client!\n").unwrap();
+    }
+
+    dbg!(PARENT_ID.load(Ordering::Relaxed));
+
     static mut SIGNAL_PASS: MaybeUninit<SignalPass> = MaybeUninit::uninit();
     static ONCE: Once = Once::new();
 
@@ -42,6 +60,20 @@ pub extern "C" fn initialize_agent(
     sample_rate: u32, detect_subprocesses: bool, oncpu: bool, native: bool, gil_only: bool,
     report_pid: bool, report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
 ) -> bool {
+    PARENT_ID.store(std::process::id(), Ordering::Relaxed);
+
+    let listener = LocalSocketListener::bind(format!(
+        "/tmp/PYROSCOPE-{}.sock",
+        PARENT_ID.load(Ordering::Relaxed)
+    ))
+    .unwrap();
+
+    std::thread::spawn(move || {
+        listener.incoming().for_each(|msg| {
+            dbg!(msg);
+        });
+    });
+
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()
         .unwrap()
