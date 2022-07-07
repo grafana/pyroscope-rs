@@ -131,7 +131,7 @@ end
 
 desc "build gem native extension"
 task rbspy_build: [:rbspy_cargo, :rbspy_cd] do
-  sh "cargo", "rustc", *(["--locked", "--release"] unless @dev), "--target=#{RbspyRakeCargoHelper.rust_toolchain}", "--", *RbspyRakeCargoHelper.flags
+  sh "cargo", "rustc", *(["--release"] unless @dev), "--target=#{RbspyRakeCargoHelper.rust_toolchain}", "--", *RbspyRakeCargoHelper.flags
 end
 
 desc "clean up release build artifacts"
