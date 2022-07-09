@@ -1,12 +1,15 @@
 use bincode::{config, Decode, Encode};
 use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
 use pyroscope::error::Result;
-use std::io::{prelude::*, BufReader, Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::sync::{
     atomic::AtomicU32,
     mpsc::{self, Receiver, Sender},
     Mutex, Once,
 };
+
+/// Logging Tag
+const LOG_TAG: &str = "Pyroscope::FFIKit";
 
 /// PID of the Root Process.
 pub static PARENT_PID: AtomicU32 = AtomicU32::new(0);
@@ -34,46 +37,76 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
     ONCE.call_once(|| {
         // Set the parent PID.
         set_parent_pid();
+
         // Create a channel to communicate with the FFI.
         let (sender, receiver): (Sender<Signal>, Receiver<Signal>) = mpsc::channel();
+
         // Set the Sender.
         unsafe {
             SENDER = Some(Mutex::new(sender));
         }
 
-        let fn_sender = merge_sender.clone();
         // Listen for signals on the main parent process.
+        let fn_sender = merge_sender.clone();
         std::thread::spawn(move || {
-            while let Ok(Signal) = receiver.recv() {
-                // Send the signal to the merge channel.
-                fn_sender.send(Signal).unwrap();
+            log::trace!("Spawned FFI listener thread.");
+
+            while let Ok(signal) = receiver.recv() {
+                match signal {
+                    Signal::Kill => {
+                        log::info!(target: LOG_TAG, "FFI channel received kill signal.");
+                        break;
+                    }
+                    _ => {
+                        log::trace!(target: LOG_TAG, "FFI channel received signal: {:?}", signal);
+
+                        // Send the signal to the merge channel.
+                        fn_sender.send(signal).unwrap();
+
+                        log::trace!(target: LOG_TAG, "Sent FFI signal to merge channel");
+                    }
+                }
             }
         });
 
-        let socket_sender = merge_sender.clone();
         // Listen for signals on local socket
+        let socket_sender = merge_sender.clone();
         std::thread::spawn(move || {
             let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
-            println!("RECV == Receiving Socket address: {}", socket_address);
+
+            log::trace!(
+                target: LOG_TAG,
+                "FFI Socket Listening on {}",
+                socket_address
+            );
+
+            // Bind to the socket.
             let listener = LocalSocketListener::bind(socket_address).unwrap();
 
+            // Listen for connections.
             listener.incoming().for_each(|packet| {
-                println!("RECV == Received socket packet");
+                log::trace!(target: LOG_TAG, "Received socket packet");
+
+                // Read the packet using a BufReader.
                 let mut conn = BufReader::new(packet.unwrap());
+                // Initialize a buffer to store the message.
                 let mut buffer = [0; 2048];
+                // Read the message.
                 conn.read(&mut buffer).unwrap();
 
-                println!("RECV == Client answered: {:?}", buffer);
-
-                let (signal, len): (Signal, usize) =
+                // Decode the message.
+                let (signal, _len): (Signal, usize) =
                     bincode::decode_from_slice(&buffer, config::standard()).unwrap();
 
+                // Send the signal to the merge channel.
                 socket_sender.send(signal).unwrap();
-                println!("RECV == Sent signal to merge channel");
+
+                log::trace!(target: LOG_TAG, "Sent Socket signal to merge channel");
             });
         });
     });
 
+    // Return the merge channel receiver.
     Ok(merge_receiver)
 }
 
@@ -82,27 +115,28 @@ pub fn send(signal: Signal) -> Result<()> {
     // Send signal through forked process.
     if get_parent_pid() != std::process::id() {
         let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
-        println!("SEND == Socket address: {}", socket_address);
 
+        log::trace!(
+            target: LOG_TAG,
+            "Sending signal {:?} through socket {}",
+            signal,
+            &socket_address
+        );
+
+        // Connect to the socket.
         let mut conn = LocalSocketStream::connect(socket_address).unwrap();
-        //conn.set_nonblocking(true).unwrap();
 
         // encode signal
         let buffer = bincode::encode_to_vec(&signal, config::standard()).unwrap();
-        //let buffer = b"Hello World";
 
-        println!("SEND == Buffer to send {:?}", &buffer);
-
+        // Write the message.
         conn.write_all(&buffer).unwrap();
+
+        // Flush the connection.
         conn.flush().unwrap();
-
-        drop(conn);
-
-        println!("SEND == Sent buffer through socket");
     } else {
         // Send signal through parent process.
         unsafe {
-            println!("SEND == Send through main function");
             SENDER
                 .as_ref()
                 .unwrap()
@@ -110,19 +144,26 @@ pub fn send(signal: Signal) -> Result<()> {
                 .unwrap()
                 .send(signal)
                 .unwrap();
-            println!("SEND == Sent through main function");
         }
     }
 
     Ok(())
 }
 
+/// Set the parent PID.
 fn set_parent_pid() {
-    PARENT_PID.store(std::process::id(), std::sync::atomic::Ordering::Relaxed);
+    // Get the parent PID.
+    let pid = std::process::id();
+
+    log::trace!(target: LOG_TAG, "Set PARENT_PID: {}", pid);
+
+    // Set the parent PID.
+    PARENT_PID.store(pid, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Returns the PID of the Parent Process.
 /// This can be called from forks, threads, or any other context.
 pub fn get_parent_pid() -> u32 {
+    // Retrieve the parent PID.
     PARENT_PID.load(std::sync::atomic::Ordering::Relaxed)
 }
