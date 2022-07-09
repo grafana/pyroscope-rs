@@ -1,7 +1,7 @@
 use bincode::{config, Decode, Encode};
 use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
 use pyroscope::error::Result;
-use std::io::{Read, Write};
+use std::io::{prelude::*, BufReader, Read, Write};
 use std::sync::{
     atomic::AtomicU32,
     mpsc::{self, Receiver, Sender},
@@ -22,8 +22,8 @@ pub enum Signal {
     Kill,
     AddGlobalTag(String, String),
     RemoveGlobalTag(String, String),
-    AddThreadTag(String, String),
-    RemoveThreadTag(String, String),
+    AddThreadTag(u64, String, String),
+    RemoveThreadTag(u64, String, String),
 }
 
 /// pre-fork initialization.
@@ -53,19 +53,23 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
         let socket_sender = merge_sender.clone();
         // Listen for signals on local socket
         std::thread::spawn(move || {
-            let listener =
-                LocalSocketListener::bind(format!("/tmp/PYROSCOPE-{}", get_parent_pid())).unwrap();
-
-            let config = config::standard();
+            let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
+            println!("RECV == Receiving Socket address: {}", socket_address);
+            let listener = LocalSocketListener::bind(socket_address).unwrap();
 
             listener.incoming().for_each(|packet| {
-                let mut read_buffer = packet.unwrap();
-                let mut buffer = String::new();
-                read_buffer.read_to_string(&mut buffer).unwrap();
+                println!("RECV == Received socket packet");
+                let mut conn = BufReader::new(packet.unwrap());
+                let mut buffer = [0; 2048];
+                conn.read(&mut buffer).unwrap();
+
+                println!("RECV == Client answered: {:?}", buffer);
+
                 let (signal, len): (Signal, usize) =
-                    bincode::decode_from_slice(&buffer.as_bytes(), config).unwrap();
-                // Send the signal to the merge channel.
+                    bincode::decode_from_slice(&buffer, config::standard()).unwrap();
+
                 socket_sender.send(signal).unwrap();
+                println!("RECV == Sent signal to merge channel");
             });
         });
     });
@@ -76,26 +80,38 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
 pub fn send(signal: Signal) -> Result<()> {
     // Check if SENDER is set.
     // Send signal through forked process.
-    unsafe {
-        if SENDER.is_none() {
-            let mut conn =
-                LocalSocketStream::connect(format!("/tmp/PYROSCOPE-{}", get_parent_pid())).unwrap();
-            // encode signal
-            let buffer = bincode::encode_to_vec(&signal, config::standard()).unwrap();
+    if get_parent_pid() != std::process::id() {
+        let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
+        println!("SEND == Socket address: {}", socket_address);
 
-            conn.write_all(&buffer).unwrap();
+        let mut conn = LocalSocketStream::connect(socket_address).unwrap();
+        //conn.set_nonblocking(true).unwrap();
+
+        // encode signal
+        let buffer = bincode::encode_to_vec(&signal, config::standard()).unwrap();
+        //let buffer = b"Hello World";
+
+        println!("SEND == Buffer to send {:?}", &buffer);
+
+        conn.write_all(&buffer).unwrap();
+        conn.flush().unwrap();
+
+        drop(conn);
+
+        println!("SEND == Sent buffer through socket");
+    } else {
+        // Send signal through parent process.
+        unsafe {
+            println!("SEND == Send through main function");
+            SENDER
+                .as_ref()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .send(signal)
+                .unwrap();
+            println!("SEND == Sent through main function");
         }
-    }
-
-    // Send signal through parent process.
-    unsafe {
-        SENDER
-            .as_ref()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .send(signal)
-            .unwrap();
     }
 
     Ok(())
