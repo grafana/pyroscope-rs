@@ -1,6 +1,8 @@
 use super::{StackTrace, Tag};
 use crate::error::Result;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashSet;
+use std::hash::Hasher;
 use std::sync::{Arc, Mutex};
 
 /// Profiling Rule
@@ -81,8 +83,18 @@ impl std::ops::Add<&Ruleset> for StackTrace {
             .filter_map(|rule| {
                 if let Rule::ThreadTag(thread_id, tag) = rule {
                     if let Some(stack_thread_id) = self.thread_id {
+                        // No PID, only thread ID to match
                         if thread_id == &stack_thread_id {
                             return Some(tag.clone());
+                        }
+                        if let (Some(stack_thread_id), Some(stack_pid)) = (self.thread_id, self.pid)
+                        {
+                            let mut hasher = DefaultHasher::new();
+                            hasher.write_u64(stack_thread_id % stack_pid as u64);
+                            let id = hasher.finish();
+                            if &id == thread_id {
+                                return Some(tag.clone());
+                            }
                         }
                     }
                 }
