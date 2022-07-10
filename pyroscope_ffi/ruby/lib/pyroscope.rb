@@ -5,8 +5,10 @@ module Pyroscope
     extend FFI::Library
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
     attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string], :bool
-    attach_function :add_tag, [:uint64, :string, :string], :bool
-    attach_function :remove_tag, [:uint64, :string, :string], :bool
+    attach_function :add_thread_tag, [:uint64, :string, :string], :bool
+    attach_function :remove_thread_tag, [:uint64, :string, :string], :bool
+    attach_function :add_global_tag, [:string, :string], :bool
+    attach_function :remove_global_tag, [:string, :string], :bool
     attach_function :drop_agent, [], :bool
   end
 
@@ -83,14 +85,14 @@ module Pyroscope
     # add tags
     def _add_tags(thread_id, tags)
       tags.each do |tag_name, tag_value|
-        Rust.add_tag(thread_id, tag_name.to_s, tag_value.to_s)
+        Rust.add_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
       end
     end
 
     # remove tags
     def _remove_tags(thread_id, tags)
       tags.each do |tag_name, tag_value|
-        Rust.remove_tag(thread_id, tag_name.to_s, tag_value.to_s)
+        Rust.remove_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
       end
     end
 
