@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+bool initialize_logging(uint32_t logging_level);
+
 bool initialize_agent(const char *application_name,
                       const char *server_address,
                       const char *auth_token,

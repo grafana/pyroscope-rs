@@ -1,11 +1,13 @@
 use bincode::{config, Decode, Encode};
 use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
 use pyroscope::error::Result;
-use std::io::{BufReader, Read, Write};
-use std::sync::{
-    atomic::AtomicU32,
-    mpsc::{self, Receiver, Sender},
-    Mutex, Once,
+use std::{
+    io::{BufReader, Read, Write},
+    sync::{
+        atomic::AtomicU32,
+        mpsc::{self, Receiver, Sender},
+        Mutex, Once,
+    },
 };
 
 /// Logging Tag
