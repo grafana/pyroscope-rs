@@ -12,7 +12,6 @@ crate-type = ["cdylib"]
 pyroscope = { path  = "../../../" }
 #pyroscope_pyspy = { version = "0.2.3" }
 pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy" }
-interprocess = { version = "1.1.1" }
 ffikit = { path = "../../ffikit" }
 pretty_env_logger = "0.4.0"
 

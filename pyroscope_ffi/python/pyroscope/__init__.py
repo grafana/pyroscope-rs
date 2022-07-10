@@ -37,6 +37,14 @@ def configure(app_name=None, application_name=None, server_address="http://local
             report_thread_name,
             tags_to_string(tags).encode("UTF-8"))
 
+def shutdown():
+    drop = lib.drop_agent()
+
+    if drop:
+        logging.info("Pyroscope Agent successfully shutdown")
+    else:
+        logging.warn("Pyroscope Agent shutdown failed")
+
 def add_thread_tag(thread_id, key, value):
     lib.add_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
 

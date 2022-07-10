@@ -22,7 +22,7 @@ static ONCE: Once = Once::new();
 /// Root Sender
 static mut SENDER: Option<Mutex<Sender<Signal>>> = None;
 
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Encode, Decode, PartialEq, Clone)]
 pub enum Signal {
     Kill,
     AddGlobalTag(String, String),
@@ -57,6 +57,10 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                 match signal {
                     Signal::Kill => {
                         log::info!(target: LOG_TAG, "FFI channel received kill signal.");
+
+                        // Send the signal to the merge channel.
+                        fn_sender.send(signal).unwrap();
+
                         break;
                     }
                     _ => {
@@ -69,6 +73,8 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                     }
                 }
             }
+
+            true
         });
 
         // Listen for signals on local socket
@@ -101,10 +107,17 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                     bincode::decode_from_slice(&buffer, config::standard()).unwrap();
 
                 // Send the signal to the merge channel.
-                socket_sender.send(signal).unwrap();
+                socket_sender.send(signal.clone()).unwrap();
+
+                if signal == Signal::Kill {
+                    log::info!(target: LOG_TAG, "FFI socket received kill signal.");
+                    return ();
+                }
 
                 log::trace!(target: LOG_TAG, "Sent Socket signal to merge channel");
             });
+
+            true
         });
     });
 
