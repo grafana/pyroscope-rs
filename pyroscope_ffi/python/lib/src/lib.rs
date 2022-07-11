@@ -220,6 +220,7 @@ pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) ->
 
     true
 }
+
 // Convert a string of tags to a Vec<(&str, &str)>
 fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     let mut tags_vec = Vec::new();
