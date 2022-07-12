@@ -9,4 +9,5 @@ edition = "2021"
 interprocess = { version = "1.1.1", features = ["nonblocking"] }
 pyroscope = "0.5.3"
 bincode = "2.0.0-rc.1"
+lazy_static = "0.1.4"
 log = "0.4"

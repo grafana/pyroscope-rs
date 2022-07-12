@@ -1,8 +1,10 @@
 use bincode::{config, Decode, Encode};
 use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
+use lazy_static::lazy_static;
 use pyroscope::error::Result;
 use std::{
     io::{BufReader, Read, Write},
+    ops::Deref,
     sync::{
         atomic::AtomicU32,
         mpsc::{self, Receiver, Sender},
@@ -20,7 +22,9 @@ pub static PARENT_PID: AtomicU32 = AtomicU32::new(0);
 static ONCE: Once = Once::new();
 
 /// Root Sender
-static mut SENDER: Option<Mutex<Sender<Signal>>> = None;
+lazy_static! {
+    static ref SENDER: Mutex<Option<Sender<Signal>>> = Mutex::new(None);
+}
 
 #[derive(Debug, Encode, Decode, PartialEq, Clone)]
 pub enum Signal {
@@ -44,9 +48,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
         let (sender, receiver): (Sender<Signal>, Receiver<Signal>) = mpsc::channel();
 
         // Set the Sender.
-        unsafe {
-            SENDER = Some(Mutex::new(sender));
-        }
+        *SENDER.lock().unwrap() = Some(sender);
 
         // Listen for signals on the main parent process.
         let fn_sender = merge_sender.clone();
@@ -151,15 +153,13 @@ pub fn send(signal: Signal) -> Result<()> {
         conn.flush().unwrap();
     } else {
         // Send signal through parent process.
-        unsafe {
-            SENDER
-                .as_ref()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .send(signal)
-                .unwrap();
-        }
+        SENDER
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .send(signal)
+            .unwrap();
     }
 
     Ok(())
