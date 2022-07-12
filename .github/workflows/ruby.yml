@@ -90,6 +90,11 @@ jobs:
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v2
 
+      - if: matrix.build-arch == 'aarch64'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: arm64
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1'
