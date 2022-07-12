@@ -4,12 +4,12 @@ use lazy_static::lazy_static;
 use pyroscope::error::Result;
 use std::{
     io::{BufReader, Read, Write},
-    ops::Deref,
     sync::{
         atomic::AtomicU32,
         mpsc::{self, Receiver, Sender},
         Mutex, Once,
     },
+    thread::JoinHandle,
 };
 
 /// Logging Tag
@@ -21,8 +21,8 @@ pub static PARENT_PID: AtomicU32 = AtomicU32::new(0);
 /// Once is used to ensure a unique agent.
 static ONCE: Once = Once::new();
 
-/// Root Sender
 lazy_static! {
+    /// Root Sender
     static ref SENDER: Mutex<Option<Sender<Signal>>> = Mutex::new(None);
 }
 
@@ -52,7 +52,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
 
         // Listen for signals on the main parent process.
         let fn_sender = merge_sender.clone();
-        std::thread::spawn(move || {
+        let channel_listener: JoinHandle<Result<()>> = std::thread::spawn(move || {
             log::trace!("Spawned FFI listener thread.");
 
             while let Ok(signal) = receiver.recv() {
@@ -61,7 +61,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                         log::info!(target: LOG_TAG, "FFI channel received kill signal.");
 
                         // Send the signal to the merge channel.
-                        fn_sender.send(signal).unwrap();
+                        fn_sender.send(signal)?;
 
                         break;
                     }
@@ -69,19 +69,19 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                         log::trace!(target: LOG_TAG, "FFI channel received signal: {:?}", signal);
 
                         // Send the signal to the merge channel.
-                        fn_sender.send(signal).unwrap();
+                        fn_sender.send(signal)?;
 
                         log::trace!(target: LOG_TAG, "Sent FFI signal to merge channel");
                     }
                 }
             }
 
-            true
+            Ok(())
         });
 
         // Listen for signals on local socket
         let socket_sender = merge_sender.clone();
-        std::thread::spawn(move || {
+        let socket_listener: JoinHandle<Result<()>> = std::thread::spawn(move || {
             let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
 
             log::trace!(
@@ -91,35 +91,40 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
             );
 
             // Bind to the socket.
-            let listener = LocalSocketListener::bind(socket_address).unwrap();
+            let listener = LocalSocketListener::bind(socket_address)?;
 
             // Listen for connections.
-            listener.incoming().for_each(|packet| {
-                log::trace!(target: LOG_TAG, "Received socket packet");
+            listener
+                .incoming()
+                .map(|packet| {
+                    log::trace!(target: LOG_TAG, "Received socket packet");
 
-                // Read the packet using a BufReader.
-                let mut conn = BufReader::new(packet.unwrap());
-                // Initialize a buffer to store the message.
-                let mut buffer = [0; 2048];
-                // Read the message.
-                conn.read(&mut buffer).unwrap();
+                    // Read the packet using a BufReader.
+                    let mut conn = BufReader::new(packet?);
+                    // Initialize a buffer to store the message.
+                    let mut buffer = [0; 2048];
+                    // Read the message.
+                    conn.read(&mut buffer)?;
 
-                // Decode the message.
-                let (signal, _len): (Signal, usize) =
-                    bincode::decode_from_slice(&buffer, config::standard()).unwrap();
+                    // Decode the message.
+                    let (signal, _len): (Signal, usize) =
+                        bincode::decode_from_slice(&buffer, config::standard()).unwrap();
 
-                // Send the signal to the merge channel.
-                socket_sender.send(signal.clone()).unwrap();
+                    // Send the signal to the merge channel.
+                    socket_sender.send(signal.clone())?;
 
-                if signal == Signal::Kill {
-                    log::info!(target: LOG_TAG, "FFI socket received kill signal.");
-                    return ();
-                }
+                    if signal == Signal::Kill {
+                        log::info!(target: LOG_TAG, "FFI socket received kill signal.");
+                        return Ok(());
+                    }
 
-                log::trace!(target: LOG_TAG, "Sent Socket signal to merge channel");
-            });
+                    log::trace!(target: LOG_TAG, "Sent Socket signal to merge channel");
 
-            true
+                    return Ok(());
+                })
+                .collect::<Result<()>>()?;
+
+            Ok(())
         });
     });
 
@@ -141,25 +146,19 @@ pub fn send(signal: Signal) -> Result<()> {
         );
 
         // Connect to the socket.
-        let mut conn = LocalSocketStream::connect(socket_address).unwrap();
+        let mut conn = LocalSocketStream::connect(socket_address)?;
 
         // encode signal
         let buffer = bincode::encode_to_vec(&signal, config::standard()).unwrap();
 
         // Write the message.
-        conn.write_all(&buffer).unwrap();
+        conn.write_all(&buffer)?;
 
         // Flush the connection.
-        conn.flush().unwrap();
+        conn.flush()?;
     } else {
         // Send signal through parent process.
-        SENDER
-            .lock()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .send(signal)
-            .unwrap();
+        SENDER.lock()?.as_ref().unwrap().send(signal)?;
     }
 
     Ok(())
