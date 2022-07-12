@@ -96,6 +96,8 @@ jobs:
           platforms: arm64
 
       - uses: ruby/setup-ruby@v1
+        env:
+          ImageOS: ubuntu20
         with:
           ruby-version: '3.1'
 
