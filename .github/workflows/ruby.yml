@@ -58,6 +58,27 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - if: matrix.build-arch == 'x86_64'
+        name: Generate extra libraries
+        run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
+
+      - if: matrix.build-arch == 'aarch64'
+        name: Generate extra libraries
+        run: BUILD_ARCH=manylinux2014_aarch64 ./pyroscope_ffi/ruby/scripts/docker.sh
+
+      - name: Copy generated extra libraries
+        run: mkdir -p lib/thread_id && cp ext/thread_id/target/release/libthread_id.so lib/thread_id/thread_id.so
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Copy generated extra libraries
+        run: mkdir -p lib/rbspy && cp ext/rbspy/target/release/librbspy.so lib/rbspy/rbspy.so
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Copy generated extra libraries
+        run: cp -r ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy.libs lib/rbspy.libs
+        working-directory: pyroscope_ffi/ruby
+
+
+      - if: matrix.build-arch == 'x86_64'
         name: Build linux gem
         run: rake x86_64_linux:gem
         working-directory: pyroscope_ffi/ruby
@@ -66,14 +87,6 @@ jobs:
         name: Build linux gem
         run: rake aarch64_linux:gem
         working-directory: pyroscope_ffi/ruby
-
-      - if: matrix.build-arch == 'x86_64'
-        name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
-
-      - if: matrix.build-arch == 'aarch64'
-        name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2014_aarch64 ./pyroscope_ffi/ruby/scripts/docker.sh
 
       - uses: actions/upload-artifact@v2
         with:
