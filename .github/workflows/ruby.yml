@@ -40,6 +40,10 @@ jobs:
         run: bundle
         working-directory: pyroscope_ffi/ruby
 
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/rbspy
+
       - name: Build native extensions
         run: rake rbspy_install
         working-directory: pyroscope_ffi/ruby
@@ -59,11 +63,11 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - if: matrix.build-arch == 'x86_64'
-        name: Build linux gem
+        name: Generate extra libraries
         run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
 
       - if: matrix.build-arch == 'aarch64'
-        name: Build linux gem
+        name: Generate extra libraries
         run: BUILD_ARCH=manylinux2014_aarch64 ./pyroscope_ffi/ruby/scripts/docker.sh
 
       - uses: actions/upload-artifact@v2
