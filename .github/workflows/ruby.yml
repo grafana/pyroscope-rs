@@ -112,7 +112,6 @@ jobs:
       RUST_TARGET: ${{ matrix.target }}
 
     steps:
-      - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v2
 
       - uses: actions-rs/toolchain@v1
