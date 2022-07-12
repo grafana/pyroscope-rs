@@ -44,6 +44,10 @@ jobs:
         run: cargo update
         working-directory: pyroscope_ffi/ruby/ext/rbspy
 
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/thread_id
+
       - name: Build native extensions
         run: rake rbspy_install
         working-directory: pyroscope_ffi/ruby
@@ -110,6 +114,14 @@ jobs:
       - name: Install bundles
         run: bundle
         working-directory: pyroscope_ffi/ruby
+
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/rbspy
+
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/thread_id
 
       - name: Build native extensions
         run: rake rbspy_install
