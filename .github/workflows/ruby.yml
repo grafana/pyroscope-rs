@@ -1,12 +1,12 @@
 name: Ruby Package
 
-on: 
+on:
   push:
     paths:
     - 'pyroscope_ffi/ruby/**'
     - '.github/workflows/ruby.yml'
   pull_request:
-    paths: 
+    paths:
     - 'pyroscope_ffi/ruby/**'
     - '.github/workflows/ruby.yml'
 
@@ -36,7 +36,7 @@ jobs:
         with:
           ruby-version: '3.1'
 
-      - name: Install bundles 
+      - name: Install bundles
         run: bundle
         working-directory: pyroscope_ffi/ruby
 
@@ -57,6 +57,14 @@ jobs:
         name: Build linux gem
         run: rake aarch64_linux:gem
         working-directory: pyroscope_ffi/ruby
+
+      - if: matrix.build-arch == 'x86_64'
+        name: Build linux gem
+        run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
+
+      - if: matrix.build-arch == 'aarch64'
+        name: Build linux gem
+        run: BUILD_ARCH=manylinux2014_aarch64 ./pyroscope_ffi/ruby/scripts/docker.sh
 
       - uses: actions/upload-artifact@v2
         with:
@@ -95,7 +103,7 @@ jobs:
         with:
           ruby-version: '3.1'
 
-      - name: Install bundles 
+      - name: Install bundles
         run: bundle
         working-directory: pyroscope_ffi/ruby
 
@@ -123,7 +131,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
   source:
-    name: source 
+    name: source
     runs-on: ubuntu-latest
 
     steps:
@@ -133,7 +141,7 @@ jobs:
         with:
           ruby-version: '3.1'
 
-      - name: Install bundles 
+      - name: Install bundles
         run: bundle
         working-directory: pyroscope_ffi/ruby
 
