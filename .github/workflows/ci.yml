@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        package: [lib, cli, pprofrs, pyspy, rbspy]
+        package: [lib, cli, pprofrs, pyspy, rbspy, ffikit]
         os: [ubuntu-latest, macos-latest]
         target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
         exclude:
@@ -79,6 +79,13 @@ jobs:
         with:
           args: --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
           command: build
+
+      - name: Cargo build for ffikit 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'ffikit'
+        with:
+          args: --manifest-path pyroscope_ffi/ffikit/Cargo.toml
+          command: build
   tests:
     name: Tests - ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
@@ -113,37 +120,44 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: Run cargo test
+      - name: Run cargo tests for lib
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'lib'
         with:
           command: test
           args: --all
 
-      - name: Cargo build for pyrosocpe-cli 
+      - name: Run cargo tests for pyrosocpe-cli 
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'cli'
         with:
           args: --all --manifest-path pyroscope_cli/Cargo.toml
           command: test
 
-      - name: Cargo build for pprof-rs
+      - name: Run cargo tests for pprof-rs
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'pprofrs'
         with:
           args: --all --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
           command: test
 
-      - name: Cargo build for pyspy 
+      - name: Run cargo tests for pyspy 
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'pyspy'
         with:
           args: --all --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
           command: test
 
-      - name: Cargo build for rbspy 
+      - name: Run cargo tests for rbspy 
         uses: omarabid-forks/rs-cargo@v1
         if: matrix.package == 'rbspy'
         with:
           args: --all --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
+          command: test
+
+      - name: Run cargo tests for ffikit 
+        uses: omarabid-forks/rs-cargo@v1
+        if: matrix.package == 'ffikit'
+        with:
+          args: --all --manifest-path pyroscope_ffi/ffikit/Cargo.toml
           command: test
