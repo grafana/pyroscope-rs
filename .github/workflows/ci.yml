@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.target }}
+    name: Build - ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -80,7 +80,7 @@ jobs:
           args: --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
           command: build
   tests:
-    name: ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.target }}
+    name: Tests - ${{ matrix.package }} - ${{ matrix.os }} - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
