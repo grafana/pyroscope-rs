@@ -158,3 +158,29 @@ jobs:
           title: "Backend: ${{ github.ref_name }}"
           draft: true
           prerelease: false
+  python-release:
+    name: Python Package
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/python-')"
+    continue-on-error: true
+    steps:
+      - uses: "marvinpinto/action-automatic-releases@v1.1.1"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "${{ github.ref_name }}"
+          title: "Python Package: ${{ github.ref_name }}"
+          draft: true
+          prerelease: false
+  ruby-release:
+    name: Ruby Gem
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/python-')"
+    continue-on-error: true
+    steps:
+      - uses: "marvinpinto/action-automatic-releases@v1.1.1"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "${{ github.ref_name }}"
+          title: "Ruby Gem: ${{ github.ref_name }}"
+          draft: true
+          prerelease: false
