@@ -1,12 +1,12 @@
 name: Python Package
 
-on: 
+on:
   push:
     paths:
     - 'pyroscope_ffi/python/**'
     - '.github/workflows/python.yml'
   pull_request:
-    paths: 
+    paths:
     - 'pyroscope_ffi/python/**'
     - '.github/workflows/python.yml'
 
@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -49,17 +50,13 @@ jobs:
           - manylinux2014_aarch64
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: [self-hosted, Linux, ARM64] 
+    runs-on: [self-hosted, Linux, ARM64]
 
     steps:
+      - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-
-      - if: matrix.build-arch == 'manylinux2014_aarch64'
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: arm64
 
       - name: Build in Docker
         run: pyroscope_ffi/python/scripts/docker.sh
@@ -118,6 +115,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v2
 
       - uses: actions/setup-python@v2
