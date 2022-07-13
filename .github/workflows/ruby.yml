@@ -84,16 +84,12 @@ jobs:
             target: arm-unknown-linux-gnueabihf
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, ARM64]
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
 
-      - if: matrix.build-arch == 'aarch64'
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: arm64
+      - uses: actions/checkout@v2
 
       - uses: ruby/setup-ruby@v1
         env:
@@ -129,7 +125,7 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
-        run: mkdir -p lib/rbspy && cp ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
+        run: mkdir -p lib/rbspy && cp ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-aarch64-linux-gnu.so lib/rbspy/rbspy.so
         working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
