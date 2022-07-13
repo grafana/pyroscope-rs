@@ -58,7 +58,7 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
-        run: mkdir -p lib/rbspy && cp ext/rbspy/target/release/librbspy.so lib/rbspy/rbspy.so
+        run: mkdir -p lib/rbspy && cp  ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
         working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
@@ -129,7 +129,7 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
-        run: mkdir -p lib/rbspy && cp ext/rbspy/target/release/librbspy.so lib/rbspy/rbspy.so
+        run: mkdir -p lib/rbspy && cp ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
         working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
