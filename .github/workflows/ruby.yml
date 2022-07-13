@@ -84,12 +84,17 @@ jobs:
             target: arm-unknown-linux-gnueabihf
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-latest
 
     steps:
       - uses: AutoModality/action-clean@v1
 
       - uses: actions/checkout@v2
+
+      - if: matrix.build-arch == 'aarch64'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: arm64
 
       - uses: ruby/setup-ruby@v1
         env:
