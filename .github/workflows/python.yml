@@ -5,10 +5,14 @@ on:
     paths:
     - 'pyroscope_ffi/python/**'
     - '.github/workflows/python.yml'
+    branches:
+    - '**'
   pull_request:
     paths:
     - 'pyroscope_ffi/python/**'
     - '.github/workflows/python.yml'
+    branches:
+    - '**'
 
 jobs:
   linux:

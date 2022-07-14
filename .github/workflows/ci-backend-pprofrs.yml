@@ -5,10 +5,14 @@ on:
     paths:
     - 'pyroscope_backends/pyroscope_pprofrs/**'
     - '.github/workflows/ci-backend-pprof.yml'
+    branches:
+    - '**'
   pull_request:
     paths: 
     - 'pyroscope_backends/pyroscope_pprofrs/**'
     - '.github/workflows/ci-backend-pprof.yml'
+    branches:
+    - '**'
 
 jobs:
   build:

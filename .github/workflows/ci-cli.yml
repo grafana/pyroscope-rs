@@ -5,10 +5,14 @@ on:
     paths:
     - 'pyroscope_cli/**'
     - '.github/workflows/ci-cli.yml'
+    branches:
+    - '**'
   pull_request:
     paths:
     - 'pyroscope_cli/**'
     - '.github/workflows/ci-cli.yml'
+    branches:
+    - '**'
 
 
 jobs:

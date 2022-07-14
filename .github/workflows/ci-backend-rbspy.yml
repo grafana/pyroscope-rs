@@ -5,10 +5,14 @@ on:
     paths:
     - 'pyroscope_backends/pyroscope_rbspy/**'
     - '.github/workflows/ci-backend-rbspy.yml'
+    branches:
+    - '**'
   pull_request:
     paths: 
     - 'pyroscope_backends/pyroscope_rbspy/**'
     - '.github/workflows/ci-backend-rbspy.yml'
+    branches:
+    - '**'
 
 jobs:
   build:

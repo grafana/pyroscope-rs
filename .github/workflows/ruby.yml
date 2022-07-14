@@ -5,10 +5,14 @@ on:
     paths:
     - 'pyroscope_ffi/ruby/**'
     - '.github/workflows/ruby.yml'
+    branches:
+    - '**'
   pull_request:
     paths:
     - 'pyroscope_ffi/ruby/**'
     - '.github/workflows/ruby.yml'
+    branches:
+    - '**'
 
 jobs:
   linux:
