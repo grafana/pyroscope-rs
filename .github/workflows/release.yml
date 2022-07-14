@@ -289,18 +289,12 @@ jobs:
           name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*
 
-      - name: Get release
-        id: get_release
-        uses: bruceadams/get-release@v1.2.3
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
       - name: Upload release artifact
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          upload_url: ${{ needs.python-release.outputs.upload_url }}
           asset_path: "pyroscope_ffi/python/dist"
           asset_name: "pyroscope-io-*.tar.gz"
           asset_content_type: application/octet-stream
@@ -309,6 +303,8 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/python-')"
     continue-on-error: true
+    outputs:
+      upload_url: "test"
     steps:
       - uses: "marvinpinto/action-automatic-releases@v1.1.1"
         with:
