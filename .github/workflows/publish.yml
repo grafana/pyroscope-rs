@@ -83,3 +83,16 @@ jobs:
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
+  publish-python:
+    name: "Python" 
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.release.tag_name, 'python-')"
+    steps:
+      - uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          version: 'tags/python-0.2.2'
+          file: 'pyroscope-io-0.7.1.tar.gz'
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: list assets
+        working-directory: ${{ github.workspace }}  
+        run: ls -la  
