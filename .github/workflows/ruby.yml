@@ -84,7 +84,7 @@ jobs:
             target: arm-unknown-linux-gnueabihf
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, ARM64]
 
     steps:
       - uses: AutoModality/action-clean@v1
@@ -94,12 +94,6 @@ jobs:
         uses: docker/setup-qemu-action@v1
         with:
           platforms: arm64
-
-      - uses: ruby/setup-ruby@v1
-        env:
-          ImageOS: ubuntu20
-        with:
-          ruby-version: '3.1'
 
       - name: Install bundles
         run: bundle
