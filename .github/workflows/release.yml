@@ -290,14 +290,12 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: actions/upload-release-asset@v1.0.1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.python-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/python/dist"
-          asset_name: "pyroscope-io-*.tar.gz"
-          asset_content_type: application/octet-stream
+          asset_path: "pyroscope_ffi/python/dist/pyroscope-io-*.tar.gz"
   python-release:
     name: Python Package
     runs-on: ubuntu-latest
