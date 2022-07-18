@@ -327,6 +327,7 @@ jobs:
           draft: true
           prerelease: false
   ruby-release-linux:
+    needs: ['ruby-release']
     strategy:
       fail-fast: false
       matrix:
@@ -399,6 +400,7 @@ jobs:
           asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
 
   ruby-release-linux-arm:
+    needs: ['ruby-release']
     strategy:
       fail-fast: false
       matrix:
@@ -478,6 +480,7 @@ jobs:
           asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
 
   ruby-release-macos:
+    needs: ['ruby-release']
     strategy:
       fail-fast: false
       matrix:
@@ -553,6 +556,7 @@ jobs:
           asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
 
   ruby-release-source:
+    needs: ['ruby-release']
     name: source
     runs-on: ubuntu-latest
 
