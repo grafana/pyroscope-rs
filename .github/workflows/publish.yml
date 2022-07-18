@@ -96,3 +96,16 @@ jobs:
       - name: list assets
         working-directory: ${{ github.workspace }}  
         run: ls -la  
+  publish-ruby:
+    name: "Ruby" 
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.release.tag_name, 'ruby-')"
+    steps:
+      - uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          version: 'tags/ruby-0.2.2'
+          file: 'pyroscope-0.3.0.gem'
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: list assets
+        working-directory: ${{ github.workspace }}  
+        run: ls -la  
