@@ -91,7 +91,8 @@ jobs:
       - uses: dsaltares/fetch-gh-release-asset@master
         with:
           version: 'tags/${{ github.event.release.tag_name }}'
-          file: 'pyroscope-io-*'
+          regex: true
+          file: "pyroscope-io-*\\.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: list assets
         working-directory: ${{ github.workspace }}  
