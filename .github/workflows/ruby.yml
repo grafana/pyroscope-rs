@@ -87,12 +87,6 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - uses: ruby/setup-ruby@v1
-        env:
-          ImageOS: ubuntu20
-        with:
-          ruby-version: '3.1'
-
       - name: Install bundles
         run: bundle
         working-directory: pyroscope_ffi/ruby
