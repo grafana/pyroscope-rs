@@ -47,19 +47,11 @@ jobs:
         working-directory: pyroscope_ffi/ruby/ext/thread_id
 
       - name: Build native extensions
-        run: rake rbspy_install
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build native extensions
         run: rake thread_id_install
         working-directory: pyroscope_ffi/ruby
 
       - name: Generate extra libraries
         run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
-
-      - name: Copy generated extra libraries
-        run: mkdir -p lib/thread_id && cp ext/thread_id/target/release/libthread_id.so lib/thread_id/thread_id.so
-        working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
         run: mkdir -p lib/rbspy && cp  ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
@@ -85,20 +77,15 @@ jobs:
       matrix:
         include:
           - build-arch: aarch64
-            target: arm-unknown-linux-gnueabihf
+            target: aarch64-unknown-linux-gnu
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, ARM64]
 
     steps:
       - uses: AutoModality/action-clean@v1
 
       - uses: actions/checkout@v2
-
-      - if: matrix.build-arch == 'aarch64'
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: arm64
 
       - uses: ruby/setup-ruby@v1
         env:
@@ -119,19 +106,11 @@ jobs:
         working-directory: pyroscope_ffi/ruby/ext/thread_id
 
       - name: Build native extensions
-        run: rake rbspy_install
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build native extensions
         run: rake thread_id_install
         working-directory: pyroscope_ffi/ruby
 
       - name: Generate extra libraries
         run: BUILD_ARCH=manylinux2014_aarch64 ./pyroscope_ffi/ruby/scripts/docker.sh
-
-      - name: Copy generated extra libraries
-        run: mkdir -p lib/thread_id && cp ext/thread_id/target/release/libthread_id.so lib/thread_id/thread_id.so
-        working-directory: pyroscope_ffi/ruby
 
       - name: Copy generated extra libraries
         run: mkdir -p lib/rbspy && cp ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-aarch64-linux-gnu.so lib/rbspy/rbspy.so
