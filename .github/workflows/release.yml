@@ -159,7 +159,7 @@ jobs:
           draft: true
           prerelease: false
   python-release-linux:
-    needs: ['ruby-release']
+    needs: ['python-release']
     strategy:
       fail-fast: false
       matrix:
@@ -191,16 +191,14 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: actions/upload-release-asset@v1.0.1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/python/dist"
-          asset_name: "pyroscope_io-0.7.1-py2.py3-none-linux_x86_64.whl"
-          asset_content_type: application/octet-stream
+          upload_url: ${{ needs.python-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
   python-release-linux-arm:
-    needs: ['ruby-release']
+    needs: ['python-release']
     strategy:
       fail-fast: false
       matrix:
@@ -225,8 +223,16 @@ jobs:
         with:
           name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*
+
+      - name: Upload release artifact
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.python-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
   python-release-macos:
-    needs: ['ruby-release']
+    needs: ['python-release']
     strategy:
       fail-fast: false
       matrix:
@@ -267,6 +273,14 @@ jobs:
         with:
           name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*
+
+      - name: Upload release artifact
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.python-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
   python-release-sdist:
     needs: ['python-release']
     name: sdist
