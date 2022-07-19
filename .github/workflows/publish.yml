@@ -88,25 +88,37 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'python-')"
     steps:
-      - uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          version: 'tags/${{ github.event.release.tag_name }}'
-          regex: true
-          file: "^pyroscope-io*\\$"
+      - uses: robinraju/release-downloader@v1.4
+        with: 
+          tag: ${{ github.event.release.tag_name }}
+          fileName: "*"
+          tarBall: false 
+          zipBall: false 
+          out-file-path: "dist"
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: list assets
-        working-directory: ${{ github.workspace }}  
-        run: ls -la  
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
   publish-ruby:
     name: "Ruby" 
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'ruby-')"
+    env:
+      GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }} 
     steps:
-      - uses: dsaltares/fetch-gh-release-asset@master
+      - uses: ruby/setup-ruby@v1
         with:
-          version: 'tags/ruby-0.2.2'
-          file: 'pyroscope-0.3.0.gem'
+          ruby-version: '3.1'
+      - uses: robinraju/release-downloader@v1.4
+        with: 
+          tag: ${{ github.event.release.tag_name }}
+          fileName: "*"
+          tarBall: false 
+          zipBall: false 
+          out-file-path: "dist"
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: list assets
-        working-directory: ${{ github.workspace }}  
-        run: ls -la  
+      - run: |
+          cd dist
+          for file in *.gem; do gem push $file; done;
