@@ -94,7 +94,7 @@ jobs:
           fileName: "*"
           tarBall: false 
           zipBall: false 
-          out-file-path: "publish"
+          out-file-path: "dist"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
