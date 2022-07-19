@@ -88,11 +88,13 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'python-')"
     steps:
-      - uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          version: 'tags/${{ github.event.release.tag_name }}'
-          regex: true
-          file: "^pyroscope-io*\\$"
+      - uses: robinraju/release-downloader@v1.4
+        with: 
+          tag: 'tags/${{ github.event.release.tag_name }}'
+          fileName: "*"
+          tarBall: false 
+          zipBall: false 
+          out-file-path: "publish"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: list assets
         working-directory: ${{ github.workspace }}  
