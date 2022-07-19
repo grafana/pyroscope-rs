@@ -96,9 +96,6 @@ jobs:
           zipBall: false 
           out-file-path: "publish"
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: list assets
-        working-directory: "${{ github.workspace }}/dist"
-        run: ls -la  
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
