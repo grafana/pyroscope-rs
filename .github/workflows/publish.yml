@@ -119,4 +119,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           cd dist
-          for file in *.gem; do gem push $file; done;
+          for file in *.gem; do gem push $file -k ${{ secrets.RUBYGEMS_API_KEY }}; done;
