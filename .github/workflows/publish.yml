@@ -105,6 +105,8 @@ jobs:
     name: "Ruby" 
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'ruby-')"
+    env:
+      GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }} 
     steps:
       - uses: ruby/setup-ruby@v1
         with:
@@ -119,4 +121,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           cd dist
-          for file in *.gem; do gem push $file -k ${{ secrets.RUBYGEMS_API_KEY }}; done;
+          for file in *.gem; do gem push $file; done;
