@@ -97,7 +97,7 @@ jobs:
           out-file-path: "publish"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: list assets
-        working-directory: ${{ github.workspace }}  
+        working-directory: "${{ github.workspace }}/publish"
         run: ls -la  
   publish-ruby:
     name: "Ruby" 
