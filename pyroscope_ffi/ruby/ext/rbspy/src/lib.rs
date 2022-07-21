@@ -1,11 +1,53 @@
 use ffikit::Signal;
-use pyroscope::backend::Tag;
+use pyroscope::backend::{Report, StackFrame, Tag};
 use pyroscope::PyroscopeAgent;
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
+
+pub fn transform_report(report: Report) -> Report {
+    let data = report
+        .data
+        .iter()
+        .map(|(stacktrace, count)| {
+            let new_frames = stacktrace
+                .frames
+                .iter()
+                .map(|frame| {
+                    let frame = frame.to_owned();
+                    let regex = regex::Regex::new(r"(.+?/gems/|.+?/ruby/)").unwrap();
+                    let new_filename = Some(
+                        regex
+                            .replace_all(frame.filename.unwrap().as_str(), "")
+                            .to_string(),
+                    );
+
+                    // something
+                    StackFrame::new(
+                        frame.module,
+                        frame.name,
+                        new_filename,
+                        frame.relative_path,
+                        frame.absolute_path,
+                        frame.line,
+                    )
+                })
+                .collect();
+
+            let mut mystack = stacktrace.to_owned();
+
+            mystack.frames = new_frames;
+
+            (mystack, count.to_owned())
+        })
+        .collect();
+
+    let new_report = Report::new(data).metadata(report.metadata.clone());
+
+    new_report
+}
 
 #[no_mangle]
 pub extern "C" fn initialize_agent(
@@ -55,9 +97,17 @@ pub extern "C" fn initialize_agent(
     let tags = string_to_tags(tags_ref);
     let rbspy = rbspy_backend(rbspy_config);
 
+    let mut regex_pattern = String::from(r"");
+
+    if directory_name != String::from(".") {
+        regex_pattern.push_str(directory_name.as_str());
+        regex_pattern.push_str(r"/");
+    }
+
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
         .backend(rbspy)
-        .regex(regex::Regex::new(&directory_name).unwrap())
+        .func(transform_report)
+        .regex(regex::Regex::new(regex_pattern.as_str()).unwrap())
         .tags(tags);
 
     if auth_token != "" {

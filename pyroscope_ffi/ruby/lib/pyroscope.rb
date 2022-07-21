@@ -23,7 +23,7 @@ module Pyroscope
       self.application_name = ''
       self.server_address = 'http://localhost:4040'
       self.auth_token = ''
-      self.directory_name = __dir__
+      self.directory_name = File.dirname($0)
       self.sample_rate = 100
       self.detect_subprocesses = false
       self.on_cpu = true
@@ -46,7 +46,7 @@ module Pyroscope
         @config.app_name || @config.application_name || "",
         @config.server_address || "",
         @config.auth_token || "",
-        @config.directory_name || __dir__,
+        @config.directory_name || File.dirname($0),
         @config.sample_rate || 100,
         @config.detect_subprocesses || false,
         @config.on_cpu || false,
