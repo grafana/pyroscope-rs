@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::{
     collections::HashMap,
     marker::PhantomData,
@@ -42,6 +43,8 @@ pub struct PyroscopeConfig {
     pub spy_name: String,
     /// Authentication Token
     pub auth_token: Option<String>,
+    /// Regex to apply
+    pub regex: Option<Regex>,
 }
 
 impl Default for PyroscopeConfig {
@@ -56,6 +59,7 @@ impl Default for PyroscopeConfig {
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
             auth_token: None,
+            regex: None,
         }
     }
 }
@@ -76,6 +80,7 @@ impl PyroscopeConfig {
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
+            regex: None,                  // No regex
         }
     }
 
@@ -112,6 +117,14 @@ impl PyroscopeConfig {
     pub fn auth_token(self, auth_token: String) -> Self {
         Self {
             auth_token: Some(auth_token),
+            ..self
+        }
+    }
+
+    /// Set the Regex.
+    pub fn regex(self, regex: Regex) -> Self {
+        Self {
+            regex: Some(regex),
             ..self
         }
     }
@@ -239,6 +252,22 @@ impl PyroscopeAgentBuilder {
     pub fn auth_token(self, auth_token: impl AsRef<str>) -> Self {
         Self {
             config: self.config.auth_token(auth_token.as_ref().to_owned()),
+            ..self
+        }
+    }
+
+    /// Set Regex.
+    /// This is optional. If not set, the agent will not apply any regex.
+    /// #Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .regex(Regex::new("^my-app.*").unwrap())
+    /// .build()
+    /// ?;
+    /// ```
+    pub fn regex(self, regex: Regex) -> Self {
+        Self {
+            config: self.config.regex(regex),
             ..self
         }
     }
