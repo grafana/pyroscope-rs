@@ -150,8 +150,16 @@ impl Session {
             self.until
         );
 
+        // own the report
+        let mut report_owned = report.to_owned();
+
+        // Apply function to the report
+        if let Some(func) = self.config.func.clone() {
+            report_owned = func(report_owned);
+        }
+
         // Convert a report to a byte array
-        let mut report_string = report.to_string();
+        let mut report_string = report_owned.to_string();
 
         // Apply Regex to the report
         if let Some(regex) = self.config.regex.clone() {

@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    backend::{void_backend, BackendReady, BackendUninitialized, Rule, Tag, VoidConfig},
+    backend::{void_backend, BackendReady, BackendUninitialized, Report, Rule, Tag, VoidConfig},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
@@ -45,6 +45,8 @@ pub struct PyroscopeConfig {
     pub auth_token: Option<String>,
     /// Regex to apply
     pub regex: Option<Regex>,
+    /// Function to apply
+    pub func: Option<fn(Report) -> Report>,
 }
 
 impl Default for PyroscopeConfig {
@@ -60,6 +62,7 @@ impl Default for PyroscopeConfig {
             spy_name: "undefined".to_string(),
             auth_token: None,
             regex: None,
+            func: None,
         }
     }
 }
@@ -81,6 +84,7 @@ impl PyroscopeConfig {
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
             regex: None,                  // No regex
+            func: None,                   // No function
         }
     }
 
@@ -125,6 +129,14 @@ impl PyroscopeConfig {
     pub fn regex(self, regex: Regex) -> Self {
         Self {
             regex: Some(regex),
+            ..self
+        }
+    }
+
+    /// Set the Function.
+    pub fn func(self, func: fn(Report) -> Report) -> Self {
+        Self {
+            func: Some(func),
             ..self
         }
     }
@@ -268,6 +280,24 @@ impl PyroscopeAgentBuilder {
     pub fn regex(self, regex: Regex) -> Self {
         Self {
             config: self.config.regex(regex),
+            ..self
+        }
+    }
+
+    /// Set the Function.
+    /// This is optional. If not set, the agent will not apply any function.
+    /// #Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .func(|report| {
+    ///    report
+    ///    })
+    ///    .build()
+    ///    ?;
+    ///    ```
+    pub fn func(self, func: fn(Report) -> Report) -> Self {
+        Self {
+            config: self.config.func(func),
             ..self
         }
     }
