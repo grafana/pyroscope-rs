@@ -10,8 +10,8 @@ use std::os::raw::c_char;
 #[no_mangle]
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
-    sample_rate: u32, detect_subprocesses: bool, on_cpu: bool, report_pid: bool,
-    report_thread_id: bool, tags: *const c_char,
+    directory_name: *const c_char, sample_rate: u32, detect_subprocesses: bool, on_cpu: bool,
+    report_pid: bool, report_thread_id: bool, tags: *const c_char,
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -27,6 +27,11 @@ pub extern "C" fn initialize_agent(
         .to_string();
 
     let auth_token = unsafe { CStr::from_ptr(auth_token) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let directory_name = unsafe { CStr::from_ptr(directory_name) }
         .to_str()
         .unwrap()
         .to_string();
@@ -52,6 +57,7 @@ pub extern "C" fn initialize_agent(
 
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
         .backend(rbspy)
+        .regex(regex::Regex::new(&directory_name).unwrap())
         .tags(tags);
 
     if auth_token != "" {
