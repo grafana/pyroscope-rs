@@ -1,6 +1,9 @@
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::{
+    backend::{Report, StackFrame},
+    PyroscopeAgent, Result,
+};
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::hash::{Hash, Hasher};
 
@@ -18,11 +21,43 @@ fn hash_rounds(n: u64) -> u64 {
     n
 }
 
+pub fn transform_report(report: Report) -> Report {
+    let data = report
+        .iter()
+        .map(|(stacktrace, count)| {
+            let new_frames = stacktrace
+                .iter()
+                .map(|frame| {
+                    let frame = frame.clone();
+                    // something
+                    StackFrame::new(
+                        frame.module,
+                        frame.name,
+                        frame.filename,
+                        frame.relative_path,
+                        frame.absolute_path,
+                        frame.line,
+                    )
+                })
+                .collect();
+
+            let mut mystack = stacktrace.to_owned();
+
+            mystack.frames = new_frames;
+
+            (mystack, count.to_owned())
+        })
+        .collect();
+
+    let new_report = Report::new(data).metadata(report.metadata.clone());
+
+    new_report
+}
 fn main() -> Result<()> {
-    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.regex")
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.transform")
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
-        .regex(regex::Regex::new(r"std::").unwrap())
+        .func(transform_report)
         .build()?;
 
     // Show start time
