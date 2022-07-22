@@ -147,6 +147,11 @@ impl Report {
         }
     }
 
+    /// Return an iterator over the StackTraces of the Report.
+    pub fn iter(&self) -> impl Iterator<Item = (&StackTrace, &usize)> {
+        self.data.iter()
+    }
+
     /// Set the metadata of the report.
     pub fn metadata(self, metadata: Metadata) -> Self {
         Self {
@@ -253,6 +258,11 @@ impl StackTrace {
             frames,
             metadata,
         }
+    }
+
+    /// Return an iterator over the frames of the stacktrace.
+    pub fn iter(&self) -> impl Iterator<Item = &StackFrame> {
+        self.frames.iter()
     }
 }
 
