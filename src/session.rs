@@ -159,13 +159,7 @@ impl Session {
         }
 
         // Convert a report to a byte array
-        let mut report_string = report_owned.to_string();
-
-        // Apply Regex to the report
-        if let Some(regex) = self.config.regex.clone() {
-            report_string = regex.replace_all(&report_string, "").to_string();
-        }
-
+        let report_string = report_owned.to_string();
         let report_u8 = report_string.into_bytes();
 
         // Check if the report is empty

@@ -6,8 +6,12 @@ use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
+use std::env;
 
 pub fn transform_report(report: Report) -> Report {
+    let cwd = env::current_dir().unwrap();
+    let cwd = cwd.to_str().unwrap_or("");
+
     let data = report
         .data
         .iter()
@@ -17,18 +21,41 @@ pub fn transform_report(report: Report) -> Report {
                 .iter()
                 .map(|frame| {
                     let frame = frame.to_owned();
-                    let regex = regex::Regex::new(r"(.+?/gems/|.+?/ruby/)").unwrap();
-                    let new_filename = Some(
-                        regex
-                            .replace_all(frame.filename.unwrap().as_str(), "")
-                            .to_string(),
-                    );
+                    let mut s = frame.filename.unwrap();
+                    match s.find(cwd) {
+                        Some(i) => {
+                            s = s[(i+cwd.len()+1)..].to_string();
+                        }
+                        None => {
+                            match s.find("/gems/") {
+                                Some(i) => {
+                                    s = s[(i+1)..].to_string();
+                                }
+                                None => {
+                                    match s.find("/ruby/") {
+                                        Some(i) => {
+                                            s = s[(i+6)..].to_string();
+                                            match s.find("/") {
+                                                Some(i) => {
+                                                    s = s[(i+1)..].to_string();
+                                                }
+                                                None => {
+                                                }
+                                            }
+                                        }
+                                        None => {
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // something
                     StackFrame::new(
                         frame.module,
                         frame.name,
-                        new_filename,
+                        Some(s.to_string()),
                         frame.relative_path,
                         frame.absolute_path,
                         frame.line,
@@ -52,8 +79,8 @@ pub fn transform_report(report: Report) -> Report {
 #[no_mangle]
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
-    directory_name: *const c_char, sample_rate: u32, detect_subprocesses: bool, on_cpu: bool,
-    report_pid: bool, report_thread_id: bool, tags: *const c_char,
+    sample_rate: u32, detect_subprocesses: bool, on_cpu: bool, report_pid: bool,
+    report_thread_id: bool, tags: *const c_char,
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -69,11 +96,6 @@ pub extern "C" fn initialize_agent(
         .to_string();
 
     let auth_token = unsafe { CStr::from_ptr(auth_token) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let directory_name = unsafe { CStr::from_ptr(directory_name) }
         .to_str()
         .unwrap()
         .to_string();
@@ -97,17 +119,9 @@ pub extern "C" fn initialize_agent(
     let tags = string_to_tags(tags_ref);
     let rbspy = rbspy_backend(rbspy_config);
 
-    let mut regex_pattern = String::from(r"");
-
-    if directory_name != String::from(".") {
-        regex_pattern.push_str(directory_name.as_str());
-        regex_pattern.push_str(r"/");
-    }
-
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
         .backend(rbspy)
         .func(transform_report)
-        .regex(regex::Regex::new(regex_pattern.as_str()).unwrap())
         .tags(tags);
 
     if auth_token != "" {
