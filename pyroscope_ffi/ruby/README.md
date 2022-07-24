@@ -1,57 +1,71 @@
-Pyroscope Ruby Integration --Beta--
-=====================================
+# Pyroscope Ruby Gem
 
-**note**: This is a beta release. It requires local compilation, might be
-buggy and is frequently updated. For the initial implementation, find it [here](https://github.com/pyroscope-io/pyroscope-ruby). Please report any [issues](https://github.com/pyroscope-io/pyroscope-rs/issues).
+**Pyroscope integration for Ruby**
 
-## Installation
+[![license](https://img.shields.io/badge/license-Apache2.0-blue.svg)](LICENSE) 
+![tests](https://github.com/pyroscope-io/pyroscope-rs/workflows/Tests/badge.svg)
+![build](https://github.com/pyroscope-io/pyroscope-rs/workflows/Build/badge.svg)
+[![Gem version](https://badge.fury.io/rb/pyroscope.svg)](https://badge.fury.io/rb/pyroscope)
 
-1. You need the Rust toolchain to compile the library locally. To install
-   Rust:
+---
 
-```
-curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y 
-export PATH=$PATH:/root/.cargo/bin
-```
+### What is Pyroscope
+[Pyroscope](https://github.com/pyroscope-io/pyroscope) is a tool that lets you continuously profile your applications to prevent and debug performance issues in your code. It consists of a low-overhead agent which sends data to the Pyroscope server which includes a custom-built storage engine. This allows for you to store and query any applications profiling data in an extremely efficient and cost effective way.
 
-2. Building/Insalling from Rubygems 
 
-```
-gem install pyroscope_beta
-```
+### Supported platforms
 
-3. Building/Installing from source
+| Linux | macOS | Windows | Docker |
+|:-----:|:-----:|:-------:|:------:|
+|   ✅  |   ✅  |         |   ✅   |
 
-Change directory to `pyroscope_ffi/ruby` and run
+### Profiling Ruby applications
 
-```
-gem build pyroscope.gemspec
-gem install ./pyroscope.gemspec
+Add the `pyroscope` gem to your Gemfile:
+
+```bash
+bundle add pyroscope
 ```
 
-## Configuration
+### Basic Configuration
 
-Configuration is similar to the old package except for `application_name`:
+Add the following code to your application. If you're using rails, put this into `config/initializers` directory. This code will initialize pyroscope profiler and start profiling:
 
-```
-require 'pyroscope_beta'
+```ruby
+require 'pyroscope'
 
 Pyroscope.configure do |config|
-  config.application_name = "ruby.app"
-  config.server_address = "http://localhost:4040"
-  config.detect_subprocesses = true 
+  config.application_name = "my.ruby.app" # replace this with some name for your application
+  config.server_address   = "http://my-pyroscope-server:4040" # replace this with the address of your pyroscope server
+  # config.auth_token     = "{YOUR_API_KEY}" # optionally, if authentication is enabled, specify the API key
+end
+```
+
+### Tags
+
+Pyroscope ruby integration provides a number of ways to tag profiling data. For example, you can provide tags when you're initializing the profiler:
+
+```ruby
+require 'pyroscope'
+
+Pyroscope.configure do |config|
+  config.application_name = "my.ruby.app"
+  config.server_address   = "http://my-pyroscope-server:4040"
+
   config.tags = {
-    :key => "value",
+    "hostname" => ENV["HOSTNAME"],
   }
 end
 ```
 
-## Adding tags
+or you can dynamically tag certain parts of your code:
 
-Tags passed to configure are global. To tag code locally, you can use:
-
-```
-Pyroscope.tag_wrapper({"profile": "profile-1"}) do
-    // Tagged profile
+```ruby
+Pyroscope.tag_wrapper({ "controller": "slow_controller_i_want_to_profile" }) do
+  slow_code
 end
 ```
+
+### Example
+
+Check out this [example ruby project in our repository](https://github.com/pyroscope-io/pyroscope/tree/main/examples/ruby) for examples of how you can use these features.
