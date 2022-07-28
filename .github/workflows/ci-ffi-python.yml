@@ -47,7 +47,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
   linux-test:
-    needs: ['linux']
+    needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
 
