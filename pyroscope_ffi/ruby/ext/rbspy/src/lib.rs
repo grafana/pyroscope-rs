@@ -3,10 +3,10 @@ use pyroscope::backend::{Report, StackFrame, Tag};
 use pyroscope::PyroscopeAgent;
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 use std::collections::hash_map::DefaultHasher;
+use std::env;
 use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
-use std::env;
 
 pub fn transform_report(report: Report) -> Report {
     let cwd = env::current_dir().unwrap();
@@ -24,31 +24,25 @@ pub fn transform_report(report: Report) -> Report {
                     let mut s = frame.filename.unwrap();
                     match s.find(cwd) {
                         Some(i) => {
-                            s = s[(i+cwd.len()+1)..].to_string();
+                            s = s[(i + cwd.len() + 1)..].to_string();
                         }
-                        None => {
-                            match s.find("/gems/") {
+                        None => match s.find("/gems/") {
+                            Some(i) => {
+                                s = s[(i + 1)..].to_string();
+                            }
+                            None => match s.find("/ruby/") {
                                 Some(i) => {
-                                    s = s[(i+1)..].to_string();
-                                }
-                                None => {
-                                    match s.find("/ruby/") {
+                                    s = s[(i + 6)..].to_string();
+                                    match s.find("/") {
                                         Some(i) => {
-                                            s = s[(i+6)..].to_string();
-                                            match s.find("/") {
-                                                Some(i) => {
-                                                    s = s[(i+1)..].to_string();
-                                                }
-                                                None => {
-                                                }
-                                            }
+                                            s = s[(i + 1)..].to_string();
                                         }
-                                        None => {
-                                        }
+                                        None => {}
                                     }
                                 }
-                            }
-                        }
+                                None => {}
+                            },
+                        },
                     }
 
                     // something
@@ -74,6 +68,36 @@ pub fn transform_report(report: Report) -> Report {
     let new_report = Report::new(data).metadata(report.metadata.clone());
 
     new_report
+}
+
+#[no_mangle]
+pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
+    // Force rustc to display the log messages in the console.
+    match logging_level {
+        50 => {
+            std::env::set_var("RUST_LOG", "error");
+        }
+        40 => {
+            std::env::set_var("RUST_LOG", "warn");
+        }
+        30 => {
+            std::env::set_var("RUST_LOG", "info");
+        }
+        20 => {
+            std::env::set_var("RUST_LOG", "debug");
+        }
+        10 => {
+            std::env::set_var("RUST_LOG", "trace");
+        }
+        _ => {
+            std::env::set_var("RUST_LOG", "debug");
+        }
+    }
+
+    // Initialize the logger.
+    pretty_env_logger::init_timed();
+
+    true
 }
 
 #[no_mangle]

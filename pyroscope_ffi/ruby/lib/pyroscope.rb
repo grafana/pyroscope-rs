@@ -4,6 +4,7 @@ module Pyroscope
   module Rust
     extend FFI::Library
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
+    attach_function :initialize_logging, [:int], :bool
     attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string], :bool
     attach_function :add_thread_tag, [:uint64, :string, :string], :bool
     attach_function :remove_thread_tag, [:uint64, :string, :string], :bool
@@ -18,7 +19,7 @@ module Pyroscope
     attach_function :thread_id, [], :uint64
   end
 
-  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :log_level, :tags) do
+  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :tags) do
     def initialize(*)
       self.application_name = ''
       self.server_address = 'http://localhost:4040'
@@ -28,7 +29,7 @@ module Pyroscope
       self.on_cpu = true
       self.report_pid = false
       self.report_thread_id = false
-      self.log_level = 'info'
+      self.log_level = 'error'
       self.tags = {}
       super
     end
@@ -41,6 +42,27 @@ module Pyroscope
       # Pass config to the block
       yield @config
 
+      # Determine Logging level (kinda like an enum).
+      case @config.log_level
+      when 'trace'
+        @log_level = 10
+      when 'debug'
+        @log_level = 20
+      when 'info'
+        @log_level = 30
+      when 'warn'
+        @log_level = 40
+      when 'error'
+        @log_level = 50
+      else
+        @log_level = 50
+      end
+
+      # Initialize Logging
+      Rust.initialize_logging(@log_level)
+      
+
+      # initialize Pyroscope Agent
       Rust.initialize_agent(
         @config.app_name || @config.application_name || "",
         @config.server_address || "",
