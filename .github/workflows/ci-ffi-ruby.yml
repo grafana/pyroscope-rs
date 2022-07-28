@@ -4,13 +4,13 @@ on:
   push:
     paths:
     - 'pyroscope_ffi/ruby/**'
-    - '.github/workflows/ruby.yml'
+    - '.github/workflows/ci-ffi-ruby.yml'
     branches:
     - '**'
   pull_request:
     paths:
     - 'pyroscope_ffi/ruby/**'
-    - '.github/workflows/ruby.yml'
+    - '.github/workflows/ci-ffi-ruby.yml'
     branches:
     - '**'
 
