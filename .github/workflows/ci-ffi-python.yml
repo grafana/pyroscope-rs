@@ -50,7 +50,6 @@ jobs:
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/download-artifact@master
         with:
@@ -59,6 +58,13 @@ jobs:
 
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip install *.whl"
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/all.py
+        env:
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
 
   #linux-arm:
     #strategy:
@@ -128,37 +134,37 @@ jobs:
           #name: ${{ github.sha }}
           #path: pyroscope_ffi/python/dist/*
 
-  sdist-build:
-    name: sdist
-    runs-on: ubuntu-latest
+  #sdist-build:
+    #name: sdist
+    #runs-on: ubuntu-latest
 
-    steps:
-      - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+    #steps:
+      #- uses: AutoModality/action-clean@v1
+      #- uses: actions/checkout@v2
 
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
+      #- uses: actions/setup-python@v2
+        #with:
+          #python-version: 3.7
 
-      - name: Build sdist
-        run: python setup.py sdist
-        working-directory: pyroscope_ffi/python
+      #- name: Build sdist
+        #run: python setup.py sdist
+        #working-directory: pyroscope_ffi/python
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: "sdist.whl"
-          path: pyroscope_ffi/python/dist/*
+      #- uses: actions/upload-artifact@v2
+        #with:
+          #name: "sdist.whl"
+          #path: pyroscope_ffi/python/dist/*
 
-  sdist-test:
-    needs: ['sdist-build']
-    name: Linux Test
-    runs-on: ubuntu-latest
+  #sdist-test:
+    #needs: ['sdist-build']
+    #name: Linux Test
+    #runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/download-artifact@master
-        with:
-          name: "sdist.whl"
-          path: "${{github.workspace}}/python"
+    #steps:
+      #- uses: actions/download-artifact@master
+        #with:
+          #name: "sdist.whl"
+          #path: "${{github.workspace}}/python"
 
-      - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace}}/python && pip install *.whl"
+      #- run: "cd ${{ github.workspace }}/python && ls -l"
+      #- run: "cd ${{ github.workspace}}/python && pip install *.whl"
