@@ -55,9 +55,9 @@ jobs:
       - uses: actions/download-artifact@master
         with:
           name: "linux.whl"
-          path: ${{ GITHUB_WORKSPACE }}/python 
+          path: "${{env.GITHUB_WORKSPACE}}/python"
 
-      - run: cd ${{ GITHUB_WORKSPACE }}/python && ls -l 
+      - run: "cd ${{env.GITHUB_WORKSPACE}}/python && ls -l"
 
   #linux-arm:
     #strategy:
