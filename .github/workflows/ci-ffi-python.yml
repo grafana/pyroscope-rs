@@ -136,9 +136,6 @@ jobs:
     name: Linux ARM Test
     runs-on: [self-hosted, Linux, ARM64]
     steps:
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
       - uses: actions/download-artifact@master
         with:
           name: "linux-arm.whl"
@@ -241,6 +238,10 @@ jobs:
     name: Macos Test
     runs-on: macos-11.0 
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
       - uses: actions/download-artifact@master
         with:
           name: x86_64-apple-darwin
