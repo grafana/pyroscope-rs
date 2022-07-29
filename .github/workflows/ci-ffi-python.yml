@@ -136,6 +136,9 @@ jobs:
     name: Linux ARM Test
     runs-on: [self-hosted, Linux, ARM64]
     steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
       - uses: actions/download-artifact@master
         with:
           name: "linux-arm.whl"
