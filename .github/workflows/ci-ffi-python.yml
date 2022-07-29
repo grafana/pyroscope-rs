@@ -161,4 +161,4 @@ jobs:
           path: "${{github.workspace}}/python"
 
       - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "pip install *.whl"
+      - run: "cd ${{ github.workspace}}/python && pip install *.whl"
