@@ -247,6 +247,7 @@ jobs:
           name: x86_64-apple-darwin
           path: "${{github.workspace}}/python"
 
+      - run: "pip install --upgrade pip"
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip install *.whl"
       - uses: actions/checkout@v2
