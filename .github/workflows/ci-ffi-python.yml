@@ -144,6 +144,8 @@ jobs:
           name: "linux-arm.whl"
           path: "${{github.workspace}}/python"
 
+      - run: "apt update && apt install python3 python3-pip"
+
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip install *.whl"
       - uses: actions/checkout@v2
