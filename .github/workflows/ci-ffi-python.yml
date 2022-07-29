@@ -66,6 +66,37 @@ jobs:
         env:
           PYROSCOPE_RUN_ID: ${{ github.run_id }}
           PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/gil.py
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/oncpu-gil.py
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/oncpu.py
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/sub-gil.py
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/sub-oncpu.py
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/sub.py
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+
 
   #linux-arm:
     #strategy:

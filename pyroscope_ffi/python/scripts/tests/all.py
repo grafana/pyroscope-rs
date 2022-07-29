@@ -13,7 +13,7 @@ logger.setLevel(logging.DEBUG)
 
 # Configure Pyroscope
 pyroscope.configure(
-    application_name = f'{os.getenv("PYROSCOPE_RUN_ID")}-x86-64-linux',
+    application_name = f'{os.getenv("PYROSCOPE_RUN_ID")}-x86-64-linux-all',
     server_address = "https://ingest.pyroscope.cloud",
     auth_token     = os.getenv("PYROSCOPE_API_TOKEN"),
     enable_logging =True,
@@ -33,12 +33,12 @@ def hash(string):
     return string
 
 def multihash(string):
-    for i in range(0, 55510055):
+    for i in range(0, 25510055):
         string = hash(string)
     return string
 
 def multihash2(string):
-    for i in range(0, 55510055):
+    for i in range(0, 25510055):
         string = hash(string)
     return string
 
