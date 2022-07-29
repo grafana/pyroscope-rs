@@ -64,6 +64,7 @@ jobs:
       - name: Run Python Script
         run: pyroscope_ffi/python/scripts/tests/all.py
         env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
           PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
 
   #linux-arm:

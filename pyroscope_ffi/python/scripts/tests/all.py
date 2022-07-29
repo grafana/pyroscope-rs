@@ -13,10 +13,10 @@ logger.setLevel(logging.DEBUG)
 
 # Configure Pyroscope
 pyroscope.configure(
-    app_name       = "run.python.app",
+    application_name = f'{os.getenv("PYROSCOPE_RUN_ID")}-x86-64-linux',
     server_address = "https://ingest.pyroscope.cloud",
     auth_token     = os.getenv("PYROSCOPE_API_TOKEN"),
-    enable_logging=True,
+    enable_logging =True,
     detect_subprocesses=True,
     oncpu=True,
     gil_only=True,
