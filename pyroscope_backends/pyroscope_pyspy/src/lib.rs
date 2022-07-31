@@ -39,7 +39,7 @@ pub struct PyspyConfig {
     /// Profiling duration (None for infinite)
     time_limit: Option<core::time::Duration>,
     /// Include subprocesses
-    with_subprocesses: bool,
+    detect_subprocesses: bool,
     /// Include idle time
     oncpu: bool,
     /// Detect Python GIL
@@ -56,7 +56,7 @@ impl Default for PyspyConfig {
             backend_config: BackendConfig::default(),
             lock_process: py_spy::config::LockingStrategy::NonBlocking,
             time_limit: None,
-            with_subprocesses: false,
+            detect_subprocesses: false,
             oncpu: false,
             gil_only: false,
             native: false,
@@ -138,9 +138,9 @@ impl PyspyConfig {
     }
 
     /// Include subprocesses
-    pub fn with_subprocesses(self, with_subprocesses: bool) -> Self {
+    pub fn detect_subprocesses(self, detect_subprocesses: bool) -> Self {
         PyspyConfig {
-            with_subprocesses,
+            detect_subprocesses,
             ..self
         }
     }
@@ -255,7 +255,7 @@ impl Backend for Pyspy {
             sampling_rate: self.config.sample_rate as u64,
             include_idle: self.config.oncpu,
             include_thread_ids: true,
-            subprocesses: self.config.with_subprocesses,
+            subprocesses: self.config.detect_subprocesses,
             gil_only: self.config.gil_only,
             duration,
             ..Config::default()

@@ -40,7 +40,7 @@ pub struct RbspyConfig {
     /// Profiling duration. None for infinite.
     time_limit: Option<core::time::Duration>,
     /// Include subprocesses
-    with_subprocesses: bool,
+    detect_subprocesses: bool,
     /// Include Oncpu Time
     oncpu: bool,
 }
@@ -53,7 +53,7 @@ impl Default for RbspyConfig {
             backend_config: BackendConfig::default(),
             lock_process: false,
             time_limit: None,
-            with_subprocesses: false,
+            detect_subprocesses: false,
             oncpu: false,
         }
     }
@@ -116,9 +116,9 @@ impl RbspyConfig {
     }
 
     /// Include subprocesses
-    pub fn with_subprocesses(self, with_subprocesses: bool) -> Self {
+    pub fn detect_subprocesses(self, detect_subprocesses: bool) -> Self {
         RbspyConfig {
-            with_subprocesses,
+            detect_subprocesses,
             ..self
         }
     }
@@ -219,7 +219,7 @@ impl Backend for Rbspy {
             self.config.sample_rate,
             self.config.lock_process,
             self.config.time_limit,
-            self.config.with_subprocesses,
+            self.config.detect_subprocesses,
             None,
             self.config.oncpu,
         ));

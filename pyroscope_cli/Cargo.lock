@@ -1717,7 +1717,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "libc",
  "log",
@@ -1760,8 +1760,9 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pprofrs"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
+ "log",
  "pprof",
  "pyroscope",
  "thiserror",
@@ -1769,7 +1770,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pyspy"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "log",
  "py-spy",
@@ -1779,7 +1780,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_rbspy"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "log",

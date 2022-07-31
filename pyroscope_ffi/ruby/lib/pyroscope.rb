@@ -22,14 +22,14 @@ module Pyroscope
     attach_function :thread_id, [], :uint64
   end
 
-  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :tags) do
+  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :oncpu, :report_pid, :report_thread_id, :tags) do
     def initialize(*)
       self.application_name = ''
       self.server_address = 'http://localhost:4040'
       self.auth_token = ''
       self.sample_rate = 100
       self.detect_subprocesses = false
-      self.on_cpu = true
+      self.oncpu = true
       self.report_pid = false
       self.report_thread_id = false
       self.log_level = 'error'
@@ -72,7 +72,7 @@ module Pyroscope
         @config.auth_token || "",
         @config.sample_rate || 100,
         @config.detect_subprocesses || false,
-        @config.on_cpu || false,
+        @config.oncpu || false,
         @config.report_pid || false,
         @config.report_thread_id || false,
         tags_to_string(@config.tags || {})
