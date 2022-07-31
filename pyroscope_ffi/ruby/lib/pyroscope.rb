@@ -121,7 +121,7 @@ module Pyroscope
       end
     end
 
-    def drop
+    def shutdown
       Rust.drop_agent
     end
   end
