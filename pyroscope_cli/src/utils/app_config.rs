@@ -19,12 +19,13 @@ pub struct AppConfig {
     pub pid: Option<i32>,
     pub spy_name: Spy,
     pub application_name: Option<String>,
+    pub auth_token: Option<String>,
     pub detect_subprocesses: Option<bool>,
     pub no_logging: Option<bool>,
     pub log_level: LogLevel,
     pub no_root_drop: Option<bool>,
     pub blocking: Option<bool>,
-    pub pyspy_idle: Option<bool>,
+    pub onpcu: Option<bool>,
     pub pyspy_gil: Option<bool>,
     pub pyspy_native: Option<bool>,
     pub sample_rate: Option<u32>,
@@ -77,8 +78,8 @@ impl AppConfig {
             if sub_connect.is_present("blocking") {
                 AppConfig::set("blocking", "true")?;
             }
-            if sub_connect.is_present("pyspy_idle") {
-                AppConfig::set("pyspy_idle", "true")?;
+            if sub_connect.is_present("oncpu") {
+                AppConfig::set("oncpu", "true")?;
             }
             if sub_connect.is_present("pyspy_gil") {
                 AppConfig::set("pyspy_gil", "true")?;
@@ -107,6 +108,11 @@ impl AppConfig {
             if sub_connect.is_present("application_name") {
                 if let Some(application_name) = sub_connect.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
+                }
+            }
+            if sub_connect.is_present("auth_token") {
+                if let Some(auth_token) = sub_connect.value_of("auth_token") {
+                    AppConfig::set("auth_token", auth_token)?;
                 }
             }
             if sub_connect.is_present("detect_subprocesses") {
@@ -157,8 +163,8 @@ impl AppConfig {
             if sub_exec.is_present("blocking") {
                 AppConfig::set("blocking", "true")?;
             }
-            if sub_exec.is_present("pyspy_idle") {
-                AppConfig::set("pyspy_idle", "true")?;
+            if sub_exec.is_present("oncpu") {
+                AppConfig::set("oncpu", "true")?;
             }
             if sub_exec.is_present("pyspy_gil") {
                 AppConfig::set("pyspy_gil", "true")?;
@@ -187,6 +193,11 @@ impl AppConfig {
             if sub_exec.is_present("application_name") {
                 if let Some(application_name) = sub_exec.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
+                }
+            }
+            if sub_exec.is_present("auth_token") {
+                if let Some(auth_token) = sub_exec.value_of("auth_token") {
+                    AppConfig::set("auth_token", auth_token)?;
                 }
             }
             if sub_exec.is_present("detect_subprocesses") {

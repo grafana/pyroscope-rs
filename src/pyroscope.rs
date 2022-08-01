@@ -454,7 +454,7 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
 }
 
 impl PyroscopeAgent<PyroscopeAgentBare> {
-    /// Short-hand for PyroscopeAgentBuilder::build(). This is a convenience method.
+    /// Short-hand for PyroscopeAgentBuilder::new(url, application_name). This is a convenience method.
     ///
     /// # Example
     /// ```ignore
@@ -463,6 +463,18 @@ impl PyroscopeAgent<PyroscopeAgentBare> {
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
+    }
+
+    /// Short-hand for PyroscopeAgentBuilder::default(). This is a convenience method.
+    /// Default URL is "http://localhost:4040". Default application name is randomly generated.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::default_builder().build()?;
+    /// ```
+    pub fn default_builder() -> PyroscopeAgentBuilder {
+        // Build PyroscopeAgent
+        PyroscopeAgentBuilder::default()
     }
 }
 
