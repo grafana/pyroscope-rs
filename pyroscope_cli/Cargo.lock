@@ -62,9 +62,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.58"
+version = "1.0.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb07d2053ccdbe10e2af2995a2f116c1330396493dc1269f6a91d0ae82e19704"
+checksum = "c91f1f46651137be86f3a2b9a8359f9ab421d04d941c62b5982e1ca21113adf9"
 
 [[package]]
 name = "arc-swap"
@@ -293,9 +293,9 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "3.2.0"
+version = "3.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a4fc4a94ae7c4e7c2e721893fce77ef8da529775e2d727d72de8753fcb2ad2a"
+checksum = "ead064480dfc4880a10764488415a97fdd36a4cf1bb022d372f02e8faf8386e1"
 dependencies = [
  "clap 3.2.16",
 ]
@@ -342,7 +342,7 @@ dependencies = [
  "lazy_static",
  "nom 5.1.2",
  "rust-ini",
- "serde 1.0.140",
+ "serde 1.0.141",
  "serde-hjson",
  "serde_json",
  "toml",
@@ -877,7 +877,7 @@ checksum = "39f357a500abcbd7c5f967c1d45c8838585b36743823b9d43488f24850534e36"
 dependencies = [
  "backtrace",
  "os_type",
- "serde 1.0.140",
+ "serde 1.0.141",
  "serde_derive",
  "termcolor",
  "toml",
@@ -1707,7 +1707,7 @@ dependencies = [
  "rand_distr",
  "regex",
  "remoteprocess",
- "serde 1.0.140",
+ "serde 1.0.141",
  "serde_derive",
  "serde_json",
  "tempfile",
@@ -1749,7 +1749,7 @@ dependencies = [
  "pyroscope_pprofrs",
  "pyroscope_pyspy",
  "pyroscope_rbspy",
- "serde 1.0.140",
+ "serde 1.0.141",
  "slog",
  "slog-async",
  "slog-scope",
@@ -1905,7 +1905,7 @@ dependencies = [
  "rand 0.8.5",
  "rbspy-ruby-structs",
  "remoteprocess",
- "serde 1.0.140",
+ "serde 1.0.141",
  "serde_derive",
  "serde_json",
  "tempdir",
@@ -2044,7 +2044,7 @@ dependencies = [
  "rustls",
  "rustls-native-certs",
  "rustls-pemfile",
- "serde 1.0.140",
+ "serde 1.0.141",
  "serde_json",
  "serde_urlencoded",
  "tokio",
@@ -2242,9 +2242,9 @@ checksum = "9dad3f759919b92c3068c696c15c3d17238234498bbdcc80f2c469606f948ac8"
 
 [[package]]
 name = "serde"
-version = "1.0.140"
+version = "1.0.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc855a42c7967b7c369eb5860f7164ef1f6f81c20c7cc1141f2a604e18723b03"
+checksum = "7af873f2c95b99fcb0bd0fe622a43e29514658873c8ceba88c4cb88833a22500"
 dependencies = [
  "serde_derive",
 ]
@@ -2263,9 +2263,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.140"
+version = "1.0.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f2122636b9fe3b81f1cb25099fcf2d3f542cdb1d45940d56c713158884a05da"
+checksum = "75743a150d003dd863b51dc809bcad0d73f2102c53632f1e954e738192a3413f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2280,7 +2280,7 @@ checksum = "82c2c1fdcd807d1098552c5b9a36e425e42e9fbd7c6a37a8425f390f781f7fa7"
 dependencies = [
  "itoa 1.0.2",
  "ryu",
- "serde 1.0.140",
+ "serde 1.0.141",
 ]
 
 [[package]]
@@ -2292,7 +2292,7 @@ dependencies = [
  "form_urlencoded",
  "itoa 1.0.2",
  "ryu",
- "serde 1.0.140",
+ "serde 1.0.141",
 ]
 
 [[package]]
@@ -2370,7 +2370,7 @@ dependencies = [
  "slog",
  "term",
  "thread_local",
- "time 0.3.11",
+ "time 0.3.12",
 ]
 
 [[package]]
@@ -2616,11 +2616,12 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.11"
+version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72c91f41dcb2f096c05f0873d667dceec1087ce5bcf984ec8ffb19acddbb3217"
+checksum = "74b7cc93fc23ba97fde84f7eea56c55d1ba183f495c6715defdfc7b9cb8c870f"
 dependencies = [
  "itoa 1.0.2",
+ "js-sys",
  "libc",
  "num_threads",
  "time-macros",
@@ -2706,7 +2707,7 @@ version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
 dependencies = [
- "serde 1.0.140",
+ "serde 1.0.141",
 ]
 
 [[package]]

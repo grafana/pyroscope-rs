@@ -47,11 +47,19 @@ impl Profiler {
                     .oncpu(oncpu)
                     .gil_only(pyspy_gil)
                     .native(pyspy_native);
+
                 let backend = pyspy_backend(config);
-                PyroscopeAgent::builder(server_address, app_name)
-                    .backend(backend)
-                    .tags(tags)
-                    .build()?
+
+                let mut builder = PyroscopeAgent::default_builder();
+                builder = builder.url(server_address);
+                builder = builder.application_name(app_name);
+
+                // There must be a better way to do this, hopefully as clap supports Option<String>
+                if auth_token.len() > 0 {
+                    builder = builder.auth_token(auth_token);
+                }
+
+                builder.backend(backend).tags(tags).build()?
             }
             Spy::Rbspy => {
                 let config = RbspyConfig::new(pid)
@@ -60,10 +68,17 @@ impl Profiler {
                     .oncpu(oncpu)
                     .detect_subprocesses(detect_subprocesses);
                 let backend = rbspy_backend(config);
-                PyroscopeAgent::builder(server_address, app_name)
-                    .backend(backend)
-                    .tags(tags)
-                    .build()?
+
+                let mut builder = PyroscopeAgent::default_builder();
+                builder = builder.url(server_address);
+                builder = builder.application_name(app_name);
+
+                // There must be a better way to do this, hopefully as clap supports Option<String>
+                if auth_token.len() > 0 {
+                    builder = builder.auth_token(auth_token);
+                }
+
+                builder.backend(backend).tags(tags).build()?
             }
         };
 
