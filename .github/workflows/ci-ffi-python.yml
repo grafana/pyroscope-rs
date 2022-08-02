@@ -74,7 +74,10 @@ jobs:
           PYROSCOPE_RUN_ID: ${{ github.run_id }}
           PYROSCOPE_ARCH: x86-64-linux
           PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-
+          PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
+          PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
+          PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
+          PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
   linux-arm-build:
     strategy:
       fail-fast: false
