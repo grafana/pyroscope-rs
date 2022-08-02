@@ -27,6 +27,7 @@ pyroscope.configure(
         "detect_subprocesses": f'{os.getenv("PYROSCOPE_DETECT_SUBPROCESSES")}',
         "oncpu": f'{os.getenv("PYROSCOPE_ONCPU")}',
         "gil_only": f'{os.getenv("PYROSCOPE_GIL_ONLY")}',
+        "version": f'{os.getenv("PYTHON_VERSION")}',
     }
 )
 

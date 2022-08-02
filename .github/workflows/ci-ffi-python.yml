@@ -54,10 +54,16 @@ jobs:
         PYROSCOPE_ONCPU: [1, 0]
         PYROSCOPE_GIL_ONLY: [1, 0]
         PYROSCOPE_NATIVE: [1, 0]
+        PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.PYTHON_VERSION }}
+          architecture: x64
       - uses: actions/download-artifact@master
         with:
           name: "linux.whl"
@@ -78,6 +84,7 @@ jobs:
           PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
           PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
           PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
+          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
   linux-arm-build:
     strategy:
       fail-fast: false
