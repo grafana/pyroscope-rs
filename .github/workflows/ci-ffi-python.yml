@@ -50,10 +50,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYROSCOPE_DETECT_SUBPROCESSES: [True, False]
-        PYROSCOPE_ONCPU: [True, False]
-        PYROSCOPE_GIL_ONLY: [True, False]
-        PYROSCOPE_NATIVE: [True, False]
+        PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
+        PYROSCOPE_ONCPU: [1, 0]
+        PYROSCOPE_GIL_ONLY: [1, 0]
+        PYROSCOPE_NATIVE: [1, 0]
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
