@@ -7,7 +7,7 @@ puts Pyroscope::VERSION
 puts RUBY_VERSION
 
 Pyroscope.configure do |config|
-  config.application_name = "new.fork.ruby"
+  config.application_name = "#{ENV["PYROSCOPE_RUN_ID"]}"
   config.server_address = "https://ingest.pyroscope.cloud"
   config.auth_token = ENV["PYROSCOPE_API_TOKEN"]
   config.detect_subprocesses = ENV["PYROSCOPE_DETECT_SUBPROCESSES"] == "1"
@@ -19,7 +19,8 @@ Pyroscope.configure do |config|
     :region => "us-east",
     :detect_subprocesses => ENV["PYROSCOPE_DETECT_SUBPROCESSES"],
     :oncpu => ENV["PYROSCOPE_ONCPU"],
-    :version => ENV["RUBY_VERSION"]
+    :version => ENV["RUBY_VERSION"],
+    :arch => ENV["PYROSCOPE_ARCH"]
   }
 end
 
