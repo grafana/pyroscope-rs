@@ -103,7 +103,7 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 #[no_mangle]
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
-    sample_rate: u32, detect_subprocesses: bool, on_cpu: bool, report_pid: bool,
+    sample_rate: u32, detect_subprocesses: bool, oncpu: bool, report_pid: bool,
     report_thread_id: bool, tags: *const c_char,
 ) -> bool {
     // Initialize FFIKit
@@ -134,8 +134,8 @@ pub extern "C" fn initialize_agent(
     let rbspy_config = RbspyConfig::new(pid.try_into().unwrap())
         .sample_rate(sample_rate)
         .lock_process(false)
-        .with_subprocesses(detect_subprocesses)
-        .on_cpu(on_cpu)
+        .detect_subprocesses(detect_subprocesses)
+        .oncpu(oncpu)
         .report_pid(report_pid)
         .report_thread_id(report_thread_id);
 
