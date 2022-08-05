@@ -21,13 +21,15 @@ impl Profiler {
 
         let app_name: String = AppConfig::get::<String>("application_name")?;
 
+        let auth_token: String = AppConfig::get::<String>("auth_token")?;
+
         let server_address: String = AppConfig::get::<String>("server_address")?;
 
         let sample_rate: u32 = AppConfig::get::<u32>("sample_rate")?;
 
         let blocking: bool = AppConfig::get::<bool>("blocking")?;
 
-        let pyspy_idle: bool = AppConfig::get::<bool>("pyspy_idle")?;
+        let oncpu: bool = AppConfig::get::<bool>("oncpu")?;
         let pyspy_gil: bool = AppConfig::get::<bool>("pyspy_gil")?;
         let pyspy_native: bool = AppConfig::get::<bool>("pyspy_native")?;
 
@@ -41,26 +43,42 @@ impl Profiler {
                 let config = PyspyConfig::new(pid)
                     .sample_rate(sample_rate)
                     .lock_process(blocking)
-                    .with_subprocesses(detect_subprocesses)
-                    .include_idle(pyspy_idle)
+                    .detect_subprocesses(detect_subprocesses)
+                    .oncpu(oncpu)
                     .gil_only(pyspy_gil)
                     .native(pyspy_native);
+
                 let backend = pyspy_backend(config);
-                PyroscopeAgent::builder(server_address, app_name)
-                    .backend(backend)
-                    .tags(tags)
-                    .build()?
+
+                let mut builder = PyroscopeAgent::default_builder();
+                builder = builder.url(server_address);
+                builder = builder.application_name(app_name);
+
+                // There must be a better way to do this, hopefully as clap supports Option<String>
+                if auth_token.len() > 0 {
+                    builder = builder.auth_token(auth_token);
+                }
+
+                builder.backend(backend).tags(tags).build()?
             }
             Spy::Rbspy => {
                 let config = RbspyConfig::new(pid)
                     .sample_rate(sample_rate)
                     .lock_process(blocking)
-                    .with_subprocesses(detect_subprocesses);
+                    .oncpu(oncpu)
+                    .detect_subprocesses(detect_subprocesses);
                 let backend = rbspy_backend(config);
-                PyroscopeAgent::builder(server_address, app_name)
-                    .backend(backend)
-                    .tags(tags)
-                    .build()?
+
+                let mut builder = PyroscopeAgent::default_builder();
+                builder = builder.url(server_address);
+                builder = builder.application_name(app_name);
+
+                // There must be a better way to do this, hopefully as clap supports Option<String>
+                if auth_token.len() > 0 {
+                    builder = builder.auth_token(auth_token);
+                }
+
+                builder.backend(backend).tags(tags).build()?
             }
         };
 

@@ -58,6 +58,13 @@ enum Commands {
         )]
         application_name: Option<String>,
         #[clap(
+            name = "auth_token",
+            long = "auth-token",
+            value_name = "AUTH_TOKEN",
+            help = "Authentication token used when uploading profiling data"
+        )]
+        auth_token: Option<String>,
+        #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
@@ -91,10 +98,10 @@ enum Commands {
         )]
         blocking: bool,
         #[clap(
-            name = "pyspy_idle",
-            long = "pyspy-idle",
-            value_name = "PYSPY_IDLE",
-            help = "include idle threads for pyspy",
+            name = "oncpu",
+            long = "oncpu",
+            value_name = "ONCPU",
+            help = "enable oncpu mode. [supported by: rbspy, pyspy]",
             takes_value = false
         )]
         pyspy_idle: bool,
@@ -169,6 +176,13 @@ enum Commands {
         )]
         application_name: Option<String>,
         #[clap(
+            name = "auth_token",
+            long = "auth-token",
+            value_name = "AUTH_TOKEN",
+            help = "Authentication token used when uploading profiling data"
+        )]
+        auth_token: Option<String>,
+        #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
@@ -194,10 +208,10 @@ enum Commands {
         )]
         blocking: bool,
         #[clap(
-            name = "pyspy_idle",
-            long = "pyspy-idle",
-            value_name = "PYSPY_IDLE",
-            help = "include idle threads for pyspy",
+            name = "oncpu",
+            long = "oncpu",
+            value_name = "ONCPU",
+            help = "enable oncpu mode. [supported by: rbspy, pyspy]",
             takes_value = false
         )]
         pyspy_idle: bool,

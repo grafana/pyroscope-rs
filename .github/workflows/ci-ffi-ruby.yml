@@ -1,0 +1,282 @@
+name: Ruby Package
+
+on:
+  push:
+    paths:
+    - 'pyroscope_ffi/ruby/**'
+    - '.github/workflows/ci-ffi-ruby.yml'
+    branches:
+    - '**'
+  pull_request:
+    paths:
+    - 'pyroscope_ffi/ruby/**'
+    - '.github/workflows/ci-ffi-ruby.yml'
+    branches:
+    - '**'
+
+jobs:
+  linux-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build-arch: x86_64
+            target: x86_64-unknown-linux-gnu
+
+    name: Linux - ${{ matrix.build-arch }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: AutoModality/action-clean@v1
+      - uses: actions/checkout@v2
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+
+      - name: Install bundles
+        run: bundle
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/rbspy
+
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/thread_id
+
+      - name: Build native extensions
+        run: rake thread_id_install
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Generate extra libraries
+        run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
+
+      - name: Copy generated extra libraries
+        run: mkdir -p lib/rbspy && cp  ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Copy generated extra libraries
+        run: cp -r ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy.libs lib/rbspy.libs
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build linux gem
+        run: rake x86_64_linux:gem
+        working-directory: pyroscope_ffi/ruby
+
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: "linux.gem"
+          path: pyroscope_ffi/ruby/pkg/*.gem
+
+  linux-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
+        PYROSCOPE_ONCPU: [1, 0]
+        RUBY_VERSION: ['2.6', '2.7', '3.0', '3.1']
+    needs: ['linux-build']
+    name: Linux Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.RUBY_VERSION }}
+      - uses: actions/download-artifact@master
+        with:
+          name: "linux.gem"
+          path: "${{github.workspace}}/ruby"
+      - run: "cd ${{ github.workspace }}/ruby && ls -l"
+      - run: "cd ${{ github.workspace }}/ruby && gem install *.gem"
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Run Ruby Script
+        run: pyroscope_ffi/ruby/scripts/tests/test.rb
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_ARCH: x86-64-linux
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+          PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
+          PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
+          RUBY_VERSION: ${{ matrix.RUBY_VERSION }}
+
+  #linux-arm:
+    #strategy:
+      #fail-fast: false
+      #matrix:
+        #include:
+          #- build-arch: aarch64
+            #target: aarch64-unknown-linux-gnu
+
+    #name: Linux - ${{ matrix.build-arch }}
+    #runs-on: [self-hosted, Linux, ARM64]
+
+    #steps:
+      #- uses: AutoModality/action-clean@v1
+
+      #- uses: actions/checkout@v2
+
+      #- name: Install bundles
+        #run: bundle
+        #working-directory: pyroscope_ffi/ruby
+
+      #- name: Update lock files
+        #run: cargo update
+        #working-directory: pyroscope_ffi/ruby/ext/rbspy
+
+      #- name: Update lock files
+        #run: cargo update
+        #working-directory: pyroscope_ffi/ruby/ext/thread_id
+
+      #- name: Build native extensions
+        #run: rake thread_id_install
+        #working-directory: pyroscope_ffi/ruby
+
+      #- name: Generate extra libraries
+        #run: BUILD_ARCH=manylinux2014_aarch64 ./pyroscope_ffi/ruby/scripts/docker.sh
+
+      #- name: Copy generated extra libraries
+        #run: mkdir -p lib/rbspy && cp ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-aarch64-linux-gnu.so lib/rbspy/rbspy.so
+        #working-directory: pyroscope_ffi/ruby
+
+      #- name: Copy generated extra libraries
+        #run: cp -r ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy.libs lib/rbspy.libs
+        #working-directory: pyroscope_ffi/ruby
+
+      #- name: Build linux gem
+        #run: rake aarch64_linux:gem
+        #working-directory: pyroscope_ffi/ruby
+
+      #- uses: actions/upload-artifact@v2
+        #with:
+          #name: ${{ github.sha }}
+          #path: pyroscope_ffi/ruby/pkg/*.gem
+
+  macos-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - macos-version: "11.0"
+            target: x86_64-apple-darwin
+            py-platform: macosx-11_0_x86_64
+          - macos-version: "11.0"
+            target: aarch64-apple-darwin
+            py-platform: macosx-11_0_arm64
+
+    name: macOS - ${{ matrix.platform }}
+    runs-on: macos-${{ matrix.macos-version }}
+
+    env:
+      RUST_TARGET: ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+
+      - name: Install bundles
+        run: bundle
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/rbspy
+
+      - name: Update lock files
+        run: cargo update
+        working-directory: pyroscope_ffi/ruby/ext/thread_id
+
+      - name: Build native extensions
+        run: rake rbspy_install
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build native extensions
+        run: rake thread_id_install
+        working-directory: pyroscope_ffi/ruby
+
+      - if: matrix.target == 'x86_64-apple-darwin'
+        name: Build macos gem
+        run: rake x86_64_darwin:gem
+        working-directory: pyroscope_ffi/ruby
+
+      - if: matrix.target == 'aarch64-apple-darwin'
+        name: Build macos gem
+        run: rake arm64_darwin:gem
+        working-directory: pyroscope_ffi/ruby
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.target }}
+          path: pyroscope_ffi/ruby/pkg/*.gem
+
+  macos-intel-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
+        PYROSCOPE_ONCPU: [1, 0]
+        RUBY_VERSION: ['2.6', '2.7', '3.0', '3.1']
+    needs: ['macos-build']
+    name: macOS Test
+    runs-on: macos-11.0
+    steps:
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.RUBY_VERSION }}
+      - uses: actions/download-artifact@master
+        with:
+          name: x86_64-apple-darwin
+          path: "${{github.workspace}}/ruby"
+      - run: "cd ${{ github.workspace }}/ruby && ls -l"
+      - run: "cd ${{ github.workspace }}/ruby && gem install *.gem"
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Run Ruby Script
+        run: pyroscope_ffi/ruby/scripts/tests/test.rb
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_ARCH: x86-64-apple-darwin
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+          PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
+          PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
+          RUBY_VERSION: ${{ matrix.RUBY_VERSION }}
+
+  #source:
+    #name: source
+    #runs-on: ubuntu-latest
+
+    #steps:
+      #- uses: AutoModality/action-clean@v1
+      #- uses: actions/checkout@v2
+
+      #- uses: ruby/setup-ruby@v1
+        #with:
+          #ruby-version: '3.1'
+
+      #- name: Install bundles
+        #run: bundle
+        #working-directory: pyroscope_ffi/ruby
+
+      #- name: Build source gem
+        #run: rake source:gem
+        #working-directory: pyroscope_ffi/ruby
+
+      #- uses: actions/upload-artifact@v2
+        #with:
+          #name: ${{ github.sha }}
+          #path: pyroscope_ffi/ruby/pkg/*.gem

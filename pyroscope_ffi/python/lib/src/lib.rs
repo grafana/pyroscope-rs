@@ -75,8 +75,8 @@ pub extern "C" fn initialize_agent(
     let mut pyspy_config = PyspyConfig::new(pid.try_into().unwrap())
         .sample_rate(sample_rate)
         .lock_process(false)
-        .with_subprocesses(detect_subprocesses)
-        .include_idle(!oncpu)
+        .detect_subprocesses(detect_subprocesses)
+        .oncpu(oncpu)
         .native(native)
         .gil_only(gil_only);
 

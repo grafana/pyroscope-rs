@@ -1,16 +1,109 @@
 use ffikit::Signal;
-use pyroscope::backend::Tag;
+use pyroscope::backend::{Report, StackFrame, Tag};
 use pyroscope::PyroscopeAgent;
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 use std::collections::hash_map::DefaultHasher;
+use std::env;
 use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
 
+pub fn transform_report(report: Report) -> Report {
+    let cwd = env::current_dir().unwrap();
+    let cwd = cwd.to_str().unwrap_or("");
+
+    let data = report
+        .data
+        .iter()
+        .map(|(stacktrace, count)| {
+            let new_frames = stacktrace
+                .frames
+                .iter()
+                .map(|frame| {
+                    let frame = frame.to_owned();
+                    let mut s = frame.filename.unwrap();
+                    match s.find(cwd) {
+                        Some(i) => {
+                            s = s[(i + cwd.len() + 1)..].to_string();
+                        }
+                        None => match s.find("/gems/") {
+                            Some(i) => {
+                                s = s[(i + 1)..].to_string();
+                            }
+                            None => match s.find("/ruby/") {
+                                Some(i) => {
+                                    s = s[(i + 6)..].to_string();
+                                    match s.find("/") {
+                                        Some(i) => {
+                                            s = s[(i + 1)..].to_string();
+                                        }
+                                        None => {}
+                                    }
+                                }
+                                None => {}
+                            },
+                        },
+                    }
+
+                    // something
+                    StackFrame::new(
+                        frame.module,
+                        frame.name,
+                        Some(s.to_string()),
+                        frame.relative_path,
+                        frame.absolute_path,
+                        frame.line,
+                    )
+                })
+                .collect();
+
+            let mut mystack = stacktrace.to_owned();
+
+            mystack.frames = new_frames;
+
+            (mystack, count.to_owned())
+        })
+        .collect();
+
+    let new_report = Report::new(data).metadata(report.metadata.clone());
+
+    new_report
+}
+
+#[no_mangle]
+pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
+    // Force rustc to display the log messages in the console.
+    match logging_level {
+        50 => {
+            std::env::set_var("RUST_LOG", "error");
+        }
+        40 => {
+            std::env::set_var("RUST_LOG", "warn");
+        }
+        30 => {
+            std::env::set_var("RUST_LOG", "info");
+        }
+        20 => {
+            std::env::set_var("RUST_LOG", "debug");
+        }
+        10 => {
+            std::env::set_var("RUST_LOG", "trace");
+        }
+        _ => {
+            std::env::set_var("RUST_LOG", "debug");
+        }
+    }
+
+    // Initialize the logger.
+    pretty_env_logger::init_timed();
+
+    true
+}
+
 #[no_mangle]
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
-    sample_rate: u32, detect_subprocesses: bool, on_cpu: bool, report_pid: bool,
+    sample_rate: u32, detect_subprocesses: bool, oncpu: bool, report_pid: bool,
     report_thread_id: bool, tags: *const c_char,
 ) -> bool {
     // Initialize FFIKit
@@ -41,8 +134,8 @@ pub extern "C" fn initialize_agent(
     let rbspy_config = RbspyConfig::new(pid.try_into().unwrap())
         .sample_rate(sample_rate)
         .lock_process(false)
-        .with_subprocesses(detect_subprocesses)
-        .on_cpu(on_cpu)
+        .detect_subprocesses(detect_subprocesses)
+        .oncpu(oncpu)
         .report_pid(report_pid)
         .report_thread_id(report_thread_id);
 
@@ -52,6 +145,7 @@ pub extern "C" fn initialize_agent(
 
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
         .backend(rbspy)
+        .func(transform_report)
         .tags(tags);
 
     if auth_token != "" {

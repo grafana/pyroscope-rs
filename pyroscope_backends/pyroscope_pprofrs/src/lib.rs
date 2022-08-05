@@ -13,8 +13,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+const LOG_TAG: &str = "Pyroscope::Pprofrs";
+
 pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
-    let backend_config = config.backend_config.clone();
+    let backend_config = config.backend_config;
     BackendImpl::new(Box::new(Pprof::new(config)), Some(backend_config))
 }
 
@@ -101,11 +103,11 @@ impl std::fmt::Debug for Pprof<'_> {
 impl<'a> Pprof<'a> {
     /// Create a new Pprof Backend
     pub fn new(config: PprofConfig) -> Self {
-        let backend_config = config.backend_config.clone();
+        let backend_config = config.backend_config;
         Pprof {
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
-            backend_config: backend_config,
+            backend_config,
             inner_builder: Arc::new(Mutex::new(None)),
             guard: Arc::new(Mutex::new(None)),
             ruleset: Ruleset::default(),
@@ -127,6 +129,7 @@ impl Backend for Pprof<'_> {
     }
 
     fn shutdown(self: Box<Self>) -> Result<()> {
+        log::trace!(target: LOG_TAG, "Shutting down sampler thread");
         //drop(self.guard.take());
 
         Ok(())
@@ -166,7 +169,7 @@ impl Backend for Pprof<'_> {
         Ok(reports)
     }
 
-    fn set_config(&self, config: BackendConfig) {}
+    fn set_config(&self, _config: BackendConfig) {}
 
     fn get_config(&self) -> Result<BackendConfig> {
         Ok(self.backend_config)
