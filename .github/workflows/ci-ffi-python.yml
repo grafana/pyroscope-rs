@@ -46,132 +46,73 @@ jobs:
           name: "linux.whl" 
           path: pyroscope_ffi/python/dist/*
 
-  linux-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
-        PYROSCOPE_ONCPU: [1, 0]
-        PYROSCOPE_GIL_ONLY: [1, 0]
-        PYROSCOPE_NATIVE: [1, 0]
-        PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
-    needs: ['linux-build']
-    name: Linux Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
-          architecture: x64
-      - uses: actions/download-artifact@master
-        with:
-          name: "linux.whl"
-          path: "${{github.workspace}}/python"
+  #linux-test:
+    #strategy:
+      #fail-fast: false
+      #matrix:
+        #PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
+        #PYROSCOPE_ONCPU: [1, 0]
+        #PYROSCOPE_GIL_ONLY: [1, 0]
+        #PYROSCOPE_NATIVE: [1, 0]
+        #PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
+    #needs: ['linux-build']
+    #name: Linux Test
+    #runs-on: ubuntu-latest
+    #steps:
+      #- name: Set up Python
+        #uses: actions/setup-python@v4
+        #with:
+          #python-version: ${{ matrix.PYTHON_VERSION }}
+          #architecture: x64
+      #- uses: actions/download-artifact@master
+        #with:
+          #name: "linux.whl"
+          #path: "${{github.workspace}}/python"
 
-      - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace }}/python && pip install *.whl"
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/test.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: x86-64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-          PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
-          PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
-          PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
-          PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
-          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
-  linux-arm-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        build-arch:
-          - manylinux2014_aarch64
+      #- run: "cd ${{ github.workspace }}/python && ls -l"
+      #- run: "cd ${{ github.workspace }}/python && pip install *.whl"
+      #- uses: actions/checkout@v2
+        #with:
+          #submodules: recursive
+      #- name: Run Python Script
+        #run: pyroscope_ffi/python/scripts/tests/test.py
+        #env:
+          #PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          #PYROSCOPE_ARCH: x86-64-linux
+          #PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+          #PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
+          #PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
+          #PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
+          #PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
+          #PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
 
-    name: Linux - ${{ matrix.build-arch }}
-    runs-on: [self-hosted, Linux, ARM64]
+  #linux-arm-build:
+    #strategy:
+      #fail-fast: false
+      #matrix:
+        #build-arch:
+          #- manylinux2014_aarch64
 
-    steps:
-      - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
+    #name: Linux - ${{ matrix.build-arch }}
+    #runs-on: [self-hosted, Linux, ARM64]
 
-      - name: Build in Docker
-        run: pyroscope_ffi/python/scripts/docker.sh
-        env:
-          BUILD_ARCH: ${{ matrix.build-arch }}
+    #steps:
+      #- uses: AutoModality/action-clean@v1
+      #- uses: actions/checkout@v2
+        #with:
+          #submodules: recursive
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: "linux-arm.whl"
-          path: pyroscope_ffi/python/dist/*
+      #- name: Build in Docker
+        #run: pyroscope_ffi/python/scripts/docker.sh
+        #env:
+          #BUILD_ARCH: ${{ matrix.build-arch }}
 
-  linux-arm-test:
-    needs: ['linux-arm-build']
-    name: Linux ARM Test
-    runs-on: [self-hosted, Linux, ARM64]
-    steps:
-      - uses: actions/download-artifact@master
-        with:
-          name: "linux-arm.whl"
-          path: "${{github.workspace}}/python"
+      #- uses: actions/upload-artifact@v2
+        #with:
+          #name: "linux-arm.whl"
+          #path: pyroscope_ffi/python/dist/*
 
-      - run: "apt-get update && apt-get install python3 python3-pip"
-
-      - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace }}/python && pip install *.whl"
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/all.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: aarch64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/gil.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: aarch64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/oncpu-gil.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: aarch64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/oncpu.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: aarch64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/sub-gil.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: aarch64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/sub-oncpu.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: aarch64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/sub.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: aarch64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-
-  macos-build:
+   macos-build:
     strategy:
       fail-fast: false
       matrix:
@@ -227,9 +168,8 @@ jobs:
           name: x86_64-apple-darwin
           path: "${{github.workspace}}/python"
 
-      - run: "pip install --upgrade pip"
       - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace }}/python && pip install *.whl"
+      - run: "cd ${{ github.workspace }}/python && pip3 install *.whl"
       - uses: actions/checkout@v2
         with:
           submodules: recursive
