@@ -77,7 +77,7 @@ jobs:
       matrix:
         PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
         PYROSCOPE_ONCPU: [1, 0]
-        RUBY_VERSION: ['3.0']
+        RUBY_VERSION: ['2.6', '2.7', '3.0', '3.1']
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
