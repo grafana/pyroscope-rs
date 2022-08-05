@@ -15,36 +15,36 @@ on:
     - '**'
 
 jobs:
-  linux-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        build-arch:
-          - manylinux2010_x86_64
+  #linux-build:
+    #strategy:
+      #fail-fast: false
+      #matrix:
+        #build-arch:
+          #- manylinux2010_x86_64
 
-    name: Linux - ${{ matrix.build-arch }}
-    runs-on: ubuntu-latest
+    #name: Linux - ${{ matrix.build-arch }}
+    #runs-on: ubuntu-latest
 
-    steps:
-      - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
+    #steps:
+      #- uses: AutoModality/action-clean@v1
+      #- uses: actions/checkout@v2
+        #with:
+          #submodules: recursive
 
-      - if: matrix.build-arch == 'manylinux2014_aarch64'
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: arm64
+      #- if: matrix.build-arch == 'manylinux2014_aarch64'
+        #uses: docker/setup-qemu-action@v1
+        #with:
+          #platforms: arm64
 
-      - name: Build in Docker
-        run: pyroscope_ffi/python/scripts/docker.sh
-        env:
-          BUILD_ARCH: ${{ matrix.build-arch }}
+      #- name: Build in Docker
+        #run: pyroscope_ffi/python/scripts/docker.sh
+        #env:
+          #BUILD_ARCH: ${{ matrix.build-arch }}
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: "linux.whl" 
-          path: pyroscope_ffi/python/dist/*
+      #- uses: actions/upload-artifact@v2
+        #with:
+          #name: "linux.whl" 
+          #path: pyroscope_ffi/python/dist/*
 
   #linux-test:
     #strategy:
@@ -112,7 +112,7 @@ jobs:
           #name: "linux-arm.whl"
           #path: pyroscope_ffi/python/dist/*
 
-   macos-build:
+  macos-build:
     strategy:
       fail-fast: false
       matrix:
