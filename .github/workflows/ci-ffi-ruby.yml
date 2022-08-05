@@ -232,7 +232,7 @@ jobs:
         RUBY_VERSION: ['2.6', '2.7', '3.0', '3.1']
     needs: ['macos-build']
     name: macOS Test
-    runs-on: macos-12.0
+    runs-on: macos-11.0
     steps:
       - uses: ruby/setup-ruby@v1
         with:
