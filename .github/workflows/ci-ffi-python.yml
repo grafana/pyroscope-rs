@@ -178,6 +178,8 @@ jobs:
           name: x86_64-apple-darwin
           path: "${{github.workspace}}/python"
 
+      - run: "python --version"
+      - run: "python3 --version"
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip3 install *.whl"
       - uses: actions/checkout@v2
