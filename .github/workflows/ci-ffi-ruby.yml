@@ -156,7 +156,7 @@ jobs:
           #name: ${{ github.sha }}
           #path: pyroscope_ffi/ruby/pkg/*.gem
 
-  macos:
+  macos-build:
     strategy:
       fail-fast: false
       matrix:
