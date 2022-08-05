@@ -239,7 +239,7 @@ jobs:
           ruby-version: ${{ matrix.RUBY_VERSION }}
       - uses: actions/download-artifact@master
         with:
-          name: "linux.gem"
+          name: x86_64-apple-darwin
           path: "${{github.workspace}}/ruby"
       - run: "cd ${{ github.workspace }}/ruby && ls -l"
       - run: "cd ${{ github.workspace }}/ruby && gem install *.gem"
