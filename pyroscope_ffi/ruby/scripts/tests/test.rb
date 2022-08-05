@@ -10,8 +10,8 @@ Pyroscope.configure do |config|
   config.application_name = "new.fork.ruby"
   config.server_address = "https://ingest.pyroscope.cloud"
   config.auth_token = ENV["PYROSCOPE_API_TOKEN"]
-  config.detect_subprocesses = ENV["PYROSCOPE_DETECT_SUBPROCESSES"]
-  config.oncpu = ENV["PYROSCOPE_ONCPU"]
+  config.detect_subprocesses = ENV["PYROSCOPE_DETECT_SUBPROCESSES"] == "1"
+  config.oncpu = ENV["PYROSCOPE_ONCPU"] == "1"
   config.log_level = "trace"
   config.report_pid = true
   config.report_thread_id = true
