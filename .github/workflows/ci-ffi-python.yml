@@ -145,7 +145,7 @@ jobs:
       - name: Build Wheel
         run: |
           pip install wheel
-          python setup.py bdist_wheel -p ${{ matrix.py-platform }}
+          python3 setup.py bdist_wheel -p ${{ matrix.py-platform }}
         working-directory: pyroscope_ffi/python
         env:
           CARGO_BUILD_TARGET: ${{ matrix.target }}
@@ -187,7 +187,7 @@ jobs:
         run: pyroscope_ffi/python/scripts/tests/test.py
         env:
           PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: x86-64-linux
+          PYROSCOPE_ARCH: x86-64-darwin
           PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
           PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
           PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
