@@ -4,7 +4,7 @@ module Pyroscope
   module Rust
     extend FFI::Library
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
-    attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string], :bool
+    attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string, :string], :bool
     attach_function :add_thread_tag, [:uint64, :string, :string], :bool
     attach_function :remove_thread_tag, [:uint64, :string, :string], :bool
     attach_function :add_global_tag, [:string, :string], :bool
@@ -18,7 +18,7 @@ module Pyroscope
     attach_function :thread_id, [], :uint64
   end
 
-  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :log_level, :tags) do
+  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :sample_rate, :detect_subprocesses, :on_cpu, :report_pid, :report_thread_id, :log_level, :tags, :compression) do
     def initialize(*)
       self.application_name = ''
       self.server_address = 'http://localhost:4040'
@@ -30,6 +30,7 @@ module Pyroscope
       self.report_thread_id = false
       self.log_level = 'info'
       self.tags = {}
+      self.compression = ''
       super
     end
   end
@@ -50,7 +51,8 @@ module Pyroscope
         @config.on_cpu || false,
         @config.report_pid || false,
         @config.report_thread_id || false,
-        tags_to_string(@config.tags || {})
+        tags_to_string(@config.tags || {}),
+        @config.compression || ""
       )
     end
 
