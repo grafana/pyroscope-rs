@@ -24,6 +24,8 @@ module Pyroscope
 
   Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :oncpu, :report_pid, :report_thread_id, :tags, :compression) do
     def initialize(*)
+      super
+      # defaults:
       self.application_name = ''
       self.server_address = 'http://localhost:4040'
       self.auth_token = ''
@@ -35,7 +37,6 @@ module Pyroscope
       self.log_level = 'error'
       self.tags = {}
       self.compression = 'gzip'
-      super
     end
   end
 
@@ -68,6 +69,7 @@ module Pyroscope
 
       # initialize Pyroscope Agent
       Rust.initialize_agent(
+        # these are defaults in case user-provided values are nil:
         @config.app_name || @config.application_name || "",
         @config.server_address || "",
         @config.auth_token || "",

@@ -197,7 +197,7 @@ impl Session {
         let body = match &self.config.compression {
             None => report_u8,
             Some(Compression::GZIP) => {
-                req_builder = req_builder.header("Content-encoding", "gzip");
+                req_builder = req_builder.header("Content-Encoding", "gzip");
                 let mut encoder = Encoder::new(Vec::new()).unwrap();
                 encoder.write_all(&report_u8).unwrap();
                 encoder.finish().into_result().unwrap()
