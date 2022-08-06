@@ -34,7 +34,7 @@ module Pyroscope
       self.report_thread_id = false
       self.log_level = 'error'
       self.tags = {}
-      self.compression = ''
+      self.compression = 'gzip'
       super
     end
   end
