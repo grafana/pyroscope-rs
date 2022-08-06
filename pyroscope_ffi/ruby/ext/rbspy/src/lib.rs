@@ -1,12 +1,15 @@
-use ffikit::Signal;
-use pyroscope::backend::{Report, StackFrame, Tag};
-use pyroscope::PyroscopeAgent;
-use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 use std::collections::hash_map::DefaultHasher;
 use std::env;
 use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
+use std::str::FromStr;
+
+use ffikit::Signal;
+use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
+
+use pyroscope::{pyroscope::Compression, PyroscopeAgent};
+use pyroscope::backend::{Report, StackFrame, Tag};
 
 pub fn transform_report(report: Report) -> Report {
     let cwd = env::current_dir().unwrap();
@@ -104,7 +107,7 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
     sample_rate: u32, detect_subprocesses: bool, oncpu: bool, report_pid: bool,
-    report_thread_id: bool, tags: *const c_char,
+    report_thread_id: bool, tags: *const c_char, compression: *const c_char
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -129,6 +132,13 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
+    let compression_string = unsafe { CStr::from_ptr(compression) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let compression = Compression::from_str(&compression_string);
+
     let pid = std::process::id();
 
     let rbspy_config = RbspyConfig::new(pid.try_into().unwrap())
@@ -150,6 +160,10 @@ pub extern "C" fn initialize_agent(
 
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);
+    }
+
+    if let Ok(compression) = compression {
+        agent_builder = agent_builder.compression(compression);
     }
 
     let agent = agent_builder.build().unwrap();
