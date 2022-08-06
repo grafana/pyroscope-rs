@@ -6,10 +6,11 @@ from pyroscope._native import ffi, lib
 from contextlib import contextmanager 
 
 
-Config = namedtuple('Config', ('app_name', 'application_name', 'server_address', 'auth_token', 'sample_rate', 'detect_subprocesses','oncpu', 'native', 'gil_only'))
+Config = namedtuple('Config', ('app_name', 'application_name',
+    'server_address', 'auth_token', 'enable_logging', 'sample_rate', 'detect_subprocesses','oncpu', 'native', 'gil_only'))
 
 def configure(app_name=None, application_name=None, server_address="http://localhost:4040",
-        auth_token = "", sample_rate=100, detect_subprocesses=False,
+        auth_token="", enable_logging=False, sample_rate=100, detect_subprocesses=False,
         oncpu=True, native=False, gil_only=True, report_pid=False, report_thread_id=False,
         report_thread_name=False, tags=None): 
 
@@ -26,9 +27,10 @@ def configure(app_name=None, application_name=None, server_address="http://local
     #   INFO = 20
     #   DEBUG = 10
     #   NOTSET = 0
-    logger = logging.getLogger()
-    log_level = logger.getEffectiveLevel()
-    lib.initialize_logging(log_level)
+    if enable_logging:
+        logger = logging.getLogger()
+        log_level = logger.getEffectiveLevel()
+        lib.initialize_logging(log_level)
 
     # Initialize Pyroscope Agent
     lib.initialize_agent(application_name.encode("UTF-8"),

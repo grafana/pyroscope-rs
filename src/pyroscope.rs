@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    backend::{void_backend, BackendReady, BackendUninitialized, Rule, Tag, VoidConfig},
+    backend::{void_backend, BackendReady, BackendUninitialized, Report, Rule, Tag, VoidConfig},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
@@ -44,6 +44,8 @@ pub struct PyroscopeConfig {
     pub spy_name: String,
     /// Authentication Token
     pub auth_token: Option<String>,
+    /// Function to apply
+    pub func: Option<fn(Report) -> Report>,
     /// Pyroscope http request body compression
     pub compression: Option<Compression>,
 }
@@ -60,6 +62,7 @@ impl Default for PyroscopeConfig {
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
             auth_token: None,
+            func: None,
             compression: None,
         }
     }
@@ -81,6 +84,7 @@ impl PyroscopeConfig {
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
+            func: None,                   // No function
             compression: None,
         }
     }
@@ -118,6 +122,14 @@ impl PyroscopeConfig {
     pub fn auth_token(self, auth_token: String) -> Self {
         Self {
             auth_token: Some(auth_token),
+            ..self
+        }
+    }
+
+    /// Set the Function.
+    pub fn func(self, func: fn(Report) -> Report) -> Self {
+        Self {
+            func: Some(func),
             ..self
         }
     }
@@ -261,6 +273,24 @@ impl PyroscopeAgentBuilder {
     pub fn auth_token(self, auth_token: impl AsRef<str>) -> Self {
         Self {
             config: self.config.auth_token(auth_token.as_ref().to_owned()),
+            ..self
+        }
+    }
+
+    /// Set the Function.
+    /// This is optional. If not set, the agent will not apply any function.
+    /// #Example
+    /// ```ignore
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// .func(|report| {
+    ///    report
+    ///    })
+    ///    .build()
+    ///    ?;
+    ///    ```
+    pub fn func(self, func: fn(Report) -> Report) -> Self {
+        Self {
+            config: self.config.func(func),
             ..self
         }
     }
@@ -477,7 +507,7 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
 }
 
 impl PyroscopeAgent<PyroscopeAgentBare> {
-    /// Short-hand for PyroscopeAgentBuilder::build(). This is a convenience method.
+    /// Short-hand for PyroscopeAgentBuilder::new(url, application_name). This is a convenience method.
     ///
     /// # Example
     /// ```ignore
@@ -486,6 +516,18 @@ impl PyroscopeAgent<PyroscopeAgentBare> {
     pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
         // Build PyroscopeAgent
         PyroscopeAgentBuilder::new(url, application_name)
+    }
+
+    /// Short-hand for PyroscopeAgentBuilder::default(). This is a convenience method.
+    /// Default URL is "http://localhost:4040". Default application name is randomly generated.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let agent = PyroscopeAgent::default_builder().build()?;
+    /// ```
+    pub fn default_builder() -> PyroscopeAgentBuilder {
+        // Build PyroscopeAgent
+        PyroscopeAgentBuilder::default()
     }
 }
 

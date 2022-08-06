@@ -1,4 +1,4 @@
-# v0.2.0
+# v0.2.1
 - Update pyroscope lib to 0.5.2
 - update pprof-rs backend to 0.2.1
 - update rbspy backend to 0.2.1

@@ -88,7 +88,9 @@ impl SessionManager {
 /// Used to contain the session data, and send it to the server.
 #[derive(Clone, Debug)]
 pub struct Session {
+    // Pyroscope instance configuration
     pub config: PyroscopeConfig,
+    // Session data
     pub reports: Vec<Report>,
     // unix time
     pub from: u64,
@@ -152,8 +154,16 @@ impl Session {
             self.until
         );
 
+        // own the report
+        let mut report_owned = report.to_owned();
+
+        // Apply function to the report
+        if let Some(func) = self.config.func.clone() {
+            report_owned = func(report_owned);
+        }
+
         // Convert a report to a byte array
-        let report_u8 = report.to_string().into_bytes();
+        let report_u8 = report_owned.to_string().into_bytes();
 
         // Check if the report is empty
         if report_u8.is_empty() {
@@ -173,8 +183,7 @@ impl Session {
         )?;
 
         // Parse URL
-        let parsed_url = Url::parse(&url)?;
-        let joined = parsed_url.join("ingest")?;
+        let joined = Url::parse(&url)?.join("ingest")?;
 
         // Create Reqwest builder
         let mut req_builder = client
@@ -182,10 +191,6 @@ impl Session {
             .header("Content-Type", "binary/octet-stream");
 
         // Set authentication token
-        //if self.config.auth_token.is_some() {
-        //req_builder = req_builder.bearer_auth(self.config.auth_token.clone().unwrap());
-        //}
-        // rewrite with let some
         if let Some(auth_token) = self.config.auth_token.clone() {
             req_builder = req_builder.bearer_auth(auth_token);
         }

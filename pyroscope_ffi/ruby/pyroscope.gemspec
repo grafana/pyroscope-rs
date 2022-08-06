@@ -1,4 +1,11 @@
-require_relative "lib/pyroscope/version"
+# coding: utf-8
+# frozen_string_literal: true
+
+begin
+  require File.expand_path(File.join(File.dirname(__FILE__), "lib/pyroscope/version"))
+rescue LoadError
+  puts "WARNING: Could not load Pyroscope::VERSION"
+end
 
 Gem::Specification.new do |s|
   s.name = 'pyroscope'
@@ -9,6 +16,13 @@ Gem::Specification.new do |s|
   s.email = ['contact@pyroscope.io']
   s.homepage = 'https://pyroscope.io'
   s.license = 'Apache-2.0'
+  s.metadata = {
+    "homepage_uri" => "https://pyroscope.io",
+    "bug_tracker_uri" => "https://github.com/pyroscope-io/pyroscope-rs/issues",
+    "documentation_uri" => "https://pyroscope.io/docs/ruby/",
+    "changelog_uri" => "https://github.com/pyroscope-io/pyroscope-rs/tree/main/pyroscope_ffi/ruby/CHANGELOG.md",
+    "source_code_uri" => "https://github.com/pyroscope-io/pyroscope-rs/tree/main/pyroscope_ffi/ruby",
+  }
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
@@ -21,7 +35,7 @@ Gem::Specification.new do |s|
 
   s.platform = Gem::Platform::RUBY
 
-  s.required_ruby_version = ">= 2.5.9"
+  s.required_ruby_version = ">= 1.9.3"
 
   s.extensions = ['ext/rbspy/extconf.rb', 'ext/thread_id/extconf.rb']
 

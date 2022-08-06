@@ -20,7 +20,7 @@ const LOG_TAG: &str = "Pyroscope::Pyspy";
 /// Short-hand function for creating a new Pyspy backend.
 pub fn pyspy_backend(config: PyspyConfig) -> BackendImpl<BackendUninitialized> {
     // Clone BackendConfig to pass to the backend object.
-    let backend_config = config.backend_config.clone();
+    let backend_config = config.backend_config;
 
     BackendImpl::new(Box::new(Pyspy::new(config)), Some(backend_config))
 }
@@ -39,9 +39,9 @@ pub struct PyspyConfig {
     /// Profiling duration (None for infinite)
     time_limit: Option<core::time::Duration>,
     /// Include subprocesses
-    with_subprocesses: bool,
+    detect_subprocesses: bool,
     /// Include idle time
-    include_idle: bool,
+    oncpu: bool,
     /// Detect Python GIL
     gil_only: bool,
     /// Profile native C extensions
@@ -56,8 +56,8 @@ impl Default for PyspyConfig {
             backend_config: BackendConfig::default(),
             lock_process: py_spy::config::LockingStrategy::NonBlocking,
             time_limit: None,
-            with_subprocesses: false,
-            include_idle: false,
+            detect_subprocesses: false,
+            oncpu: false,
             gil_only: false,
             native: false,
         }
@@ -138,19 +138,16 @@ impl PyspyConfig {
     }
 
     /// Include subprocesses
-    pub fn with_subprocesses(self, with_subprocesses: bool) -> Self {
+    pub fn detect_subprocesses(self, detect_subprocesses: bool) -> Self {
         PyspyConfig {
-            with_subprocesses,
+            detect_subprocesses,
             ..self
         }
     }
 
     /// Include idle time
-    pub fn include_idle(self, include_idle: bool) -> Self {
-        PyspyConfig {
-            include_idle,
-            ..self
-        }
+    pub fn oncpu(self, oncpu: bool) -> Self {
+        PyspyConfig { oncpu, ..self }
     }
 
     /// Detect Python GIL
@@ -217,7 +214,7 @@ impl Backend for Pyspy {
         Ok(self.config.sample_rate)
     }
 
-    fn set_config(&self, config: BackendConfig) {}
+    fn set_config(&self, _config: BackendConfig) {}
 
     fn get_config(&self) -> Result<BackendConfig> {
         Ok(self.config.backend_config)
@@ -256,9 +253,9 @@ impl Backend for Pyspy {
             native: self.config.native,
             pid: self.config.pid,
             sampling_rate: self.config.sample_rate as u64,
-            include_idle: self.config.include_idle,
+            include_idle: self.config.oncpu,
             include_thread_ids: true,
-            subprocesses: self.config.with_subprocesses,
+            subprocesses: self.config.detect_subprocesses,
             gil_only: self.config.gil_only,
             duration,
             ..Config::default()
@@ -280,7 +277,7 @@ impl Backend for Pyspy {
         // create a new ruleset reference
         let ruleset = self.ruleset.clone();
 
-        let backend_config = self.config.backend_config.clone();
+        let backend_config = self.config.backend_config;
 
         self.sampler_thread = Some(std::thread::spawn(move || {
             // Get PID

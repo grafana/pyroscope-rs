@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.5.3"
+pyroscope = "0.5.4"
 pyroscope_pprofrs = "0.2"
 ```
 
@@ -78,6 +78,13 @@ The Pyroscope Agent doesn't do any profiling. The agent role is to orchasrate a 
 - [pprof-rs](pyroscope_backends/pyroscope_pprofrs): Rust profiler. A wrapper around [pprof-rs](https://github.com/tikv/pprof-rs).
 - [rbspy](pyroscope_backends/pyroscope_rbspy): Ruby Profiler. A wrapper around [rbspy](https://rbspy.github.io/).
 - [py-spy](pyroscope_backends/pyroscope_pyspy): Python Profiler. A wrapper around [py-spy](https://github.com/benfred/py-spy).
+
+### Native Integration
+
+Pyroscope can be used directly from your projects with native integration. No agent or external programs are required.
+
+- [Python](https://pypi.org/project/pyroscope-io/): Python Package. [Readme](https://github.com/pyroscope-io/pyroscope-rs/tree/main/pyroscope_ffi/python#readme) - [Documentation](https://pyroscope.io/docs/python/)
+- [Ruby](https://rubygems.org/gems/pyroscope): Ruby Gem. [Readme](https://github.com/pyroscope-io/pyroscope-rs/tree/main/pyroscope_ffi/ruby#readme) - [Documentation](https://pyroscope.io/docs/ruby/)
 
 
 ### Limitations
