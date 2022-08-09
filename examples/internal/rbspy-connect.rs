@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     let config = RbspyConfig::new(pid)
         .sample_rate(100)
         .lock_process(true)
-        .with_subprocesses(true);
+        .detect_subprocesses(true);
 
     let agent = PyroscopeAgent::builder("http://localhost:4040", "rbspy.basic")
         .tags([("Host", "Ruby")].to_vec())
