@@ -156,7 +156,7 @@ impl Session {
         let mut report_owned = report.to_owned();
 
         // Apply function to the report
-        if let Some(func) = self.config.func.clone() {
+        if let Some(func) = self.config.func {
             report_owned = func(report_owned);
         }
 

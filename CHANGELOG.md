@@ -1,5 +1,14 @@
+# v0.5.4
+## New Features
+- Add report transfromation function which allows changing the report before
+  sending it to the Pyroscope Server.
+- Add Gzip support.
+
+## Bug Fixes
+- Use URL Builder. ([786c89b](https://github.com/pyroscope-io/pyroscope-rs/commit/786c89bb99839c45778410012a6da60267d395df))
+
 # v0.5.3
-## New features
+## New Features
 - Add BackendConfig to make reporting of pid, thread_id and thread_name
   optional. 
 - Backends can add a suffix to the "application_name"

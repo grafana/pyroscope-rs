@@ -12,23 +12,12 @@ use std::{
 use super::Report;
 
 /// Backend Config
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct BackendConfig {
     pub report_thread_id: bool,
     pub report_thread_name: bool,
     pub report_pid: bool,
     pub report_oncpu: bool,
-}
-
-impl Default for BackendConfig {
-    fn default() -> Self {
-        Self {
-            report_thread_id: false,
-            report_thread_name: false,
-            report_pid: false,
-            report_oncpu: false,
-        }
-    }
 }
 
 /// Backend Trait
