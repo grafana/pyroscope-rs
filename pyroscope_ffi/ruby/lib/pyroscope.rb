@@ -8,7 +8,7 @@ module Pyroscope
     extend FFI::Library
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
     attach_function :initialize_logging, [:int], :bool
-    attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string], :bool
+    attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string, :string], :bool
     attach_function :add_thread_tag, [:uint64, :string, :string], :bool
     attach_function :remove_thread_tag, [:uint64, :string, :string], :bool
     attach_function :add_global_tag, [:string, :string], :bool
@@ -22,8 +22,10 @@ module Pyroscope
     attach_function :thread_id, [], :uint64
   end
 
-  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :oncpu, :report_pid, :report_thread_id, :tags) do
+  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :oncpu, :report_pid, :report_thread_id, :tags, :compression) do
     def initialize(*)
+      super
+      # defaults:
       self.application_name = ''
       self.server_address = 'http://localhost:4040'
       self.auth_token = ''
@@ -34,7 +36,7 @@ module Pyroscope
       self.report_thread_id = false
       self.log_level = 'error'
       self.tags = {}
-      super
+      self.compression = 'gzip'
     end
   end
 
@@ -63,10 +65,11 @@ module Pyroscope
 
       # Initialize Logging
       Rust.initialize_logging(@log_level)
-      
+
 
       # initialize Pyroscope Agent
       Rust.initialize_agent(
+        # these are defaults in case user-provided values are nil:
         @config.app_name || @config.application_name || "",
         @config.server_address || "",
         @config.auth_token || "",
@@ -75,7 +78,8 @@ module Pyroscope
         @config.oncpu || false,
         @config.report_pid || false,
         @config.report_thread_id || false,
-        tags_to_string(@config.tags || {})
+        tags_to_string(@config.tags || {}),
+        @config.compression || ""
       )
     end
 
