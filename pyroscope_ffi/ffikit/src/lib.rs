@@ -23,9 +23,13 @@ static ONCE: Once = Once::new();
 
 lazy_static! {
     /// Root Sender
+    /// This is the sender to the main loop. It is lazily initialized inside a Mutex.
     static ref SENDER: Mutex<Option<Sender<Signal>>> = Mutex::new(None);
 }
 
+/// Signal enum.
+/// This enum is used to send signals to the main loop. It is used to add/remove global or thread
+/// tags and to exit the main loop.
 #[derive(Debug, Encode, Decode, PartialEq, Clone)]
 pub enum Signal {
     Kill,
@@ -52,7 +56,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
 
         // Listen for signals on the main parent process.
         let fn_sender = merge_sender.clone();
-        let channel_listener: JoinHandle<Result<()>> = std::thread::spawn(move || {
+        let _channel_listener: JoinHandle<Result<()>> = std::thread::spawn(move || {
             log::trace!("Spawned FFI listener thread.");
 
             while let Ok(signal) = receiver.recv() {
@@ -81,7 +85,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
 
         // Listen for signals on local socket
         let socket_sender = merge_sender.clone();
-        let socket_listener: JoinHandle<Result<()>> = std::thread::spawn(move || {
+        let _socket_listener: JoinHandle<Result<()>> = std::thread::spawn(move || {
             let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
 
             log::trace!(
@@ -158,7 +162,16 @@ pub fn send(signal: Signal) -> Result<()> {
         conn.flush()?;
     } else {
         // Send signal through parent process.
-        SENDER.lock()?.as_ref().unwrap().send(signal)?;
+        if let Some(sender) = &*SENDER.lock()? {
+            log::trace!(
+                target: LOG_TAG,
+                "Sending signal {:?} through FFI channel",
+                signal
+            );
+            sender.send(signal)?;
+        } else {
+            log::error!(target: LOG_TAG, "FFI channel not initialized");
+        }
     }
 
     Ok(())

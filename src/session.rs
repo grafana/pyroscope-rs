@@ -2,13 +2,15 @@ use std::{
     sync::mpsc::{sync_channel, Receiver, SyncSender},
     thread::{self, JoinHandle},
     time::Duration,
+    io::Write,
 };
 
 use reqwest::Url;
+use libflate::gzip::Encoder;
 
 use crate::{
     backend::Report,
-    pyroscope::PyroscopeConfig,
+    pyroscope::{PyroscopeConfig, Compression},
     utils::{get_time_range, merge_tags_with_app_name},
     Result,
 };
@@ -156,7 +158,7 @@ impl Session {
         let mut report_owned = report.to_owned();
 
         // Apply function to the report
-        if let Some(func) = self.config.func.clone() {
+        if let Some(func) = self.config.func {
             report_owned = func(report_owned);
         }
 
@@ -192,6 +194,15 @@ impl Session {
         if let Some(auth_token) = self.config.auth_token.clone() {
             req_builder = req_builder.bearer_auth(auth_token);
         }
+        let body = match &self.config.compression {
+            None => report_u8,
+            Some(Compression::GZIP) => {
+                req_builder = req_builder.header("Content-Encoding", "gzip");
+                let mut encoder = Encoder::new(Vec::new()).unwrap();
+                encoder.write_all(&report_u8).unwrap();
+                encoder.finish().into_result().unwrap()
+            }
+        };
 
         // Send the request
         req_builder
@@ -203,7 +214,7 @@ impl Session {
                 ("sampleRate", &format!("{}", self.config.sample_rate)),
                 ("spyName", self.config.spy_name.as_str()),
             ])
-            .body(report_u8)
+            .body(body)
             .timeout(Duration::from_secs(10))
             .send()?;
         Ok(())

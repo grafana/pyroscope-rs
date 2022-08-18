@@ -20,8 +20,8 @@ fn main() -> Result<()> {
         .sample_rate(100)
         .lock_process(true)
         .time_limit(None)
-        .with_subprocesses(true)
-        .include_idle(false)
+        .detect_subprocesses(true)
+        .oncpu(false)
         .native(false);
 
     let agent = PyroscopeAgent::builder("http://localhost:4040", "pyspy.basic")

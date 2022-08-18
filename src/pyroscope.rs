@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     marker::PhantomData,
+    str::FromStr,
     sync::{
         mpsc::{self, Sender},
         Arc, Condvar, Mutex,
@@ -18,6 +19,7 @@ use crate::{
 };
 
 use crate::backend::BackendImpl;
+use crate::pyroscope::Compression::GZIP;
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -44,6 +46,8 @@ pub struct PyroscopeConfig {
     pub auth_token: Option<String>,
     /// Function to apply
     pub func: Option<fn(Report) -> Report>,
+    /// Pyroscope http request body compression
+    pub compression: Option<Compression>,
 }
 
 impl Default for PyroscopeConfig {
@@ -59,6 +63,7 @@ impl Default for PyroscopeConfig {
             spy_name: "undefined".to_string(),
             auth_token: None,
             func: None,
+            compression: None,
         }
     }
 }
@@ -80,6 +85,7 @@ impl PyroscopeConfig {
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
             func: None,                   // No function
+            compression: None,
         }
     }
 
@@ -147,6 +153,22 @@ impl PyroscopeConfig {
 
         Self {
             tags: tags_hashmap,
+            ..self
+        }
+    }
+
+
+    /// Set the http request body compression.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use pyroscope::pyroscope::PyroscopeConfig;
+    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
+    ///     .compression(GZIP);
+    /// ```
+    pub fn compression(self, compression: Compression) -> Self {
+        Self {
+            compression: Some(compression),
             ..self
         }
     }
@@ -288,6 +310,22 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    /// Set the http request body compression.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use pyroscope::pyroscope::PyroscopeConfig;
+    /// let agent = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    ///     .compression(GZIP)
+    ///     .build();
+    /// ```
+    pub fn compression(self, compression: Compression) -> Self {
+        Self {
+            config: self.config.compression(compression),
+            ..self
+        }
+    }
+
     /// Initialize the backend, timer and return a PyroscopeAgent with Ready
     /// state. While you can call this method, you should call it through the
     /// `PyroscopeAgent.build()` method.
@@ -341,6 +379,21 @@ impl PyroscopeAgentBuilder {
             )),
             _state: PhantomData,
         })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Compression {
+    GZIP
+}
+
+impl FromStr for Compression {
+    type Err = ();
+    fn from_str(input: &str) -> std::result::Result<Compression, Self::Err> {
+        match input {
+            "gzip" => Ok(GZIP),
+            _ => Err(()),
+        }
     }
 }
 

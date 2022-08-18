@@ -74,12 +74,15 @@ impl Timer {
                             Ok(_) => {
                                 log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", &tx)
                             }
-                            Err(e) => log::warn!(
-                                target: LOG_TAG,
-                                "Failed to send event to listener @ {:?} - {}",
-                                &tx,
-                                e
-                            ),
+                            Err(_e) => {}
+                            // There could be a less confusing message, or this
+                            // refactored to avoid a first sender
+                            //log::warn!(
+                            //target: LOG_TAG,
+                            //"Failed to send event to listener @ {:?} - {}",
+                            //&tx,
+                            //e
+                            //),
                         }
                     });
 
