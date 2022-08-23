@@ -52,3 +52,4 @@ pub mod timer;
 
 // Private modules
 mod utils;
+mod pprof;
