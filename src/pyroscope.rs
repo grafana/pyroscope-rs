@@ -48,6 +48,7 @@ pub struct PyroscopeConfig {
     pub func: Option<fn(Report) -> Report>,
     /// Pyroscope http request body compression
     pub compression: Option<Compression>,
+    pub report_encoding: ReportEncoding,
 }
 
 impl Default for PyroscopeConfig {
@@ -64,6 +65,7 @@ impl Default for PyroscopeConfig {
             auth_token: None,
             func: None,
             compression: None,
+            report_encoding: ReportEncoding::FOLDED,
         }
     }
 }
@@ -86,6 +88,7 @@ impl PyroscopeConfig {
             auth_token: None,             // No authentication token
             func: None,                   // No function
             compression: None,
+            report_encoding: ReportEncoding::FOLDED,
         }
     }
 
@@ -172,7 +175,13 @@ impl PyroscopeConfig {
             ..self
         }
     }
-}
+
+    pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
+        Self {
+            report_encoding: report_encoding,
+            ..self
+        }
+    }}
 
 /// PyroscopeAgent Builder
 ///
@@ -326,6 +335,13 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
+        Self {
+            config: self.config.report_encoding(report_encoding),
+            ..self
+        }
+    }
+
     /// Initialize the backend, timer and return a PyroscopeAgent with Ready
     /// state. While you can call this method, you should call it through the
     /// `PyroscopeAgent.build()` method.
@@ -392,6 +408,24 @@ impl FromStr for Compression {
     fn from_str(input: &str) -> std::result::Result<Compression, Self::Err> {
         match input {
             "gzip" => Ok(GZIP),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ReportEncoding {
+    FOLDED,
+    PPROF
+}
+
+impl FromStr for ReportEncoding {
+    type Err = ();
+    fn from_str(input: &str) -> std::result::Result<ReportEncoding, Self::Err> {
+        match input {
+            "collapsed" => Ok(ReportEncoding::FOLDED),
+            "folded" => Ok(ReportEncoding::FOLDED),
+            "PPROF" => Ok(ReportEncoding::PPROF),
             _ => Err(()),
         }
     }

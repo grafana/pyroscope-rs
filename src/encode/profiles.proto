@@ -39,7 +39,7 @@
 syntax = "proto3";
 
 //package perftools.profiles;
-package pprof;
+package profiles;
 
 option java_package = "com.google.perftools.profiles";
 option java_outer_classname = "ProfileProto";

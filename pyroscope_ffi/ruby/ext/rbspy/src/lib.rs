@@ -10,6 +10,7 @@ use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
 use pyroscope::{pyroscope::Compression, PyroscopeAgent};
 use pyroscope::backend::{Report, StackFrame, Tag};
+use pyroscope::pyroscope::ReportEncoding;
 
 pub fn transform_report(report: Report) -> Report {
     let cwd = env::current_dir().unwrap();
@@ -107,7 +108,8 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
     sample_rate: u32, detect_subprocesses: bool, oncpu: bool, report_pid: bool,
-    report_thread_id: bool, tags: *const c_char, compression: *const c_char
+    report_thread_id: bool, tags: *const c_char, compression: *const c_char,
+    report_encoding: *const c_char
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -137,7 +139,14 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
+    let report_encoding = unsafe { CStr::from_ptr(report_encoding) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
     let compression = Compression::from_str(&compression_string);
+    let report_encoding = ReportEncoding::from_str(&report_encoding)
+        .unwrap_or(ReportEncoding::PPROF);
 
     let pid = std::process::id();
 
@@ -156,7 +165,8 @@ pub extern "C" fn initialize_agent(
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
         .backend(rbspy)
         .func(transform_report)
-        .tags(tags);
+        .tags(tags)
+        .report_encoding(report_encoding);
 
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);

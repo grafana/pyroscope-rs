@@ -39,6 +39,8 @@
 //! agent_ready.shutdown();
 //! ```
 
+extern crate core;
+
 // Re-exports structs
 pub use crate::pyroscope::PyroscopeAgent;
 pub use error::{PyroscopeError, Result};
@@ -52,4 +54,4 @@ pub mod timer;
 
 // Private modules
 mod utils;
-mod pprof;
+mod encode;

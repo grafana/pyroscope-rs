@@ -13,7 +13,10 @@ use crate::{
     pyroscope::{PyroscopeConfig, Compression},
     utils::{get_time_range, merge_tags_with_app_name},
     Result,
+    encode::{folded, pprof}
 };
+use crate::backend::EncodedReport;
+use crate::pyroscope::ReportEncoding;
 
 const LOG_TAG: &str = "Pyroscope::Session";
 
@@ -137,16 +140,58 @@ impl Session {
             return Ok(());
         }
 
-        // Loop through the reports and process them
-        for report in &self.reports {
-            self.process(report)?;
+
+        let reports = self.process_reports(&self.reports);
+        let reports = self.encode_reports(reports);
+        let reports = self.compress_reports(reports);
+
+        for report in reports {
+            self.upload(report)?;
         }
 
         Ok(())
     }
 
-    /// Process a report and send it to the server.
-    fn process(&self, report: &Report) -> Result<()> {
+    // Aly config.func on all reports
+    fn process_reports(&self, reports: &Vec<Report>) -> Vec<Report> {
+        if let Some(func) = self.config.func {
+            reports.iter().map(|r| func(r.to_owned())).collect()
+        } else {
+            reports.to_owned()
+        }
+    }
+
+    // Encode reports to folded or protobuf format
+    fn encode_reports(&self, reports: Vec<Report>) -> Vec<EncodedReport> {
+        match &self.config.report_encoding {
+            ReportEncoding::FOLDED => folded::encode(reports),
+            ReportEncoding::PPROF => pprof::encode(reports),
+        }
+    }
+
+    // Optionally compress reports
+    fn compress_reports(&self, reports: Vec<EncodedReport>) -> Vec<EncodedReport> {
+        reports.into_iter().map(|r|
+            match &self.config.compression {
+                None => r,
+                Some(Compression::GZIP) => {
+                    let mut encoder = Encoder::new(Vec::new()).unwrap();
+                    encoder.write_all(&r.data).unwrap();
+                    let compressed_data = encoder.finish().into_result().unwrap();
+                    EncodedReport {
+                        format: r.format,
+                        content_type: r.content_type,
+                        metadata: r.metadata,
+                        content_encoding: "gzip".to_string(),
+                        data: compressed_data,
+                    }
+                }
+            }
+        ).collect()
+    }
+
+
+    fn upload(&self, report: EncodedReport) -> Result<()> {
         log::info!(
             target: LOG_TAG,
             "Sending Session: {} - {}",
@@ -154,19 +199,7 @@ impl Session {
             self.until
         );
 
-        // own the report
-        let mut report_owned = report.to_owned();
-
-        // Apply function to the report
-        if let Some(func) = self.config.func {
-            report_owned = func(report_owned);
-        }
-
-        // Convert a report to a byte array
-        let report_u8 = report_owned.to_string().into_bytes();
-
-        // Check if the report is empty
-        if report_u8.is_empty() {
+        if report.data.is_empty() {
             return Ok(());
         }
 
@@ -188,21 +221,15 @@ impl Session {
         // Create Reqwest builder
         let mut req_builder = client
             .post(joined.as_str())
-            .header("Content-Type", "binary/octet-stream");
+            .header("Content-Type", report.content_type.as_str());
 
         // Set authentication token
         if let Some(auth_token) = self.config.auth_token.clone() {
             req_builder = req_builder.bearer_auth(auth_token);
         }
-        let body = match &self.config.compression {
-            None => report_u8,
-            Some(Compression::GZIP) => {
-                req_builder = req_builder.header("Content-Encoding", "gzip");
-                let mut encoder = Encoder::new(Vec::new()).unwrap();
-                encoder.write_all(&report_u8).unwrap();
-                encoder.finish().into_result().unwrap()
-            }
-        };
+        if report.content_encoding != "" {
+            req_builder = req_builder.header("Content-Encoding", report.content_encoding.as_str());
+        }
 
         // Send the request
         req_builder
@@ -210,11 +237,11 @@ impl Session {
                 ("name", application_name.as_str()),
                 ("from", &format!("{}", self.from)),
                 ("until", &format!("{}", self.until)),
-                ("format", "folded"),
+                ("format", report.format.as_str()),
                 ("sampleRate", &format!("{}", self.config.sample_rate)),
                 ("spyName", self.config.spy_name.as_str()),
             ])
-            .body(body)
+            .body(report.data)
             .timeout(Duration::from_secs(10))
             .send()?;
         Ok(())
