@@ -91,11 +91,11 @@ pub fn encode(reports: Vec<Report>) -> Vec<EncodedReport> {
         },
     };
     {
-        let cpu = b.add_string(&"cpu".to_string());
+        let count = b.add_string(&"count".to_string());
         let samples = b.add_string(&"samples".to_string());
         b.profile.sample_type.push(ValueType {
             r#type: samples,
-            unit: cpu,
+            unit: count,
         });
     }
     for report in &reports {
