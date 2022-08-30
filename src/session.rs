@@ -151,7 +151,6 @@ impl Session {
         Ok(())
     }
 
-    // Aly config.func on all reports
     fn process_reports(&self, reports: &Vec<Report>) -> Vec<Report> {
         if let Some(func) = self.config.func {
             reports.iter().map(|r| func(r.to_owned())).collect()
