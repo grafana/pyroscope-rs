@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use prost::Message;
 
 use crate::backend::types::{EncodedReport, Report};
-use crate::encode::profiles::{Function, Line, Location, Profile, Sample, ValueType};
+use crate::encode::profiles::{Function, Label, Line, Location, Profile, Sample, ValueType};
 
 
 struct PProfBuilder {
@@ -68,7 +68,7 @@ impl PProfBuilder {
     }
 }
 
-pub fn encode(reports: Vec<Report>) -> Vec<EncodedReport> {
+pub fn encode(reports: Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64) -> Vec<EncodedReport> {
     let mut b = PProfBuilder {
         strings: HashMap::new(),
         functions: HashMap::new(),
@@ -82,8 +82,8 @@ pub fn encode(reports: Vec<Report>) -> Vec<EncodedReport> {
             string_table: vec![],
             drop_frames: 0,
             keep_frames: 0,
-            time_nanos: 0,
-            duration_nanos: 0,
+            time_nanos: start_time_nanos as i64,
+            duration_nanos: duration_nanos as i64,
             period_type: None,
             period: 0,
             comment: vec![],
@@ -93,10 +93,16 @@ pub fn encode(reports: Vec<Report>) -> Vec<EncodedReport> {
     {
         let count = b.add_string(&"count".to_string());
         let samples = b.add_string(&"samples".to_string());
+        let milliseconds = b.add_string(&"milliseconds".to_string());
         b.profile.sample_type.push(ValueType {
             r#type: samples,
             unit: count,
         });
+        b.profile.period = 1_000 / sample_rate as i64;
+        b.profile.period_type = Some(ValueType {
+            r#type: 0,
+            unit: milliseconds,
+        })
     }
     for report in &reports {
         for (stacktrace, value) in &report.data {
@@ -114,6 +120,25 @@ pub fn encode(reports: Vec<Report>) -> Vec<EncodedReport> {
                 let function_id = b.add_function(name);
                 let location_id = b.add_location(function_id);
                 sample.location_id.push(location_id as u64);
+            }
+            let mut labels = HashMap::new();
+            for l in &stacktrace.metadata.tags {
+                let k = b.add_string(&l.key);
+                let v = b.add_string(&l.value);
+                labels.insert(k, v);
+            }
+            for l in &report.metadata.tags {
+                let k = b.add_string(&l.key);
+                let v = b.add_string(&l.value);
+                labels.insert(k, v);
+            }
+            for (k, v) in &labels {
+                sample.label.push(Label {
+                    key: *k,
+                    str: *v,
+                    num: 0,
+                    num_unit: 0,
+                })
             }
             b.profile.sample.push(sample);
         }

@@ -20,6 +20,7 @@ use crate::{
 
 use crate::backend::BackendImpl;
 use crate::pyroscope::Compression::GZIP;
+use crate::pyroscope::ReportEncoding::{PPROF};
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -181,7 +182,8 @@ impl PyroscopeConfig {
             report_encoding: report_encoding,
             ..self
         }
-    }}
+    }
+}
 
 /// PyroscopeAgent Builder
 ///
@@ -353,8 +355,12 @@ impl PyroscopeAgentBuilder {
         // use match instead of if let to avoid the need to borrow
         let config = match self.backend.spy_extension()? {
             Some(extension) => {
-                let application_name = config.application_name.clone();
-                config.application_name(format!("{}.{}", application_name, extension))
+                if config.report_encoding == PPROF {
+                    config
+                } else {
+                    let application_name = config.application_name.clone();
+                    config.application_name(format!("{}.{}", application_name, extension))
+                }
             }
             None => config,
         };
@@ -390,7 +396,7 @@ impl PyroscopeAgentBuilder {
             handle: None,
             running: Arc::new((
                 #[allow(clippy::mutex_atomic)]
-                Mutex::new(false),
+                    Mutex::new(false),
                 Condvar::new(),
             )),
             _state: PhantomData,
@@ -413,10 +419,10 @@ impl FromStr for Compression {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum ReportEncoding {
     FOLDED,
-    PPROF
+    PPROF,
 }
 
 impl FromStr for ReportEncoding {
@@ -425,7 +431,7 @@ impl FromStr for ReportEncoding {
         match input {
             "collapsed" => Ok(ReportEncoding::FOLDED),
             "folded" => Ok(ReportEncoding::FOLDED),
-            "PPROF" => Ok(ReportEncoding::PPROF),
+            "pprof" => Ok(ReportEncoding::PPROF),
             _ => Err(()),
         }
     }
@@ -447,7 +453,9 @@ pub struct PyroscopeAgentReady;
 pub struct PyroscopeAgentRunning;
 
 impl PyroscopeAgentState for PyroscopeAgentBare {}
+
 impl PyroscopeAgentState for PyroscopeAgentReady {}
+
 impl PyroscopeAgentState for PyroscopeAgentRunning {}
 
 /// PyroscopeAgent is the main object of the library. It is used to start and stop the profiler, schedule the timer, and send the profiler data to the server.
@@ -643,6 +651,7 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
         Ok(self.transition())
     }
 }
+
 impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     ///

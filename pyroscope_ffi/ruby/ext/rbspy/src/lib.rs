@@ -146,7 +146,7 @@ pub extern "C" fn initialize_agent(
 
     let compression = Compression::from_str(&compression_string);
     let report_encoding = ReportEncoding::from_str(&report_encoding)
-        .unwrap_or(ReportEncoding::PPROF);
+        .unwrap_or(ReportEncoding::FOLDED);
 
     let pid = std::process::id();
 

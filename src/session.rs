@@ -13,7 +13,7 @@ use crate::{
     pyroscope::{PyroscopeConfig, Compression},
     utils::{get_time_range, merge_tags_with_app_name},
     Result,
-    encode::{folded, pprof}
+    encode::{folded, pprof},
 };
 use crate::backend::EncodedReport;
 use crate::pyroscope::ReportEncoding;
@@ -140,7 +140,6 @@ impl Session {
             return Ok(());
         }
 
-
         let reports = self.process_reports(&self.reports);
         let reports = self.encode_reports(reports);
         let reports = self.compress_reports(reports);
@@ -161,16 +160,20 @@ impl Session {
         }
     }
 
-    // Encode reports to folded or protobuf format
     fn encode_reports(&self, reports: Vec<Report>) -> Vec<EncodedReport> {
+        log::debug!(target: LOG_TAG, "Encoding {} reports to {:?}", reports.len(), self.config.report_encoding);
         match &self.config.report_encoding {
             ReportEncoding::FOLDED => folded::encode(reports),
-            ReportEncoding::PPROF => pprof::encode(reports),
+            ReportEncoding::PPROF => pprof::encode(reports,
+                                                   self.config.sample_rate,
+                                                   self.from * 1_000_000,
+                                                   (self.until - self.from) * 1_000_000,
+            ),
         }
     }
 
-    // Optionally compress reports
     fn compress_reports(&self, reports: Vec<EncodedReport>) -> Vec<EncodedReport> {
+        log::debug!(target: LOG_TAG, "Compressing {} reports to {:?}", reports.len(), self.config.compression);
         reports.into_iter().map(|r|
             match &self.config.compression {
                 None => r,
