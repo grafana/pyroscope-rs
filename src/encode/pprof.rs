@@ -9,8 +9,20 @@ use crate::encode::profiles::{Function, Label, Line, Location, Profile, Sample, 
 struct PProfBuilder {
     profile: Profile,
     strings: HashMap<String, i64>,
-    functions: HashMap<i64, u64>,
-    locations: HashMap<u64, u64>,
+    functions: HashMap<FunctionMirror, u64>,
+    locations: HashMap<LocationMirror, u64>,
+}
+
+#[derive(Hash, PartialEq, Eq, Clone)]
+pub struct LocationMirror {
+    pub function_id: u64,
+    pub line: i64,
+}
+
+#[derive(Hash, PartialEq, Eq, Clone)]
+pub struct FunctionMirror {
+    pub name: i64,
+    pub filename: i64,
 }
 
 impl PProfBuilder {
@@ -26,8 +38,8 @@ impl PProfBuilder {
         id
     }
 
-    fn add_function(&mut self, name: i64) -> u64 {
-        let v = self.functions.get(&name);
+    fn add_function(&mut self, fm: FunctionMirror) -> u64 {
+        let v = self.functions.get(&fm);
         if v.is_some() {
             return *v.unwrap();
         }
@@ -35,18 +47,18 @@ impl PProfBuilder {
         let id: u64 = self.functions.len() as u64 + 1;
         let f = Function {
             id: id,
-            name: name,
+            name: fm.name,
             system_name: 0,
-            filename: 0,
+            filename: fm.filename,
             start_line: 0,
         };
-        self.functions.insert(name, id);
+        self.functions.insert(fm, id);
         self.profile.function.push(f);
         id
     }
 
-    fn add_location(&mut self, function_id: u64) -> u64 {
-        let v = self.locations.get(&function_id);
+    fn add_location(&mut self, lm: LocationMirror) -> u64 {
+        let v = self.locations.get(&lm);
         if v.is_some() {
             return *v.unwrap();
         }
@@ -57,12 +69,12 @@ impl PProfBuilder {
             mapping_id: 0,
             address: 0,
             line: vec![Line {
-                function_id: function_id,
-                line: 0,
+                function_id: lm.function_id,
+                line: lm.line,
             }],
             is_folded: false,
         };
-        self.locations.insert(function_id, id);
+        self.locations.insert(lm, id);
         self.profile.location.push(l);
         id
     }
@@ -112,13 +124,17 @@ pub fn encode(reports: Vec<Report>, sample_rate: u32, start_time_nanos: u64, dur
                 label: vec![],
             };
             for sf in &stacktrace.frames {
-                let name = format!("{}:{} - {}",
-                                   sf.filename.as_ref().unwrap_or(&"".to_string()),
-                                   sf.line.unwrap_or(0),
-                                   sf.name.as_ref().unwrap_or(&"".to_string()));
-                let name = b.add_string(&name);
-                let function_id = b.add_function(name);
-                let location_id = b.add_location(function_id);
+                let name = b.add_string(&sf.name.as_ref().unwrap_or(&"".to_string()));
+                let filename = b.add_string(&sf.filename.as_ref().unwrap_or(&"".to_string()));
+                let line = sf.line.unwrap_or(0) as i64;
+                let function_id = b.add_function(FunctionMirror {
+                    name: name,
+                    filename: filename,
+                });
+                let location_id = b.add_location(LocationMirror {
+                    function_id: function_id,
+                    line: line,
+                });
                 sample.location_id.push(location_id as u64);
             }
             let mut labels = HashMap::new();
