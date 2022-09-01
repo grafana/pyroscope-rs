@@ -80,7 +80,7 @@ impl PProfBuilder {
     }
 }
 
-pub fn encode(reports: Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64) -> Vec<EncodedReport> {
+pub fn encode(reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64) -> Vec<EncodedReport> {
     let mut b = PProfBuilder {
         strings: HashMap::new(),
         functions: HashMap::new(),
@@ -116,7 +116,7 @@ pub fn encode(reports: Vec<Report>, sample_rate: u32, start_time_nanos: u64, dur
             unit: milliseconds,
         })
     }
-    for report in &reports {
+    for report in reports {
         for (stacktrace, value) in &report.data {
             let mut sample = Sample {
                 location_id: vec![],

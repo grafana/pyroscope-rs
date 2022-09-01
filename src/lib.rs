@@ -51,7 +51,7 @@ pub mod error;
 pub mod pyroscope;
 pub mod session;
 pub mod timer;
+pub mod encode;
 
 // Private modules
 mod utils;
-mod encode;

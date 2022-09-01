@@ -162,8 +162,8 @@ impl Session {
     fn encode_reports(&self, reports: Vec<Report>) -> Vec<EncodedReport> {
         log::debug!(target: LOG_TAG, "Encoding {} reports to {:?}", reports.len(), self.config.report_encoding);
         match &self.config.report_encoding {
-            ReportEncoding::FOLDED => folded::encode(reports),
-            ReportEncoding::PPROF => pprof::encode(reports,
+            ReportEncoding::FOLDED => folded::encode(&reports),
+            ReportEncoding::PPROF => pprof::encode(&reports,
                                                    self.config.sample_rate,
                                                    self.from * 1_000_000,
                                                    (self.until - self.from) * 1_000_000,
