@@ -8,7 +8,7 @@ module Pyroscope
     extend FFI::Library
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
     attach_function :initialize_logging, [:int], :bool
-    attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string, :string], :bool
+    attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string, :string, :string], :bool
     attach_function :add_thread_tag, [:uint64, :string, :string], :bool
     attach_function :remove_thread_tag, [:uint64, :string, :string], :bool
     attach_function :add_global_tag, [:string, :string], :bool
@@ -22,7 +22,7 @@ module Pyroscope
     attach_function :thread_id, [], :uint64
   end
 
-  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :oncpu, :report_pid, :report_thread_id, :tags, :compression) do
+  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :oncpu, :report_pid, :report_thread_id, :tags, :compression, :report_encoding) do
     def initialize(*)
       super
       # defaults:
@@ -37,6 +37,7 @@ module Pyroscope
       self.log_level = 'error'
       self.tags = {}
       self.compression = 'gzip'
+      self.report_encoding = 'pprof'
     end
   end
 
@@ -79,7 +80,8 @@ module Pyroscope
         @config.report_pid || false,
         @config.report_thread_id || false,
         tags_to_string(@config.tags || {}),
-        @config.compression || ""
+        @config.compression || "",
+        @config.report_encoding || "pprof"
       )
     end
 

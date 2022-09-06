@@ -20,6 +20,7 @@ use crate::{
 
 use crate::backend::BackendImpl;
 use crate::pyroscope::Compression::GZIP;
+use crate::pyroscope::ReportEncoding::{PPROF};
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -48,6 +49,7 @@ pub struct PyroscopeConfig {
     pub func: Option<fn(Report) -> Report>,
     /// Pyroscope http request body compression
     pub compression: Option<Compression>,
+    pub report_encoding: ReportEncoding,
 }
 
 impl Default for PyroscopeConfig {
@@ -64,6 +66,7 @@ impl Default for PyroscopeConfig {
             auth_token: None,
             func: None,
             compression: None,
+            report_encoding: ReportEncoding::FOLDED,
         }
     }
 }
@@ -86,6 +89,7 @@ impl PyroscopeConfig {
             auth_token: None,             // No authentication token
             func: None,                   // No function
             compression: None,
+            report_encoding: ReportEncoding::FOLDED,
         }
     }
 
@@ -169,6 +173,13 @@ impl PyroscopeConfig {
     pub fn compression(self, compression: Compression) -> Self {
         Self {
             compression: Some(compression),
+            ..self
+        }
+    }
+
+    pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
+        Self {
+            report_encoding: report_encoding,
             ..self
         }
     }
@@ -326,6 +337,13 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
+        Self {
+            config: self.config.report_encoding(report_encoding),
+            ..self
+        }
+    }
+
     /// Initialize the backend, timer and return a PyroscopeAgent with Ready
     /// state. While you can call this method, you should call it through the
     /// `PyroscopeAgent.build()` method.
@@ -337,8 +355,12 @@ impl PyroscopeAgentBuilder {
         // use match instead of if let to avoid the need to borrow
         let config = match self.backend.spy_extension()? {
             Some(extension) => {
-                let application_name = config.application_name.clone();
-                config.application_name(format!("{}.{}", application_name, extension))
+                if config.report_encoding == PPROF {
+                    config
+                } else {
+                    let application_name = config.application_name.clone();
+                    config.application_name(format!("{}.{}", application_name, extension))
+                }
             }
             None => config,
         };
@@ -374,7 +396,7 @@ impl PyroscopeAgentBuilder {
             handle: None,
             running: Arc::new((
                 #[allow(clippy::mutex_atomic)]
-                Mutex::new(false),
+                    Mutex::new(false),
                 Condvar::new(),
             )),
             _state: PhantomData,
@@ -397,6 +419,24 @@ impl FromStr for Compression {
     }
 }
 
+#[derive(Clone, PartialEq, Debug)]
+pub enum ReportEncoding {
+    FOLDED,
+    PPROF,
+}
+
+impl FromStr for ReportEncoding {
+    type Err = ();
+    fn from_str(input: &str) -> std::result::Result<ReportEncoding, Self::Err> {
+        match input {
+            "collapsed" => Ok(ReportEncoding::FOLDED),
+            "folded" => Ok(ReportEncoding::FOLDED),
+            "pprof" => Ok(ReportEncoding::PPROF),
+            _ => Err(()),
+        }
+    }
+}
+
 /// This trait is used to encode the state of the agent.
 pub trait PyroscopeAgentState {}
 
@@ -413,7 +453,9 @@ pub struct PyroscopeAgentReady;
 pub struct PyroscopeAgentRunning;
 
 impl PyroscopeAgentState for PyroscopeAgentBare {}
+
 impl PyroscopeAgentState for PyroscopeAgentReady {}
+
 impl PyroscopeAgentState for PyroscopeAgentRunning {}
 
 /// PyroscopeAgent is the main object of the library. It is used to start and stop the profiler, schedule the timer, and send the profiler data to the server.
@@ -609,6 +651,7 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
         Ok(self.transition())
     }
 }
+
 impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     ///
