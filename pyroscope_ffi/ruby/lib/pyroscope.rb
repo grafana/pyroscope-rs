@@ -22,7 +22,30 @@ module Pyroscope
     attach_function :thread_id, [], :uint64
   end
 
-  Config = Struct.new(:application_name, :app_name, :server_address, :auth_token, :log_level, :sample_rate, :detect_subprocesses, :oncpu, :report_pid, :report_thread_id, :tags, :compression, :report_encoding) do
+  class Engine < Rails::Engine
+    config.after_initialize do
+      next unless Pyroscope.current_config && Pyroscope.current_config.autoinstrument_rails
+
+      ::Pyroscope.initialize_rails_hooks
+    end
+  end
+
+  Config = Struct.new(
+    :application_name,
+    :app_name,
+    :server_address,
+    :auth_token,
+    :log_level,
+    :sample_rate,
+    :detect_subprocesses,
+    :oncpu,
+    :report_pid,
+    :report_thread_id,
+    :tags,
+    :compression,
+    :report_encoding,
+    :autoinstrument_rails,
+  ) do
     def initialize(*)
       super
       # defaults:
@@ -38,10 +61,15 @@ module Pyroscope
       self.tags = {}
       self.compression = 'gzip'
       self.report_encoding = 'pprof'
+      self.autoinstrument_rails = true
     end
   end
 
   class << self
+    def current_config
+      @config
+    end
+
     def configure
       @config = Config.new
 
@@ -64,11 +92,8 @@ module Pyroscope
         @log_level = 50
       end
 
-      # Initialize Logging
       Rust.initialize_logging(@log_level)
 
-
-      # initialize Pyroscope Agent
       Rust.initialize_agent(
         # these are defaults in case user-provided values are nil:
         @config.app_name || @config.application_name || "",
@@ -83,6 +108,17 @@ module Pyroscope
         @config.compression || "",
         @config.report_encoding || "pprof"
       )
+    end
+
+    def initialize_rails_hooks
+      block = lambda do |ctrl, action|
+        Pyroscope.tag_wrapper({
+          "action" => "#{ctrl.controller_name}/#{ctrl.action_name}"
+        }, &action)
+      end
+
+      ActionController::API.__send__(:around_action, block) if defined? ActionController::API
+      ActionController::Base.__send__(:around_action, block) if defined? ActionController::Base
     end
 
     def tag_wrapper(tags)
@@ -103,32 +139,30 @@ module Pyroscope
       warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
     end
 
-    # convert tags object to string
-    def tags_to_string(tags)
-      tags.map { |k, v| "#{k}=#{v}" }.join(',')
-    end
-
-    # get thread id
     def thread_id
       return Utils.thread_id
     end
 
-    # add tags
     def _add_tags(thread_id, tags)
       tags.each do |tag_name, tag_value|
         Rust.add_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
       end
     end
 
-    # remove tags
     def _remove_tags(thread_id, tags)
       tags.each do |tag_name, tag_value|
         Rust.remove_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
       end
     end
 
-    def shutdown
+    def stop
       Rust.drop_agent
+    end
+
+    private
+
+    def tags_to_string(tags)
+      tags.map { |k, v| "#{k}=#{v}" }.join(',')
     end
   end
 end
