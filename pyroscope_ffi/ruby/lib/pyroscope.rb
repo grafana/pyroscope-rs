@@ -22,11 +22,13 @@ module Pyroscope
     attach_function :thread_id, [], :uint64
   end
 
-  class Engine < Rails::Engine
-    config.after_initialize do
-      next unless ::Pyroscope.current_config && ::Pyroscope.current_config.autoinstrument_rails
+  if defined?(::Rails::Engine)
+    class Engine < ::Rails::Engine
+      config.after_initialize do
+        next unless ::Pyroscope.current_config && ::Pyroscope.current_config.autoinstrument_rails
 
-      ::Pyroscope.initialize_rails_hooks
+        ::Pyroscope.initialize_rails_hooks
+      end
     end
   end
 
