@@ -24,7 +24,7 @@ module Pyroscope
 
   class Engine < Rails::Engine
     config.after_initialize do
-      next unless Pyroscope.current_config && Pyroscope.current_config.autoinstrument_rails
+      next unless ::Pyroscope.current_config && ::Pyroscope.current_config.autoinstrument_rails
 
       ::Pyroscope.initialize_rails_hooks
     end
