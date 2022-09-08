@@ -161,6 +161,10 @@ module Pyroscope
       Rust.drop_agent
     end
 
+    def shutdown
+      stop
+    end
+
     private
 
     def tags_to_string(tags)
