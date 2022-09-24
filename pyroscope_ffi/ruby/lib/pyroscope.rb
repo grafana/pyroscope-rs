@@ -146,13 +146,17 @@ module Pyroscope
     end
 
     def _add_tags(thread_id, tags)
+      current_tags = get_current_tags()
       tags.each do |tag_name, tag_value|
+        current_tags[tag_name.to_s] = tag_value.to_s
         Rust.add_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
       end
     end
 
     def _remove_tags(thread_id, tags)
+      current_tags = get_current_tags()
       tags.each do |tag_name, tag_value|
+        current_tags.delete(tag_name.to_s)
         Rust.remove_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
       end
     end
@@ -163,6 +167,12 @@ module Pyroscope
 
     def shutdown
       stop
+    end
+
+    def get_current_tags()
+      thread = Thread.current
+      thread[:pyroscope_tags] = {} if thread[:pyroscope_tags].nil?
+      thread[:pyroscope_tags]
     end
 
     private
