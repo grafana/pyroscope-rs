@@ -5,7 +5,7 @@ set -e
 yum -y -q install wget gcc libffi-devel openssl-devel
 
 # Install Rust
-curl https://sh.rustup.rs -sSf | sh -s -- -y
+curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
 export PATH=~/.cargo/bin:$PATH
 
 # Build wheels
