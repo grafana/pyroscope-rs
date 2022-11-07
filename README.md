@@ -73,7 +73,7 @@ The Pyroscope Agent and the [pprof-rs backend](pyroscope_backends/pyroscope_ppro
 
 ### Profiling Backends
 
-The Pyroscope Agent doesn't do any profiling. The agent role is to orchasrate a profiling backend, and report the profiling data to the Pyroscope Server. The Agent can support external backends (in fact, all current backends are independent crates) and you can make your own. Backends can also be used seperately. The currently available backends are:
+The Pyroscope Agent doesn't do any profiling. The agent role is to orchestrate a profiling backend, and report the profiling data to the Pyroscope Server. The Agent can support external backends (in fact, all current backends are independent crates) and you can make your own. Backends can also be used seperately. The currently available backends are:
 
 - [pprof-rs](pyroscope_backends/pyroscope_pprofrs): Rust profiler. A wrapper around [pprof-rs](https://github.com/tikv/pprof-rs).
 - [rbspy](pyroscope_backends/pyroscope_rbspy): Ruby Profiler. A wrapper around [rbspy](https://rbspy.github.io/).
