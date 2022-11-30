@@ -249,7 +249,7 @@ jobs:
         PYROSCOPE_NATIVE: [1, 0]
         PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
     needs: ['windows-build']
-    name: Windwos Test
+    name: Windows Test
     runs-on: windows-2022
     steps:
       - name: Set up Python
