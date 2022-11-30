@@ -239,6 +239,48 @@ jobs:
           name: ${{ matrix.target }}
           path: pyroscope_ffi/python/dist/*
   
+  windows-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
+        PYROSCOPE_ONCPU: [1, 0]
+        PYROSCOPE_GIL_ONLY: [1, 0]
+        PYROSCOPE_NATIVE: [1, 0]
+        PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
+    needs: ['windows-build']
+    name: Windwos Test
+    runs-on: windows-2022
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.PYTHON_VERSION }}
+          architecture: x64
+      - uses: actions/download-artifact@master
+        with:
+          name: x86_64-pc-windows-gnu
+          path: "${{github.workspace}}/python"
+
+      - run: "python --version"
+      - run: "python3 --version"
+      - run: "cd ${{ github.workspace }}/python && ls -l"
+      - run: "cd ${{ github.workspace }}/python && pip3 install *.whl"
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Run Python Script
+        run: pyroscope_ffi/python/scripts/tests/test.py
+        env:
+          PYROSCOPE_RUN_ID: ${{ github.run_id }}
+          PYROSCOPE_ARCH: x86_64-pc-windows-gnu
+          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+          PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
+          PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
+          PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
+          PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
+          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+
   sdist-build:
     name: sdist
     runs-on: ubuntu-latest
