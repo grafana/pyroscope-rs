@@ -14,6 +14,7 @@ use std::{
     },
     thread::JoinHandle,
 };
+use remoteprocess::Pid;
 
 const LOG_TAG: &str = "Pyroscope::Pyspy";
 
@@ -29,7 +30,7 @@ pub fn pyspy_backend(config: PyspyConfig) -> BackendImpl<BackendUninitialized> {
 #[derive(Debug, Clone)]
 pub struct PyspyConfig {
     /// Process to monitor
-    pid: Option<i32>,
+    pid: Option<Pid>,
     /// Sampling rate
     sample_rate: u32,
     /// Backend Config
@@ -66,7 +67,7 @@ impl Default for PyspyConfig {
 
 impl PyspyConfig {
     /// Create a new PyspyConfig
-    pub fn new(pid: i32) -> Self {
+    pub fn new(pid: Pid) -> Self {
         PyspyConfig {
             pid: Some(pid),
             ..Default::default()
