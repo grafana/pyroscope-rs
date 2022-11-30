@@ -206,9 +206,6 @@ jobs:
           - windows-version: "2022"
             target: x86_64-pc-windows-gnu
             py-platform: win_amd64
-          - macos-version: "2011"
-            target: x86_64-pc-windows-gnu
-            py-platform: win_amd64
 
     name: windows - ${{ matrix.py-platform }}
     runs-on: windows-${{ matrix.windows-version }}
