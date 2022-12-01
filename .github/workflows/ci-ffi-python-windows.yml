@@ -83,7 +83,9 @@ jobs:
       - run: "python --version"
       - run: "python3 --version"
       - run: "cd ${{ github.workspace }}/python && ls"
-      - run: "cd ${{ github.workspace }}/python && foreach($file in Get-ChildItem -Filter *.whl){pip install $file}"
+      - run: |
+          cd ${{ github.workspace }}/python
+          foreach($file in Get-ChildItem -Filter *.whl){pip install $file}
       - uses: actions/checkout@v2
         with:
           submodules: recursive
