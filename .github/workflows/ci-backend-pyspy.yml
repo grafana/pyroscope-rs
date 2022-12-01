@@ -58,3 +58,33 @@ jobs:
         with:
           args: --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
           command: test
+
+  windows-build:
+    name: ${{ matrix.os }} - ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        target: [x86_64-pc-windows-gnu]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: omarabid-forks/rs-toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Cargo build for pyspy
+        uses: omarabid-forks/rs-cargo@v1
+        with:
+          args: --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
+          command: build
+
+      - name: Tests for pyspy
+        uses: omarabid-forks/rs-cargo@v1
+        with:
+          args: --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
+          command: test

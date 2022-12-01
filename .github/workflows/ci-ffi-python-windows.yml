@@ -1,4 +1,4 @@
-name: Python Package
+name: Python Package Windows Only
 
 on:
   workflow_dispatch:
