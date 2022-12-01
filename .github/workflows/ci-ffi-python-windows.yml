@@ -6,6 +6,7 @@ on:
     paths:
     - 'pyroscope_ffi/python/**'
     - '.github/workflows/ci-ffi-python.yml'
+    - '.github/workflows/ci-ffi-python-windows.yml'
     branches:
     - '**'
   pull_request:
