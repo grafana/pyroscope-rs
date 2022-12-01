@@ -264,8 +264,10 @@ jobs:
 
       - run: "python --version"
       - run: "python3 --version"
-      - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace }}/python && pip3 install *.whl"
+      - run: "cd ${{ github.workspace }}/python && ls"
+      - run: |
+          cd ${{ github.workspace }}/python
+          foreach($file in Get-ChildItem -Filter *.whl){pip install $file}
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -280,7 +282,6 @@ jobs:
           PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
           PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
           PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
-
   sdist-build:
     name: sdist
     runs-on: ubuntu-latest
