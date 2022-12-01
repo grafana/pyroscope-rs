@@ -14,7 +14,7 @@ use std::{
     },
     thread::JoinHandle,
 };
-use remoteprocess::Pid;
+use py_spy::Pid;
 
 const LOG_TAG: &str = "Pyroscope::Pyspy";
 
