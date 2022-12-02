@@ -2,6 +2,6 @@
 requires = [
     "setuptools>=42",
     "wheel",
-    "milksnakex>=0.1.6"
+    "milksnakex @ git+https://github.com/omarabid/milksnakex.git@fe2b61a"
 ]
 build-backend = "setuptools.build_meta"
