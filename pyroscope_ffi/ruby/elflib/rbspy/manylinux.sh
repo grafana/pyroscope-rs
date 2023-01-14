@@ -5,7 +5,8 @@ set -e
 yum -y -q install wget gcc libffi-devel openssl-devel
 
 # Install Rust
-curl https://sh.rustup.rs -sSf | sh -s -- -y
+# TODO build and publish a docker image
+curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.62.1 -y
 export PATH=~/.cargo/bin:$PATH
 
 # Build wheels
