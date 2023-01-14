@@ -151,10 +151,7 @@ pub extern "C" fn initialize_agent(
 
 #[no_mangle]
 pub extern "C" fn drop_agent() -> bool {
-    // Send Kill signal to the FFI merge channel.
-    ffikit::send(ffikit::Signal::Kill).unwrap();
-
-    true
+    return ffikit::send(ffikit::Signal::Kill).is_ok();
 }
 
 #[no_mangle]
@@ -170,9 +167,7 @@ pub extern "C" fn add_thread_tag(thread_id: u64, key: *const c_char, value: *con
     hasher.write_u64(thread_id % pid as u64);
     let id = hasher.finish();
 
-    ffikit::send(ffikit::Signal::AddThreadTag(id, key, value)).unwrap();
-
-    true
+    return ffikit::send(ffikit::Signal::AddThreadTag(id, key, value)).is_ok();
 }
 
 #[no_mangle]
@@ -190,9 +185,7 @@ pub extern "C" fn remove_thread_tag(
     hasher.write_u64(thread_id % pid as u64);
     let id = hasher.finish();
 
-    ffikit::send(ffikit::Signal::RemoveThreadTag(id, key, value)).unwrap();
-
-    true
+    return ffikit::send(ffikit::Signal::RemoveThreadTag(id, key, value)).is_ok();
 }
 
 #[no_mangle]
@@ -203,9 +196,7 @@ pub extern "C" fn add_global_tag(key: *const c_char, value: *const c_char) -> bo
         .unwrap()
         .to_owned();
 
-    ffikit::send(ffikit::Signal::AddGlobalTag(key, value)).unwrap();
-
-    true
+    return ffikit::send(ffikit::Signal::AddGlobalTag(key, value)).is_ok();
 }
 
 #[no_mangle]
@@ -216,9 +207,7 @@ pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) ->
         .unwrap()
         .to_owned();
 
-    ffikit::send(ffikit::Signal::RemoveGlobalTag(key, value)).unwrap();
-
-    true
+    return ffikit::send(ffikit::Signal::RemoveGlobalTag(key, value)).is_ok();
 }
 
 // Convert a string of tags to a Vec<(&str, &str)>

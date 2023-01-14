@@ -1,7 +1,7 @@
 use bincode::{config, Decode, Encode};
 use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
 use lazy_static::lazy_static;
-use pyroscope::error::Result;
+use pyroscope::error::{Result, PyroscopeError};
 use std::{
     io::{BufReader, Read, Write},
     sync::{
@@ -137,40 +137,17 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
 }
 
 pub fn send(signal: Signal) -> Result<()> {
-    // Check if SENDER is set.
-    // Send signal through forked process.
     if get_parent_pid() != std::process::id() {
         let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
-
-        log::trace!(
-            target: LOG_TAG,
-            "Sending signal {:?} through socket {}",
-            signal,
-            &socket_address
-        );
-
-        // Connect to the socket.
         let mut conn = LocalSocketStream::connect(socket_address)?;
-
-        // encode signal
         let buffer = bincode::encode_to_vec(&signal, config::standard()).unwrap();
-
-        // Write the message.
         conn.write_all(&buffer)?;
-
-        // Flush the connection.
         conn.flush()?;
     } else {
-        // Send signal through parent process.
         if let Some(sender) = &*SENDER.lock()? {
-            log::trace!(
-                target: LOG_TAG,
-                "Sending signal {:?} through FFI channel",
-                signal
-            );
             sender.send(signal)?;
         } else {
-            log::error!(target: LOG_TAG, "FFI channel not initialized");
+            return Err(PyroscopeError::new( "FFI channel not initialized"));
         }
     }
 
