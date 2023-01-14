@@ -37,5 +37,5 @@ def build_native(spec):
 setup(
     platforms="any",
     milksnake_tasks=[build_native],
-    setup_requires=["milksnakex @ git+https://github.com/omarabid/milksnakex.git@fe2b61a"],
+    setup_requires=["milksnakex @ git+https://github.com/pyroscope-io/milksnakex.git@0.1.7"],
 )
