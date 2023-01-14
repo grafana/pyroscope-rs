@@ -179,9 +179,8 @@ jobs:
           path: "${{github.workspace}}/python"
 
       - run: "python --version"
-      - run: "python3 --version"
       - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace }}/python && pip3 install *.whl"
+      - run: "cd ${{ github.workspace }}/python && pip install *.whl"
       - uses: actions/checkout@v2
         with:
           submodules: recursive
