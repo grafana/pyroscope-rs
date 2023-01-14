@@ -293,7 +293,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9
-
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip pipenv wheel
       - name: Build sdist
         run: python setup.py sdist
         working-directory: pyroscope_ffi/python
