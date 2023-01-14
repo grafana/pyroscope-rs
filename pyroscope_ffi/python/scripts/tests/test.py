@@ -1,5 +1,3 @@
-import sys
-print(sys.version)
 import hashlib
 import os
 import threading
