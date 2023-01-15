@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import hashlib
 import os
 import threading
@@ -13,9 +12,9 @@ logger.setLevel(logging.DEBUG)
 
 # Configure Pyroscope
 pyroscope.configure(
-    application_name = f'{os.getenv("PYROSCOPE_RUN_ID")}',
+    application_name = '{}'.format(os.getenv("PYROSCOPE_RUN_ID")),
     server_address = "https://ingest.pyroscope.cloud",
-    auth_token     = f'{os.getenv("PYROSCOPE_API_TOKEN")}',
+    auth_token     = '{}'.format(os.getenv("PYROSCOPE_API_TOKEN")),
     enable_logging =True,
     detect_subprocesses = os.getenv("PYROSCOPE_DETECT_SUBPROCESSES") == "true",
     oncpu = os.getenv("PYROSCOPE_ONCPU") == "true",
@@ -24,11 +23,11 @@ pyroscope.configure(
     report_thread_id = True,
     report_thread_name = True,
     tags           = {
-        "detect_subprocesses": f'{os.getenv("PYROSCOPE_DETECT_SUBPROCESSES")}',
-        "oncpu": f'{os.getenv("PYROSCOPE_ONCPU")}',
-        "gil_only": f'{os.getenv("PYROSCOPE_GIL_ONLY")}',
-        "version": f'{os.getenv("PYTHON_VERSION")}',
-        "arch": f'{os.getenv("PYROSCOPE_ARCH")}',
+        "detect_subprocesses": '{}'.format(os.getenv("PYROSCOPE_DETECT_SUBPROCESSES")),
+        "oncpu": '{}'.format(os.getenv("PYROSCOPE_ONCPU")),
+        "gil_only": '{}'.format(os.getenv("PYROSCOPE_GIL_ONLY")),
+        "version": '{}'.format(os.getenv("PYTHON_VERSION")),
+        "arch": '{}'.format(os.getenv("PYROSCOPE_ARCH")),
     }
 )
 
