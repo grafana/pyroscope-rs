@@ -180,7 +180,10 @@ jobs:
       - run: "python --version ; pip --version ; python3 --version ; pip3 --version; uname -a"
       - run: "pip install pip --upgrade"
       - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace }}/python && pip install *.whl"
+      - name: Install wheel
+        run: "cd ${{ github.workspace }}/python && pip install *.whl"
+        env:
+          - SYSTEM_VERSION_COMPAT: 0
       - uses: actions/checkout@v2
         with:
           submodules: recursive
