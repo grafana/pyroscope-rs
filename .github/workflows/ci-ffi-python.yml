@@ -177,7 +177,7 @@ jobs:
         with:
           name: x86_64-apple-darwin
           path: "${{github.workspace}}/python"
-      - run: "python --version ; pip --version ; python3 --version ; pip3 --version; uname -a"\
+      - run: "python --version ; pip --version ; python3 --version ; pip3 --version; uname -a"
       - run: "pip install pip --upgrade"
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip install *.whl"
