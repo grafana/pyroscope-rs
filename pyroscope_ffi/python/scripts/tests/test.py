@@ -44,20 +44,20 @@ def wait_render(canary):
         time.sleep(2)
         u = 'https://pyroscope.cloud/render?from=now-1h&until=now&format=collapsed&query=' \
             + '{}.cpu%7Bcanary%3D%22{}%22%7D'.format(app_name, canary)
+        response = None
         try:
             logging.info('render %s', u)
             req = Request(u)
             req.add_header('Authorization', 'Bearer {}'.format(token))
-            with urlopen(req) as response:
-                code = response.getcode()
-                # print(code)
-                # print(response)
-                # print(dir(response))
-                body = response.read()
-                logging.info("render body %s", body.decode('utf-8'))
-                if code == 200 and body != b'' and b'multihash' in body:
-                    return
+            response = urlopen(req)
+            code = response.getcode()
+            body = response.read()
+            logging.info("render body %s", body.decode('utf-8'))
+            if code == 200 and body != b'' and b'multihash' in body:
+                return
         except Exception:
+            if response is not None:
+                response.close()
             traceback.print_exc()
             continue
 
