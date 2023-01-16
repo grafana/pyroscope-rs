@@ -1,15 +1,14 @@
 import hashlib
 import os
 import signal
-import sys
 import threading
 import logging
 import time
 import traceback
-import pyroscope
-import platform
-import uuid
 
+import pyroscope
+
+import uuid
 try:
     from urllib.request import Request, urlopen
 except ImportError:
@@ -60,11 +59,12 @@ def wait_render(canary):
 
 
 def do_one_test(on_cpu, gil_only, detect_subprocesses):
+    p = os.fork()
+    if p != 0:
+        return p
     canary = uuid.uuid4().hex
     print('canary {}'.format(canary))
     runid = os.getenv("PYROSCOPE_RUN_ID")
-    pyver = '{}.{}'.format(sys.version_info.major, sys.version_info.minor)
-    p = platform.processor()
     pyroscope.configure(
         application_name=app_name,
         server_address="https://ingest.pyroscope.cloud",
@@ -81,8 +81,8 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
             "detect_subprocesses": '{}'.format(detect_subprocesses),
             "oncpu": '{}'.format(on_cpu),
             "gil_only": '{}'.format(gil_only),
-            "version": '{}'.format(pyver),
-            "arch": '{}'.format(p),
+            "version": '{}'.format(os.getenv("PYTHON_VERSION")),
+            "arch": '{}'.format(os.getenv("PYROSCOPE_ARCH")),
             "canary": canary,
             "run_id": runid,
         }
@@ -106,8 +106,23 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
 if __name__ == '__main__':
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    on_cpu = sys.argv[1] == 'true'
-    gil_only = sys.argv[2] == 'true'
-    detect_subprocesses = sys.argv[3] == 'true'
-    do_one_test(on_cpu, gil_only, detect_subprocesses)
+    pids = []
+    for on_cpu in [True, False]:
+        for gil_only in [True, False]:
+            for detect_subprocesses in [True, False]:
+                pid = do_one_test(on_cpu, gil_only, detect_subprocesses)
+                pids.append((pid, 'on_cpu {} gil_only {}  detect_subprocesses {}'.format(on_cpu, gil_only, detect_subprocesses)))
+    res = []
+    for testcase in pids:
+        pid = testcase[0]
+        test_name = testcase[1]
+        _, exitcode = os.waitpid(pid, 0)
+        print('pid {} {} exited with {}'.format(pid, test_name, exitcode))
+        res.append((pid, exitcode))
+    for testcase in res:
+        pid = testcase[0]
+        exitcode = testcase[1]
+        if exitcode != 0:
+            print('testcase {} failed'.format(pid))
+            exit(1)
 
