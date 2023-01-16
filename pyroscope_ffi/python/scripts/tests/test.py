@@ -44,22 +44,22 @@ def wait_render(canary):
         time.sleep(2)
         u = 'https://pyroscope.cloud/render?from=now-1h&until=now&format=collapsed&query=' \
             + '{}.cpu%7Bcanary%3D%22{}%22%7D'.format(app_name, canary)
-        try:
-            logger.info('render {}', u)
-            req = Request(u)
-            req.add_header('Authorization', 'Bearer {}'.format(token))
-            with urlopen(req) as response:
-                code = response.getcode()
-                # print(code)
-                # print(response)
-                # print(dir(response))
-                body = response.read()
-                logger.info("render body {}", body)
-                if code == 200 and body != b'' and b'multihash' in body:
-                    return
-        except Exception:
-            traceback.print_exc()
-            continue
+        # try:
+        logging.info('render %s', u)
+        req = Request(u)
+        req.add_header('Authorization', 'Bearer {}'.format(token))
+        with urlopen(req) as response:
+            code = response.getcode()
+            # print(code)
+            # print(response)
+            # print(dir(response))
+            body = response.read()
+            logging.info("render body %s", body.decode('utf-8'))
+            if code == 200 and body != b'' and b'multihash' in body:
+                return
+        # except Exception:
+        #     traceback.print_exc()
+        #     continue
 
 
 def do_one_test(on_cpu, gil_only, detect_subprocesses):
@@ -67,7 +67,7 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
     if p != 0:
         return p
     canary = uuid.uuid4().hex
-    logger.info('canary {}', canary)
+    logging.info('canary %s', canary)
     runid = os.getenv("PYROSCOPE_RUN_ID")
     pyroscope.configure(
         application_name=app_name,
@@ -116,15 +116,15 @@ if __name__ == '__main__':
                 _, exitcode = os.waitpid(pid, 0)
                 name = 'on_cpu {} gil_only {}  detect_subprocesses {}'.format(on_cpu, gil_only,
                                                                               detect_subprocesses)
-                logger.info("testcase {} {} {}", pid, exitcode, name)
+                logging.info("testcase %s %s %s", pid, exitcode, name)
                 res.append((pid, exitcode, name))
 
     for testcase in res:
-        logger.info("testcase {}", testcase)
+        logging.info("testcase {}", testcase)
     for testcase in res:
         pid = testcase[0]
         exitcode = testcase[1]
         name = testcase[2]
         if exitcode != 0:
-            logger.error('testcase {} {} {} failed', pid, exitcode, name)
+            logger.error('testcase %s %s %s failed', pid, exitcode, name)
             exit(1)
