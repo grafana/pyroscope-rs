@@ -55,6 +55,11 @@ jobs:
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
+    env:
+      PYROSCOPE_RUN_ID: ${{ github.run_id }}
+      PYROSCOPE_ARCH: x86-64-linux
+      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
     steps:
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -71,13 +76,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Run Python Script
-        run: python pyroscope_ffi/python/scripts/tests/test.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: x86-64-linux
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false false false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false false true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false true false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false true true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true false false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true false true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true true false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true true true
 
   linux-arm-build:
     strategy:
@@ -155,7 +161,12 @@ jobs:
         PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
     needs: ['macos-build']
     name: Macos Test
-    runs-on: macos-11.0 
+    runs-on: macos-11.0
+    env:
+      PYROSCOPE_RUN_ID: ${{ github.run_id }}
+      PYROSCOPE_ARCH: x86-64-apple-darwin
+      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
     steps:
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -176,13 +187,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Run Python Script
-        run: python pyroscope_ffi/python/scripts/tests/test.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: x86-64-apple-darwin
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false false false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false false true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false true false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false true true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true false false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true false true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true true false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true true true
  
 
   windows-build:
@@ -233,6 +245,11 @@ jobs:
     needs: ['windows-build']
     name: Windows Test
     runs-on: windows-2022
+    env:
+      PYROSCOPE_RUN_ID: ${{ github.run_id }}
+      PYROSCOPE_ARCH: x86_64-pc-windows-gnu
+      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
     steps:
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -253,13 +270,15 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Run Python Script
-        run: python pyroscope_ffi/python/scripts/tests/test.py
-        env:
-          PYROSCOPE_RUN_ID: ${{ github.run_id }}
-          PYROSCOPE_ARCH: x86_64-pc-windows-gnu
-          PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-          PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false false false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false false true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false true false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py false true true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true false false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true false true
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true true false
+      - run: python pyroscope_ffi/python/scripts/tests/test.py true true true
+
   sdist-build:
     name: sdist
     runs-on: ubuntu-latest

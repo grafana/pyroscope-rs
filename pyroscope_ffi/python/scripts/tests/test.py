@@ -63,9 +63,6 @@ def wait_render(canary):
 
 
 def do_one_test(on_cpu, gil_only, detect_subprocesses):
-    p = os.fork()
-    if p != 0:
-        return p
     canary = uuid.uuid4().hex
     logging.info('canary %s', canary)
     runid = os.getenv("PYROSCOPE_RUN_ID")
@@ -109,22 +106,8 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
 if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     res = []
-    for on_cpu in [True, False]:
-        for gil_only in [True, False]:
-            for detect_subprocesses in [True, False]:
-                pid = do_one_test(on_cpu, gil_only, detect_subprocesses)
-                _, exitcode = os.waitpid(pid, 0)
-                name = 'on_cpu {} gil_only {}  detect_subprocesses {}'.format(on_cpu, gil_only,
-                                                                              detect_subprocesses)
-                logging.info("testcase %s %s %s", pid, exitcode, name)
-                res.append((pid, exitcode, name))
-
-    for testcase in res:
-        logging.info("testcase %s", str(testcase))
-    for testcase in res:
-        pid = testcase[0]
-        exitcode = testcase[1]
-        name = testcase[2]
-        if exitcode != 0:
-            logger.error('testcase %s %s %s failed', pid, exitcode, name)
-            exit(1)
+    on_cpu = sys.argv[1] == "true"
+    gil_only = sys.argv[2] == "true"
+    detect_subprocesses = sys.argv[3] == "true"
+    do_one_test(on_cpu, gil_only, detect_subprocesses)
+    
