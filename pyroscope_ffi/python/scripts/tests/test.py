@@ -119,10 +119,10 @@ if __name__ == '__main__':
                     p.join()
                     res.append((p.exitcode, "{} {} {}".format(on_cpu, gil_only, detect_subprocesses)))
         for t in res:
-            logging.Info("%s", str(t))
+            logging.info("%s", str(t))
         for t in res:
             if t[0] != 0:
-                logging.Error("test failed %s", str(t))
+                logging.info("test failed %s", str(t))
     else:
         on_cpu = sys.argv[1] == "true"
         gil_only = sys.argv[2] == "true"
