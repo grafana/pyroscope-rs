@@ -108,12 +108,12 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
 if __name__ == '__main__':
     do_multiprocessing = True
     logger.setLevel(logging.INFO)
+    multiprocessing.log_to_stderr(logging.INFO)
     if do_multiprocessing:
         res = []
         for on_cpu in [True, False]:
             for gil_only in [True, False]:
                 for detect_subprocesses in [True, False]:
-                    multiprocessing.log_to_stderr(logging.INFO)
                     p = multiprocessing.Process(target=do_one_test, args=(False, False, False))
                     p.start()
                     p.join()
