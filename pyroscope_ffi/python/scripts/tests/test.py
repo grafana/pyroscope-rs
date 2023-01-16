@@ -103,16 +103,24 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
 
     thread_1 = threading.Thread(target=multihash, args=('abc',))
     thread_2 = threading.Thread(target=multihash2, args=('abc',))
-
     thread_1.start()
     thread_2.start()
 
-    signal.alarm(120)
+    def watchdog():
+        logging.info('Watchdog expired. Test timeout. Exiting...')
+        exit(7)
+
+    alarm = threading.Timer(120, watchdog)
+    alarm.start()
 
     wait_render(canary)
 
+    alarm.cancel()
+
     pyroscope.shutdown()
+
     logging.info("done")
+
     event.set()
     thread_1.join()
     thread_2.join()
