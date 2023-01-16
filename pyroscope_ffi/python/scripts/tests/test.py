@@ -4,6 +4,7 @@ import signal
 import threading
 import logging
 import time
+import traceback
 
 import pyroscope
 
@@ -37,18 +38,24 @@ def multihash2(string):
 def wait_render(canary):
     while True:
         time.sleep(2)
-
-
         u = 'https://pyroscope.cloud/render?from=now-1h&until=now&format=collapsed&query=' \
             + '{}.cpu%7Bcanary%3D%22{}%22%7D'.format(app_name, canary)
-        print(u)
-        req = Request(u)
-        req.add_header('Authorization', 'Bearer {}'.format(token))
-        with urlopen(req) as response:
-            body = response.read()
-            print(body)
-            if body != b'':
-                return
+        try:
+            print(u)
+            req = Request(u)
+            req.add_header('Authorization', 'Bearer {}'.format(token))
+            with urlopen(req) as response:
+                code = response.getcode()
+                # print(code)
+                # print(response)
+                # print(dir(response))
+                body = response.read()
+                print(body)
+                if code == 200 and body != b'' and b'multihash' in body:
+                    return
+        except Exception:
+            traceback.print_exc()
+            continue
 
 
 def do_one_test(on_cpu, gil_only, detect_subprocesses):
