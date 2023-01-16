@@ -9,6 +9,7 @@ import sys
 import multiprocessing
 
 import pyroscope
+import threading
 
 import uuid
 
@@ -21,6 +22,8 @@ token = os.getenv("PYROSCOPE_API_TOKEN")
 app_name = 'pyroscopers.python.test'
 logger = logging.getLogger()
 
+event = threading.Event()
+
 
 def hash(string):
     string = string.encode()
@@ -30,7 +33,7 @@ def hash(string):
 
 
 def multihash(string):
-    while True:
+    while not event.is_set():
         time.sleep(0.2)
         e = time.time() + 0.1
         while time.time() < e:
@@ -39,7 +42,7 @@ def multihash(string):
 
 
 def multihash2(string):
-    while True:
+    while not event.is_set():
         time.sleep(0.2)
         e = time.time() + 0.1
         while time.time() < e:
@@ -109,8 +112,10 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
     wait_render(canary)
 
     pyroscope.shutdown()
-
-    exit(0)
+    logging.info("done")
+    event.set()
+    thread_1.join()
+    thread_2.join()
 
 
 if __name__ == '__main__':
