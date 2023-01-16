@@ -50,10 +50,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
-        PYROSCOPE_ONCPU: [1, 0]
-        PYROSCOPE_GIL_ONLY: [1, 0]
-        PYROSCOPE_NATIVE: [1, 0]
         PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
     needs: ['linux-build']
     name: Linux Test
@@ -80,10 +76,6 @@ jobs:
           PYROSCOPE_RUN_ID: ${{ github.run_id }}
           PYROSCOPE_ARCH: x86-64-linux
           PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-          PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
-          PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
-          PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
-          PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
           PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
 
   linux-arm-build:
@@ -159,10 +151,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
-        PYROSCOPE_ONCPU: [1, 0]
-        PYROSCOPE_GIL_ONLY: [1, 0]
-        PYROSCOPE_NATIVE: [1, 0]
         PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
     needs: ['macos-build']
     name: Macos Test
@@ -193,10 +181,6 @@ jobs:
           PYROSCOPE_RUN_ID: ${{ github.run_id }}
           PYROSCOPE_ARCH: x86-64-apple-darwin
           PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-          PYROSCOPE_DETECT_SUBPROCESSES: ${{ matrix.PYROSCOPE_DETECT_SUBPROCESSES }}
-          PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
-          PYROSCOPE_GIL_ONLY: ${{ matrix.PYROSCOPE_GIL_ONLY }}
-          PYROSCOPE_NATIVE: ${{ matrix.PYROSCOPE_NATIVE }}
           PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
  
   sdist-build:
