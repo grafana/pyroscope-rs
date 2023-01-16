@@ -65,6 +65,7 @@ def wait_render(canary):
 
 
 def do_one_test(on_cpu, gil_only, detect_subprocesses):
+    logging.info("do_one_test on_cpu=%s gil_only=%s detect_subprocesses=%s", on_cpu, gil_only, detect_subprocesses)
     canary = uuid.uuid4().hex
     logging.info('canary %s', canary)
     runid = os.getenv("PYROSCOPE_RUN_ID")
@@ -114,7 +115,7 @@ if __name__ == '__main__':
         for on_cpu in [True, False]:
             for gil_only in [True, False]:
                 for detect_subprocesses in [True, False]:
-                    p = multiprocessing.Process(target=do_one_test, args=(False, False, False))
+                    p = multiprocessing.Process(target=do_one_test, args=(on_cpu, gil_only, detect_subprocesses))
                     p.start()
                     p.join()
                     res.append((p.exitcode, "{} {} {}".format(on_cpu, gil_only, detect_subprocesses)))
