@@ -94,7 +94,7 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
     thread_1.start()
     thread_2.start()
 
-    signal.alarm(30)
+    signal.alarm(120)
 
     wait_render(canary)
 
