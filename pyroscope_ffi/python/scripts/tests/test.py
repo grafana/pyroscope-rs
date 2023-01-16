@@ -5,6 +5,8 @@ import threading
 import logging
 import time
 import traceback
+import sys
+import multiprocessing
 
 import pyroscope
 
@@ -104,10 +106,25 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
 
 
 if __name__ == '__main__':
+    do_multiprocessing = True
     logger.setLevel(logging.INFO)
-    res = []
-    on_cpu = sys.argv[1] == "true"
-    gil_only = sys.argv[2] == "true"
-    detect_subprocesses = sys.argv[3] == "true"
-    do_one_test(on_cpu, gil_only, detect_subprocesses)
-    
+    if do_multiprocessing:
+        res = []
+        for on_cpu in [True, False]:
+            for gil_only in [True, False]:
+                for detect_subprocesses in [True, False]:
+                    multiprocessing.log_to_stderr(logging.INFO)
+                    p = multiprocessing.Process(target=do_one_test, args=(False, False, False))
+                    p.start()
+                    p.join()
+                    res.append((p.exitcode, "{} {} {}".format(on_cpu, gil_only, detect_subprocesses)))
+        for t in res:
+            logging.Info("%s", str(t))
+        for t in res:
+            if t[0] != 0:
+                logging.Error("test failed %s", str(t))
+    else:
+        on_cpu = sys.argv[1] == "true"
+        gil_only = sys.argv[2] == "true"
+        detect_subprocesses = sys.argv[3] == "true"
+        do_one_test(on_cpu, gil_only, detect_subprocesses)
