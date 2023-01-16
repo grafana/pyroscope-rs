@@ -254,7 +254,7 @@ jobs:
         with:
           submodules: recursive
       - name: Run Python Script
-        run: pyroscope_ffi/python/scripts/tests/test.py
+        run: python pyroscope_ffi/python/scripts/tests/test.py
         env:
           PYROSCOPE_RUN_ID: ${{ github.run_id }}
           PYROSCOPE_ARCH: x86_64-pc-windows-gnu
