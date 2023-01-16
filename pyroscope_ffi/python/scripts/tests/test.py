@@ -30,14 +30,20 @@ def hash(string):
 
 
 def multihash(string):
-    for i in range(0, 25510000):
-        string = hash(string)
+    while True:
+        time.sleep(0.2)
+        e = time.time() + 0.1
+        while time.time() < e:
+            string = hash(string)
     return string
 
 
 def multihash2(string):
-    for i in range(0, 25510000):
-        string = hash(string)
+    while True:
+        time.sleep(0.2)
+        e = time.time() + 0.1
+        while time.time() < e:
+            string = hash(string)
     return string
 
 
@@ -103,6 +109,7 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
     wait_render(canary)
 
     pyroscope.shutdown()
+
     exit(0)
 
 
@@ -111,19 +118,24 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     multiprocessing.log_to_stderr(logging.INFO)
     if do_multiprocessing:
+        procs = []
         res = []
         for on_cpu in [True, False]:
             for gil_only in [True, False]:
                 for detect_subprocesses in [True, False]:
                     p = multiprocessing.Process(target=do_one_test, args=(on_cpu, gil_only, detect_subprocesses))
                     p.start()
-                    p.join()
-                    res.append((p.exitcode, "{} {} {}".format(on_cpu, gil_only, detect_subprocesses)))
+
+                    procs.append((p, "{} {} {}".format(on_cpu, gil_only, detect_subprocesses)))
+        for p in procs:
+            p[0].join()
+            res.append((p[0].exitcode, p[1]))
         for t in res:
             logging.info("%s", str(t))
         for t in res:
             if t[0] != 0:
                 logging.info("test failed %s", str(t))
+                exit(1)
     else:
         on_cpu = sys.argv[1] == "true"
         gil_only = sys.argv[2] == "true"
