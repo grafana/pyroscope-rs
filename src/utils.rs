@@ -74,8 +74,16 @@ mod check_err_tests {
 }
 
 /// libc::epoll_ctl wrapper
+#[cfg(not(target_os = "windows"))]
 pub fn pthread_self() -> Result<u64> {
     let thread_id = check_err(unsafe { libc::pthread_self() })? as u64;
+    Ok(thread_id)
+}
+
+
+#[cfg(target_os = "windows")]
+pub fn pthread_self() -> Result<u64> {
+    let thread_id = check_err(unsafe { winapi::um::processthreadsapi::GetCurrentThreadId() })? as u64;
     Ok(thread_id)
 }
 
