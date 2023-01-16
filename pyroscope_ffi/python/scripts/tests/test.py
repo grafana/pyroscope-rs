@@ -9,6 +9,7 @@ import traceback
 import pyroscope
 
 import uuid
+
 try:
     from urllib.request import Request, urlopen
 except ImportError:
@@ -16,6 +17,8 @@ except ImportError:
 
 token = os.getenv("PYROSCOPE_API_TOKEN")
 app_name = 'pyroscopers.python.test'
+logger = logging.getLogger()
+
 
 def hash(string):
     string = string.encode()
@@ -35,13 +38,14 @@ def multihash2(string):
         string = hash(string)
     return string
 
+
 def wait_render(canary):
     while True:
         time.sleep(2)
         u = 'https://pyroscope.cloud/render?from=now-1h&until=now&format=collapsed&query=' \
             + '{}.cpu%7Bcanary%3D%22{}%22%7D'.format(app_name, canary)
         try:
-            print(u)
+            logger.info('render {}', u)
             req = Request(u)
             req.add_header('Authorization', 'Bearer {}'.format(token))
             with urlopen(req) as response:
@@ -50,7 +54,7 @@ def wait_render(canary):
                 # print(response)
                 # print(dir(response))
                 body = response.read()
-                print(body)
+                logger.info("render body {}", body)
                 if code == 200 and body != b'' and b'multihash' in body:
                     return
         except Exception:
@@ -63,7 +67,7 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
     if p != 0:
         return p
     canary = uuid.uuid4().hex
-    print('canary {}'.format(canary))
+    logger.info('canary {}', canary)
     runid = os.getenv("PYROSCOPE_RUN_ID")
     pyroscope.configure(
         application_name=app_name,
@@ -102,27 +106,25 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
     exit(0)
 
 
-
 if __name__ == '__main__':
-    logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    pids = []
+    res = []
     for on_cpu in [True, False]:
         for gil_only in [True, False]:
             for detect_subprocesses in [True, False]:
                 pid = do_one_test(on_cpu, gil_only, detect_subprocesses)
-                pids.append((pid, 'on_cpu {} gil_only {}  detect_subprocesses {}'.format(on_cpu, gil_only, detect_subprocesses)))
-    res = []
-    for testcase in pids:
-        pid = testcase[0]
-        test_name = testcase[1]
-        _, exitcode = os.waitpid(pid, 0)
-        print('pid {} {} exited with {}'.format(pid, test_name, exitcode))
-        res.append((pid, exitcode))
+                _, exitcode = os.waitpid(pid, 0)
+                name = 'on_cpu {} gil_only {}  detect_subprocesses {}'.format(on_cpu, gil_only,
+                                                                              detect_subprocesses)
+                logger.info("testcase {} {} {}", pid, exitcode, name)
+                res.append((pid, exitcode, name))
+
+    for testcase in res:
+        logger.info("testcase {}", testcase)
     for testcase in res:
         pid = testcase[0]
         exitcode = testcase[1]
+        name = testcase[2]
         if exitcode != 0:
-            print('testcase {} failed'.format(pid))
+            logger.error('testcase {} {} {} failed', pid, exitcode, name)
             exit(1)
-
