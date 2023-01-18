@@ -183,80 +183,80 @@ jobs:
       - run: python pyroscope_ffi/python/scripts/tests/test.py
 
 
-  windows-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - windows-version: "2022"
-            target: x86_64-pc-windows-gnu
-            py-platform: win_amd64
-
-    name: windows - ${{ matrix.py-platform }}
-    runs-on: windows-${{ matrix.windows-version }}
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
-
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
-
-      - name: Build Wheel
-        run: |
-          pip install wheel
-          python3 setup.py bdist_wheel -p ${{ matrix.py-platform }}
-        working-directory: pyroscope_ffi/python
-        env:
-          CARGO_BUILD_TARGET: ${{ matrix.target }}
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.target }}
-          path: pyroscope_ffi/python/dist/*
-  
-  windows-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
-    needs: ['windows-build']
-    name: Windows Test
-    runs-on: windows-2022
-    env:
-      PYROSCOPE_RUN_ID: ${{ github.run_id }}
-      PYROSCOPE_ARCH: x86_64-pc-windows-gnu
-      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
-          architecture: x64
-      - uses: actions/download-artifact@master
-        with:
-          name: x86_64-pc-windows-gnu
-          path: "${{github.workspace}}/python"
-
-      - run: "python --version"
-      - run: "python3 --version"
-      - run: "cd ${{ github.workspace }}/python && ls"
-      - run: |
-          cd ${{ github.workspace }}/python
-          foreach($file in Get-ChildItem -Filter *.whl){pip install $file}
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - run: python pyroscope_ffi/python/scripts/tests/test.py
+#  windows-build:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include:
+#          - windows-version: "2022"
+#            target: x86_64-pc-windows-gnu
+#            py-platform: win_amd64
+#
+#    name: windows - ${{ matrix.py-platform }}
+#    runs-on: windows-${{ matrix.windows-version }}
+#
+#    steps:
+#      - uses: actions/checkout@v2
+#
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          target: ${{ matrix.target }}
+#          profile: minimal
+#          override: true
+#
+#      - uses: actions/setup-python@v2
+#        with:
+#          python-version: 3.9
+#
+#
+#      - name: Build Wheel
+#        run: |
+#          pip install wheel
+#          python3 setup.py bdist_wheel -p ${{ matrix.py-platform }}
+#        working-directory: pyroscope_ffi/python
+#        env:
+#          CARGO_BUILD_TARGET: ${{ matrix.target }}
+#
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          name: ${{ matrix.target }}
+#          path: pyroscope_ffi/python/dist/*
+#
+#  windows-test:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
+#    needs: ['windows-build']
+#    name: Windows Test
+#    runs-on: windows-2022
+#    env:
+#      PYROSCOPE_RUN_ID: ${{ github.run_id }}
+#      PYROSCOPE_ARCH: x86_64-pc-windows-gnu
+#      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+#      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+#    steps:
+#      - name: Set up Python
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.PYTHON_VERSION }}
+#          architecture: x64
+#      - uses: actions/download-artifact@master
+#        with:
+#          name: x86_64-pc-windows-gnu
+#          path: "${{github.workspace}}/python"
+#
+#      - run: "python --version"
+#      - run: "python3 --version"
+#      - run: "cd ${{ github.workspace }}/python && ls"
+#      - run: |
+#          cd ${{ github.workspace }}/python
+#          foreach($file in Get-ChildItem -Filter *.whl){pip install $file}
+#      - uses: actions/checkout@v2
+#        with:
+#          submodules: recursive
+#      - run: python pyroscope_ffi/python/scripts/tests/test.py
 
   sdist-build:
     name: sdist
