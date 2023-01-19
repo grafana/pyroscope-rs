@@ -10,6 +10,11 @@ clean:
 build: clean
 	python -m build --wheel
 
+
+.PHONY: bdist_wheel
+bdist_wheel: clean
+	python setup.py bdist_wheel
+
 .PHONY: install
 install: build
 	pip install --force-reinstall dist/*.whl
