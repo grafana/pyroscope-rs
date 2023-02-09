@@ -102,6 +102,7 @@ pub fn encode(reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, du
             default_sample_type: 0,
         },
     };
+    b.add_string(&"".to_string());
     {
         let count = b.add_string(&"count".to_string());
         let samples = b.add_string(&"samples".to_string());
