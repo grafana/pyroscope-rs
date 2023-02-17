@@ -1880,8 +1880,6 @@ dependencies = [
 [[package]]
 name = "rbspy-oncpu"
 version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdc6110000bf4e0c644e1ba4e86877cc84da7a637e3fa394cecedcaf9728870c"
 dependencies = [
  "anyhow",
  "chrono",
