@@ -179,6 +179,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "bindgen"
+version = "0.60.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "062dddbc1ba4aca46de6338e2bf87771414c335f7b2f2036e8f3e9befebf88e6"
+dependencies = [
+ "bitflags",
+ "cexpr",
+ "clang-sys",
+ "clap 3.2.16",
+ "env_logger 0.9.0",
+ "lazy_static",
+ "lazycell",
+ "log",
+ "peeking_take_while",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "which",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -206,12 +229,6 @@ name = "bytemuck"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5377c8865e74a160d21f29c2d40669f53286db6eab59b88540cbb12ffc8b835"
-
-[[package]]
-name = "byteorder"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
 
 [[package]]
 name = "bytes"
@@ -526,15 +543,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 
 [[package]]
-name = "elf"
-version = "0.0.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4841de15dbe0e49b9b62a417589299e3be0d557e0900d36acb87e6dae47197f5"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
 name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -759,6 +767,17 @@ name = "goblin"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91766b1121940d622933a13e20665857648681816089c9bc2075c4b75a6e4f6b"
+dependencies = [
+ "log",
+ "plain",
+ "scroll",
+]
+
+[[package]]
+name = "goblin"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "572564d6cba7d09775202c8e7eebc4d534d5ae36578ab402fb21e182a0ac9505"
 dependencies = [
  "log",
  "plain",
@@ -1051,9 +1070,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.126"
+version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
 name = "libflate"
@@ -1107,7 +1126,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b799ad155d75ce914c467ee5627b62247c20d4aedbd446f821484cebf3cded7"
 dependencies = [
- "bindgen",
+ "bindgen 0.59.2",
  "errno",
  "libc",
 ]
@@ -1130,9 +1149,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.16"
+version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6389c490849ff5bc16be905ae24bc913a9c8892e19b2341dbc175e14c341c2b8"
+checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
 ]
@@ -1273,19 +1292,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.23.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f866317acbd3a240710c63f065ffb1e4fd466259045ccb504130b7f668f35c6"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if",
- "libc",
- "memoffset",
-]
-
-[[package]]
-name = "nix"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "195cdbc1741b8134346d515b3a56a1c94b0912758009cfd53f99ea0f57b065fc"
@@ -1293,6 +1299,20 @@ dependencies = [
  "bitflags",
  "cfg-if",
  "libc",
+]
+
+[[package]]
+name = "nix"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f346ff70e7dbfd675fe90590b92d59ef2de15a8779ae305ebcbfd3f0caf59be4"
+dependencies = [
+ "autocfg",
+ "bitflags",
+ "cfg-if",
+ "libc",
+ "memoffset",
+ "pin-utils",
 ]
 
 [[package]]
@@ -1643,9 +1663,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2f62c16ccc63ce2f590b17b8b9b33616f59631b8982ad52ed21e7f6d936c409"
 dependencies = [
  "anyhow",
- "bindgen",
+ "bindgen 0.59.2",
  "libc",
  "libproc 0.10.0",
+ "mach2",
+ "winapi",
+]
+
+[[package]]
+name = "proc-maps"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c790484f98e8b00e2385ebde989077698f99417307a74361001ada102f8c2ce"
+dependencies = [
+ "anyhow",
+ "bindgen 0.60.1",
+ "libc",
+ "libproc 0.12.0",
  "mach2",
  "winapi",
 ]
@@ -1657,7 +1691,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71adf41db68aa0daaefc69bb30bcd68ded9b9abaad5d1fbb6304c4fb390e083e"
 dependencies = [
  "bytes",
- "prost-derive",
+ "prost-derive 0.10.1",
+]
+
+[[package]]
+name = "prost"
+version = "0.11.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21dc42e00223fc37204bd4aa177e69420c604ca4a183209a8f9de30c6d934698"
+dependencies = [
+ "bytes",
+ "prost-derive 0.11.6",
 ]
 
 [[package]]
@@ -1665,6 +1709,19 @@ name = "prost-derive"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b670f45da57fb8542ebdbb6105a925fe571b67f9e7ed9f47a06a84e72b4e7cc"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.11.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bda8c0881ea9f722eb9629376db3d0b903b462477c1aafcb0566610ac28ac5d"
 dependencies = [
  "anyhow",
  "itertools",
@@ -1687,7 +1744,7 @@ dependencies = [
  "cpp_demangle",
  "ctrlc",
  "env_logger 0.9.0",
- "goblin",
+ "goblin 0.5.3",
  "indicatif",
  "inferno",
  "lazy_static",
@@ -1695,7 +1752,7 @@ dependencies = [
  "log",
  "lru",
  "memmap",
- "proc-maps",
+ "proc-maps 0.2.1",
  "rand 0.8.5",
  "rand_distr",
  "regex",
@@ -1716,7 +1773,7 @@ dependencies = [
  "libflate",
  "log",
  "names",
- "prost",
+ "prost 0.10.4",
  "reqwest",
  "thiserror",
  "url",
@@ -1879,29 +1936,33 @@ dependencies = [
 
 [[package]]
 name = "rbspy-oncpu"
-version = "0.12.1"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "chrono",
  "clap 3.2.16",
  "ctrlc",
  "directories",
- "elf",
  "env_logger 0.9.0",
  "flate2",
+ "goblin 0.6.0",
  "inferno",
+ "lazy_static",
  "libc",
- "libproc 0.10.0",
+ "libproc 0.12.0",
  "log",
- "nix 0.23.1",
- "proc-maps",
- "prost",
+ "memmap2",
+ "nix 0.25.1",
+ "proc-maps 0.3.0",
+ "prost 0.11.6",
  "rand 0.8.5",
  "rbspy-ruby-structs",
  "remoteprocess",
+ "semver",
  "serde 1.0.141",
  "serde_derive",
  "serde_json",
+ "spytools",
  "tempdir",
  "term_size",
  "thiserror",
@@ -1910,9 +1971,7 @@ dependencies = [
 
 [[package]]
 name = "rbspy-ruby-structs"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "321d7adbbd5dc84af13b4cacceb22973186ed1dc19d55248fa53d5277ae40e02"
+version = "0.13.1"
 
 [[package]]
 name = "rdrand"
@@ -1985,7 +2044,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab91eb6b1c4c507a08d6fb6e2f38982a1e09923d19023506cba25aefcfc6e46f"
 dependencies = [
  "addr2line 0.18.0",
- "goblin",
+ "goblin 0.5.3",
  "lazy_static",
  "libc",
  "libproc 0.12.0",
@@ -1995,7 +2054,7 @@ dependencies = [
  "memmap",
  "nix 0.24.2",
  "object",
- "proc-maps",
+ "proc-maps 0.2.1",
  "read-process-memory",
  "regex",
  "winapi",
@@ -2215,6 +2274,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "semver"
+version = "1.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58bc9567378fc7690d6b2addae4e60ac2eeea07becb2c64b9f218b53865cba2a"
+
+[[package]]
 name = "serde"
 version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2374,6 +2439,23 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "spytools"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c04c26ba0b990e198276595f99839a3233a95190d04beb23f9adc9b188dff695"
+dependencies = [
+ "anyhow",
+ "goblin 0.6.0",
+ "lazy_static",
+ "libc",
+ "log",
+ "memmap2",
+ "proc-maps 0.3.0",
+ "regex",
+ "remoteprocess",
+]
 
 [[package]]
 name = "stable_deref_trait"
