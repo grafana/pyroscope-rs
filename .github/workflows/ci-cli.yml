@@ -39,7 +39,9 @@ jobs:
         run: sudo apt install libunwind8-dev
 
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1

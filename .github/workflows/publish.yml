@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'lib-')"
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -26,7 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'cli-')"
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -43,7 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'pprofrs-')"
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -58,7 +64,9 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'rbspy-')"
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -73,7 +81,9 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'pyspy-')"
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
