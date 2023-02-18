@@ -6,8 +6,10 @@ then
   echo set BUILD_ARCH to one of manylinux2010_x86_64 or manylinux2014_aarch64
   exit 239
 fi
+
 BUILD_DIR="/work"
 MANYLINUX_PREFIX=pyroscope/rust_builder
+
 docker run --rm -ti \
         -w /work/pyroscope_ffi/ruby/elflib/rbspy \
         -v `pwd`:/work \
