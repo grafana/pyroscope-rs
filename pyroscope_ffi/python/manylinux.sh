@@ -1,22 +1,7 @@
 #!/bin/sh
-set -e
+set -ex
 
-# Install tooling
-yum -y -q install wget gcc libffi-devel openssl-devel
-
-# Install Rust
-# TODO build and publish a docker image
-curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.62.1 -y
-export PATH=~/.cargo/bin:$PATH
-
-# Install libunwind
-wget https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz
-tar -zxvf libunwind-1.6.2.tar.gz
-cd libunwind-1.6.2
-./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation
-make
-make install
-cd ..
+cargo --version
 
 # Build wheels
 # todo this one is deprecated, use "build" package
