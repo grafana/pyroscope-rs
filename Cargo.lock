@@ -1698,6 +1698,7 @@ name = "pyroscope_rbspy"
 version = "0.2.3"
 dependencies = [
  "anyhow",
+ "inferno",
  "log",
  "pyroscope",
  "rbspy-oncpu",
