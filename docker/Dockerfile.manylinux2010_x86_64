@@ -7,4 +7,12 @@ RUN curl https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-musl/rust
     && chmod +x ./rustup-init \
     && ./rustup-init  -y --default-toolchain=1.63.0 --default-host=x86_64-unknown-linux-gnu
 ENV PATH=/root/.cargo/bin:$PATH
-RUN yum -y install gcc libffi-devel
+RUN yum -y install gcc libffi-devel openssl-devel wget
+
+# for python
+RUN wget https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz \
+    && tar -zxvf libunwind-1.6.2.tar.gz \
+    && cd libunwind-1.6.2 \
+    && ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation \
+    && make \
+    && make install
