@@ -1604,6 +1604,7 @@ name = "pyroscope_rbspy"
 version = "0.2.3"
 dependencies = [
  "anyhow",
+ "inferno",
  "log",
  "pyroscope",
  "rbspy-oncpu",
@@ -2702,8 +2703,3 @@ dependencies = [
 name = "rbspy"
 version = "0.12.1"
 source = "git+https://github.com/omarabid/rbspy.git?branch=oncpu-fix#0a9f6a192df811a25f30b51aa66468cdb82b6880"
-
-[[patch.unused]]
-name = "read-process-memory"
-version = "0.1.4"
-source = "git+https://github.com/omarabid/read-process-memory.git?branch=0.1.4-fix#51a5122d0d084478cc7563414255392e8f026971"
