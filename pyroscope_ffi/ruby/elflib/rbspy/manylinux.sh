@@ -1,13 +1,7 @@
 #!/bin/sh
-set -e
+set -ex
 
-# Install tooling
-yum -y -q install wget gcc libffi-devel openssl-devel
-
-# Install Rust
-# TODO build and publish a docker image
-curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.62.1 -y
-export PATH=~/.cargo/bin:$PATH
+cargo --version
 
 # Build wheels
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel

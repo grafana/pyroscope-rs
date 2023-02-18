@@ -2,15 +2,15 @@
 set -ex
 
 BUILD_DIR="/work"
-
-docker run \
+MANYLINUX_PREFIX=pyroscope/rust_builder
+docker run --rm -ti \
         -w /work/pyroscope_ffi/ruby/elflib/rbspy \
         -v `pwd`:/work \
-        quay.io/pypa/${BUILD_ARCH} \
+        ${MANYLINUX_PREFIX}_${BUILD_ARCH} \
         sh manylinux.sh
 
-docker run \
+docker run --rm -ti \
         -w /work/pyroscope_ffi/ruby/elflib/thread_id \
         -v `pwd`:/work \
-        quay.io/pypa/${BUILD_ARCH} \
+        ${MANYLINUX_PREFIX}_${BUILD_ARCH} \
         sh manylinux.sh
