@@ -60,7 +60,7 @@ impl Default for RbspyConfig {
 }
 
 impl RbspyConfig {
-    /// Create a new RbspyConfig
+    
     pub fn new(pid: i32) -> Self {
         RbspyConfig {
             pid: Some(pid),
