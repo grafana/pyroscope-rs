@@ -10,7 +10,7 @@ fi
 BUILD_DIR="/work"
 MANYLINUX_PREFIX=pyroscope/rust_builder
 
-docker run --rm -ti \
+docker run \
         -w /work/pyroscope_ffi/python \
         -v `pwd`:/work \
         ${MANYLINUX_PREFIX}_${BUILD_ARCH} \
