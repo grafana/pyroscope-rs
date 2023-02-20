@@ -2002,7 +2002,7 @@ dependencies = [
  "inferno",
  "log",
  "pyroscope",
- "rbspy-oncpu",
+ "rbspy",
  "thiserror",
 ]
 
@@ -2099,7 +2099,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rbspy-oncpu"
+name = "rbspy"
 version = "0.13.1"
 dependencies = [
  "anyhow",
