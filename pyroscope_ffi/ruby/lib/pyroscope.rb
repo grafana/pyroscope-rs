@@ -14,11 +14,6 @@ module Pyroscope
     attach_function :add_global_tag, [:string, :string], :bool
     attach_function :remove_global_tag, [:string, :string], :bool
     attach_function :drop_agent, [], :bool
-  end
-
-  module Utils
-    extend FFI::Library
-    ffi_lib File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}"
     attach_function :thread_id, [], :uint64
   end
 
@@ -142,7 +137,7 @@ module Pyroscope
     end
 
     def thread_id
-      return Utils.thread_id
+      return Rust.thread_id
     end
 
     def _add_tags(thread_id, tags)

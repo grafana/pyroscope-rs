@@ -14,6 +14,7 @@ pyroscope_rbspy = { path = "../../../../pyroscope_backends/pyroscope_rbspy" }
 ffikit = { path = "../../../ffikit" }
 pretty_env_logger = "0.4.0"
 inferno = "=0.11.14"
+libc = "*"
 
 [build-dependencies]
 cbindgen = "0.20.0"

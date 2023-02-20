@@ -15,9 +15,3 @@ docker run \
         -v `pwd`:/work \
         ${MANYLINUX_PREFIX}_${BUILD_ARCH} \
         sh manylinux.sh
-
-docker run \
-        -w /work/pyroscope_ffi/ruby/elflib/thread_id \
-        -v `pwd`:/work \
-        ${MANYLINUX_PREFIX}_${BUILD_ARCH} \
-        sh manylinux.sh
