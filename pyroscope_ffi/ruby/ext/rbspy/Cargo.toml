@@ -9,16 +9,11 @@ name = "rbspy"
 crate-type = ["cdylib"]
 
 [dependencies]
-#pyroscope = {version = "0.5.2" }
 pyroscope = { path = "../../../../" }
-#pyroscope_rbspy = { version = "0.2" }
 pyroscope_rbspy = { path = "../../../../pyroscope_backends/pyroscope_rbspy" }
 ffikit = { path = "../../../ffikit" }
 pretty_env_logger = "0.4.0"
 inferno = "=0.11.14"
-
-[patch.crates-io]
-rbspy = {git="https://github.com/omarabid/rbspy.git", branch="oncpu-fix"}
 
 [build-dependencies]
 cbindgen = "0.20.0"

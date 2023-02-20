@@ -1,20 +1,10 @@
-name: CI 
+name: CI
 
-on: 
+on:
   push:
-    paths:
-    - 'src/**'
-    - 'tests/**'
-    - '.github/workflows/ci.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths: 
-    - 'src/**'
-    - 'tests/**'
-    - '.github/workflows/ci.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   build:
@@ -41,7 +31,9 @@ jobs:
         run: sudo apt install libunwind8-dev
 
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1
@@ -114,7 +106,9 @@ jobs:
         run: sudo apt install libunwind8-dev
 
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1

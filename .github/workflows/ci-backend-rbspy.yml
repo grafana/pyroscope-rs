@@ -1,18 +1,10 @@
 name: CI Rbspy Backend
 
-on: 
+on:
   push:
-    paths:
-    - 'pyroscope_backends/pyroscope_rbspy/**'
-    - '.github/workflows/ci-backend-rbspy.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths: 
-    - 'pyroscope_backends/pyroscope_rbspy/**'
-    - '.github/workflows/ci-backend-rbspy.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   build:
@@ -33,7 +25,9 @@ jobs:
           target: aarch64-unknown-linux-gnu
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1

@@ -1,18 +1,10 @@
 name: CI Pyspy Backend
 
-on: 
+on:
   push:
-    paths:
-    - 'pyroscope_backends/pyroscope_pyspy/**'
-    - '.github/workflows/ci-backend-pyspy.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths: 
-    - 'pyroscope_backends/pyroscope_pyspy/**'
-    - '.github/workflows/ci-backend-pyspy.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   build:
@@ -38,7 +30,9 @@ jobs:
         run: sudo apt install libunwind8-dev
 
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1
@@ -68,7 +62,9 @@ jobs:
         target: [x86_64-pc-windows-gnu]
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1

@@ -1,19 +1,10 @@
 name: Python Package
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-    - 'pyroscope_ffi/python/**'
-    - '.github/workflows/ci-ffi-python.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths:
-    - 'pyroscope_ffi/python/**'
-    - '.github/workflows/ci-ffi-python.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   linux-build:
@@ -28,7 +19,7 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -73,7 +64,7 @@ jobs:
 
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip install *.whl"
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - run: python pyroscope_ffi/python/scripts/tests/test.py
@@ -90,7 +81,7 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -120,7 +111,9 @@ jobs:
     runs-on: macos-${{ matrix.macos-version }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -177,7 +170,7 @@ jobs:
         run: "cd ${{ github.workspace }}/python && pip install *.whl"
         env:
           SYSTEM_VERSION_COMPAT: 0
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - run: python pyroscope_ffi/python/scripts/tests/test.py
@@ -196,7 +189,7 @@ jobs:
 #    runs-on: windows-${{ matrix.windows-version }}
 #
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v3
 #
 #      - uses: actions-rs/toolchain@v1
 #        with:
@@ -253,7 +246,7 @@ jobs:
 #      - run: |
 #          cd ${{ github.workspace }}/python
 #          foreach($file in Get-ChildItem -Filter *.whl){pip install $file}
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v3
 #        with:
 #          submodules: recursive
 #      - run: python pyroscope_ffi/python/scripts/tests/test.py
@@ -264,7 +257,9 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: actions/setup-python@v4
         with:

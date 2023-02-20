@@ -60,7 +60,9 @@ jobs:
           target: x86_64-apple-darwin
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
 
     - name: Install packages (Ubuntu)
       if: matrix.os == 'ubuntu-18.04'
@@ -171,7 +173,7 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -210,7 +212,7 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -248,7 +250,9 @@ jobs:
     runs-on: macos-${{ matrix.macos-version }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -288,7 +292,9 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: actions/setup-python@v4
         with:
@@ -342,7 +348,9 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -416,7 +424,9 @@ jobs:
     steps:
       - uses: AutoModality/action-clean@v1
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - if: matrix.build-arch == 'aarch64'
         uses: docker/setup-qemu-action@v1
@@ -501,7 +511,9 @@ jobs:
       RUST_TARGET: ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -564,7 +576,9 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: ruby/setup-ruby@v1
         with:

@@ -14,7 +14,7 @@ repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 
 [dependencies]
-rbspy= {package = "rbspy-oncpu", version = "0.12.1"}
+rbspy= {package = "rbspy", path="../rbspy"}
 pyroscope = { version = "0.5.4", path = "../../" }
 thiserror ="1.0"
 log = "0.4"

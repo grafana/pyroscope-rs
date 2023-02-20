@@ -1,18 +1,10 @@
 name: CI pprof-rs Backend
 
-on: 
+on:
   push:
-    paths:
-    - 'pyroscope_backends/pyroscope_pprofrs/**'
-    - '.github/workflows/ci-backend-pprof.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths: 
-    - 'pyroscope_backends/pyroscope_pprofrs/**'
-    - '.github/workflows/ci-backend-pprof.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   build:
@@ -38,7 +30,9 @@ jobs:
         run: sudo apt install libunwind8-dev
 
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install stable toolchain
         uses: omarabid-forks/rs-toolchain@v1

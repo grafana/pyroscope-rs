@@ -2,17 +2,9 @@ name: Ruby Package
 
 on:
   push:
-    paths:
-    - 'pyroscope_ffi/ruby/**'
-    - '.github/workflows/ci-ffi-ruby.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths:
-    - 'pyroscope_ffi/ruby/**'
-    - '.github/workflows/ci-ffi-ruby.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   linux-build:
@@ -28,7 +20,9 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -91,7 +85,7 @@ jobs:
           path: "${{github.workspace}}/ruby"
       - run: "cd ${{ github.workspace }}/ruby && ls -l"
       - run: "cd ${{ github.workspace }}/ruby && gem install *.gem"
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Run Ruby Script
@@ -118,7 +112,7 @@ jobs:
     #steps:
       #- uses: AutoModality/action-clean@v1
 
-      #- uses: actions/checkout@v2
+      #- uses: actions/checkout@v3
 
       #- name: Install bundles
         #run: bundle
@@ -175,7 +169,9 @@ jobs:
       RUST_TARGET: ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -243,7 +239,7 @@ jobs:
           path: "${{github.workspace}}/ruby"
       - run: "cd ${{ github.workspace }}/ruby && ls -l"
       - run: "cd ${{ github.workspace }}/ruby && gem install *.gem"
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Run Ruby Script
@@ -262,7 +258,7 @@ jobs:
 
     #steps:
       #- uses: AutoModality/action-clean@v1
-      #- uses: actions/checkout@v2
+      #- uses: actions/checkout@v3
 
       #- uses: ruby/setup-ruby@v1
         #with:
