@@ -1,14 +1,10 @@
 #!/bin/sh
-set -e
+set -ex
 
-# Install tooling
-yum -y -q install wget gcc libffi-devel openssl-devel
-
-# Install Rust
-curl https://sh.rustup.rs -sSf | sh -s -- -y
-export PATH=~/.cargo/bin:$PATH
+cargo --version
 
 # Build wheels
+# todo this one is deprecated, use "build" package
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel
 
 # Audit wheels
