@@ -1725,6 +1725,7 @@ dependencies = [
  "cbindgen",
  "ffikit",
  "inferno",
+ "libc",
  "pretty_env_logger",
  "pyroscope",
  "pyroscope_rbspy",

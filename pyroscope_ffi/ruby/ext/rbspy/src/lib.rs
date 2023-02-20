@@ -299,3 +299,8 @@ fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
 
     tags_vec
 }
+
+#[no_mangle]
+pub extern "C" fn thread_id() -> u64 {
+    unsafe { libc::pthread_self() as u64 }
+}
