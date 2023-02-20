@@ -25,5 +25,4 @@ pip-log.txt
 
 # Rust Library
 lib/target/
-lib/Cargo.lock
 **/*.rs.bk
