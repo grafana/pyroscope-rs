@@ -1585,7 +1585,7 @@ dependencies = [
  "inferno",
  "log",
  "pyroscope",
- "rbspy 0.13.1",
+ "rbspy 0.14.0",
  "thiserror",
 ]
 
@@ -1685,7 +1685,7 @@ dependencies = [
 
 [[package]]
 name = "rbspy"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1720,7 +1720,7 @@ dependencies = [
 
 [[package]]
 name = "rbspy-ruby-structs"
-version = "0.13.1"
+version = "0.14.0"
 
 [[package]]
 name = "rdrand"
