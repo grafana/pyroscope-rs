@@ -1827,7 +1827,7 @@ dependencies = [
 
 [[package]]
 name = "rbspy"
-version = "0.15.1"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1862,7 +1862,7 @@ dependencies = [
 
 [[package]]
 name = "rbspy-ruby-structs"
-version = "0.15.1"
+version = "0.16.0"
 
 [[package]]
 name = "rdrand"
