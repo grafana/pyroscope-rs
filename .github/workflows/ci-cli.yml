@@ -1,18 +1,10 @@
-name: CI CLI 
+name: CI CLI
 
-on: 
+on:
   push:
-    paths:
-    - 'pyroscope_cli/**'
-    - '.github/workflows/ci-cli.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths:
-    - 'pyroscope_cli/**'
-    - '.github/workflows/ci-cli.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 
 jobs:

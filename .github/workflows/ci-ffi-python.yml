@@ -1,19 +1,10 @@
 name: Python Package
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-    - 'pyroscope_ffi/python/**'
-    - '.github/workflows/ci-ffi-python.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths:
-    - 'pyroscope_ffi/python/**'
-    - '.github/workflows/ci-ffi-python.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   linux-build:

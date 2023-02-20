@@ -1,18 +1,10 @@
 name: CI pprof-rs Backend
 
-on: 
+on:
   push:
-    paths:
-    - 'pyroscope_backends/pyroscope_pprofrs/**'
-    - '.github/workflows/ci-backend-pprof.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths: 
-    - 'pyroscope_backends/pyroscope_pprofrs/**'
-    - '.github/workflows/ci-backend-pprof.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   build:

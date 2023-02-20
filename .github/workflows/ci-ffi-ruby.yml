@@ -2,17 +2,9 @@ name: Ruby Package
 
 on:
   push:
-    paths:
-    - 'pyroscope_ffi/ruby/**'
-    - '.github/workflows/ci-ffi-ruby.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths:
-    - 'pyroscope_ffi/ruby/**'
-    - '.github/workflows/ci-ffi-ruby.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   linux-build:

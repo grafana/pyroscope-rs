@@ -1,18 +1,10 @@
 name: CI Pyspy Backend
 
-on: 
+on:
   push:
-    paths:
-    - 'pyroscope_backends/pyroscope_pyspy/**'
-    - '.github/workflows/ci-backend-pyspy.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths: 
-    - 'pyroscope_backends/pyroscope_pyspy/**'
-    - '.github/workflows/ci-backend-pyspy.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   build:

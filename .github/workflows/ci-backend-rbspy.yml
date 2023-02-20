@@ -1,18 +1,10 @@
 name: CI Rbspy Backend
 
-on: 
+on:
   push:
-    paths:
-    - 'pyroscope_backends/pyroscope_rbspy/**'
-    - '.github/workflows/ci-backend-rbspy.yml'
-    branches:
-    - '**'
+    branches: [main]
   pull_request:
-    paths: 
-    - 'pyroscope_backends/pyroscope_rbspy/**'
-    - '.github/workflows/ci-backend-rbspy.yml'
-    branches:
-    - '**'
+    branches: [main]
 
 jobs:
   build:
