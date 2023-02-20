@@ -19,9 +19,7 @@ pyroscope = { version = "0.5.4", path = "../../" }
 thiserror ="1.0"
 log = "0.4"
 anyhow = "1.0.56"
-
-[patch.crates-io]
-read-process-memory = {git = "https://github.com/omarabid/read-process-memory.git", branch = "0.1.4-fix"}
+inferno = "=0.11.14"
 
 [profile.dev]
 opt-level=0

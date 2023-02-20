@@ -2,6 +2,7 @@
 name = "rbspy"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.63"
 
 [lib]
 name = "rbspy"
@@ -14,6 +15,7 @@ pyroscope = { path = "../../../../" }
 pyroscope_rbspy = { path = "../../../../pyroscope_backends/pyroscope_rbspy" }
 ffikit = { path = "../../../ffikit" }
 pretty_env_logger = "0.4.0"
+inferno = "=0.11.14"
 
 [build-dependencies]
 cbindgen = "0.20.0"
