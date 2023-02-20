@@ -320,7 +320,7 @@ impl From<rbspy::StackFrame> for StackFrameWrapper {
             filename: Some(frame.relative_path.clone()),
             relative_path: Some(frame.relative_path),
             absolute_path: frame.absolute_path,
-            line: Some(frame.lineno),
+            line: frame.lineno.map(|l| l as u32),
         })
     }
 }
