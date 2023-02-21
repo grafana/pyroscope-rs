@@ -422,7 +422,9 @@ jobs:
     runs-on: [self-hosted, Linux, ARM64]
 
     steps:
-      - uses: AutoModality/action-clean@v1
+#      - uses: AutoModality/action-clean@v1
+#      use custom script instead of action to run as sudo to remove root owned directories created by docker.sh
+      - run: bash  -c "set -e ; shopt -s dotglob; sudo rm -rf *"
 
       - uses: actions/checkout@v3
         with:
