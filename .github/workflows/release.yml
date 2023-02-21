@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   lib-release:
-    name: pyroscope-main 
+    name: pyroscope-main
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/lib-')"
     continue-on-error: true
@@ -17,7 +17,7 @@ jobs:
           draft: true
           prerelease: false
   cli-release:
-    name: pyroscope-cli 
+    name: pyroscope-cli
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/cli-')"
     steps:
@@ -148,7 +148,7 @@ jobs:
           draft: true
           prerelease: false
   pyspy-release:
-    name: pyroscope-pyspy 
+    name: pyroscope-pyspy
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/pyspy-')"
     continue-on-error: true
@@ -419,7 +419,7 @@ jobs:
             target: arm-unknown-linux-gnueabihf
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, ARM64]
 
     steps:
       - uses: AutoModality/action-clean@v1
@@ -428,9 +428,8 @@ jobs:
         with:
           submodules: recursive
 
-      steps:
-        - name: asdf_install
-          uses: asdf-vm/actions/install@v1
+      - name: asdf_install
+        uses: asdf-vm/actions/install@v1
 
       - name: Install bundles
         run: bundle
