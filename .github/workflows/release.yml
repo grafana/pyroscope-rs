@@ -418,7 +418,7 @@ jobs:
         run: ~/.asdf/bin/asdf || git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.1 ;
 
       - name: asdf install
-        run: echo $HOME/.asdf/bin >> GITHUB_PATH ; echo $HOME/.asdf/shims >> GITHUB_PATH
+        run: echo $HOME/.asdf/bin >> $GITHUB_PATH ; echo $HOME/.asdf/shims >> $GITHUB_PATH
 
       - name: asdf install .tools-versions
         run: asdf install
