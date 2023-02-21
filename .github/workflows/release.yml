@@ -348,6 +348,7 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
+      - run: id
       - uses: actions/checkout@v3
         with:
           submodules: recursive
@@ -406,16 +407,21 @@ jobs:
     runs-on: [self-hosted, Linux, ARM64]
 
     steps:
-#      - uses: AutoModality/action-clean@v1
-#      use custom script instead of action to run as sudo to remove root owned directories created by docker.sh
-      - run: bash  -c "set -e ; shopt -s dotglob; sudo rm -rf *"
+      - name: rm -rf * - custom script instead of AutoModality/action-clean@v1 to run as sudo to remove root owned directories created by docker.sh
+        run: bash  -c "set -e ; shopt -s dotglob; sudo rm -rf *"
 
       - uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: asdf_install
-        uses: asdf-vm/actions/install@v1
+      - name: asdf clone
+        run: ~/.asdf/bin/asdf || git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.1 ;
+
+      - name: asdf install
+        run: echo $HOME/.asdf/bin >> GITHUB_PATH ; echo $HOME/.asdf/shims >> GITHUB_PATH
+
+      - name: asdf install .tools-versions
+        run: asdf install
 
       - name: Install bundles
         run: bundle
