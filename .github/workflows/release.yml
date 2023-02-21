@@ -419,7 +419,7 @@ jobs:
             target: arm-unknown-linux-gnueabihf
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: self-hosted
 
     steps:
       - uses: AutoModality/action-clean@v1
