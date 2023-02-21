@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   lib-release:
-    name: pyroscope-main 
+    name: pyroscope-main
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/lib-')"
     continue-on-error: true
@@ -17,7 +17,7 @@ jobs:
           draft: true
           prerelease: false
   cli-release:
-    name: pyroscope-cli 
+    name: pyroscope-cli
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/cli-')"
     steps:
@@ -148,7 +148,7 @@ jobs:
           draft: true
           prerelease: false
   pyspy-release:
-    name: pyroscope-pyspy 
+    name: pyroscope-pyspy
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/pyspy-')"
     continue-on-error: true
@@ -348,6 +348,7 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
+      - run: id
       - uses: actions/checkout@v3
         with:
           submodules: recursive
@@ -358,22 +359,6 @@ jobs:
 
       - name: Install bundles
         run: bundle
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Update lock files
-        run: cargo update
-        working-directory: pyroscope_ffi/ruby/ext/rbspy
-
-      - name: Update lock files
-        run: cargo update
-        working-directory: pyroscope_ffi/ruby/ext/thread_id
-
-      - name: Build native extensions
-        run: rake rbspy_install
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build native extensions
-        run: rake thread_id_install
         working-directory: pyroscope_ffi/ruby
 
       - name: Generate extra libraries
@@ -419,39 +404,27 @@ jobs:
             target: arm-unknown-linux-gnueabihf
 
     name: Linux - ${{ matrix.build-arch }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, ARM64]
 
     steps:
-      - uses: AutoModality/action-clean@v1
+      - name: rm -rf * - custom script instead of AutoModality/action-clean@v1 to run as sudo to remove root owned directories created by docker.sh
+        run: bash  -c "set -e ; shopt -s dotglob; sudo rm -rf *"
 
       - uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - uses: ruby/setup-ruby@v1
-        env:
-          ImageOS: ubuntu20
-        with:
-          ruby-version: '3.1'
+      - name: asdf clone
+        run: ~/.asdf/bin/asdf || git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.1 ;
+
+      - name: asdf install
+        run: echo $HOME/.asdf/bin >> $GITHUB_PATH ; echo $HOME/.asdf/shims >> $GITHUB_PATH
+
+      - name: asdf install .tools-versions
+        run: asdf install
 
       - name: Install bundles
         run: bundle
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Update lock files
-        run: cargo update
-        working-directory: pyroscope_ffi/ruby/ext/rbspy
-
-      - name: Update lock files
-        run: cargo update
-        working-directory: pyroscope_ffi/ruby/ext/thread_id
-
-      - name: Build native extensions
-        run: rake rbspy_install
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build native extensions
-        run: rake thread_id_install
         working-directory: pyroscope_ffi/ruby
 
       - name: Generate extra libraries
