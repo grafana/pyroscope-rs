@@ -98,6 +98,15 @@ Pyroscope can be used directly from your projects with native integration. No ag
 
 You can read the [Docs](https://docs.rs/pyroscope/) or check the [examples](examples) for detailed usage of the library. You can also join the [Slack channel](https://pyroscope.slack.com/archives/C02Q47F8LJH) if you have questions.
 
+### Major Contributors
+
+We'd like to give a big thank you to the following contributors who have made significant contributions to this project:
+
+* [Abid Omar](https://github.com/omarabid)
+* [Anatoly Korniltsev](https://github.com/korniltsev)
+* [Bernhard Schuster](https://github.com/drahnr)
+
+
 ### License
 
 Pyroscope is distributed under the Apache License (Version 2.0).
