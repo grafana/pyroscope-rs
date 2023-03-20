@@ -3,7 +3,7 @@ Pyroscope CLI (pyroscope-cli)
 
 `pyroscope-cli` is a general purpose profiler. It currently supports profiling ruby and python applications. The aggregated data from profiling is then sent to a [Pyroscope Server](https://pyroscope.io/docs/installing-pyroscope-overview/). Under the hood, it uses the [Pyroscope Rust library](https://github.com/pyroscope-io/pyroscope-rs) and its [backends](https://github.com/pyroscope-io/pyroscope-rs/tree/main/pyroscope_backends).
 
-This is a Work-in-Progress implementation. Some features (like adhoc/pull mode) are still not available and the profiling spies are limited to Ruby/Python. For the original implementation, you should check the [Pyroscope Go agent](https://pyroscope.io/docs/agent-overview/j). 
+This is a Work-in-Progress implementation. Some features (like adhoc/pull mode) are still not available and the profiling spies are limited to Ruby/Python. For the original implementation, you should check the [Pyroscope Go agent](https://pyroscope.io/docs/golang/).
 
 ### CHANGELOG
 
