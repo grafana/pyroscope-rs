@@ -1,0 +1,22 @@
+bin.name = "pyroscope-cli"
+args = ["completion", "--help"]
+status.code = 0
+stdout = """
+pyroscope-cli-completion 
+Generate the autocompletion script for pyroscope for the specified shell. See each sub-command's
+help for details on how to use the generated script.
+
+USAGE:
+    pyroscope-cli completion <SUBCOMMAND>
+
+OPTIONS:
+    -h, --help    Print help information
+
+SUBCOMMANDS:
+    bash          generate the autocompletion script for bash
+    fish          generate the autocompletion script for fish
+    powershell    generate the autocompletion script for powershell
+    zsh           generate the autocompletion script for zsh
+    help          Print this message or the help of the given subcommand(s)
+"""
+stderr = ""

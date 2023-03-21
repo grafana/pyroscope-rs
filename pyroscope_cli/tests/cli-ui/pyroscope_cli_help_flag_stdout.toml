@@ -1,0 +1,33 @@
+bin.name = "pyroscope-cli"
+args = ["--help"]
+status.code = 0
+stdout = """
+pyroscope-cli 0.2.2
+Abid Omar <contact@omarabid.com>
+Pyroscope CLI
+
+USAGE:
+    pyroscope-cli [OPTIONS] <SUBCOMMAND>
+
+OPTIONS:
+    -c, --config <FILE>
+            Set a custom config file
+
+    -h, --help
+            Print help information
+
+    -V, --version
+            Print version information
+
+SUBCOMMANDS:
+    completion
+            Generate the autocompletion script for pyroscope for the specified shell. See each
+            sub-command's help for details on how to use the generated script.
+    connect
+            Connect to an existing process and profile it
+    exec
+            Start a new process from arguments and profile it
+    help
+            Print this message or the help of the given subcommand(s)
+"""
+stderr = ""
