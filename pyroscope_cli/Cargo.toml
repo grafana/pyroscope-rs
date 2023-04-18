@@ -38,6 +38,7 @@ pyroscope = { version = "0.5.4", path = "../" }
 pyroscope_pprofrs = {version = "0.2.3", path = "../pyroscope_backends/pyroscope_pprofrs" }
 pyroscope_rbspy = {version = "0.2.2", path = "../pyroscope_backends/pyroscope_rbspy" }
 pyroscope_pyspy = {version = "0.2.3", path = "../pyroscope_backends/pyroscope_pyspy" }
+json = "0.12.4"
 
 [dependencies.clap]
 version = "3.2"
