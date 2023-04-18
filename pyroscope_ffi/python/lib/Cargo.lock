@@ -1698,6 +1698,7 @@ dependencies = [
  "cbindgen",
  "ffikit",
  "inferno",
+ "log",
  "pretty_env_logger",
  "pyroscope",
  "pyroscope_pyspy",

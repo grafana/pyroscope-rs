@@ -25,7 +25,9 @@ bool initialize_agent(const char *application_name,
                       bool report_pid,
                       bool report_thread_id,
                       bool report_thread_name,
-                      const char *tags);
+                      const char *tags,
+                      const char *scope_org_id,
+                      const char *http_headers_json);
 
 bool drop_agent(void);
 

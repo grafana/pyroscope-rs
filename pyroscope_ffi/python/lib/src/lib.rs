@@ -7,24 +7,26 @@ use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
 
+const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
+
 #[no_mangle]
 pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
     // Force rustc to display the log messages in the console.
     match logging_level {
         50 => {
-            std::env::set_var("RUST_LOG", "error");
+            std::env::set_var("RUST_LOG", "off");
         }
         40 => {
-            std::env::set_var("RUST_LOG", "warn");
+            std::env::set_var("RUST_LOG", "error");
         }
         30 => {
-            std::env::set_var("RUST_LOG", "info");
+            std::env::set_var("RUST_LOG", "warn");
         }
         20 => {
-            std::env::set_var("RUST_LOG", "debug");
+            std::env::set_var("RUST_LOG", "info");
         }
         10 => {
-            std::env::set_var("RUST_LOG", "trace");
+            std::env::set_var("RUST_LOG", "debug");
         }
         _ => {
             std::env::set_var("RUST_LOG", "debug");
@@ -41,6 +43,8 @@ pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
     sample_rate: u32, detect_subprocesses: bool, oncpu: bool, native: bool, gil_only: bool,
     report_pid: bool, report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
+    scope_org_id: *const c_char,
+    http_headers_json: *const c_char,
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -65,6 +69,16 @@ pub extern "C" fn initialize_agent(
 
     // tags
     let tags_string = unsafe { CStr::from_ptr(tags) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let scope_org_id = unsafe { CStr::from_ptr(scope_org_id) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let http_headers_json = unsafe { CStr::from_ptr(http_headers_json) }
         .to_str()
         .unwrap()
         .to_string();
@@ -110,6 +124,27 @@ pub extern "C" fn initialize_agent(
     // Add the auth token if it is not empty.
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);
+    }
+    if scope_org_id != "" {
+        agent_builder = agent_builder.scope_org_id(scope_org_id);
+    }
+
+    let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
+    match http_headers {
+        Ok(http_headers) => {
+            agent_builder = agent_builder.http_headers(http_headers);
+        }
+        Err(e) => {
+            match e {
+                pyroscope::PyroscopeError::Json(e) => {
+                    log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
+                }
+                pyroscope::PyroscopeError::AdHoc(e) => {
+                    log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
+                }
+                _ => {}
+            }
+        }
     }
 
     // Build the agent.
