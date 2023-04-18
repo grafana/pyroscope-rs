@@ -819,6 +819,9 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>> {
     let mut http_headers = HashMap::new();
     let parsed = json::parse(&http_headers_json)?;
+    if !parsed.is_object() {
+        return Err(PyroscopeError::AdHoc(format!("expected object, got {}", parsed)));
+    }
     for (k, v) in parsed.entries() {
         if v.is_string() {
             http_headers.insert(k.to_string(), v.to_string());
