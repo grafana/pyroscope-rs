@@ -8,9 +8,13 @@ use std::str::FromStr;
 use ffikit::Signal;
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
+use pyroscope;
 use pyroscope::{pyroscope::Compression, PyroscopeAgent};
 use pyroscope::backend::{Report, StackFrame, Tag};
 use pyroscope::pyroscope::ReportEncoding;
+
+const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
+
 
 pub fn transform_report(report: Report) -> Report {
     let cwd = env::current_dir().unwrap();
@@ -109,7 +113,9 @@ pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
     sample_rate: u32, detect_subprocesses: bool, oncpu: bool, report_pid: bool,
     report_thread_id: bool, tags: *const c_char, compression: *const c_char,
-    report_encoding: *const c_char
+    report_encoding: *const c_char,
+    scope_org_id: *const c_char,
+    http_headers_json: *const c_char,
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -144,6 +150,16 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
+    let scope_org_id = unsafe { CStr::from_ptr(scope_org_id) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let http_headers_json = unsafe { CStr::from_ptr(http_headers_json) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
     let compression = Compression::from_str(&compression_string);
     let report_encoding = ReportEncoding::from_str(&report_encoding)
         .unwrap_or(ReportEncoding::FOLDED);
@@ -170,6 +186,28 @@ pub extern "C" fn initialize_agent(
 
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);
+    }
+
+    if scope_org_id != "" {
+        agent_builder = agent_builder.scope_org_id(scope_org_id);
+    }
+
+    let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
+    match http_headers {
+        Ok(http_headers) => {
+            agent_builder = agent_builder.http_headers(http_headers);
+        }
+        Err(e) => {
+            match e {
+                pyroscope::PyroscopeError::Json(e) => {
+                    log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
+                }
+                pyroscope::PyroscopeError::AdHoc(e) => {
+                    log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
+                }
+                _ => {}
+            }
+        }
     }
 
     if let Ok(compression) = compression {

@@ -18,6 +18,8 @@ use crate::{
     PyroscopeError,
 };
 
+use json;
+
 use crate::backend::BackendImpl;
 use crate::pyroscope::Compression::GZIP;
 use crate::pyroscope::ReportEncoding::{PPROF};
@@ -50,6 +52,8 @@ pub struct PyroscopeConfig {
     /// Pyroscope http request body compression
     pub compression: Option<Compression>,
     pub report_encoding: ReportEncoding,
+    pub scope_org_id: Option<String>,
+    pub http_headers: HashMap<String, String>,
 }
 
 impl Default for PyroscopeConfig {
@@ -67,6 +71,8 @@ impl Default for PyroscopeConfig {
             func: None,
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
+            scope_org_id: None,
+            http_headers: HashMap::new(),
         }
     }
 }
@@ -90,6 +96,8 @@ impl PyroscopeConfig {
             func: None,                   // No function
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
+            scope_org_id: None,
+            http_headers: HashMap::new(),
         }
     }
 
@@ -180,6 +188,20 @@ impl PyroscopeConfig {
     pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
         Self {
             report_encoding: report_encoding,
+            ..self
+        }
+    }
+
+    pub fn scope_org_id(self, scope_org_id: String) -> Self {
+        Self {
+            scope_org_id: Some(scope_org_id),
+            ..self
+        }
+    }
+
+    pub fn http_headers(self, http_headers: HashMap<String, String>) -> Self {
+        Self {
+            http_headers: http_headers,
             ..self
         }
     }
@@ -340,6 +362,20 @@ impl PyroscopeAgentBuilder {
     pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
         Self {
             config: self.config.report_encoding(report_encoding),
+            ..self
+        }
+    }
+
+    pub fn scope_org_id(self, scope_org_id: String) -> Self {
+        Self {
+            config: self.config.scope_org_id(scope_org_id),
+            ..self
+        }
+    }
+
+    pub fn http_headers(self, http_headers: HashMap<String, String>) -> Self {
+        Self {
+            config: self.config.http_headers(http_headers),
             ..self
         }
     }
@@ -778,4 +814,17 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 
         Ok(())
     }
+}
+
+pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>> {
+    let mut http_headers = HashMap::new();
+    let parsed = json::parse(&http_headers_json)?;
+    for (k, v) in parsed.entries() {
+        if v.is_string() {
+            http_headers.insert(k.to_string(), v.to_string());
+        } else {
+            return Err(PyroscopeError::AdHoc(format!("invalid http header value, not a string: {}", v.to_string())));
+        }
+    };
+    return Ok(http_headers);
 }
