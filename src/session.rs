@@ -226,12 +226,18 @@ impl Session {
             .header("Content-Type", report.content_type.as_str());
 
         // Set authentication token
-        if let Some(auth_token) = self.config.auth_token.clone() {
+        if let Some(auth_token) = &self.config.auth_token {
             req_builder = req_builder.bearer_auth(auth_token);
         }
         if report.content_encoding != "" {
             req_builder = req_builder.header("Content-Encoding", report.content_encoding.as_str());
         }
+        if let Some(scope_org_id) = &self.config.scope_org_id {
+            req_builder = req_builder.header("X-Scope-OrgID", scope_org_id);
+        }
+        for (k, v) in &self.config.http_headers {
+            req_builder = req_builder.header(k, v);
+        };
 
         // Send the request
         req_builder

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
@@ -7,6 +8,8 @@ use crate::utils::{
     error::{Error, Result},
     types::Spy,
 };
+
+const LOG_TAG: &str = "Pyroscope::cli";
 
 /// Wrapper for the `pyroscope` library and the `pyroscope_pyspy` and `pyroscope_rbspy` backends.
 #[derive(Debug, Default)]
@@ -22,6 +25,10 @@ impl Profiler {
         let app_name: String = AppConfig::get::<String>("application_name")?;
 
         let auth_token: String = AppConfig::get::<String>("auth_token")?;
+
+        let scope_org_id: String = AppConfig::get::<String>("scope_org_id").unwrap_or("".to_string());
+
+        let http_headers = get_http_headers();
 
         let server_address: String = AppConfig::get::<String>("server_address")?;
 
@@ -53,6 +60,12 @@ impl Profiler {
                 let mut builder = PyroscopeAgent::default_builder();
                 builder = builder.url(server_address);
                 builder = builder.application_name(app_name);
+                if scope_org_id != "" {
+                    builder = builder.scope_org_id(scope_org_id);
+                }
+                if http_headers.len() > 0 {
+                    builder = builder.http_headers(http_headers);
+                }
 
                 // There must be a better way to do this, hopefully as clap supports Option<String>
                 if auth_token.len() > 0 {
@@ -72,6 +85,9 @@ impl Profiler {
                 let mut builder = PyroscopeAgent::default_builder();
                 builder = builder.url(server_address);
                 builder = builder.application_name(app_name);
+                if scope_org_id != "" {
+                    builder = builder.scope_org_id(scope_org_id);
+                }
 
                 // There must be a better way to do this, hopefully as clap supports Option<String>
                 if auth_token.len() > 0 {
@@ -149,4 +165,24 @@ mod test_tags_to_array {
 
         assert_eq!(tags, vec![("key1", "value1"), ("key2", "value2")]);
     }
+}
+
+fn get_http_headers() -> HashMap<String, String> {
+    let http_headers: String = AppConfig::get::<String>("http_headers_json")
+        .unwrap_or("{}".to_string());
+
+    let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers)
+        .unwrap_or_else(|e| {
+            match e {
+                pyroscope::PyroscopeError::Json(e) => {
+                    log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
+                }
+                pyroscope::PyroscopeError::AdHoc(e) => {
+                    log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
+                }
+                _ => {}
+            }
+            HashMap::new()
+        });
+    return http_headers;
 }
