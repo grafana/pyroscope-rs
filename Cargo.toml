@@ -55,7 +55,7 @@ path = "examples/internal/rbspy-connect.rs"
 thiserror ="1.0"
 log = "0.4"
 names = "0.13.0"
-reqwest = { version = "0.11", features = ["blocking", "rustls-tls-native-roots"]}
+reqwest = { version = "0.11", features = ["blocking", "rustls-tls-webpki-roots"], default-features = false }
 url = "2.2.2"
 libflate = "1.2.0"
 libc = "^0.2.124"
@@ -70,6 +70,11 @@ assert_matches = "1"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 pyroscope_pyspy = { path = "pyroscope_backends/pyroscope_pyspy" }
 pyroscope_rbspy = { path = "pyroscope_backends/pyroscope_rbspy" }
+
+[features]
+default = ["rustls-tls"]
+rustls-tls = ["reqwest/rustls-tls"]
+native-tls = ["reqwest/native-tls"]
 
 [profile.dev]
 opt-level=0
