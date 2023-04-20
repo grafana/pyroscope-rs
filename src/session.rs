@@ -194,38 +194,29 @@ impl Session {
 
 
     fn upload(&self, report: EncodedReport) -> Result<()> {
-        log::info!(
-            target: LOG_TAG,
-            "Sending Session: {} - {}",
-            self.from,
-            self.until
-        );
+        log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
         if report.data.is_empty() {
             return Ok(());
         }
 
-        // Create a new client
+        //todo do not create a new client for every request
         let client = reqwest::blocking::Client::new();
 
-        // Clone URL
-        let url = self.config.url.clone();
-
-        // Merge application name with Tags
         let application_name = merge_tags_with_app_name(
             self.config.application_name.clone(),
             report.metadata.tags.clone().into_iter().collect(),
         )?;
 
-        // Parse URL
-        let joined = Url::parse(&url)?.join("ingest")?;
+        let mut url = Url::parse(&self.config.url)?;
+        url.path_segments_mut()
+            .map_err(|_e| PyroscopeError::new("url construction failure - cannot_be_a_base"))?
+            .push("ingest");
 
-        // Create Reqwest builder
         let mut req_builder = client
-            .post(joined.as_str())
+            .post(url.as_str())
             .header("Content-Type", report.content_type.as_str());
 
-        // Set authentication token
         if let Some(auth_token) = &self.config.auth_token {
             req_builder = req_builder.bearer_auth(auth_token);
         }
@@ -239,8 +230,7 @@ impl Session {
             req_builder = req_builder.header(k, v);
         };
 
-        // Send the request
-        req_builder
+        let response = req_builder
             .query(&[
                 ("name", application_name.as_str()),
                 ("from", &format!("{}", self.from)),
@@ -252,6 +242,10 @@ impl Session {
             .body(report.data)
             .timeout(Duration::from_secs(10))
             .send()?;
+
+        if !response.status().is_success() {
+            log::error!(target: LOG_TAG, "Sending Session failed {}", response.status().as_u16());
+        }
         Ok(())
     }
 }
