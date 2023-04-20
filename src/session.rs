@@ -13,6 +13,7 @@ use crate::{
     pyroscope::{PyroscopeConfig, Compression},
     utils::{get_time_range, merge_tags_with_app_name},
     Result,
+    PyroscopeError,
     encode::{folded, pprof},
 };
 use crate::backend::EncodedReport;
