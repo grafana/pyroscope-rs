@@ -21,6 +21,8 @@ pub struct AppConfig {
     pub spy_name: Spy,
     pub application_name: Option<String>,
     pub auth_token: Option<String>,
+    pub basic_auth_username: Option<String>,
+    pub basic_auth_password: Option<String>,
     pub detect_subprocesses: Option<bool>,
     pub no_logging: Option<bool>,
     pub log_level: LogLevel,
@@ -119,6 +121,16 @@ impl AppConfig {
                     AppConfig::set("auth_token", auth_token)?;
                 }
             }
+            if sub_connect.is_present("basic_auth_username") {
+                if let Some(basic_auth_username) = sub_connect.value_of("basic_auth_username") {
+                    AppConfig::set("basic_auth_username", basic_auth_username)?;
+                }
+            }
+            if sub_connect.is_present("basic_auth_password") {
+                if let Some(basic_auth_password) = sub_connect.value_of("basic_auth_password") {
+                    AppConfig::set("basic_auth_password", basic_auth_password)?;
+                }
+            }
             if sub_connect.is_present("scope_org_id") {
                 if let Some(scope_org_id) = sub_connect.value_of("scope_org_id") {
                     AppConfig::set("scope_org_id", scope_org_id)?;
@@ -208,6 +220,16 @@ impl AppConfig {
             if sub_exec.is_present("auth_token") {
                 if let Some(auth_token) = sub_exec.value_of("auth_token") {
                     AppConfig::set("auth_token", auth_token)?;
+                }
+            }
+            if sub_exec.is_present("basic_auth_username") {
+                if let Some(basic_auth_username) = sub_exec.value_of("basic_auth_username") {
+                    AppConfig::set("basic_auth_username", basic_auth_username)?;
+                }
+            }
+            if sub_exec.is_present("basic_auth_password") {
+                if let Some(basic_auth_password) = sub_exec.value_of("basic_auth_password") {
+                    AppConfig::set("basic_auth_password", basic_auth_password)?;
                 }
             }
             if sub_exec.is_present("scope_org_id") {

@@ -65,6 +65,20 @@ enum Commands {
         )]
         auth_token: Option<String>,
         #[clap(
+            name = "basic_auth_username",
+            long = "basic-auth-username",
+            value_name = "BASIC_AUTH_USERNAME",
+            help = "HTTP Basic Authentication username used when uploading profiling data"
+        )]
+        basic_auth_username: Option<String>,
+        #[clap(
+            name = "basic_auth_password",
+            long = "basic-auth-password",
+            value_name = "BASIC_AUTH_PASSWORD",
+            help = "HTTP Basic Authentication password used when uploading profiling data"
+        )]
+        basic_auth_password: Option<String>,
+        #[clap(
             name = "scope_org_id",
             long = "scope_org_id",
             value_name = "SCOPE_ORG_ID",
@@ -197,6 +211,20 @@ enum Commands {
             help = "Authentication token used when uploading profiling data"
         )]
         auth_token: Option<String>,
+        #[clap(
+            name = "basic_auth_username",
+            long = "basic-auth-username",
+            value_name = "BASIC_AUTH_USERNAME",
+            help = "HTTP Basic Authentication username used when uploading profiling data"
+        )]
+        basic_auth_username: Option<String>,
+        #[clap(
+            name = "basic_auth_password",
+            long = "basic-auth-password",
+            value_name = "BASIC_AUTH_PASSWORD",
+            help = "HTTP Basic Authentication password used when uploading profiling data"
+        )]
+        basic_auth_password: Option<String>,
         #[clap(
             name = "scope_org_id",
             long = "scope_org_id",

@@ -25,6 +25,8 @@ impl Profiler {
         let app_name: String = AppConfig::get::<String>("application_name")?;
 
         let auth_token: String = AppConfig::get::<String>("auth_token")?;
+        let basic_auth_username: String = AppConfig::get::<String>("basic_auth_username")?;
+        let basic_auth_password: String = AppConfig::get::<String>("basic_auth_password")?;
 
         let scope_org_id: String = AppConfig::get::<String>("scope_org_id").unwrap_or("".to_string());
 
@@ -70,6 +72,8 @@ impl Profiler {
                 // There must be a better way to do this, hopefully as clap supports Option<String>
                 if auth_token.len() > 0 {
                     builder = builder.auth_token(auth_token);
+                } else if basic_auth_username != "" && basic_auth_password != "" {
+                    builder = builder.basic_auth(basic_auth_username, basic_auth_password);
                 }
 
                 builder.backend(backend).tags(tags).build()?

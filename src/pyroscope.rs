@@ -47,6 +47,7 @@ pub struct PyroscopeConfig {
     pub spy_name: String,
     /// Authentication Token
     pub auth_token: Option<String>,
+    pub basic_auth: Option<BasicAuth>,
     /// Function to apply
     pub func: Option<fn(Report) -> Report>,
     /// Pyroscope http request body compression
@@ -54,6 +55,12 @@ pub struct PyroscopeConfig {
     pub report_encoding: ReportEncoding,
     pub scope_org_id: Option<String>,
     pub http_headers: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BasicAuth {
+    pub username: String,
+    pub password: String,
 }
 
 impl Default for PyroscopeConfig {
@@ -68,6 +75,7 @@ impl Default for PyroscopeConfig {
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
             auth_token: None,
+            basic_auth: None,
             func: None,
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
@@ -93,6 +101,7 @@ impl PyroscopeConfig {
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
+            basic_auth: None,
             func: None,                   // No function
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
@@ -130,10 +139,17 @@ impl PyroscopeConfig {
         Self { spy_name, ..self }
     }
 
-    /// Set the Authentication Token.
+
     pub fn auth_token(self, auth_token: String) -> Self {
         Self {
             auth_token: Some(auth_token),
+            ..self
+        }
+    }
+
+    pub fn basic_auth(self, username: String, password: String) -> Self {
+        Self {
+            basic_auth: Some(BasicAuth { username, password }),
             ..self
         }
     }
@@ -306,6 +322,13 @@ impl PyroscopeAgentBuilder {
     pub fn auth_token(self, auth_token: impl AsRef<str>) -> Self {
         Self {
             config: self.config.auth_token(auth_token.as_ref().to_owned()),
+            ..self
+        }
+    }
+
+    pub fn basic_auth(self, username: impl AsRef<str>, password: impl AsRef<str>) -> Self {
+        Self {
+            config: self.config.basic_auth(username.as_ref().to_owned(), password.as_ref().to_owned()),
             ..self
         }
     }
