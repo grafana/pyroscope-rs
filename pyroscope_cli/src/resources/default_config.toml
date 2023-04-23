@@ -8,4 +8,6 @@ pyspy_native = false
 sample_rate = 100
 server_address = "http://localhost:4040"
 auth_token = ""
+basic_auth_username = ""
+basic_auth_password = ""
 debug = false

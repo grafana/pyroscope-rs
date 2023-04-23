@@ -40,9 +40,20 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 
 #[no_mangle]
 pub extern "C" fn initialize_agent(
-    application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
-    sample_rate: u32, detect_subprocesses: bool, oncpu: bool, native: bool, gil_only: bool,
-    report_pid: bool, report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
+    application_name: *const c_char,
+    server_address: *const c_char,
+    auth_token: *const c_char,
+    basic_auth_username: *const c_char,
+    basic_auth_password: *const c_char,
+    sample_rate: u32,
+    detect_subprocesses: bool,
+    oncpu: bool,
+    native: bool,
+    gil_only: bool,
+    report_pid: bool,
+    report_thread_id: bool,
+    report_thread_name: bool,
+    tags: *const c_char,
     scope_org_id: *const c_char,
     http_headers_json: *const c_char,
 ) -> bool {
@@ -61,8 +72,17 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
-    // auth_token
     let auth_token = unsafe { CStr::from_ptr(auth_token) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let basic_auth_username = unsafe { CStr::from_ptr(basic_auth_username) }
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let basic_auth_password = unsafe { CStr::from_ptr(basic_auth_password) }
         .to_str()
         .unwrap()
         .to_string();
@@ -124,6 +144,8 @@ pub extern "C" fn initialize_agent(
     // Add the auth token if it is not empty.
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);
+    } else if basic_auth_username != "" && basic_auth_password != "" {
+        agent_builder = agent_builder.basic_auth(basic_auth_username, basic_auth_password);
     }
     if scope_org_id != "" {
         agent_builder = agent_builder.scope_org_id(scope_org_id);

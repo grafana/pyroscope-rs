@@ -9,7 +9,7 @@ module Pyroscope
     extend FFI::Library
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
     attach_function :initialize_logging, [:int], :bool
-    attach_function :initialize_agent, [:string, :string, :string, :int, :bool, :bool, :bool, :bool, :string, :string, :string, :string, :string], :bool
+    attach_function :initialize_agent, [:string, :string, :string, :string, :string, :int, :bool, :bool, :bool, :bool, :string, :string, :string, :string, :string], :bool
     attach_function :add_thread_tag, [:uint64, :string, :string], :bool
     attach_function :remove_thread_tag, [:uint64, :string, :string], :bool
     attach_function :add_global_tag, [:string, :string], :bool
@@ -38,6 +38,8 @@ module Pyroscope
     :app_name,
     :server_address,
     :auth_token,
+    :basic_auth_username,
+    :basic_auth_password,
     :log_level,
     :sample_rate,
     :detect_subprocesses,
@@ -57,6 +59,8 @@ module Pyroscope
       self.application_name = ''
       self.server_address = 'http://localhost:4040'
       self.auth_token = ''
+      self.basic_auth_username = ''
+      self.basic_auth_password = ''
       self.sample_rate = 100
       self.detect_subprocesses = false
       self.oncpu = true
@@ -106,6 +110,8 @@ module Pyroscope
         @config.app_name || @config.application_name || "",
         @config.server_address || "",
         @config.auth_token || "",
+        @config.basic_auth_username || "",
+        @config.basic_auth_password || "",
         @config.sample_rate || 100,
         @config.detect_subprocesses || false,
         @config.oncpu || false,

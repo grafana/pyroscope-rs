@@ -220,6 +220,8 @@ impl Session {
 
         if let Some(auth_token) = &self.config.auth_token {
             req_builder = req_builder.bearer_auth(auth_token);
+        } else if let Some(basic_auth) = &self.config.basic_auth {
+            req_builder = req_builder.basic_auth(basic_auth.username.clone(), Some(basic_auth.password.clone()));
         }
         if report.content_encoding != "" {
             req_builder = req_builder.header("Content-Encoding", report.content_encoding.as_str());
