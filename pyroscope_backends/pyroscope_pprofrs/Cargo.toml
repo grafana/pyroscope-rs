@@ -16,9 +16,12 @@ readme = "README.md"
 
 [dependencies]
 pprof = "0.10.0"
-pyroscope = {version = "0.5.4", path = "../../" }
+pyroscope = { version = "0.5.4", path = "../../", default-features = false }
 thiserror ="1.0"
 log = "0.4"
+
+[features]
+default = ["pyroscope/default"]
 
 [profile.dev]
 opt-level=0
