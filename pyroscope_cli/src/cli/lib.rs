@@ -80,7 +80,7 @@ enum Commands {
         basic_auth_password: Option<String>,
         #[clap(
             name = "scope_org_id",
-            long = "scope_org_id",
+            long = "scope-org-id",
             value_name = "SCOPE_ORG_ID",
             help = "X-Scope-OrgID header for phlare multi-tenancy"
         )]
@@ -227,7 +227,7 @@ enum Commands {
         basic_auth_password: Option<String>,
         #[clap(
             name = "scope_org_id",
-            long = "scope_org_id",
+            long = "scope-org-id",
             value_name = "SCOPE_ORG_ID",
             help = "X-Scope-OrgID header for phlare multi-tenancy"
         )]
