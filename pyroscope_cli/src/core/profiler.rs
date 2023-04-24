@@ -96,6 +96,8 @@ impl Profiler {
                 // There must be a better way to do this, hopefully as clap supports Option<String>
                 if auth_token.len() > 0 {
                     builder = builder.auth_token(auth_token);
+                } else if basic_auth_username != "" && basic_auth_password != "" {
+                    builder = builder.basic_auth(basic_auth_username, basic_auth_password);
                 }
 
                 builder.backend(backend).tags(tags).build()?
