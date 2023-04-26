@@ -1841,7 +1841,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "json",
  "libc",
@@ -1857,7 +1857,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope-cli"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "assert_cmd",
  "better-panic",
@@ -1889,7 +1889,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pprofrs"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "log",
  "pprof",
@@ -1899,7 +1899,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pyspy"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "inferno",
  "log",
@@ -1910,7 +1910,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_rbspy"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "inferno",

@@ -9,9 +9,7 @@ rust-version = "1.63"
 crate-type = ["cdylib"]
 
 [dependencies]
-#pyroscope = { version = "0.5.3" }
 pyroscope = { path  = "../../../" }
-#pyroscope_pyspy = { version = "0.2.3" }
 pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy" }
 ffikit = { path = "../../ffikit" }
 pretty_env_logger = "0.4.0"

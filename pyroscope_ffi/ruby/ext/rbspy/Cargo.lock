@@ -1510,7 +1510,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "json",
  "libc",
@@ -1526,7 +1526,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_rbspy"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "inferno",
