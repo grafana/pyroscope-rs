@@ -117,7 +117,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        upload_url: ${{ needs.cli-release.outputs.upload_url }}
         asset_path: "pyroscope_cli/target/${{ matrix.target }}/release/pyroscope-cli"
         asset_name: "pyroscope-cli"
         asset_content_type: application/octet-stream
