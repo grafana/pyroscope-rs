@@ -111,12 +111,37 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
+  list-ruby-gems:
+    name: "List ruby gems"
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.release.tag_name, 'ruby-')"
+    outputs:
+      files_json: ${{ steps.list-files.outputs.files_json }}
+    steps:
+      - uses: robinraju/release-downloader@v1.4
+        with:
+          tag: ${{ github.event.release.tag_name }}
+          fileName: "*"
+          tarBall: false
+          zipBall: false
+          out-file-path: "dist"
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - id: list-files
+        run: |
+          FILES=$(ls dist)
+          FILES_ARRAY=($FILES)
+          FILES_JSON=$(echo -n "${FILES_ARRAY[@]}" | jq -R -s -c 'split(" ")')
+          echo "files_json=${FILES_JSON}" >> $GITHUB_OUTPUT
   publish-ruby:
-    name: "Ruby" 
+    needs: list-ruby-gems
+    name: "gem push"
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'ruby-')"
     env:
-      GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }} 
+      GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+    strategy:
+      matrix:
+        file: ${{ fromJson(needs.list-ruby-gems.outputs.files_json) }}
     steps:
       - uses: ruby/setup-ruby@v1
         with:
@@ -131,4 +156,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           cd dist
-          for file in *.gem; do gem push $file; done;
+          gem push ${{ matrix.file }}
