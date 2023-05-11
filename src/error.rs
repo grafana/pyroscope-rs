@@ -29,6 +29,9 @@ pub enum PyroscopeError {
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Json(#[from] json::JsonError),
 }
 
 impl PyroscopeError {

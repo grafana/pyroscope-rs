@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::sync::RwLock;
 use std::{ops::Deref, path::Path};
+use std::collections::HashMap;
 
 use super::error::Result;
 use super::types::{LogLevel, Spy};
@@ -20,6 +21,8 @@ pub struct AppConfig {
     pub spy_name: Spy,
     pub application_name: Option<String>,
     pub auth_token: Option<String>,
+    pub basic_auth_username: Option<String>,
+    pub basic_auth_password: Option<String>,
     pub detect_subprocesses: Option<bool>,
     pub no_logging: Option<bool>,
     pub log_level: LogLevel,
@@ -35,6 +38,8 @@ pub struct AppConfig {
     pub group_name: Option<u32>,
     pub command: Option<String>,
     pub command_args: Option<String>,
+    pub http_headers_json: Option<String>,
+    pub scope_org_id: Option<String>,
 }
 
 impl AppConfig {
@@ -105,6 +110,7 @@ impl AppConfig {
                     AppConfig::set("tag", tag.as_str())?;
                 }
             }
+            set_http_headers(&sub_connect)?;
             if sub_connect.is_present("application_name") {
                 if let Some(application_name) = sub_connect.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
@@ -113,6 +119,21 @@ impl AppConfig {
             if sub_connect.is_present("auth_token") {
                 if let Some(auth_token) = sub_connect.value_of("auth_token") {
                     AppConfig::set("auth_token", auth_token)?;
+                }
+            }
+            if sub_connect.is_present("basic_auth_username") {
+                if let Some(basic_auth_username) = sub_connect.value_of("basic_auth_username") {
+                    AppConfig::set("basic_auth_username", basic_auth_username)?;
+                }
+            }
+            if sub_connect.is_present("basic_auth_password") {
+                if let Some(basic_auth_password) = sub_connect.value_of("basic_auth_password") {
+                    AppConfig::set("basic_auth_password", basic_auth_password)?;
+                }
+            }
+            if sub_connect.is_present("scope_org_id") {
+                if let Some(scope_org_id) = sub_connect.value_of("scope_org_id") {
+                    AppConfig::set("scope_org_id", scope_org_id)?;
                 }
             }
             if sub_connect.is_present("detect_subprocesses") {
@@ -190,6 +211,7 @@ impl AppConfig {
                     AppConfig::set("tag", tag.as_str())?;
                 }
             }
+            set_http_headers(&sub_exec)?;
             if sub_exec.is_present("application_name") {
                 if let Some(application_name) = sub_exec.value_of("application_name") {
                     AppConfig::set("application_name", application_name)?;
@@ -198,6 +220,21 @@ impl AppConfig {
             if sub_exec.is_present("auth_token") {
                 if let Some(auth_token) = sub_exec.value_of("auth_token") {
                     AppConfig::set("auth_token", auth_token)?;
+                }
+            }
+            if sub_exec.is_present("basic_auth_username") {
+                if let Some(basic_auth_username) = sub_exec.value_of("basic_auth_username") {
+                    AppConfig::set("basic_auth_username", basic_auth_username)?;
+                }
+            }
+            if sub_exec.is_present("basic_auth_password") {
+                if let Some(basic_auth_password) = sub_exec.value_of("basic_auth_password") {
+                    AppConfig::set("basic_auth_password", basic_auth_password)?;
+                }
+            }
+            if sub_exec.is_present("scope_org_id") {
+                if let Some(scope_org_id) = sub_exec.value_of("scope_org_id") {
+                    AppConfig::set("scope_org_id", scope_org_id)?;
                 }
             }
             if sub_exec.is_present("detect_subprocesses") {
@@ -266,4 +303,21 @@ impl AppConfig {
         // Coerce Config into AppConfig
         Ok(config_clone.try_into()?)
     }
+}
+
+fn set_http_headers(cmd: &clap::ArgMatches) -> Result<()> {
+    if cmd.is_present("http_header") {
+        if let Some(http_header) = cmd.values_of("http_header") {
+            let mut http_headers_map: HashMap<String, String> = HashMap::new();
+            for x in http_header {
+                let kv: Vec<&str> = x.splitn(2, ": ").collect();
+                if kv.len() == 2 {
+                    http_headers_map.insert(kv[0].to_string(), kv[1].to_string());
+                }
+            }
+            let http_header = json::stringify(http_headers_map);
+            AppConfig::set("http_headers_json", &http_header)?;
+        };
+    }
+    return Ok(());
 }

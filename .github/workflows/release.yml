@@ -9,7 +9,7 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/lib-')"
     continue-on-error: true
     steps:
-      - uses: "marvinpinto/action-automatic-releases@v1.1.1"
+      - uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "${{ github.ref_name }}"
@@ -20,8 +20,11 @@ jobs:
     name: pyroscope-cli
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/cli-')"
+    outputs:
+      upload_url: ${{ steps.auto-release.outputs.upload_url }}
     steps:
-      - uses: "marvinpinto/action-automatic-releases@v1.1.1"
+      - id: auto-release
+        uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "${{ github.ref_name }}"
@@ -30,7 +33,7 @@ jobs:
           prerelease: false
   cli-artifacts:
     name: pyroscope-cli - build aritifacts
-    needs: ['cli-release']
+    needs: cli-release
     runs-on: ${{ matrix.os }}
     env:
       # For some builds, we use cross to test on 32-bit and big-endian
@@ -45,13 +48,14 @@ jobs:
     strategy:
       matrix:
         build: [linux, linux-arm, macos]
+        # todo build everything in docker, use 18.04, do not depend on gh runners
         include:
         - build: linux
-          os: ubuntu-18.04
+          os: ubuntu-20.04
           rust: stable
           target: x86_64-unknown-linux-musl
         - build: linux-arm
-          os: ubuntu-18.04
+          os: ubuntu-20.04
           rust: stable
           target: arm-unknown-linux-gnueabihf
         - build: macos
@@ -117,9 +121,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        upload_url: ${{ needs.cli-release.outputs.upload_url }}
         asset_path: "pyroscope_cli/target/${{ matrix.target }}/release/pyroscope-cli"
-        asset_name: "pyroscope-cli"
+        asset_name: "pyroscope-cli-${{ matrix.target }}"
         asset_content_type: application/octet-stream
   pprofrs-release:
     name: pyroscope-pprofrs
@@ -127,7 +131,7 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/pprofrs-')"
     continue-on-error: true
     steps:
-      - uses: "marvinpinto/action-automatic-releases@v1.1.1"
+      - uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "${{ github.ref_name }}"
@@ -140,7 +144,7 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/rbspy-')"
     continue-on-error: true
     steps:
-      - uses: "marvinpinto/action-automatic-releases@v1.1.1"
+      - uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "${{ github.ref_name }}"
@@ -153,7 +157,7 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/pyspy-')"
     continue-on-error: true
     steps:
-      - uses: "marvinpinto/action-automatic-releases@v1.1.1"
+      - uses: "marvinpinto/action-automatic-releases@v1.2.1"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "${{ github.ref_name }}"
@@ -239,9 +243,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: "10.15"
+          - macos-version: "11.0"
             target: x86_64-apple-darwin
-            py-platform: macosx-10_15_x86_64
+            py-platform: macosx-11_0_x86_64
           - macos-version: "11.0"
             target: aarch64-apple-darwin
             py-platform: macosx-11_0_arm64
@@ -465,9 +469,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: "10.15"
+          - macos-version: "11.0"
             target: x86_64-apple-darwin
-            py-platform: macosx-10_15_x86_64
+            py-platform: macosx-11_0_x86_64
           - macos-version: "11.0"
             target: aarch64-apple-darwin
             py-platform: macosx-11_0_arm64

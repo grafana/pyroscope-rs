@@ -65,6 +65,27 @@ enum Commands {
         )]
         auth_token: Option<String>,
         #[clap(
+            name = "basic_auth_username",
+            long = "basic-auth-username",
+            value_name = "BASIC_AUTH_USERNAME",
+            help = "HTTP Basic Authentication username used when uploading profiling data"
+        )]
+        basic_auth_username: Option<String>,
+        #[clap(
+            name = "basic_auth_password",
+            long = "basic-auth-password",
+            value_name = "BASIC_AUTH_PASSWORD",
+            help = "HTTP Basic Authentication password used when uploading profiling data"
+        )]
+        basic_auth_password: Option<String>,
+        #[clap(
+            name = "scope_org_id",
+            long = "scope-org-id",
+            value_name = "SCOPE_ORG_ID",
+            help = "X-Scope-OrgID header for phlare multi-tenancy"
+        )]
+        scope_org_id: Option<String>,
+        #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
             value_name = "DECTECT_SUBPROCESSES",
@@ -151,6 +172,14 @@ enum Commands {
             help = "tag in key=value form. The flag may be specified multiple times"
         )]
         tag: Option<String>,
+        #[clap(
+            multiple_occurrences = true,
+            name = "http_header",
+            long = "http_header",
+            value_name = "HTTP_HEADER",
+            help = "http header in 'X-Header: HeaderValue' form. The flag may be specified multiple times"
+        )]
+        http_header: Option<String>,
     },
 
     #[clap(
@@ -182,6 +211,27 @@ enum Commands {
             help = "Authentication token used when uploading profiling data"
         )]
         auth_token: Option<String>,
+        #[clap(
+            name = "basic_auth_username",
+            long = "basic-auth-username",
+            value_name = "BASIC_AUTH_USERNAME",
+            help = "HTTP Basic Authentication username used when uploading profiling data"
+        )]
+        basic_auth_username: Option<String>,
+        #[clap(
+            name = "basic_auth_password",
+            long = "basic-auth-password",
+            value_name = "BASIC_AUTH_PASSWORD",
+            help = "HTTP Basic Authentication password used when uploading profiling data"
+        )]
+        basic_auth_password: Option<String>,
+        #[clap(
+            name = "scope_org_id",
+            long = "scope-org-id",
+            value_name = "SCOPE_ORG_ID",
+            help = "X-Scope-OrgID header for phlare multi-tenancy"
+        )]
+        scope_org_id: Option<String>,
         #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
@@ -254,12 +304,21 @@ enum Commands {
         )]
         spy_name: Spy,
         #[clap(
+            multiple_occurrences = true,
             name = "tag",
             long = "tag",
             value_name = "TAG",
             help = "tag in key=value form. The flag may be specified multiple times"
         )]
         tag: Option<String>,
+        #[clap(
+            multiple_occurrences = true,
+            name = "http_header",
+            long = "http_header",
+            value_name = "HTTP_HEADER",
+            help = "http header in 'X-Header: HeaderValue' form. The flag may be specified multiple times"
+            )]
+        http_header: Option<String>,
         #[clap(
             name = "user_name",
             long = "user-name",

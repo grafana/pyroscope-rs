@@ -17,6 +17,8 @@ bool initialize_logging(uint32_t logging_level);
 bool initialize_agent(const char *application_name,
                       const char *server_address,
                       const char *auth_token,
+                      const char *basic_auth_username,
+                      const char *basic_auth_password,
                       uint32_t sample_rate,
                       bool detect_subprocesses,
                       bool oncpu,
@@ -25,7 +27,9 @@ bool initialize_agent(const char *application_name,
                       bool report_pid,
                       bool report_thread_id,
                       bool report_thread_name,
-                      const char *tags);
+                      const char *tags,
+                      const char *scope_org_id,
+                      const char *http_headers_json);
 
 bool drop_agent(void);
 

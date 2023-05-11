@@ -5,7 +5,7 @@ pprof-rs backend for Pyroscope Profiler.
 """
 keywords = ["pyroscope", "profiler", "pprof-rs"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
@@ -16,12 +16,17 @@ readme = "README.md"
 
 [dependencies]
 pprof = "0.11"
-pyroscope = {version = "0.5.4", path = "../../" }
+pyroscope = { version = "0.5.5", path = "../../", default-features = false }
 thiserror ="1.0"
 log = "0.4"
 
+[features]
+default = ["pyroscope/default"]
+
 [target.aarch64-apple-darwin.dependencies]
 pprof = { version = "0.11", features = ["frame-pointer"] }
+
+
 
 [profile.dev]
 opt-level=0

@@ -5,7 +5,7 @@ Pyroscope Profiler Agent for continuous profiling of Rust, Python and Ruby appli
 """
 keywords = ["pyroscope", "profiler", "profiling", "pprof"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.5.4"
+version = "0.5.5"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io/docs/rust"
@@ -55,12 +55,13 @@ path = "examples/internal/rbspy-connect.rs"
 thiserror ="1.0"
 log = "0.4"
 names = "0.13.0"
-reqwest = { version = "0.11", features = ["blocking", "rustls-tls-native-roots"]}
+reqwest = { version = "0.11", features = ["blocking"], default-features = false }
 url = "2.2.2"
 libflate = "1.2.0"
 libc = "^0.2.124"
 prost = "0.10"
 winapi = "0.3.9"
+json = "0.12.4"
 
 [dev-dependencies]
 tokio = { version = "1.18", features = ["full"] }
@@ -69,6 +70,11 @@ assert_matches = "1"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 pyroscope_pyspy = { path = "pyroscope_backends/pyroscope_pyspy" }
 pyroscope_rbspy = { path = "pyroscope_backends/pyroscope_rbspy" }
+
+[features]
+default = ["rustls-tls"]
+rustls-tls = ["reqwest/rustls-tls"]
+native-tls = ["reqwest/native-tls"]
 
 [profile.dev]
 opt-level=0

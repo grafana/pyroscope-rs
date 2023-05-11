@@ -18,6 +18,8 @@ use crate::{
     PyroscopeError,
 };
 
+use json;
+
 use crate::backend::BackendImpl;
 use crate::pyroscope::Compression::GZIP;
 use crate::pyroscope::ReportEncoding::{PPROF};
@@ -45,11 +47,20 @@ pub struct PyroscopeConfig {
     pub spy_name: String,
     /// Authentication Token
     pub auth_token: Option<String>,
+    pub basic_auth: Option<BasicAuth>,
     /// Function to apply
     pub func: Option<fn(Report) -> Report>,
     /// Pyroscope http request body compression
     pub compression: Option<Compression>,
     pub report_encoding: ReportEncoding,
+    pub scope_org_id: Option<String>,
+    pub http_headers: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BasicAuth {
+    pub username: String,
+    pub password: String,
 }
 
 impl Default for PyroscopeConfig {
@@ -64,9 +75,12 @@ impl Default for PyroscopeConfig {
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
             auth_token: None,
+            basic_auth: None,
             func: None,
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
+            scope_org_id: None,
+            http_headers: HashMap::new(),
         }
     }
 }
@@ -87,9 +101,12 @@ impl PyroscopeConfig {
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
+            basic_auth: None,
             func: None,                   // No function
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
+            scope_org_id: None,
+            http_headers: HashMap::new(),
         }
     }
 
@@ -122,10 +139,17 @@ impl PyroscopeConfig {
         Self { spy_name, ..self }
     }
 
-    /// Set the Authentication Token.
+
     pub fn auth_token(self, auth_token: String) -> Self {
         Self {
             auth_token: Some(auth_token),
+            ..self
+        }
+    }
+
+    pub fn basic_auth(self, username: String, password: String) -> Self {
+        Self {
+            basic_auth: Some(BasicAuth { username, password }),
             ..self
         }
     }
@@ -180,6 +204,20 @@ impl PyroscopeConfig {
     pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
         Self {
             report_encoding: report_encoding,
+            ..self
+        }
+    }
+
+    pub fn scope_org_id(self, scope_org_id: String) -> Self {
+        Self {
+            scope_org_id: Some(scope_org_id),
+            ..self
+        }
+    }
+
+    pub fn http_headers(self, http_headers: HashMap<String, String>) -> Self {
+        Self {
+            http_headers: http_headers,
             ..self
         }
     }
@@ -288,6 +326,13 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    pub fn basic_auth(self, username: impl AsRef<str>, password: impl AsRef<str>) -> Self {
+        Self {
+            config: self.config.basic_auth(username.as_ref().to_owned(), password.as_ref().to_owned()),
+            ..self
+        }
+    }
+
     /// Set the Function.
     /// This is optional. If not set, the agent will not apply any function.
     /// #Example
@@ -340,6 +385,20 @@ impl PyroscopeAgentBuilder {
     pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
         Self {
             config: self.config.report_encoding(report_encoding),
+            ..self
+        }
+    }
+
+    pub fn scope_org_id(self, scope_org_id: String) -> Self {
+        Self {
+            config: self.config.scope_org_id(scope_org_id),
+            ..self
+        }
+    }
+
+    pub fn http_headers(self, http_headers: HashMap<String, String>) -> Self {
+        Self {
+            config: self.config.http_headers(http_headers),
             ..self
         }
     }
@@ -778,4 +837,20 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 
         Ok(())
     }
+}
+
+pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>> {
+    let mut http_headers = HashMap::new();
+    let parsed = json::parse(&http_headers_json)?;
+    if !parsed.is_object() {
+        return Err(PyroscopeError::AdHoc(format!("expected object, got {}", parsed)));
+    }
+    for (k, v) in parsed.entries() {
+        if v.is_string() {
+            http_headers.insert(k.to_string(), v.to_string());
+        } else {
+            return Err(PyroscopeError::AdHoc(format!("invalid http header value, not a string: {}", v.to_string())));
+        }
+    };
+    return Ok(http_headers);
 }
