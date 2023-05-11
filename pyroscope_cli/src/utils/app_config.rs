@@ -39,7 +39,7 @@ pub struct AppConfig {
     pub command: Option<String>,
     pub command_args: Option<String>,
     pub http_headers_json: Option<String>,
-    pub scope_org_id: Option<String>,
+    pub tenant_id: Option<String>,
 }
 
 impl AppConfig {
@@ -131,9 +131,9 @@ impl AppConfig {
                     AppConfig::set("basic_auth_password", basic_auth_password)?;
                 }
             }
-            if sub_connect.is_present("scope_org_id") {
-                if let Some(scope_org_id) = sub_connect.value_of("scope_org_id") {
-                    AppConfig::set("scope_org_id", scope_org_id)?;
+            if sub_connect.is_present("tenant_id") {
+                if let Some(tenant_id) = sub_connect.value_of("tenant_id") {
+                    AppConfig::set("tenant_id", tenant_id)?;
                 }
             }
             if sub_connect.is_present("detect_subprocesses") {
@@ -232,9 +232,9 @@ impl AppConfig {
                     AppConfig::set("basic_auth_password", basic_auth_password)?;
                 }
             }
-            if sub_exec.is_present("scope_org_id") {
-                if let Some(scope_org_id) = sub_exec.value_of("scope_org_id") {
-                    AppConfig::set("scope_org_id", scope_org_id)?;
+            if sub_exec.is_present("tenant_id") {
+                if let Some(tenant_id) = sub_exec.value_of("tenant_id") {
+                    AppConfig::set("tenant_id", tenant_id)?;
                 }
             }
             if sub_exec.is_present("detect_subprocesses") {

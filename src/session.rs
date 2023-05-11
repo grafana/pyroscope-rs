@@ -226,8 +226,8 @@ impl Session {
         if report.content_encoding != "" {
             req_builder = req_builder.header("Content-Encoding", report.content_encoding.as_str());
         }
-        if let Some(scope_org_id) = &self.config.scope_org_id {
-            req_builder = req_builder.header("X-Scope-OrgID", scope_org_id);
+        if let Some(tenant_id) = &self.config.tenant_id {
+            req_builder = req_builder.header("X-Scope-OrgID", tenant_id);
         }
         for (k, v) in &self.config.http_headers {
             req_builder = req_builder.header(k, v);

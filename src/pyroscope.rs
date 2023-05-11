@@ -53,7 +53,7 @@ pub struct PyroscopeConfig {
     /// Pyroscope http request body compression
     pub compression: Option<Compression>,
     pub report_encoding: ReportEncoding,
-    pub scope_org_id: Option<String>,
+    pub tenant_id: Option<String>,
     pub http_headers: HashMap<String, String>,
 }
 
@@ -79,7 +79,7 @@ impl Default for PyroscopeConfig {
             func: None,
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
-            scope_org_id: None,
+            tenant_id: None,
             http_headers: HashMap::new(),
         }
     }
@@ -105,7 +105,7 @@ impl PyroscopeConfig {
             func: None,                   // No function
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
-            scope_org_id: None,
+            tenant_id: None,
             http_headers: HashMap::new(),
         }
     }
@@ -208,9 +208,9 @@ impl PyroscopeConfig {
         }
     }
 
-    pub fn scope_org_id(self, scope_org_id: String) -> Self {
+    pub fn tenant_id(self, tenant_id: String) -> Self {
         Self {
-            scope_org_id: Some(scope_org_id),
+            tenant_id: Some(tenant_id),
             ..self
         }
     }
@@ -389,9 +389,9 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    pub fn scope_org_id(self, scope_org_id: String) -> Self {
+    pub fn tenant_id(self, tenant_id: String) -> Self {
         Self {
-            config: self.config.scope_org_id(scope_org_id),
+            config: self.config.tenant_id(tenant_id),
             ..self
         }
     }

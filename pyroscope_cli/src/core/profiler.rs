@@ -28,7 +28,7 @@ impl Profiler {
         let basic_auth_username: String = AppConfig::get::<String>("basic_auth_username")?;
         let basic_auth_password: String = AppConfig::get::<String>("basic_auth_password")?;
 
-        let scope_org_id: String = AppConfig::get::<String>("scope_org_id").unwrap_or("".to_string());
+        let tenant_id: String = AppConfig::get::<String>("tenant_id").unwrap_or("".to_string());
 
         let http_headers = get_http_headers();
 
@@ -62,8 +62,8 @@ impl Profiler {
                 let mut builder = PyroscopeAgent::default_builder();
                 builder = builder.url(server_address);
                 builder = builder.application_name(app_name);
-                if scope_org_id != "" {
-                    builder = builder.scope_org_id(scope_org_id);
+                if tenant_id != "" {
+                    builder = builder.tenant_id(tenant_id);
                 }
                 if http_headers.len() > 0 {
                     builder = builder.http_headers(http_headers);
@@ -89,8 +89,8 @@ impl Profiler {
                 let mut builder = PyroscopeAgent::default_builder();
                 builder = builder.url(server_address);
                 builder = builder.application_name(app_name);
-                if scope_org_id != "" {
-                    builder = builder.scope_org_id(scope_org_id);
+                if tenant_id != "" {
+                    builder = builder.tenant_id(tenant_id);
                 }
 
                 // There must be a better way to do this, hopefully as clap supports Option<String>

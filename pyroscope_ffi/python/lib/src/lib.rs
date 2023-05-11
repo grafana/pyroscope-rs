@@ -54,7 +54,7 @@ pub extern "C" fn initialize_agent(
     report_thread_id: bool,
     report_thread_name: bool,
     tags: *const c_char,
-    scope_org_id: *const c_char,
+    tenant_id: *const c_char,
     http_headers_json: *const c_char,
 ) -> bool {
     // Initialize FFIKit
@@ -93,7 +93,7 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
-    let scope_org_id = unsafe { CStr::from_ptr(scope_org_id) }
+    let tenant_id = unsafe { CStr::from_ptr(tenant_id) }
         .to_str()
         .unwrap()
         .to_string();
@@ -147,8 +147,8 @@ pub extern "C" fn initialize_agent(
     } else if basic_auth_username != "" && basic_auth_password != "" {
         agent_builder = agent_builder.basic_auth(basic_auth_username, basic_auth_password);
     }
-    if scope_org_id != "" {
-        agent_builder = agent_builder.scope_org_id(scope_org_id);
+    if tenant_id != "" {
+        agent_builder = agent_builder.tenant_id(tenant_id);
     }
 
     let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
