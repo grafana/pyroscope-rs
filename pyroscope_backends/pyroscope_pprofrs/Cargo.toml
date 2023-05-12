@@ -15,13 +15,18 @@ readme = "README.md"
 
 
 [dependencies]
-pprof = "0.10.0"
+pprof = "0.11"
 pyroscope = { version = "0.5.5", path = "../../", default-features = false }
 thiserror ="1.0"
 log = "0.4"
 
 [features]
 default = ["pyroscope/default"]
+
+[target.aarch64-apple-darwin.dependencies]
+pprof = { version = "0.11", features = ["frame-pointer"] }
+
+
 
 [profile.dev]
 opt-level=0
