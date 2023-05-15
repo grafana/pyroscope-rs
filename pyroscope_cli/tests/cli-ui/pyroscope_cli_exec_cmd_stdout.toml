@@ -1,0 +1,74 @@
+bin.name = "pyroscope-cli"
+args = ["exec", "--help"]
+status.code = 0
+stdout = """
+pyroscope-cli-exec 
+Start a new process from arguments and profile it
+
+USAGE:
+    pyroscope-cli exec [OPTIONS] --spy-name <SPY_NAME> <COMMAND>...
+
+ARGS:
+    <COMMAND>...    command to execute
+
+OPTIONS:
+        --application-name <APPLICATION_NAME>
+            application name used when uploading profiling data
+
+        --auth-token <AUTH_TOKEN>
+            Authentication token used when uploading profiling data
+
+        --basic-auth-username <BASIC_AUTH_USERNAME>
+            HTTP Basic Authentication username used when uploading profiling data
+
+        --basic-auth-password <BASIC_AUTH_PASSWORD>
+            HTTP Basic Authentication password used when uploading profiling data
+
+        --scope-org-id <SCOPE_ORG_ID>
+            X-Scope-OrgID header for phlare multi-tenancy
+
+        --detect-subprocesses
+            keep track of and profile subprocesses of the main process
+
+    -l, --log-level <LOG_LEVEL>
+            [default: info] log level for the application [possible values: trace, debug, info,
+            warn, error, critical]
+
+        --blocking
+            enable blocking mode. [supported by: rbspy, pyspy]
+
+        --oncpu
+            enable oncpu mode. [supported by: rbspy, pyspy]
+
+        --pyspy-gil
+            enable GIL mode for pyspy
+
+        --pyspy-native
+            enable native extensions profiling for pyspy
+
+        --sample-rate <SAMPLE_RATE>
+            [default: 100] sample rate for the profiler in Hz. 100 means reading 100 times per
+            second
+
+        --server-address <SERVER_ADDRESS>
+            [default: http://localhost:4040] Pyroscope server address
+
+        --spy-name <SPY_NAME>
+            name of the profiler to use [possible values: rbspy, pyspy]
+
+        --tag <TAG>
+            tag in key=value form. The flag may be specified multiple times
+
+        --http_header <HTTP_HEADER>
+            http header in 'X-Header: HeaderValue' form. The flag may be specified multiple times
+
+        --user-name <USER_NAME>
+            start process under specified user name
+
+        --group-name <GROUP_NAME>
+            start process under specified group name
+
+    -h, --help
+            Print help information
+"""
+stderr = ""
