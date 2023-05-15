@@ -18,6 +18,15 @@ OPTIONS:
         --auth-token <AUTH_TOKEN>
             Authentication token used when uploading profiling data
 
+        --basic-auth-username <BASIC_AUTH_USERNAME>
+            HTTP Basic Authentication username used when uploading profiling data
+
+        --basic-auth-password <BASIC_AUTH_PASSWORD>
+            HTTP Basic Authentication password used when uploading profiling data
+
+        --scope-org-id <SCOPE_ORG_ID>
+            X-Scope-OrgID header for phlare multi-tenancy
+
         --detect-subprocesses
             keep track of and profile subprocesses of the main process
 
@@ -49,6 +58,9 @@ OPTIONS:
 
         --tag <TAG>
             tag in key=value form. The flag may be specified multiple times
+
+        --http_header <HTTP_HEADER>
+            http header in 'X-Header: HeaderValue' form. The flag may be specified multiple times
 
         --user-name <USER_NAME>
             start process under specified user name

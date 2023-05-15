@@ -2,7 +2,7 @@ bin.name = "pyroscope-cli"
 args = ["help"]
 status.code = 0
 stdout = """
-pyroscope-cli 0.2.2
+pyroscope-cli 0.2.3
 Abid Omar <contact@omarabid.com>
 Pyroscope CLI
 
