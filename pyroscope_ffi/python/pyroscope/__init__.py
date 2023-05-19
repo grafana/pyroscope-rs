@@ -24,7 +24,7 @@ def configure(
         report_thread_id=False,
         report_thread_name=False,
         tags=None,
-        scope_org_id="",
+        tenant_id="",
         http_headers=None,
 ):
 
@@ -52,7 +52,7 @@ def configure(
         report_thread_id,
         report_thread_name,
         tags_to_string(tags).encode("UTF-8"),
-        (scope_org_id or "").encode("UTF-8"),
+        (tenant_id or "").encode("UTF-8"),
         http_headers_to_json(http_headers).encode("UTF-8"),
 )
 

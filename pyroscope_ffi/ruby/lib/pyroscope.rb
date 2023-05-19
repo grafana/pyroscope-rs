@@ -50,7 +50,7 @@ module Pyroscope
     :compression,
     :report_encoding,
     :autoinstrument_rails,
-    :scope_org_id,
+    :tenant_id,
     :http_headers,
   ) do
     def initialize(*)
@@ -71,7 +71,7 @@ module Pyroscope
       self.compression = 'gzip'
       self.report_encoding = 'pprof'
       self.autoinstrument_rails = true
-      self.scope_org_id = ''
+      self.tenant_id = ''
       self.http_headers = {}
     end
   end
@@ -120,7 +120,7 @@ module Pyroscope
         tags_to_string(@config.tags || {}),
         @config.compression || "",
         @config.report_encoding || "pprof",
-        @config.scope_org_id || "",
+        @config.tenant_id || "",
         http_headers_to_json(@config.http_headers || {})
       )
     end

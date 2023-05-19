@@ -79,12 +79,12 @@ enum Commands {
         )]
         basic_auth_password: Option<String>,
         #[clap(
-            name = "scope_org_id",
-            long = "scope-org-id",
-            value_name = "SCOPE_ORG_ID",
+            name = "tenant_id",
+            long = "tenant-id",
+            value_name = "TENANT_ID",
             help = "X-Scope-OrgID header for phlare multi-tenancy"
         )]
-        scope_org_id: Option<String>,
+        tenant_id: Option<String>,
         #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
@@ -226,12 +226,12 @@ enum Commands {
         )]
         basic_auth_password: Option<String>,
         #[clap(
-            name = "scope_org_id",
-            long = "scope-org-id",
-            value_name = "SCOPE_ORG_ID",
+            name = "tenant_id",
+            long = "tenant-id",
+            value_name = "TENANT_ID",
             help = "X-Scope-OrgID header for phlare multi-tenancy"
         )]
-        scope_org_id: Option<String>,
+        tenant_id: Option<String>,
         #[clap(
             name = "detect_subprocesses",
             long = "detect-subprocesses",
