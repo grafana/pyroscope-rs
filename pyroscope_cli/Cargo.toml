@@ -47,7 +47,6 @@ features = ["cargo", "derive"]
 [dev-dependencies]
 assert_cmd = "2.0.4"
 predicates = "2.1.1"
-trycmd = "0.14"
 
 [features]
 default = ["pyroscope/default", "pyroscope_pprofrs/default", "pyroscope_rbspy/default", "pyroscope_pyspy/default"]
