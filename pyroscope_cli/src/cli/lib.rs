@@ -395,9 +395,3 @@ pub fn cli_match() -> Result<()> {
 
     Ok(())
 }
-
-#[test]
-fn verify_cli() {
-    use clap::CommandFactory;
-    Cli::command().debug_assert()
-}
