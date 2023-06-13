@@ -72,6 +72,11 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
+    let adhoc_server_address = std::env::var("PYROSCOPE_ADHOC_SERVER_ADDRESS");
+    if let Some(adhoc_server_address) = adhoc_server_address {
+        server_address = adhoc_server_address
+    }
+
     let auth_token = unsafe { CStr::from_ptr(auth_token) }
         .to_str()
         .unwrap()
