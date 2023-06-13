@@ -67,7 +67,7 @@ pub extern "C" fn initialize_agent(
         .to_string();
 
     // server_address
-    let server_address = unsafe { CStr::from_ptr(server_address) }
+    let mut server_address = unsafe { CStr::from_ptr(server_address) }
         .to_str()
         .unwrap()
         .to_string();
