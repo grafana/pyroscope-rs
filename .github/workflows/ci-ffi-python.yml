@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
+        PYTHON_VERSION: [ '3.7', '3.8', '3.9', '3.10'] # todo bring back 2.7, do not rely on gh runners, use docker environment
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
