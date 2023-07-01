@@ -31,10 +31,10 @@ Please see the [CHANGELOG](CHANGELOG.md) for a release history.
 
 ### Installation
 
-Currently, the best method to locally install `pyrsocope-cli` is to use the rustc compiler with Cargo.
+Currently, the best method to locally install `pyroscope-cli` is to use the rustc compiler with Cargo.
 
 ```
-$ cargo install pyrsocope-cli
+$ cargo install pyroscope-cli
 ```
 
 Binaries are also available in the Release page. The targeted platforms are `x86_64`/`ARM` and `linux`/`macos`.
