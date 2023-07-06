@@ -6,6 +6,7 @@ platform:
   os: linux
 steps:
 - commands:
+  - git submodule update --init --recursive
   - make cli/test
   image: pyroscope/rust_builder_cli:1
   name: make cli/test
@@ -15,6 +16,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: 58c0f9f89e51f693a89d126d95c9fb6c154b9ea1683c33c35add8cb78e44c510
+hmac: 80c7f83949c694b3e996d7a8f99976fb638b0a3e8eb15cc9e0d282ee851ee700
 
 ...
