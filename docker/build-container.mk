@@ -36,7 +36,7 @@
 USE_CONTAINER       ?= 0
 BUILD_IMAGE_VERSION ?= 1
 BUILD_IMAGE         ?= pyroscope/rust_builder_cli:$(BUILD_IMAGE_VERSION)
-DOCKER_OPTS         ?= -it
+DOCKER_OPTS         ?= 
 
 #
 # Build container cache. `make build-container-cache` will create two Docker
