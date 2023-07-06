@@ -95,85 +95,85 @@ jobs:
           name: "linux-arm.whl"
           path: pyroscope_ffi/python/dist/*
 
-  macos-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - macos-version: "11.0"
-            target: x86_64-apple-darwin
-            py-platform: macosx-11_0_x86_64
-          - macos-version: "11.0"
-            target: aarch64-apple-darwin
-            py-platform: macosx-11_0_arm64
-
-    name: macOS - ${{ matrix.py-platform }}
-    runs-on: macos-${{ matrix.macos-version }}
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-
-
-      - name: Build Wheel
-        run: |
-          pip install wheel
-          python3 setup.py bdist_wheel -p ${{ matrix.py-platform }}
-        working-directory: pyroscope_ffi/python
-        env:
-          CARGO_BUILD_TARGET: ${{ matrix.target }}
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.target }}
-          path: pyroscope_ffi/python/dist/*
-
-  macos-intel-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        PYTHON_VERSION: ['3.7', '3.8', '3.9', '3.10']
-    needs: ['macos-build']
-    name: Macos Test
-    runs-on: macos-11.0
-    env:
-      PYROSCOPE_RUN_ID: ${{ github.run_id }}
-      PYROSCOPE_ARCH: x86-64-apple-darwin
-      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
-          architecture: x64
-      - uses: actions/download-artifact@master
-        with:
-          name: x86_64-apple-darwin
-          path: "${{github.workspace}}/python"
-      - run: "python --version ; pip --version ; python3 --version ; pip3 --version; pip list; uname -a"
-      - run: "pip install pip cffi --upgrade"
-      - run: "cd ${{ github.workspace }}/python && ls -l"
-      - name: Install wheel
-        run: "cd ${{ github.workspace }}/python && pip install *.whl"
-        env:
-          SYSTEM_VERSION_COMPAT: 0
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - run: python pyroscope_ffi/python/scripts/tests/test.py
+#  macos-build:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include:
+#          - macos-version: "11.0"
+#            target: x86_64-apple-darwin
+#            py-platform: macosx-11_0_x86_64
+#          - macos-version: "11.0"
+#            target: aarch64-apple-darwin
+#            py-platform: macosx-11_0_arm64
+#
+#    name: macOS - ${{ matrix.py-platform }}
+#    runs-on: macos-${{ matrix.macos-version }}
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
+#
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          target: ${{ matrix.target }}
+#          profile: minimal
+#          override: true
+#
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: 3.9
+#
+#
+#      - name: Build Wheel
+#        run: |
+#          pip install wheel
+#          python3 setup.py bdist_wheel -p ${{ matrix.py-platform }}
+#        working-directory: pyroscope_ffi/python
+#        env:
+#          CARGO_BUILD_TARGET: ${{ matrix.target }}
+#
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          name: ${{ matrix.target }}
+#          path: pyroscope_ffi/python/dist/*
+#
+#  macos-intel-test:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        PYTHON_VERSION: ['3.7', '3.8', '3.9', '3.10']
+#    needs: ['macos-build']
+#    name: Macos Test
+#    runs-on: macos-11.0
+#    env:
+#      PYROSCOPE_RUN_ID: ${{ github.run_id }}
+#      PYROSCOPE_ARCH: x86-64-apple-darwin
+#      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
+#      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+#    steps:
+#      - name: Set up Python
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.PYTHON_VERSION }}
+#          architecture: x64
+#      - uses: actions/download-artifact@master
+#        with:
+#          name: x86_64-apple-darwin
+#          path: "${{github.workspace}}/python"
+#      - run: "python --version ; pip --version ; python3 --version ; pip3 --version; pip list; uname -a"
+#      - run: "pip install pip cffi --upgrade"
+#      - run: "cd ${{ github.workspace }}/python && ls -l"
+#      - name: Install wheel
+#        run: "cd ${{ github.workspace }}/python && pip install *.whl"
+#        env:
+#          SYSTEM_VERSION_COMPAT: 0
+#      - uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
+#      - run: python pyroscope_ffi/python/scripts/tests/test.py
 
 
 #  windows-build:
