@@ -5,7 +5,7 @@ Pyroscope Profiler CLI
 """
 keywords = ["pyroscope", "profiler", "cli"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.2.6"
+version = "0.2.7"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
