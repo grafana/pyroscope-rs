@@ -24,3 +24,8 @@ cli/docker-image:
 		-f docker/Dockerfile.cli \
 		.
 
+.PHONY: info
+info:
+	@printf "CLI_BUILDER_IMAGE      = $(CLI_BUILDER_IMAGE)\n"
+	@printf "CLI_VERSION            = $(CLI_VERSION)\n"
+	@printf "LOCAL_CARGO_REGISTRY   = $(LOCAL_CARGO_REGISTRY)\n"
