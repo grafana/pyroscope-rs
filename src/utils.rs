@@ -73,10 +73,15 @@ mod check_err_tests {
     }
 }
 
-/// libc::epoll_ctl wrapper
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(not(target_os = "windows"), not(target_env = "musl")))]
 pub fn pthread_self() -> Result<u64> {
     let thread_id = check_err(unsafe { libc::pthread_self() })? as u64;
+    Ok(thread_id)
+}
+
+#[cfg(all(not(target_os = "windows"), target_env = "musl"))]
+pub fn pthread_self() -> Result<u64> {
+    let thread_id = unsafe { libc::pthread_self() } as u64;
     Ok(thread_id)
 }
 

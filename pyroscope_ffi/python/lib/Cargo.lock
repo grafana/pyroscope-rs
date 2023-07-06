@@ -1274,9 +1274,9 @@ dependencies = [
 
 [[package]]
 name = "names"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7d66043b25d4a6cccb23619d10c19c25304b355a7dccd4a8e11423dd2382146"
+checksum = "7bddcd3bf5144b6392de80e04c347cd7fab2508f6df16a85fc496ecd5cec39bc"
 dependencies = [
  "clap 3.2.23",
  "rand",
@@ -1512,9 +1512,9 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.10.4"
+version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71adf41db68aa0daaefc69bb30bcd68ded9b9abaad5d1fbb6304c4fb390e083e"
+checksum = "0b82eaa1d779e9a4bc1c3217db8ffbeabaae1dca241bf70183242128d48681cd"
 dependencies = [
  "bytes",
  "prost-derive",
@@ -1522,9 +1522,9 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.10.1"
+version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b670f45da57fb8542ebdbb6105a925fe571b67f9e7ed9f47a06a84e72b4e7cc"
+checksum = "e5d2d8d10f3c6ded6da8b05b5fb3b8a5082514344d56c9f871412d29b4e075b4"
 dependencies = [
  "anyhow",
  "itertools",
@@ -1570,7 +1570,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "json",
  "libc",
