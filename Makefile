@@ -20,6 +20,54 @@ else
 	cargo  test --manifest-path pyroscope_cli/Cargo.toml
 endif
 
+
+#, pprofrs, pyspy, rbspy, ffikit
+
+.PHONY: lib/test
+lib/test:
+ifeq ($(USE_CONTAINER),1)
+	$(RERUN_IN_CONTAINER)
+else
+	cargo  test --manifest-path Cargo.toml
+endif
+
+.PHONY: pprofrs/test
+pprofrs/test:
+ifeq ($(USE_CONTAINER),1)
+	$(RERUN_IN_CONTAINER)
+else
+	cargo  test --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
+endif
+
+.PHONY: pyspy/test
+pyspy/test:
+ifeq ($(USE_CONTAINER),1)
+	$(RERUN_IN_CONTAINER)
+else
+	cargo  test --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
+endif
+
+.PHONY: rbspy/test
+rbspy/test:
+ifeq ($(USE_CONTAINER),1)
+	$(RERUN_IN_CONTAINER)
+else
+	cargo  test --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
+endif
+
+
+.PHONY: ffikit/test
+ffikit/test:
+ifeq ($(USE_CONTAINER),1)
+	$(RERUN_IN_CONTAINER)
+else
+	cargo  test --manifest-path pyroscope_ffi/ffikit/Cargo.toml
+endif
+
+.PHONY: test
+test: cli/test pprofrs/test pyspy/test rbspy/test lib/test ffikit/test
+
+
 .PHONY: cli/version
 cli/version:
 ifeq ($(USE_CONTAINER),1)

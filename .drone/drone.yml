@@ -1,13 +1,38 @@
 ---
 kind: pipeline
-name: make cli/test
+name: '[amd64] make test'
 platform:
   arch: amd64
   os: linux
 steps:
 - commands:
-  - make cli/test
-  image: grafana/agent-build-image:1
+  - git submodule update --init --recursive
+  image: alpine/git
+  name: submodules
+- commands:
+  - uname -a
+  - make test
+  image: pyroscope/rust_builder_cli:1
+  name: make cli/test
+trigger:
+  event:
+  - pull_request
+type: docker
+---
+kind: pipeline
+name: '[arm64] make test'
+platform:
+  arch: arm64
+  os: linux
+steps:
+- commands:
+  - git submodule update --init --recursive
+  image: alpine/git
+  name: submodules
+- commands:
+  - uname -a
+  - make test
+  image: pyroscope/rust_builder_cli:1
   name: make cli/test
 trigger:
   event:
@@ -15,6 +40,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: 4d1b6f4e26c9419cb25638d02d585eeb5c1c2b47b9c5775e377f36bf48f916c7
+hmac: f38ec1847fa65566c19f685da7928d2eb5cdc68295236e9a18080032a49edeca
 
 ...
