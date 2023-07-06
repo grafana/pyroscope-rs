@@ -7,6 +7,10 @@ platform:
 steps:
 - commands:
   - git submodule update --init --recursive
+  image: alpine/git
+  name: submodules
+- commands:
+  - git submodule update --init --recursive
   - make cli/test
   image: pyroscope/rust_builder_cli:1
   name: make cli/test
@@ -16,6 +20,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: 80c7f83949c694b3e996d7a8f99976fb638b0a3e8eb15cc9e0d282ee851ee700
+hmac: 1669fda95b5e1f557602919ca1d6e25f7ec5ede8573f071fa28906a411b7d725
 
 ...

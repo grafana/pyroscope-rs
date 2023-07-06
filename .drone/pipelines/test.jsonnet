@@ -6,13 +6,20 @@ local pipelines = import '../util/pipelines.jsonnet';
     trigger: {
       event: ['pull_request'],
     },
-    steps: [{
-      name: 'make cli/test',
-      image: build_image.linux,
-      commands: [
-        'git submodule update --init --recursive',
-        'make cli/test',
-      ],
-    }],
+    steps: [
+      {
+        name: 'submodules',
+        image: 'alpine/git',
+        commands: ['git submodule update --init --recursive'],
+      },
+      {
+        name: 'make cli/test',
+        image: build_image.linux,
+        commands: [
+          'git submodule update --init --recursive',
+          'make cli/test',
+        ],
+      },
+    ],
   },
 ]
