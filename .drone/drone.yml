@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-name: make cli/test
+name: '[amd64] make cli/test'
 platform:
   arch: amd64
   os: linux
@@ -18,7 +18,26 @@ trigger:
   - pull_request
 type: docker
 ---
+kind: pipeline
+name: '[arm64] make cli/test'
+platform:
+  arch: arm64
+  os: linux
+steps:
+- commands:
+  - git submodule update --init --recursive
+  image: alpine/git
+  name: submodules
+- commands:
+  - make cli/test
+  image: pyroscope/rust_builder_cli:1
+  name: make cli/test
+trigger:
+  event:
+  - pull_request
+type: docker
+---
 kind: signature
-hmac: f632591ca525b6420b692b528380b232b483b9374be8921239c7e20d7ff22297
+hmac: 9da43ae14c22c1e156212461c74e53081ac74bffedf06d9093f34d97c80b0b8f
 
 ...
