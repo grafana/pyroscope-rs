@@ -32,7 +32,12 @@ impl Profiler {
 
         let http_headers = get_http_headers();
 
-        let server_address: String = AppConfig::get::<String>("server_address")?;
+        let mut server_address: String = AppConfig::get::<String>("server_address")?;
+
+        let adhoc_server_address = std::env::var("PYROSCOPE_ADHOC_SERVER_ADDRESS");
+        if let Ok(adhoc_server_address) = adhoc_server_address {
+            server_address = adhoc_server_address
+        }
 
         let sample_rate: u32 = AppConfig::get::<u32>("sample_rate")?;
 
