@@ -10,6 +10,7 @@ steps:
   image: alpine/git
   name: submodules
 - commands:
+  - uname -a
   - make cli/test
   image: pyroscope/rust_builder_cli:1
   name: make cli/test
@@ -29,8 +30,8 @@ steps:
   image: alpine/git
   name: submodules
 - commands:
-  - make cli/test
   - uname -a
+  - make cli/test
   image: pyroscope/rust_builder_cli:1
   name: make cli/test
 trigger:
@@ -39,6 +40,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: 50c70ff7b1e3e4cf31e53352307bfc9e11cedf96b72ca13b7963bcc6e706cb1b
+hmac: 50bb63e3ccac02b1a2b0de6857d6f786b86641fe5f2de1c7717d9f5f2e9ffb38
 
 ...
