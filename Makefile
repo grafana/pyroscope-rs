@@ -1,8 +1,14 @@
 CLI_BUILDER_IMAGE ?= pyroscope/rust_builder_cli:1
 LOCAL_CARGO_REGISTRY ?= $(shell echo $(HOME)/.cargo/registry)
 CLI_VERSION ?= $(shell docker run --rm -v $(shell pwd):/mnt -w /mnt/pyroscope_cli $(CLI_BUILDER_IMAGE)  cargo pkgid | cut -d @ -f 2)
+COMMIT ?= $(shell git rev-parse --short HEAD)
+DOCKER_PUSH ?= 0
 
-
+ifeq ($(DOCKER_PUSH),1)
+	DOCKER_PUSH_FLAG := --push
+else
+	DOCKER_PUSH_FLAG :=
+endif
 
 .PHONY: cli/build
 cli/build:
@@ -20,8 +26,9 @@ cli/test:
 cli/docker-image:
 	DOCKER_BUILDKIT=1 docker buildx build \
 		--platform linux/amd64 \
-		-t pyroscope/pyroscope-rs-cli:$(CLI_VERSION) \
+		-t pyroscope/pyroscope-rs-cli:$(CLI_VERSION)-$(COMMIT) \
 		-f docker/Dockerfile.cli \
+		$(DOCKER_PUSH_FLAG)	\
 		.
 
 .PHONY: info
@@ -29,3 +36,4 @@ info:
 	@printf "CLI_BUILDER_IMAGE      = $(CLI_BUILDER_IMAGE)\n"
 	@printf "CLI_VERSION            = $(CLI_VERSION)\n"
 	@printf "LOCAL_CARGO_REGISTRY   = $(LOCAL_CARGO_REGISTRY)\n"
+	@printf "COMMIT                 = $(COMMIT)\n"
