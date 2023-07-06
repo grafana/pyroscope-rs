@@ -16,7 +16,6 @@ local pipelines = import '../util/pipelines.jsonnet';
         name: 'make cli/test',
         image: build_image.linux,
         commands: [
-          'git submodule update --init --recursive',
           'make cli/test',
         ],
       },
