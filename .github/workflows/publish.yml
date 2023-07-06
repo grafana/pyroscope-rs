@@ -23,25 +23,25 @@ jobs:
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish
-  publish-cli:
-    name: pyroscope-cli
-    runs-on: ubuntu-latest
-    if: "startsWith(github.event.release.tag_name, 'cli-')"
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: install libunwind (for pprof)
-        run: sudo apt install libunwind8-dev
-      - name: publish pyroscope crate
-        continue-on-error: true
-        run: |
-          cargo login ${{ secrets.CARGO_TOKEN }}
-          cargo publish --manifest-path pyroscope_cli/Cargo.toml
+#  publish-cli:
+#    name: pyroscope-cli
+#    runs-on: ubuntu-latest
+#    if: "startsWith(github.event.release.tag_name, 'cli-')"
+#    steps:
+#      - uses: actions/checkout@v3
+#        with:
+#          submodules: recursive
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          override: true
+#      - name: install libunwind (for pprof)
+#        run: sudo apt install libunwind8-dev
+#      - name: publish pyroscope crate
+#        continue-on-error: true
+#        run: |
+#          cargo login ${{ secrets.CARGO_TOKEN }}
+#          cargo publish --manifest-path pyroscope_cli/Cargo.toml
   publish-pprofrs:
     name: "Backend: pprofrs"
     runs-on: ubuntu-latest
