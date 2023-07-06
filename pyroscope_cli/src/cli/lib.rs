@@ -373,7 +373,7 @@ pub fn cli_match() -> Result<()> {
             commands::connect()?;
         }
         Commands::Completion { shell } => match shell {
-            CompletionShell::Bash => {
+            Completi onShell::Bash => {
                 generate(Bash, &mut app, "pyroscope-cli", &mut std::io::stdout());
             }
             CompletionShell::Fish => {
