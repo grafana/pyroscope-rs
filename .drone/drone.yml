@@ -7,7 +7,7 @@ platform:
 steps:
 - commands:
   - make cli/test
-  image: grafana/agent-build-image:1
+  image: pyroscope/rust_builder_cli:1
   name: make cli/test
 trigger:
   event:
@@ -15,6 +15,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: 4d1b6f4e26c9419cb25638d02d585eeb5c1c2b47b9c5775e377f36bf48f916c7
+hmac: 58c0f9f89e51f693a89d126d95c9fb6c154b9ea1683c33c35add8cb78e44c510
 
 ...
