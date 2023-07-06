@@ -30,6 +30,7 @@ steps:
   name: submodules
 - commands:
   - make cli/test
+  - uname -a
   image: pyroscope/rust_builder_cli:1
   name: make cli/test
 trigger:
@@ -38,6 +39,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: 9da43ae14c22c1e156212461c74e53081ac74bffedf06d9093f34d97c80b0b8f
+hmac: 50c70ff7b1e3e4cf31e53352307bfc9e11cedf96b72ca13b7963bcc6e706cb1b
 
 ...

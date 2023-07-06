@@ -15,7 +15,7 @@ local pipelines = import '../util/pipelines.jsonnet';
       {
         name: 'make cli/test',
         image: build_image.linux,
-        commands: ['make cli/test'],
+        commands: ['uname -a', 'make cli/test'],
       },
     ],
   },
@@ -32,7 +32,7 @@ local pipelines = import '../util/pipelines.jsonnet';
       {
         name: 'make cli/test',
         image: build_image.linux,
-        commands: ['make cli/test'],
+        commands: ['uname -a', 'make cli/test'],
       },
     ],
   },
