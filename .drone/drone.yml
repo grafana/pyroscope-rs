@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-name: '[amd64] make cli/test'
+name: '[amd64] make test'
 platform:
   arch: amd64
   os: linux
@@ -11,7 +11,7 @@ steps:
   name: submodules
 - commands:
   - uname -a
-  - make cli/test
+  - make test
   image: pyroscope/rust_builder_cli:1
   name: make cli/test
 trigger:
@@ -20,7 +20,7 @@ trigger:
 type: docker
 ---
 kind: pipeline
-name: '[arm64] make cli/test'
+name: '[arm64] make test'
 platform:
   arch: arm64
   os: linux
@@ -31,7 +31,7 @@ steps:
   name: submodules
 - commands:
   - uname -a
-  - make cli/test
+  - make test
   image: pyroscope/rust_builder_cli:1
   name: make cli/test
 trigger:
@@ -40,6 +40,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: 50bb63e3ccac02b1a2b0de6857d6f786b86641fe5f2de1c7717d9f5f2e9ffb38
+hmac: f38ec1847fa65566c19f685da7928d2eb5cdc68295236e9a18080032a49edeca
 
 ...
