@@ -1,7 +1,12 @@
 include docker/*.mk
 
-PROPAGATE_VARS :=
 USE_CONTAINER ?= 0
+CARGO_TARGET_DIR ?= target
+ifeq ($(USE_CONTAINER),1)
+	CARGO_TARGET_DIR := ./.tmp/target_container
+endif
+
+PROPAGATE_VARS := CARGO_TARGET_DIR
 COMMIT = $(shell git rev-parse --short HEAD)
 DOCKER_EXTRA ?=
 DOCKER_BUILDKIT=1
@@ -12,9 +17,7 @@ cli/test:
 ifeq ($(USE_CONTAINER),1)
 	$(RERUN_IN_CONTAINER)
 else
-	CARGO_TARGET_DIR=./.tmp/target/cli
-	/bin/sh
-	cd pyroscope_cli && cargo test
+	cargo  test --manifest-path pyroscope_cli/Cargo.toml
 endif
 
 .PHONY: cli/version
@@ -27,10 +30,9 @@ endif
 
 .PHONY: cli/docker-image
 cli/docker-image:
-	CLI_VERSION=$(shell make cli/version)
 	 docker buildx build \
 		--platform linux/amd64 \
-		-t pyroscope/pyroscope-rs-cli:$(CLI_VERSION)-$(COMMIT) \
+		-t pyroscope/pyroscope-rs-cli:$(shell make cli/version)-$(COMMIT) \
 		-f docker/Dockerfile.cli $(DOCKER_EXTRA) \
 		.
 

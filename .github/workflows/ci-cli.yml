@@ -15,4 +15,4 @@ jobs:
         with:
           submodules: recursive
       - name: test
-        run: make cli/test
+        run: USE_CONTAINER=1 make cli/test
