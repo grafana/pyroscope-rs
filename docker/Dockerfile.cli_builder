@@ -1,0 +1,48 @@
+
+
+
+FROM alpine:3.18 as rust-builder
+
+RUN apk add wget
+ARG TARGETPLATFORM
+
+
+
+RUN case "${TARGETPLATFORM}" in                       \
+    "linux/amd64")                                    \
+        echo 'export RUST_TARGET="x86_64-unknown-linux-musl"' > ./.env ;;    \
+    "linux/arm64")                                    \
+        echo 'export RUST_TARGET="aarch64-unknown-linux-musl"' > ./.env ;;                          \
+    *)                                                \
+        exit 239 ;;                                   \
+    esac
+
+RUN source ./.env  && \
+    wget https://static.rust-lang.org/rustup/dist/${RUST_TARGET}/rustup-init && \
+    chmod +x rustup-init && \
+    ./rustup-init  -y --default-toolchain=1.63.0 --default-host=${RUST_TARGET}
+ENV PATH=/root/.cargo/bin:$PATH
+
+
+RUN apk add make gcc musl-dev
+RUN source ./.env && \
+     wget https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz && \
+     tar -zxvf libunwind-1.6.2.tar.gz && \
+     cd libunwind-1.6.2 && \
+     ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation --prefix=/usr/local/musl/${RUST_TARGET} && \
+     make -j16 && \
+     make install
+
+RUN source ./.env && \
+    wget https://zlib.net/zlib-1.2.13.tar.gz && \
+    tar -zxvf zlib-1.2.13.tar.gz && \
+    cd zlib-1.2.13 && \
+    ./configure --prefix=/usr/local/musl/${RUST_TARGET} && \
+    make -j16 && \
+    make install
+
+
+
+
+
+

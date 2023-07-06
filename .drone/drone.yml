@@ -1,0 +1,20 @@
+---
+kind: pipeline
+name: make cli/test
+platform:
+  arch: amd64
+  os: linux
+steps:
+- commands:
+  - make cli/test
+  image: grafana/agent-build-image:1
+  name: make cli/test
+trigger:
+  event:
+  - pull_request
+type: docker
+---
+kind: signature
+hmac: 4d1b6f4e26c9419cb25638d02d585eeb5c1c2b47b9c5775e377f36bf48f916c7
+
+...

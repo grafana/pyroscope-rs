@@ -34,87 +34,18 @@ jobs:
   cli-artifacts:
     name: pyroscope-cli - build aritifacts
     needs: cli-release
-    runs-on: ${{ matrix.os }}
-    env:
-      # For some builds, we use cross to test on 32-bit and big-endian
-      # systems.
-      CARGO: cargo
-      # When CARGO is set to CROSS, this is set to `--target matrix.target`.
-      TARGET_FLAGS: ""
-      # When CARGO is set to CROSS, TARGET_DIR includes matrix.target.
-      TARGET_DIR: ./target
-      # Emit backtraces on panics.
-      RUST_BACKTRACE: 1
-    strategy:
-      matrix:
-        build: [linux, linux-arm, macos]
-        # todo build everything in docker, use 18.04, do not depend on gh runners
-        include:
-        - build: linux
-          os: ubuntu-20.04
-          rust: stable
-          target: x86_64-unknown-linux-musl
-        - build: linux-arm
-          os: ubuntu-20.04
-          rust: stable
-          target: arm-unknown-linux-gnueabihf
-        - build: macos
-          os: macos-latest
-          rust: stable
-          target: x86_64-apple-darwin
+    runs-on: ubunut-22.04
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
-
-    - name: Install packages (Ubuntu)
-      if: matrix.os == 'ubuntu-18.04'
-      run: |
-        ci/ubuntu-install-packages
-
-    - name: Install packages (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        ci/macos-install-packages
-
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
+    - uses: docker/login-action@v2
+      name: Login to Docker Hub
       with:
-        toolchain: ${{ matrix.rust }}
-        profile: minimal
-        override: true
-        target: ${{ matrix.target }}
-
-    - name: Use Cross
-      shell: bash
-      run: |
-        cargo install cross
-        echo "CARGO=cross" >> $GITHUB_ENV
-        echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
-        echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
-
-    - name: Show command used for Cargo
-      run: |
-        echo "cargo command is: ${{ env.CARGO }}"
-        echo "target flag is: ${{ env.TARGET_FLAGS }}"
-        echo "target dir is: ${{ env.TARGET_DIR }}"
-
-    - name: Build release binary
-      run: ${{ env.CARGO }} build --manifest-path pyroscope_cli/Cargo.toml --verbose --release ${{ env.TARGET_FLAGS }}
-
-    - name: Strip release binary (linux and macos)
-      if: matrix.build == 'linux' || matrix.build == 'macos'
-      run: strip "pyroscope_cli/target/${{ matrix.target }}/release/pyroscope-cli"
-
-    - name: Strip release binary (arm)
-      if: matrix.build == 'linux-arm'
-      run: |
-        docker run --rm -v \
-          "$PWD/target:/target:Z" \
-          rustembedded/cross:arm-unknown-linux-gnueabihf \
-          arm-linux-gnueabihf-strip \
-          /target/arm-unknown-linux-gnueabihf/release/pyroscope-cli
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    - run: DOCKER_EXTRA="--push" make cli/docker-image
+    - run: DOCKER_EXTRA="--output=." make cli/docker-image
 
     - name: Upload release archive
       uses: actions/upload-release-asset@v1.0.1
@@ -122,8 +53,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.cli-release.outputs.upload_url }}
-        asset_path: "pyroscope_cli/target/${{ matrix.target }}/release/pyroscope-cli"
-        asset_name: "pyroscope-cli-${{ matrix.target }}"
+        asset_path: "./pyroscope-cli"
+        asset_name: "pyroscope-cli"
         asset_content_type: application/octet-stream
   pprofrs-release:
     name: pyroscope-pprofrs
