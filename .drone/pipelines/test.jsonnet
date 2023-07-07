@@ -9,11 +9,6 @@ local pipelines = import '../util/pipelines.jsonnet';
     },
     steps: [
       {
-        name: 'submodules',
-        image: 'alpine/git',
-        commands: ['git submodule update --init --recursive'],
-      },
-      {
         name: 'make cli/test',
         image: build_image.linux,
         commands: ['uname -a', 'make test'],
@@ -25,11 +20,6 @@ local pipelines = import '../util/pipelines.jsonnet';
       event: ['pull_request'],
     },
     steps: [
-      {
-        name: 'submodules',
-        image: 'alpine/git',
-        commands: ['git submodule update --init --recursive'],
-      },
       {
         name: 'make cli/test',
         image: build_image.linux,
