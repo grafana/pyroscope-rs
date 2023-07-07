@@ -143,6 +143,7 @@ pub extern "C" fn initialize_agent(
 
     // Create the Pyroscope Agent.
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
+        .report_encoding(ReportEncoding::PPROF)
         .backend(pyspy)
         .tags(tags);
 

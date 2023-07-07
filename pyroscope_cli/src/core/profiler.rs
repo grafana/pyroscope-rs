@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
+use pyroscope::pyroscope::ReportEncoding;
 
 use crate::utils::{
     app_config::AppConfig,
@@ -67,6 +68,7 @@ impl Profiler {
                 let mut builder = PyroscopeAgent::default_builder();
                 builder = builder.url(server_address);
                 builder = builder.application_name(app_name);
+                builder = builder.report_encoding(ReportEncoding::PPROF);
                 if tenant_id != "" {
                     builder = builder.tenant_id(tenant_id);
                 }
@@ -94,6 +96,7 @@ impl Profiler {
                 let mut builder = PyroscopeAgent::default_builder();
                 builder = builder.url(server_address);
                 builder = builder.application_name(app_name);
+                builder = builder.report_encoding(ReportEncoding::PPROF);
                 if tenant_id != "" {
                     builder = builder.tenant_id(tenant_id);
                 }

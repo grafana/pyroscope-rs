@@ -206,7 +206,7 @@ pub extern "C" fn initialize_agent(
         .backend(rbspy)
         .func(transform_report)
         .tags(tags)
-        .report_encoding(report_encoding);
+        .report_encoding(ReportEncoding::PPROF);
 
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);
