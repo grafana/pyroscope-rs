@@ -1,6 +1,7 @@
 use ffikit::Signal;
 use pyroscope::backend::Tag;
 use pyroscope::PyroscopeAgent;
+use pyroscope::pyroscope::ReportEncoding;
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
@@ -143,6 +144,7 @@ pub extern "C" fn initialize_agent(
 
     // Create the Pyroscope Agent.
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
+        .report_encoding(ReportEncoding::PPROF)
         .backend(pyspy)
         .tags(tags);
 
