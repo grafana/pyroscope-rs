@@ -1656,6 +1656,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyroscope-rbspy-oncpu"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bab7a460ac334ed5b24ada78f1c8e024fdf95ba1f7ef0fdb205e5a5f3331785d"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap 3.2.25",
+ "ctrlc",
+ "directories",
+ "env_logger 0.10.0",
+ "flate2",
+ "goblin 0.6.1",
+ "inferno",
+ "lazy_static",
+ "libc",
+ "libproc 0.13.0",
+ "log",
+ "memmap2",
+ "nix",
+ "proc-maps 0.3.1",
+ "prost",
+ "rand",
+ "rbspy-ruby-structs",
+ "remoteprocess",
+ "semver",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "spytools",
+ "tempfile",
+ "term_size",
+ "thiserror",
+ "winapi",
+]
+
+[[package]]
 name = "pyroscope_pprofrs"
 version = "0.2.5"
 dependencies = [
@@ -1684,7 +1721,7 @@ dependencies = [
  "inferno",
  "log",
  "pyroscope",
- "rbspy",
+ "pyroscope-rbspy-oncpu",
  "thiserror",
 ]
 
@@ -1753,43 +1790,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "rbspy"
-version = "0.17.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap 3.2.25",
- "ctrlc",
- "directories",
- "env_logger 0.10.0",
- "flate2",
- "goblin 0.6.1",
- "inferno",
- "lazy_static",
- "libc",
- "libproc 0.13.0",
- "log",
- "memmap2",
- "nix",
- "proc-maps 0.3.1",
- "prost",
- "rand",
- "rbspy-ruby-structs",
- "remoteprocess",
- "semver",
- "serde",
- "serde_derive",
- "serde_json",
- "spytools",
- "tempfile",
- "term_size",
- "thiserror",
- "winapi",
-]
-
-[[package]]
 name = "rbspy-ruby-structs"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90afb0dd7bf12f7cc75eb2bd7f5d33955ad7670176062158c4e56e245e55d1d2"
 
 [[package]]
 name = "read-process-memory"
