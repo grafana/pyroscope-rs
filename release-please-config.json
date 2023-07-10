@@ -1,0 +1,8 @@
+{
+    "bootstrap-sha": "6f0033a50dca1a65db17154006e93afc28631843",
+    "packages": {
+        "pyroscope_cli": {
+            "release-type": "rust"
+        }
+    }
+}
