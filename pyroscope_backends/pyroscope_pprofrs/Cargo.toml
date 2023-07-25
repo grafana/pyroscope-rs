@@ -22,6 +22,7 @@ log = "0.4"
 
 [features]
 default = ["pyroscope/default"]
+frame-pointer = ["pprof/frame-pointer"]
 
 [target.aarch64-apple-darwin.dependencies]
 pprof = { version = "0.11", features = ["frame-pointer"] }

@@ -1694,7 +1694,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pprofrs"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "log",
  "pprof",
