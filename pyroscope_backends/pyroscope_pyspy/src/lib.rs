@@ -41,7 +41,7 @@ pub struct PyspyConfig {
     time_limit: Option<core::time::Duration>,
     /// Include subprocesses
     detect_subprocesses: bool,
-    /// Include idle time
+    /// Do not include idle time
     oncpu: bool,
     /// Detect Python GIL
     gil_only: bool,
@@ -254,7 +254,7 @@ impl Backend for Pyspy {
             native: self.config.native,
             pid: self.config.pid,
             sampling_rate: self.config.sample_rate as u64,
-            include_idle: self.config.oncpu,
+            include_idle: !self.config.oncpu,
             include_thread_ids: true,
             subprocesses: self.config.detect_subprocesses,
             gil_only: self.config.gil_only,
