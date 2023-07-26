@@ -62,7 +62,12 @@ impl Timer {
                     }
 
                     // Fire @ 10th sec
-                    Timer::epoll_wait(timer_fd, epoll_fd)?;
+                    let res = Timer::epoll_wait(timer_fd, epoll_fd);
+                    if matches!(&res, Err(PyroscopeError::Io(err)) if err.kind() == std::io::ErrorKind::Interrupted)
+                    {
+                        continue;
+                    }
+                    res?;
 
                     // Get the current time range
                     let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
