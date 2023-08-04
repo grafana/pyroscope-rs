@@ -13,8 +13,6 @@ steps:
 trigger:
   event:
   - pull_request
-  ref:
-  - refs/heads/main
 type: docker
 ---
 kind: pipeline
@@ -31,11 +29,9 @@ steps:
 trigger:
   event:
   - pull_request
-  ref:
-  - refs/heads/main
 type: docker
 ---
 kind: signature
-hmac: 0f9ad18d24bb36fb80c25e1c95ce80d0744d2820fa6dedcff6ba2faf392de134
+hmac: ae54e4e9f852f94f3f7cd411812430ea96ad7238f1f638753161305d554e55fa
 
 ...

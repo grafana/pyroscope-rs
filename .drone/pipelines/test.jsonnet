@@ -6,7 +6,7 @@ local pipelines = import '../util/pipelines.jsonnet';
   pipelines.linux_amd64('[amd64] make test') {
     trigger: {
       event: ['pull_request'],
-      ref: ['refs/heads/main'],
+      //ref: ['refs/heads/main'],
     },
     steps: [
       {
@@ -19,7 +19,7 @@ local pipelines = import '../util/pipelines.jsonnet';
   pipelines.linux_arm64('[arm64] make test') {
     trigger: {
       event: ['pull_request'],
-      ref: ['refs/heads/main'],
+      //ref: ['refs/heads/main'],
     },
     steps: [
       {
