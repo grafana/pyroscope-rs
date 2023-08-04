@@ -52,6 +52,7 @@ pub fn exec() -> Result<()> {
     profiler.init()?;
 
     let child_res = handle.wait();
+    //todo this waits for up to 10 seconds, fix this
     let profiler_res = profiler.stop();
     child_res?;
     profiler_res?;
