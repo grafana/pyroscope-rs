@@ -1682,9 +1682,9 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "pprof"
-version = "0.11.1"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "196ded5d4be535690899a4631cc9f18cdc41b7ebf24a79400f46f48e49a11059"
+checksum = "978385d59daf9269189d052ca8a84c1acfd0715c0599a5d5188d4acc078ca46a"
 dependencies = [
  "backtrace",
  "cfg-if",
@@ -1867,7 +1867,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "0.5.6"
+version = "0.5.7"
 dependencies = [
  "json",
  "libc",
@@ -1883,7 +1883,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope-cli"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "assert_cmd",
  "better-panic",
@@ -1952,7 +1952,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pprofrs"
-version = "0.2.5"
+version = "0.2.7"
 dependencies = [
  "log",
  "pprof",
@@ -2546,9 +2546,9 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "symbolic-common"
-version = "10.2.1"
+version = "12.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b55cdc318ede251d0957f07afe5fed912119b8c1bc5a7804151826db999e737"
+checksum = "26212dc7aeb75abb4cc84320a50dd482977089402f7b4043b454d6d79d8536e7"
 dependencies = [
  "debugid",
  "memmap2",
@@ -2558,9 +2558,9 @@ dependencies = [
 
 [[package]]
 name = "symbolic-demangle"
-version = "10.2.1"
+version = "12.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79be897be8a483a81fff6a3a4e195b4ac838ef73ca42d348b3f722da9902e489"
+checksum = "76f1b0155f588568b2df0d693b30aeedb59360b647b85fc3c23942e81e8cc97a"
 dependencies = [
  "cpp_demangle 0.4.0",
  "rustc-demangle",

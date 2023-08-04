@@ -1,7 +1,11 @@
 use ctrlc;
-use std::sync::mpsc::channel;
+use duct::cmd;
+use std::os::unix::process::CommandExt;
 
-use super::{executor::Executor, profiler::Profiler};
+use std::sync::mpsc::channel;
+use std::thread;
+
+use super::{profiler::Profiler};
 use crate::utils::{
     app_config::AppConfig,
     error::{Error, Result},
@@ -14,46 +18,54 @@ pub fn exec() -> Result<()> {
     set_application_name()?;
     set_tags()?;
 
-    // Get command to execute
     let command = AppConfig::get::<Option<String>>("command")?
         .ok_or_else(|| Error::new("command unwrap failed"))?;
 
     let command_args = AppConfig::get::<Option<String>>("command_args")?
         .ok_or_else(|| Error::new("command unwrap failed"))?;
+    let command_args: Vec<String> = pyroscope::pyroscope::parse_vec_string_json(command_args)?;
 
-    // Get UID
     let uid = AppConfig::get::<Option<u32>>("user_name").unwrap_or(None);
-    // Get GID
     let gid = AppConfig::get::<Option<u32>>("group_name").unwrap_or(None);
 
-    // Create new executor and run it
-    let executor = Executor::new(command.as_ref(), command_args.as_ref(), uid, gid).run()?;
+    let handle = cmd(command, command_args)
+        .before_spawn(move |c| {
+            if let Some(uid) = uid {
+                c.uid(uid);
+            }
+            if let Some(gid) = gid {
+                c.gid(gid);
+            }
+            Ok(())
+        })
+        .start()?;
 
-    // Set PID
-    AppConfig::set("pid", executor.get_pid()?.to_string().as_str())?;
+    let pid = handle
+        .pids()
+        .get(0)
+        .ok_or_else(|| Error::new("pid not collected"))?
+        .to_owned() as i32 ;
 
-    // Initialize profiler
+    AppConfig::set("pid", pid.to_string().as_str())?;
+
     let mut profiler = Profiler::default();
     profiler.init()?;
 
-    // Create a channel for ctrlc
-    let (tx, rx) = channel();
+    // let (tx, rx) = channel();
 
-    // Set ctrcl handler
-    ctrlc::set_handler(move || {
-        tx.send(()).unwrap();
-    })
-    .expect("Error setting Ctrl-C handler");
+    // thread::spawn(move || {
+    //     let result = handle.wait();
+    //     tx.send(());
+    // });
 
-    println!("Press Ctrl-C to exit.");
+    // ctrlc::set_handler(move || {
+    //     tx.send(()).unwrap();
+    // })
+    // .expect("Error setting Ctrl-C handler");
 
-    // Wait for Ctrl+C signal
-    rx.recv().unwrap();
+    // rx.recv().unwrap();
 
-    println!("Exiting.");
-
-    // Stop exector and profiler
-    executor.stop()?;
+    handle.wait()?;
     profiler.stop()?;
 
     Ok(())

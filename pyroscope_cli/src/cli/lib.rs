@@ -99,7 +99,7 @@ enum Commands {
             short,
             long = "log-level",
             value_name = "LOG_LEVEL",
-            help = "[default: info] log level for the application"
+            help = "[default: error] log level for the application"
         )]
         log_level: Option<LogLevel>,
         #[clap(
@@ -246,7 +246,7 @@ enum Commands {
             short,
             long = "log-level",
             value_name = "LOG_LEVEL",
-            help = "[default: info] log level for the application"
+            help = "[default: error] log level for the application"
         )]
         log_level: Option<LogLevel>,
         #[clap(

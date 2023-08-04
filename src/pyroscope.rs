@@ -854,3 +854,20 @@ pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<Stri
     };
     return Ok(http_headers);
 }
+
+pub fn parse_vec_string_json(s: String) -> Result<Vec<String>> {
+    let parsed = json::parse(&s)?;
+    if !parsed.is_array() {
+        return Err(PyroscopeError::AdHoc(format!("expected array, got {}", parsed)));
+    }
+    let mut res = Vec::new();
+    res.reserve(parsed.len());
+    for v in parsed.members() {
+        if v.is_string() {
+            res.push(v.to_string());
+        } else {
+            return Err(PyroscopeError::AdHoc(format!("invalid element value, not a string: {}", v.to_string())));
+        }
+    };
+    return Ok(res);
+}

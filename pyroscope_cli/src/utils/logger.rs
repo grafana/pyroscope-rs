@@ -64,7 +64,7 @@ where
         }
 
         // TODO: This is probably expensive (and should be cached)
-        let log_level = AppConfig::get::<LogLevel>("log_level").unwrap_or(LogLevel::Info);
+        let log_level = AppConfig::get::<LogLevel>("log_level").unwrap_or(LogLevel::Error);
 
         // convert log level to slog level
         let current_level = match log_level {

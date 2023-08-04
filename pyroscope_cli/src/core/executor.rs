@@ -9,7 +9,7 @@ pub struct Executor<'a> {
     /// The command to run
     cmd: &'a str,
     /// The arguments to pass to the command
-    args: &'a str,
+    args: Vec<String>,
     /// The user id to run the command as
     uid: Option<u32>,
     /// The group id to run the command as
@@ -20,7 +20,7 @@ pub struct Executor<'a> {
 
 impl<'a> Executor<'a> {
     /// Create a new `Executor` with the given command, arguments, uid and gid.
-    pub fn new(cmd: &'a str, args: &'a str, uid: Option<u32>, gid: Option<u32>) -> Executor<'a> {
+    pub fn new(cmd: &'a str, args: Vec<String>, uid: Option<u32>, gid: Option<u32>) -> Executor<'a> {
         Executor {
             cmd,
             args,
@@ -32,7 +32,7 @@ impl<'a> Executor<'a> {
 
     /// Run the command.
     pub fn run(self) -> Result<Self> {
-        let handle = cmd!(self.cmd, self.args)
+        let handle = cmd(self.cmd, &self.args)
             .before_spawn(move |cmd| {
                 if let Some(uid) = self.uid {
                     cmd.uid(uid);
@@ -42,7 +42,7 @@ impl<'a> Executor<'a> {
                 }
                 Ok(())
             })
-            .stdout_capture()
+            // .stdout_capture()
             .start()?;
 
         Ok(Self {

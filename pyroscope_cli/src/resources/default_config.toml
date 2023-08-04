@@ -1,5 +1,5 @@
 detect_subprocesses = false 
-log_level = "info"
+log_level = "error"
 no_logging = false
 blocking = false
 oncpu = false
