@@ -20,7 +20,7 @@ RUN case "${TARGETPLATFORM}" in                       \
 RUN source ./.env  && \
     wget https://static.rust-lang.org/rustup/dist/${RUST_TARGET}/rustup-init && \
     chmod +x rustup-init && \
-    ./rustup-init  -y --default-toolchain=1.63.0 --default-host=${RUST_TARGET}
+    ./rustup-init  -y --default-toolchain=1.64.0 --default-host=${RUST_TARGET}
 ENV PATH=/root/.cargo/bin:$PATH
 
 

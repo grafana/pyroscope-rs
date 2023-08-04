@@ -1,5 +1,5 @@
 PREFIX ?= pyroscope/rust_builder
-CLI_BUILDER_VERSION ?= 1
+CLI_BUILDER_VERSION ?= 2
 .PHONY: build_x86_64
 build_x86_64:
 	docker build -t $(PREFIX)_manylinux2010_x86_64 -f Dockerfile.manylinux2010_x86_64 .
