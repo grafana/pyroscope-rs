@@ -1,4 +1,5 @@
-FROM pyroscope/rust_builder_cli:2 as builder
+# todo 
+FROM korniltsev/rust_builder_cli:2 as builder
 
 WORKDIR /app
 ADD pyroscope_backends ./pyroscope_backends
