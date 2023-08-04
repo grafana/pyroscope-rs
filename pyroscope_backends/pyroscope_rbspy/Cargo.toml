@@ -15,7 +15,7 @@ readme = "README.md"
 
 [dependencies]
 pyroscope-rbspy-oncpu = { version="0.17.0" }
-pyroscope = { version = "0.5.5", path = "../../", default-features = false }
+pyroscope = { version = "0.5.7", path = "../../", default-features = false }
 thiserror ="1.0"
 log = "0.4"
 anyhow = "1.0.56"

@@ -5,7 +5,7 @@ pprof-rs backend for Pyroscope Profiler.
 """
 keywords = ["pyroscope", "profiler", "pprof-rs"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "0.2.6"
+version = "0.2.7"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
@@ -16,7 +16,7 @@ readme = "README.md"
 
 [dependencies]
 pprof = "0.12"
-pyroscope = { version = "0.5.5", path = "../../", default-features = false }
+pyroscope = { version = "0.5.7", path = "../../", default-features = false }
 thiserror ="1.0"
 log = "0.4"
 
