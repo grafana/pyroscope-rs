@@ -368,6 +368,7 @@ pub fn cli_match() -> Result<()> {
     match &cli.command {
         Commands::Exec { .. } => {
             commands::exec()?;
+
         }
         Commands::Connect { .. } => {
             commands::connect()?;

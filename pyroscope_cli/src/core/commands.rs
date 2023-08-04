@@ -51,22 +51,10 @@ pub fn exec() -> Result<()> {
     let mut profiler = Profiler::default();
     profiler.init()?;
 
-    // let (tx, rx) = channel();
-
-    // thread::spawn(move || {
-    //     let result = handle.wait();
-    //     tx.send(());
-    // });
-
-    // ctrlc::set_handler(move || {
-    //     tx.send(()).unwrap();
-    // })
-    // .expect("Error setting Ctrl-C handler");
-
-    // rx.recv().unwrap();
-
-    handle.wait()?;
-    profiler.stop()?;
+    let child_res = handle.wait();
+    let profiler_res = profiler.stop();
+    child_res?;
+    profiler_res?;
 
     Ok(())
 }
