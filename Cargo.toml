@@ -16,7 +16,7 @@ autobins = false
 autoexamples = true
 autotests = true
 autobenches = true
-rust-version = "1.63"
+rust-version = "1.64"
 
 [workspace]
 members = [

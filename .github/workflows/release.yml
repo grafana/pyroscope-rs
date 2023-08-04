@@ -31,6 +31,22 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - run: docker buildx create --use
       - run: make -C docker push_cli_builder
+  clibuilder-release:
+    name: manylinux-release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/manylinux-')"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: docker/login-action@v2
+        name: Login to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - run: docker buildx create --use
+      - run: make -C docker push_aarch64 push_x86_64
+
   cli-release:
     name: pyroscope-cli
     runs-on: ubuntu-latest

@@ -12,7 +12,7 @@ homepage = "https://pyroscope.io"
 documentation  = "https://docs.rs/pyroscope"
 repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
-rust-version = "1.63"
+rust-version = "1.64"
 
 
 [dependencies]
