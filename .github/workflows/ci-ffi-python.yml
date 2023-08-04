@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         build-arch:
-          - manylinux2010_x86_64
+          - manylinux2014_x86_64
 
     name: Linux - ${{ matrix.build-arch }}
     runs-on: ubuntu-latest

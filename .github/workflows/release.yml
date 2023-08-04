@@ -132,7 +132,7 @@ jobs:
       fail-fast: false
       matrix:
         build-arch:
-          - manylinux2010_x86_64
+          - manylinux2014_x86_64
 
     name: Linux - ${{ matrix.build-arch }}
     runs-on: ubuntu-latest
@@ -328,7 +328,7 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
+        run: BUILD_ARCH=manylinux2014_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
 
       - name: Copy generated extra libraries
         run: mkdir -p lib/thread_id && cp ext/thread_id/target/release/libthread_id.so lib/thread_id/thread_id.so
