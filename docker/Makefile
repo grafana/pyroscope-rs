@@ -4,7 +4,7 @@ MANYLINUX_VERSION ?= 3
 
 .PHONY: push_x86_64
 push_x86_64:
-	docker buildx build -platform linux/amd64 -t $(PREFIX)_manylinux2014_x86_64:$(MANYLINUX_VERSION) -f Dockerfile.manylinux2014_x86_64 --push .
+	docker buildx build --platform linux/amd64 -t $(PREFIX)_manylinux2014_x86_64:$(MANYLINUX_VERSION) -f Dockerfile.manylinux2014_x86_64 --push .
 
 .PHONY: push_aarch64
 push_aarch64:
