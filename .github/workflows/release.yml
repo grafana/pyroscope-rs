@@ -16,6 +16,37 @@ jobs:
           title: "pyroscope-${{ github.ref_name }}"
           draft: true
           prerelease: false
+  clibuilder-release:
+    name: clibuilder-release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/clibuilder-')"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: docker/login-action@v2
+        name: Login to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - run: docker buildx create --use
+      - run: make -C docker push_cli_builder
+  manylinux-release:
+    name: manylinux-release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/manylinux-')"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: docker/login-action@v2
+        name: Login to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - run: docker buildx create --use
+      - run: make -C docker push_aarch64 push_x86_64
+
   cli-release:
     name: pyroscope-cli
     runs-on: ubuntu-latest
@@ -101,7 +132,7 @@ jobs:
       fail-fast: false
       matrix:
         build-arch:
-          - manylinux2010_x86_64
+          - manylinux2014_x86_64
 
     name: Linux - ${{ matrix.build-arch }}
     runs-on: ubuntu-latest
@@ -111,11 +142,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-
-      - if: matrix.build-arch == 'manylinux2014_aarch64'
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: arm64
 
       - name: Build in Docker
         run: pyroscope_ffi/python/scripts/docker.sh
@@ -297,7 +323,7 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
+        run: BUILD_ARCH=manylinux2014_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
 
       - name: Copy generated extra libraries
         run: mkdir -p lib/thread_id && cp ext/thread_id/target/release/libthread_id.so lib/thread_id/thread_id.so

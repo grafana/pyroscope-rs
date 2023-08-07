@@ -8,7 +8,7 @@ steps:
 - commands:
   - uname -a
   - make test
-  image: pyroscope/rust_builder_cli:1
+  image: pyroscope/rust_builder_cli:2
   name: make cli/test
 trigger:
   event:
@@ -24,7 +24,7 @@ steps:
 - commands:
   - uname -a
   - make test
-  image: pyroscope/rust_builder_cli:1
+  image: pyroscope/rust_builder_cli:2
   name: make cli/test
 trigger:
   event:
@@ -32,6 +32,6 @@ trigger:
 type: docker
 ---
 kind: signature
-hmac: afb4cb757c4a553f765b97688bd67b2fe94528e404540d2cbd3c0683e4e0b0a0
+hmac: ae54e4e9f852f94f3f7cd411812430ea96ad7238f1f638753161305d554e55fa
 
 ...

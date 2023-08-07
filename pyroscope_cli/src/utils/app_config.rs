@@ -170,10 +170,9 @@ impl AppConfig {
                         .iter()
                         .skip(1)
                         .map(|s| s.to_string())
-                        .collect::<Vec<String>>()
-                        .join(" ");
+                        .collect::<Vec<String>>();
 
-                    AppConfig::set("command_args", &command_args)?;
+                    AppConfig::set("command_args", &json::stringify(command_args))?;
                 }
             }
             if sub_exec.is_present("log_level") {

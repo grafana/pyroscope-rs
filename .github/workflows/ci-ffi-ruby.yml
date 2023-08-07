@@ -45,7 +45,7 @@ jobs:
         working-directory: pyroscope_ffi/ruby
 
       - name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2010_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
+        run: BUILD_ARCH=manylinux2014_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
 
       - name: Copy generated extra libraries
         run: mkdir -p lib/rbspy && cp  ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
