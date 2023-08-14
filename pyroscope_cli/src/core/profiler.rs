@@ -63,6 +63,13 @@ impl Profiler {
                     .gil_only(pyspy_gil)
                     .native(pyspy_native);
 
+                if blocking {
+                    log::warn!("blocking is not recommended for production use");
+                }
+                if pyspy_native && !blocking {
+                    log::warn!("native profiling is not supported without blocking");
+                }
+
                 let backend = pyspy_backend(config);
 
                 let mut builder = PyroscopeAgent::default_builder();
