@@ -18,7 +18,7 @@ def configure(
         sample_rate=100,
         detect_subprocesses=False,
         oncpu=True,
-        native=False,
+        native=None,
         gil_only=True,
         report_pid=False,
         report_thread_id=False,
@@ -31,6 +31,9 @@ def configure(
     if app_name is not None:
         warnings.warn("app_name is deprecated, use application_name", DeprecationWarning)
         application_name = app_name
+
+    if native is not None:
+        warnings.warn("native is deprecated and not supported", DeprecationWarning)
 
     if enable_logging:
         logger = logging.getLogger()
@@ -46,7 +49,6 @@ def configure(
         sample_rate,
         detect_subprocesses,
         oncpu,
-        native,
         gil_only,
         report_pid,
         report_thread_id,

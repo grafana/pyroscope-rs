@@ -49,7 +49,6 @@ pub extern "C" fn initialize_agent(
     sample_rate: u32,
     detect_subprocesses: bool,
     oncpu: bool,
-    native: bool,
     gil_only: bool,
     report_pid: bool,
     report_thread_id: bool,
@@ -117,7 +116,7 @@ pub extern "C" fn initialize_agent(
         .lock_process(false)
         .detect_subprocesses(detect_subprocesses)
         .oncpu(oncpu)
-        .native(native)
+        .native(false)
         .gil_only(gil_only);
 
     // Report the PID.
