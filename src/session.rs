@@ -166,8 +166,8 @@ impl Session {
             ReportEncoding::FOLDED => folded::encode(&reports),
             ReportEncoding::PPROF => pprof::encode(&reports,
                                                    self.config.sample_rate,
-                                                   self.from * 1_000_000,
-                                                   (self.until - self.from) * 1_000_000,
+                                                   self.from * 1_000_000_000,
+                                                   (self.until - self.from) * 1_000_000_000,
             ),
         }
     }
