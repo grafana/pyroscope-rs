@@ -65,15 +65,15 @@ Profile your code:
 
 ### Pyroscope Server
 
-The Pyroscope Agent send the profiling data to a [Pyroscope Server](https://pyroscope.io/docs/installing-pyroscope-overview/). You need to have a Pyroscope Server running in order to consume and visualize this data. It's not possible, currently, to forward the data to another endpoint.
+The Pyroscope Agent sends the profiling data to a [Pyroscope Server](https://pyroscope.io/docs/installing-pyroscope-overview/). You need to have a Pyroscope Server running in order to consume and visualize this data. It's not possible, currently, to forward the data to another endpoint.
 
 ### Multi-Threading
 
-The Pyroscope Agent and the [pprof-rs backend](pyroscope_backends/pyroscope_pprofrs) can profile and report data from a multi-threaded program. [pprof-rs](https://github.com/tikv/pprof-rs), however, does not track child-processes and thus profiling is limited to a single process.
+The Pyroscope Agent and the [pprof-rs backend](pyroscope_backends/pyroscope_pprofrs) can profile and report data from a multi-threaded program. [pprof-rs](https://github.com/tikv/pprof-rs), however, does not track child-processes, and thus profiling is limited to a single process.
 
 ### Profiling Backends
 
-The Pyroscope Agent doesn't do any profiling. The agent role is to orchestrate a profiling backend, and report the profiling data to the Pyroscope Server. The Agent can support external backends (in fact, all current backends are independent crates) and you can make your own. Backends can also be used seperately. The currently available backends are:
+The Pyroscope Agent doesn't do any profiling. The agent role is to orchestrate a profiling backend, and report the profiling data to the Pyroscope Server. The Agent can support external backends (in fact, all current backends are independent crates), and you can make your own. Backends can also be used separately. The currently available backends are:
 
 - [pprof-rs](pyroscope_backends/pyroscope_pprofrs): Rust profiler. A wrapper around [pprof-rs](https://github.com/tikv/pprof-rs).
 - [rbspy](pyroscope_backends/pyroscope_rbspy): Ruby Profiler. A wrapper around [rbspy](https://rbspy.github.io/).
@@ -81,7 +81,7 @@ The Pyroscope Agent doesn't do any profiling. The agent role is to orchestrate a
 
 ### Native Integration
 
-Pyroscope can be used directly from your projects with native integration. No agent or external programs are required.
+Pyroscope can be used directly in your projects with native integration. No agents or external programs are required.
 
 - [Python](https://pypi.org/project/pyroscope-io/): Python Package. [Readme](https://github.com/pyroscope-io/pyroscope-rs/tree/main/pyroscope_ffi/python#readme) - [Documentation](https://pyroscope.io/docs/python/)
 - [Ruby](https://rubygems.org/gems/pyroscope): Ruby Gem. [Readme](https://github.com/pyroscope-io/pyroscope-rs/tree/main/pyroscope_ffi/ruby#readme) - [Documentation](https://pyroscope.io/docs/ruby/)
