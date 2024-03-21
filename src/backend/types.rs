@@ -93,8 +93,7 @@ impl From<StackBuffer> for Vec<Report> {
                 },
             )
             .unwrap_or_default()
-            .into_iter()
-            .map(|(_, report)| report)
+            .into_values()
             .collect()
     }
 }

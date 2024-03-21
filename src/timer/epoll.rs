@@ -81,15 +81,14 @@ impl Timer {
                             Ok(_) => {
                                 log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", &tx)
                             }
-                            Err(_e) => {}
-                            // There could be a less confusing message, or this
-                            // refactored to avoid a first sender
-                            //log::warn!(
-                            //target: LOG_TAG,
-                            //"Failed to send event to listener @ {:?} - {}",
-                            //&tx,
-                            //e
-                            //),
+                            Err(_e) => {} // There could be a less confusing message, or this
+                                          // refactored to avoid a first sender
+                                          //log::warn!(
+                                          //target: LOG_TAG,
+                                          //"Failed to send event to listener @ {:?} - {}",
+                                          //&tx,
+                                          //e
+                                          //),
                         }
                     });
                 }
@@ -215,7 +214,7 @@ impl Timer {
 
 /// libc::timerfd wrapper
 pub fn timerfd_create(clockid: libc::clockid_t, clock_flags: libc::c_int) -> Result<i32> {
-    check_err(unsafe { libc::timerfd_create(clockid, clock_flags) }).map(|timer_fd| timer_fd as i32)
+    check_err(unsafe { libc::timerfd_create(clockid, clock_flags) })
 }
 
 /// libc::timerfd_settime wrapper
@@ -229,7 +228,7 @@ pub fn timerfd_settime(
 
 /// libc::epoll_create1 wrapper
 pub fn epoll_create1(epoll_flags: libc::c_int) -> Result<i32> {
-    check_err(unsafe { libc::epoll_create1(epoll_flags) }).map(|epoll_fd| epoll_fd as i32)
+    check_err(unsafe { libc::epoll_create1(epoll_flags) })
 }
 
 /// libc::epoll_ctl wrapper
