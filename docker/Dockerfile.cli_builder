@@ -20,7 +20,7 @@ RUN case "${TARGETPLATFORM}" in                       \
 RUN source ./.env  && \
     wget https://static.rust-lang.org/rustup/dist/${RUST_TARGET}/rustup-init && \
     chmod +x rustup-init && \
-    ./rustup-init  -y --default-toolchain=1.64.0 --default-host=${RUST_TARGET}
+    ./rustup-init  -y --default-toolchain=1.76.0 --default-host=${RUST_TARGET}
 ENV PATH=/root/.cargo/bin:$PATH
 
 
@@ -34,9 +34,9 @@ RUN source ./.env && \
      make install
 
 RUN source ./.env && \
-    wget https://zlib.net/zlib-1.2.13.tar.gz && \
-    tar -zxvf zlib-1.2.13.tar.gz && \
-    cd zlib-1.2.13 && \
+    wget https://zlib.net/zlib-1.3.1.tar.gz && \
+    tar -zxvf zlib-1.3.1.tar.gz && \
+    cd zlib-1.3.1 && \
     ./configure --prefix=/usr/local/musl/${RUST_TARGET} && \
     make -j16 && \
     make install
