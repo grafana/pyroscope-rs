@@ -1,6 +1,6 @@
 PREFIX ?= pyroscope/rust_builder
-CLI_BUILDER_VERSION ?= 2
-MANYLINUX_VERSION ?= 3
+CLI_BUILDER_VERSION ?= 3
+MANYLINUX_VERSION ?= 4
 
 .PHONY: push_x86_64
 push_x86_64:

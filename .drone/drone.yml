@@ -8,7 +8,7 @@ steps:
 - commands:
   - uname -a
   - make test
-  image: pyroscope/rust_builder_cli:2
+  image: pyroscope/rust_builder_cli:3
   name: make cli/test
 trigger:
   event:
@@ -24,7 +24,7 @@ steps:
 - commands:
   - uname -a
   - make test
-  image: pyroscope/rust_builder_cli:2
+  image: pyroscope/rust_builder_cli:3
   name: make cli/test
 trigger:
   event:

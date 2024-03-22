@@ -9,7 +9,7 @@ fi
 
 BUILD_DIR="/work"
 MANYLINUX_PREFIX=pyroscope/rust_builder
-MANYLINUX_VERSION=3
+MANYLINUX_VERSION=4
 
 docker run \
         -w /work/pyroscope_ffi/ruby/elflib/rbspy \

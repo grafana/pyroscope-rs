@@ -34,7 +34,7 @@
 # variable names should be passed through to the container.
 
 USE_CONTAINER       ?= 0
-BUILD_IMAGE_VERSION ?= 2
+BUILD_IMAGE_VERSION ?= 3
 BUILD_IMAGE         ?= pyroscope/rust_builder_cli:$(BUILD_IMAGE_VERSION)
 DOCKER_OPTS         ?= 
 
