@@ -22,7 +22,7 @@ use json;
 
 use crate::backend::BackendImpl;
 use crate::pyroscope::Compression::GZIP;
-use crate::pyroscope::ReportEncoding::{PPROF};
+use crate::pyroscope::ReportEncoding::PPROF;
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -102,7 +102,7 @@ impl PyroscopeConfig {
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
             auth_token: None,             // No authentication token
             basic_auth: None,
-            func: None,                   // No function
+            func: None, // No function
             compression: None,
             report_encoding: ReportEncoding::FOLDED,
             tenant_id: None,
@@ -138,7 +138,6 @@ impl PyroscopeConfig {
     pub fn spy_name(self, spy_name: String) -> Self {
         Self { spy_name, ..self }
     }
-
 
     pub fn auth_token(self, auth_token: String) -> Self {
         Self {
@@ -184,7 +183,6 @@ impl PyroscopeConfig {
             ..self
         }
     }
-
 
     /// Set the http request body compression.
     ///
@@ -328,7 +326,9 @@ impl PyroscopeAgentBuilder {
 
     pub fn basic_auth(self, username: impl AsRef<str>, password: impl AsRef<str>) -> Self {
         Self {
-            config: self.config.basic_auth(username.as_ref().to_owned(), password.as_ref().to_owned()),
+            config: self
+                .config
+                .basic_auth(username.as_ref().to_owned(), password.as_ref().to_owned()),
             ..self
         }
     }
@@ -455,7 +455,7 @@ impl PyroscopeAgentBuilder {
             handle: None,
             running: Arc::new((
                 #[allow(clippy::mutex_atomic)]
-                    Mutex::new(false),
+                Mutex::new(false),
                 Condvar::new(),
             )),
             _state: PhantomData,
@@ -465,7 +465,7 @@ impl PyroscopeAgentBuilder {
 
 #[derive(Clone, Debug)]
 pub enum Compression {
-    GZIP
+    GZIP,
 }
 
 impl FromStr for Compression {
@@ -843,22 +843,31 @@ pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<Stri
     let mut http_headers = HashMap::new();
     let parsed = json::parse(&http_headers_json)?;
     if !parsed.is_object() {
-        return Err(PyroscopeError::AdHoc(format!("expected object, got {}", parsed)));
+        return Err(PyroscopeError::AdHoc(format!(
+            "expected object, got {}",
+            parsed
+        )));
     }
     for (k, v) in parsed.entries() {
         if v.is_string() {
             http_headers.insert(k.to_string(), v.to_string());
         } else {
-            return Err(PyroscopeError::AdHoc(format!("invalid http header value, not a string: {}", v.to_string())));
+            return Err(PyroscopeError::AdHoc(format!(
+                "invalid http header value, not a string: {}",
+                v.to_string()
+            )));
         }
-    };
+    }
     return Ok(http_headers);
 }
 
 pub fn parse_vec_string_json(s: String) -> Result<Vec<String>> {
     let parsed = json::parse(&s)?;
     if !parsed.is_array() {
-        return Err(PyroscopeError::AdHoc(format!("expected array, got {}", parsed)));
+        return Err(PyroscopeError::AdHoc(format!(
+            "expected array, got {}",
+            parsed
+        )));
     }
     let mut res = Vec::new();
     res.reserve(parsed.len());
@@ -866,8 +875,11 @@ pub fn parse_vec_string_json(s: String) -> Result<Vec<String>> {
         if v.is_string() {
             res.push(v.to_string());
         } else {
-            return Err(PyroscopeError::AdHoc(format!("invalid element value, not a string: {}", v.to_string())));
+            return Err(PyroscopeError::AdHoc(format!(
+                "invalid element value, not a string: {}",
+                v.to_string()
+            )));
         }
-    };
+    }
     return Ok(res);
 }
