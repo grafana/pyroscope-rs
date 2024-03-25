@@ -49,10 +49,9 @@ pub fn transform_report(report: Report) -> Report {
         })
         .collect();
 
-    let new_report = Report::new(data).metadata(report.metadata.clone());
-
-    new_report
+    Report::new(data).metadata(report.metadata.clone())
 }
+
 fn main() -> Result<()> {
     let agent = PyroscopeAgent::builder("http://localhost:4040", "example.transform")
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))

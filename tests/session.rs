@@ -1,3 +1,4 @@
+use claims::assert_ok;
 use pyroscope::{
     backend::Report,
     pyroscope::PyroscopeConfig,
@@ -15,7 +16,7 @@ fn test_session_manager_new() {
 fn test_session_manager_push_kill() {
     let session_manager = SessionManager::new().unwrap();
     session_manager.push(SessionSignal::Kill).unwrap();
-    assert_eq!(session_manager.handle.unwrap().join().unwrap().unwrap(), ());
+    assert_ok!(session_manager.handle.unwrap().join().unwrap());
 }
 
 #[test]

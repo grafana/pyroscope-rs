@@ -67,6 +67,7 @@ json = "0.12.4"
 tokio = { version = "1.18", features = ["full"] }
 pretty_env_logger = "0.4.0"
 assert_matches = "1"
+claims = "0.7.1"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 pyroscope_pyspy = { path = "pyroscope_backends/pyroscope_pyspy" }
 pyroscope_rbspy = { path = "pyroscope_backends/pyroscope_rbspy" }
