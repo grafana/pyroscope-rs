@@ -1,22 +1,23 @@
 use std::{
-    io::Write,
     sync::mpsc::{sync_channel, Receiver, SyncSender},
     thread::{self, JoinHandle},
     time::Duration,
+    io::Write,
 };
 
-use libflate::gzip::Encoder;
 use reqwest::Url;
+use libflate::gzip::Encoder;
 
-use crate::backend::EncodedReport;
-use crate::pyroscope::ReportEncoding;
 use crate::{
     backend::Report,
-    encode::{folded, pprof},
-    pyroscope::{Compression, PyroscopeConfig},
+    pyroscope::{PyroscopeConfig, Compression},
     utils::{get_time_range, merge_tags_with_app_name},
-    PyroscopeError, Result,
+    Result,
+    PyroscopeError,
+    encode::{folded, pprof},
 };
+use crate::backend::EncodedReport;
+use crate::pyroscope::ReportEncoding;
 
 const LOG_TAG: &str = "Pyroscope::Session";
 
@@ -163,20 +164,18 @@ impl Session {
         log::debug!(target: LOG_TAG, "Encoding {} reports to {:?}", reports.len(), self.config.report_encoding);
         match &self.config.report_encoding {
             ReportEncoding::FOLDED => folded::encode(&reports),
-            ReportEncoding::PPROF => pprof::encode(
-                &reports,
-                self.config.sample_rate,
-                self.from * 1_000_000,
-                (self.until - self.from) * 1_000_000,
+            ReportEncoding::PPROF => pprof::encode(&reports,
+                                                   self.config.sample_rate,
+                                                   self.from * 1_000_000,
+                                                   (self.until - self.from) * 1_000_000,
             ),
         }
     }
 
     fn compress_reports(&self, reports: Vec<EncodedReport>) -> Vec<EncodedReport> {
         log::debug!(target: LOG_TAG, "Compressing {} reports to {:?}", reports.len(), self.config.compression);
-        reports
-            .into_iter()
-            .map(|r| match &self.config.compression {
+        reports.into_iter().map(|r|
+            match &self.config.compression {
                 None => r,
                 Some(Compression::GZIP) => {
                     let mut encoder = Encoder::new(Vec::new()).unwrap();
@@ -190,9 +189,10 @@ impl Session {
                         data: compressed_data,
                     }
                 }
-            })
-            .collect()
+            }
+        ).collect()
     }
+
 
     fn upload(&self, report: EncodedReport) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
@@ -221,10 +221,7 @@ impl Session {
         if let Some(auth_token) = &self.config.auth_token {
             req_builder = req_builder.bearer_auth(auth_token);
         } else if let Some(basic_auth) = &self.config.basic_auth {
-            req_builder = req_builder.basic_auth(
-                basic_auth.username.clone(),
-                Some(basic_auth.password.clone()),
-            );
+            req_builder = req_builder.basic_auth(basic_auth.username.clone(), Some(basic_auth.password.clone()));
         }
         if report.content_encoding != "" {
             req_builder = req_builder.header("Content-Encoding", report.content_encoding.as_str());
@@ -234,7 +231,7 @@ impl Session {
         }
         for (k, v) in &self.config.http_headers {
             req_builder = req_builder.header(k, v);
-        }
+        };
 
         let response = req_builder
             .query(&[

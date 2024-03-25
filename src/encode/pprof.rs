@@ -5,6 +5,7 @@ use prost::Message;
 use crate::backend::types::{EncodedReport, Report};
 use crate::encode::profiles::{Function, Label, Line, Location, Profile, Sample, ValueType};
 
+
 struct PProfBuilder {
     profile: Profile,
     strings: HashMap<String, i64>,
@@ -79,9 +80,7 @@ impl PProfBuilder {
     }
 }
 
-pub fn encode(
-    reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64,
-) -> Vec<EncodedReport> {
+pub fn encode(reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64) -> Vec<EncodedReport> {
     let mut b = PProfBuilder {
         strings: HashMap::new(),
         functions: HashMap::new(),
