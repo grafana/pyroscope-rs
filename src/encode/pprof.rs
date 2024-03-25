@@ -5,7 +5,6 @@ use prost::Message;
 use crate::backend::types::{EncodedReport, Report};
 use crate::encode::profiles::{Function, Label, Line, Location, Profile, Sample, ValueType};
 
-
 struct PProfBuilder {
     profile: Profile,
     strings: HashMap<String, i64>,
@@ -28,8 +27,8 @@ pub struct FunctionMirror {
 impl PProfBuilder {
     fn add_string(&mut self, s: &String) -> i64 {
         let v = self.strings.get(s);
-        if v.is_some() {
-            return *v.unwrap();
+        if let Some(v) = v {
+            return *v;
         }
         assert!(self.strings.len() != self.profile.string_table.len() + 1);
         let id: i64 = self.strings.len() as i64;
@@ -40,13 +39,13 @@ impl PProfBuilder {
 
     fn add_function(&mut self, fm: FunctionMirror) -> u64 {
         let v = self.functions.get(&fm);
-        if v.is_some() {
-            return *v.unwrap();
+        if let Some(v) = v {
+            return *v;
         }
         assert!(self.functions.len() != self.profile.function.len() + 1);
         let id: u64 = self.functions.len() as u64 + 1;
         let f = Function {
-            id: id,
+            id,
             name: fm.name,
             system_name: 0,
             filename: fm.filename,
@@ -59,8 +58,8 @@ impl PProfBuilder {
 
     fn add_location(&mut self, lm: LocationMirror) -> u64 {
         let v = self.locations.get(&lm);
-        if v.is_some() {
-            return *v.unwrap();
+        if let Some(v) = v {
+            return *v;
         }
         assert!(self.locations.len() != self.profile.location.len() + 1);
         let id: u64 = self.locations.len() as u64 + 1;
@@ -80,7 +79,9 @@ impl PProfBuilder {
     }
 }
 
-pub fn encode(reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64) -> Vec<EncodedReport> {
+pub fn encode(
+    reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64,
+) -> Vec<EncodedReport> {
     let mut b = PProfBuilder {
         strings: HashMap::new(),
         functions: HashMap::new(),
@@ -125,18 +126,12 @@ pub fn encode(reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, du
                 label: vec![],
             };
             for sf in &stacktrace.frames {
-                let name = b.add_string(&sf.name.as_ref().unwrap_or(&"".to_string()));
-                let filename = b.add_string(&sf.filename.as_ref().unwrap_or(&"".to_string()));
+                let name = b.add_string(sf.name.as_ref().unwrap_or(&"".to_string()));
+                let filename = b.add_string(sf.filename.as_ref().unwrap_or(&"".to_string()));
                 let line = sf.line.unwrap_or(0) as i64;
-                let function_id = b.add_function(FunctionMirror {
-                    name: name,
-                    filename: filename,
-                });
-                let location_id = b.add_location(LocationMirror {
-                    function_id: function_id,
-                    line: line,
-                });
-                sample.location_id.push(location_id as u64);
+                let function_id = b.add_function(FunctionMirror { name, filename });
+                let location_id = b.add_location(LocationMirror { function_id, line });
+                sample.location_id.push(location_id);
             }
             let mut labels = HashMap::new();
             for l in &stacktrace.metadata.tags {

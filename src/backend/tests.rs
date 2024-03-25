@@ -21,23 +21,24 @@ fn test_stack_frame_display() {
 
 #[test]
 fn test_stack_trace_display() {
-    let mut frames = Vec::new();
-    frames.push(StackFrame::new(
-        Some("module".to_string()),
-        Some("name".to_string()),
-        Some("filename".to_string()),
-        Some("relative_path".to_string()),
-        Some("absolute_path".to_string()),
-        Some(1),
-    ));
-    frames.push(StackFrame::new(
-        Some("module".to_string()),
-        Some("name".to_string()),
-        Some("filename".to_string()),
-        Some("relative_path".to_string()),
-        Some("absolute_path".to_string()),
-        Some(2),
-    ));
+    let frames = vec![
+        StackFrame::new(
+            Some("module".to_string()),
+            Some("name".to_string()),
+            Some("filename".to_string()),
+            Some("relative_path".to_string()),
+            Some("absolute_path".to_string()),
+            Some(1),
+        ),
+        StackFrame::new(
+            Some("module".to_string()),
+            Some("name".to_string()),
+            Some("filename".to_string()),
+            Some("relative_path".to_string()),
+            Some("absolute_path".to_string()),
+            Some(2),
+        ),
+    ];
 
     let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, frames);
 
@@ -73,23 +74,24 @@ fn test_report_clear() {
 #[test]
 fn test_report_display() {
     // Dummy StackTrace
-    let mut frames = Vec::new();
-    frames.push(StackFrame::new(
-        Some("module".to_string()),
-        Some("name".to_string()),
-        Some("filename".to_string()),
-        Some("absolute_path".to_string()),
-        Some("relative_path".to_string()),
-        Some(1),
-    ));
-    frames.push(StackFrame::new(
-        Some("module".to_string()),
-        Some("name".to_string()),
-        Some("filename".to_string()),
-        Some("absolute_path".to_string()),
-        Some("relative_path".to_string()),
-        Some(2),
-    ));
+    let frames = vec![
+        StackFrame::new(
+            Some("module".to_string()),
+            Some("name".to_string()),
+            Some("filename".to_string()),
+            Some("absolute_path".to_string()),
+            Some("relative_path".to_string()),
+            Some(1),
+        ),
+        StackFrame::new(
+            Some("module".to_string()),
+            Some("name".to_string()),
+            Some("filename".to_string()),
+            Some("absolute_path".to_string()),
+            Some("relative_path".to_string()),
+            Some(2),
+        ),
+    ];
 
     let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, frames);
 

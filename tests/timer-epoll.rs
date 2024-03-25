@@ -1,5 +1,6 @@
 #[cfg(target_os = "linux")]
 mod tests {
+    use claims::assert_ok;
     use pyroscope::timer::epoll::{
         epoll_create1, epoll_ctl, epoll_wait, timerfd_create, timerfd_settime,
     };
@@ -35,14 +36,12 @@ mod tests {
         };
 
         let timer_fd = timerfd_create(libc::CLOCK_REALTIME, libc::TFD_NONBLOCK).unwrap();
-        let void = timerfd_settime(
+        assert_ok!(timerfd_settime(
             timer_fd,
             libc::TFD_TIMER_ABSTIME,
             &mut new_value,
             &mut old_value,
-        )
-        .unwrap();
-        assert!(void == ());
+        ));
     }
 
     #[test]
@@ -60,8 +59,12 @@ mod tests {
 
         let epoll_fd = epoll_create1(0).unwrap();
         let timer_fd = timerfd_create(libc::CLOCK_REALTIME, libc::TFD_NONBLOCK).unwrap();
-        let void = epoll_ctl(epoll_fd, libc::EPOLL_CTL_ADD, timer_fd, &mut event).unwrap();
-        assert!(void == ());
+        assert_ok!(epoll_ctl(
+            epoll_fd,
+            libc::EPOLL_CTL_ADD,
+            timer_fd,
+            &mut event
+        ));
     }
 
     #[test]
@@ -78,8 +81,6 @@ mod tests {
         let mut events = vec![libc::epoll_event { events: 0, u64: 0 }];
 
         // Expire in 1ms
-        let void = unsafe { epoll_wait(epoll_fd, events.as_mut_ptr(), 1, 1).unwrap() };
-
-        assert!(void == ());
+        assert_ok!(unsafe { epoll_wait(epoll_fd, events.as_mut_ptr(), 1, 1) });
     }
 }
