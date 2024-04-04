@@ -12,13 +12,14 @@ import pyroscope
 import threading
 
 import uuid
+from urllib.parse import quote
 
 try:
     from urllib.request import Request, urlopen
 except ImportError:
     from urllib2 import Request, urlopen
 
-token = os.getenv("PYROSCOPE_API_TOKEN")
+
 app_name = 'pyroscopers.python.test'
 logger = logging.getLogger()
 
@@ -53,18 +54,18 @@ def multihash2(string):
 def wait_render(canary):
     while True:
         time.sleep(2)
-        u = 'https://pyroscope.cloud/render?from=now-1h&until=now&format=collapsed&query=' \
-            + '{}.cpu%7Bcanary%3D%22{}%22%7D'.format(app_name, canary)
+        query = f'process_cpu:cpu:nanoseconds:cpu:nanoseconds{{service_name="pyroscopers.python.test", canary="{canary}"}}'
+        u = 'http://localhost:4040/pyroscope/render?from=now-1h&until=now&&query=' + quote(query)
         response = None
         try:
             logging.info('render %s', u)
             req = Request(u)
-            req.add_header('Authorization', 'Bearer {}'.format(token))
             response = urlopen(req)
             code = response.getcode()
             body = response.read()
             logging.info("render body %s", body.decode('utf-8'))
             if code == 200 and body != b'' and b'multihash' in body:
+                print(f'good {canary}')
                 return
         except Exception:
             if response is not None:
@@ -80,8 +81,7 @@ def do_one_test(on_cpu, gil_only, detect_subprocesses):
     runid = os.getenv("PYROSCOPE_RUN_ID")
     pyroscope.configure(
         application_name=app_name,
-        server_address="https://ingest.pyroscope.cloud",
-        auth_token='{}'.format(token),
+        server_address="http://localhost:4040",
         enable_logging=True,
         detect_subprocesses=detect_subprocesses,
         oncpu=on_cpu,
