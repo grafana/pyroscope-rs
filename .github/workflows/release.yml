@@ -154,7 +154,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -188,7 +188,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -240,7 +240,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -273,7 +273,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -348,7 +348,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -413,7 +413,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -483,7 +483,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -519,7 +519,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: korniltsev/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
