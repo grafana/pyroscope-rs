@@ -105,24 +105,23 @@ pub fn encode(
     };
     b.add_string(&"".to_string());
     {
-        let count = b.add_string(&"count".to_string());
-        let samples = b.add_string(&"samples".to_string());
-        let milliseconds = b.add_string(&"milliseconds".to_string());
+        let cpu = b.add_string(&"cpu".to_string());
+        let nanoseconds = b.add_string(&"nanoseconds".to_string());
         b.profile.sample_type.push(ValueType {
-            r#type: samples,
-            unit: count,
+            r#type: cpu,
+            unit: nanoseconds,
         });
-        b.profile.period = 1_000 / sample_rate as i64;
+        b.profile.period = 1_000_000_000 / sample_rate as i64;
         b.profile.period_type = Some(ValueType {
-            r#type: 0,
-            unit: milliseconds,
-        })
+            r#type: cpu,
+            unit: nanoseconds,
+        });
     }
     for report in reports {
         for (stacktrace, value) in &report.data {
             let mut sample = Sample {
                 location_id: vec![],
-                value: vec![*value as i64],
+                value: vec![*value as i64 * b.profile.period],
                 label: vec![],
             };
             for sf in &stacktrace.frames {

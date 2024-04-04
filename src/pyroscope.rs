@@ -77,8 +77,8 @@ impl Default for PyroscopeConfig {
             auth_token: None,
             basic_auth: None,
             func: None,
-            compression: None,
-            report_encoding: ReportEncoding::FOLDED,
+            compression: Some(GZIP),
+            report_encoding: PPROF,
             tenant_id: None,
             http_headers: HashMap::new(),
         }
@@ -103,8 +103,8 @@ impl PyroscopeConfig {
             auth_token: None,             // No authentication token
             basic_auth: None,
             func: None, // No function
-            compression: None,
-            report_encoding: ReportEncoding::FOLDED,
+            compression: Some(GZIP),
+            report_encoding: ReportEncoding::PPROF,
             tenant_id: None,
             http_headers: HashMap::new(),
         }
