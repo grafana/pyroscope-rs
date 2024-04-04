@@ -172,6 +172,8 @@ jobs:
     runs-on: [self-hosted, Linux, ARM64]
 
     steps:
+      - name: Remove previous data (owned by root, because written from docker as bin mount directory)
+        run: sudo rm -rf ./pyroscope_ffi/python/lib/target ./pyroscope_ffi/python/.eggs/  ./pyroscope_ffi/python/dist pyroscope_ffi/python/pyroscope_io.egg-info  ./pyroscope_ffi/python/build ./target/
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v3
         with:
