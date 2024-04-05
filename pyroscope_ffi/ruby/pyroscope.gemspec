@@ -31,8 +31,33 @@ Gem::Specification.new do |s|
       #(f == __FILE__) || f.match(%r{\A(?:(?:bin|test|spec|features)/|\.(?:git|travis|circleci)|appveyor)})
     #end
   #end
-  s.files = `git ls-files -z`.split("\0").reject { |f| f =~ /^(\.|G|spec|Rakefile)/ }
-
+#   s.files = `git ls-files -z`.split("\0").reject { |f| f =~ /^(\.|G|spec|Rakefile)/ }
+  s.files = [
+    "Gemfile",
+    "Gemfile.lock",
+    "LICENSE",
+#     "Makefile",
+    "README.md",
+#     "Rakefile",
+    "ext/rbspy/Cargo.toml",
+    "ext/rbspy/Rakefile",
+    "ext/rbspy/build.rs",
+    "ext/rbspy/cbindgen.toml",
+    "ext/rbspy/extconf.rb",
+    "ext/rbspy/include/rbspy.h",
+    "ext/rbspy/src/lib.rs",
+    "ext/thread_id/Cargo.toml",
+    "ext/thread_id/Rakefile",
+    "ext/thread_id/build.rs",
+    "ext/thread_id/cbindgen.toml",
+    "ext/thread_id/extconf.rb",
+    "ext/thread_id/include/thread_id.h",
+    "ext/thread_id/src/lib.rs",
+    "lib/pyroscope.rb",
+    "lib/pyroscope/version.rb",
+    "pyroscope.gemspec",
+#     "scripts/tests/test.rb",
+  ]
   s.platform = Gem::Platform::RUBY
 
   s.required_ruby_version = ">= 1.9.3"
