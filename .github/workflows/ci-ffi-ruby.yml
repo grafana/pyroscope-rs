@@ -38,6 +38,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.76.0
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
       - run: make gem/mac/${{ matrix.mk-arch }}
       - uses: actions/upload-artifact@v2
         with:
