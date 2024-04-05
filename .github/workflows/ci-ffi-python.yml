@@ -55,7 +55,6 @@ jobs:
     name: Linux - arm64
     runs-on: [self-hosted, Linux, ARM64]
     steps:
-      - uses: docker/setup-qemu-action@v3
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v4
       - name: Build in Docker
