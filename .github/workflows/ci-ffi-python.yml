@@ -106,8 +106,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
-        with: # todo fix toolchain version!
-          toolchain: stable
+        with:
+          toolchain: 1.76.0
           target: ${{ matrix.target }}
           profile: minimal
           override: true
