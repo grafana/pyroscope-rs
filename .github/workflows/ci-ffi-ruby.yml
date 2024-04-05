@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - run: make gem/linux/amd64
       - uses: actions/upload-artifact@v2
         with:
@@ -37,7 +37,7 @@ jobs:
       RUST_TARGET: ${{ matrix.target }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1'
@@ -73,7 +73,7 @@ jobs:
           path: "${{github.workspace}}/ruby"
       - run: "cd ${{ github.workspace }}/ruby && ls -l"
       - run: "cd ${{ github.workspace }}/ruby && gem install *.gem"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Run Ruby Script
         run: pyroscope_ffi/ruby/scripts/tests/test.rb
         env:
