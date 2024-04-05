@@ -321,7 +321,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: make gem/mac/${{ mk-arch }}
+      - run: make gem/mac/${{ matrix.mk-arch }}
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
