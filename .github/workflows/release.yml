@@ -129,7 +129,7 @@ jobs:
     steps:
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v4
-      - run: make wheel/amd64
+      - run: make wheel/linux/amd64
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
