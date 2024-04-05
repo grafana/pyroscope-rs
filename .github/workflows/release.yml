@@ -152,7 +152,7 @@ jobs:
       - uses: docker/setup-qemu-action@v3
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v4
-      - run: make wheel/arm64
+      - run: make wheel/linux/arm64
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}

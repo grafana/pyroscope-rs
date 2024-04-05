@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build in Docker
-        run: make wheel/amd64
+        run: make wheel/linux/amd64
 
       - uses: actions/upload-artifact@v2
         with:
@@ -60,7 +60,7 @@ jobs:
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v4
       - name: Build in Docker
-        run: make wheel/arm64
+        run: make wheel/linux/arm64
 
       - uses: actions/upload-artifact@v2
         with:
