@@ -14,4 +14,4 @@ dev:
 clean:
 	rm -rf pkg lib/thread_id/*.so lib/rbspy/*.so
 	cd ext/rbspy && cargo clean
-	cd ext/thread_id cargo clean
+	cd ext/thread_id && cargo clean

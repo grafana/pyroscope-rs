@@ -54,12 +54,11 @@ gem/linux/amd64: pyroscope_ffi/clean
 
 .phony: gem/linux/arm64
 gem/linux/arm64: pyroscope_ffi/clean
-	docker build \
+	docker build -t hui \
 		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_ARM):$(MANYLINUX_VERSION) \
 		--build-arg="TARGET_TASK=arm64_darwin:gem" \
-	 	--platform=linux/arm64 \
-	 	--output=pyroscope_ffi/ruby \
-	 	-f docker/gem.Dockerfile \
+		--platform=linux/arm64 \
+		-f docker/gem.Dockerfile \
 	 	.
 
 .phony: gem/mac/amd64
