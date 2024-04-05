@@ -29,8 +29,7 @@ RUN bundle install
 COPY --from=builder-native /pyroscope-rs/target/release/librbspy.so lib/rbspy/rbspy.so
 COPY --from=builder-native /pyroscope-rs/target/release/libthread_id.so lib/thread_id/thread_id.so
 ARG TARGET_TASK
-#RUN rake ${TARGET_TASK}
-#
-#
-#FROM scratch
-#COPY --from=builder-gem /gem/pkg/ /pkg/
+RUN rake ${TARGET_TASK}
+
+FROM scratch
+COPY --from=builder-gem /gem/pkg/ /pkg/
