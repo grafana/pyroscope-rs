@@ -122,7 +122,7 @@ pub extern "C" fn initialize_agent(
     report_thread_id: bool,
     tags: *const c_char,
     compression: *const c_char,
-    report_encoding: *const c_char,
+    _report_encoding: *const c_char,
     tenant_id: *const c_char,
     http_headers_json: *const c_char,
 ) -> bool {
@@ -165,11 +165,6 @@ pub extern "C" fn initialize_agent(
         .to_string();
 
     let compression_string = unsafe { CStr::from_ptr(compression) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let report_encoding = unsafe { CStr::from_ptr(report_encoding) }
         .to_str()
         .unwrap()
         .to_string();

@@ -3,7 +3,6 @@ use duct::cmd;
 use std::os::unix::process::CommandExt;
 
 use std::sync::mpsc::channel;
-use std::thread;
 
 use super::{profiler::Profiler};
 use crate::utils::{
