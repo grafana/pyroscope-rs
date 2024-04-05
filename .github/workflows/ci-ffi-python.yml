@@ -2,9 +2,9 @@ name: Python Package
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   linux-build:
@@ -18,15 +18,15 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: "linux.whl" 
+          name: "linux.whl"
           path: pyroscope_ffi/python/dist/*
 
   linux-test:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: [ '3.7', '3.8', '3.9', '3.10', '3.11']
-    needs: ['linux-build']
+        PYTHON_VERSION: [ '3.7', '3.8', '3.9', '3.10', '3.11' ]
+    needs: [ 'linux-build' ]
     name: Linux Test
     runs-on: ubuntu-latest
     env:
@@ -116,12 +116,7 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Build Wheel
-        run: |
-          pip install wheel
-          python setup.py bdist_wheel -p ${{ matrix.py-platform }}
-        working-directory: pyroscope_ffi/python
-
+      - run: make wheel/mac/${{ matrix.py-platform }}
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}

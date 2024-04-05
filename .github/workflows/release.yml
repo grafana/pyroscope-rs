@@ -195,11 +195,7 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Build Wheel
-        run: |
-          pip install wheel
-          python setup.py bdist_wheel -p ${{ matrix.py-platform }}
-        working-directory: pyroscope_ffi/python
+      - run: make wheel/mac/${{ matrix.py-platform }}
 
       - uses: actions/upload-artifact@v2
         with:

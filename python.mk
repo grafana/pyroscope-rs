@@ -10,8 +10,8 @@ pyroscope_ffi/clean:
 	make -C pyroscope_ffi/python/ clean
 	# todo ruby
 
-.phony: wheel/amd64
-wheel/amd64: pyroscope_ffi/clean
+.phony: wheel/linux/amd64
+wheel/linux/amd64: pyroscope_ffi/clean
 	docker build \
 		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_AMD):$(MANYLINUX_VERSION) \
 	 	--platform=linux/amd64 \
@@ -19,11 +19,23 @@ wheel/amd64: pyroscope_ffi/clean
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
-.phony: wheel/arm64
-wheel/arm64: pyroscope_ffi/clean
+.phony: wheel/linux/arm64
+wheel/linux/arm64: pyroscope_ffi/clean
 	docker build \
 		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_ARM):$(MANYLINUX_VERSION) \
 	 	--platform=linux/arm64 \
 	 	--output=pyroscope_ffi/python \
 	 	-f docker/wheel.Dockerfile \
 	 	.
+
+.phony: wheel/mac/macosx-11_0_x86_64:
+wheel/mac/macosx-11_0_x86_64:
+	cd pyroscope_ffi/python && \
+		pip install wheel && \
+		python setup.py bdist_wheel -p macosx-11_0_x86_64
+
+.phony: wheel/mac/macosx-11_0_arm64:
+wheel/mac/macosx-11_0_arm64:
+	cd pyroscope_ffi/python && \
+		pip install wheel && \
+		python setup.py bdist_wheel -p macosx-11_0_arm64
