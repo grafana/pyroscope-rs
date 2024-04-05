@@ -92,4 +92,4 @@ drone:
 	drone lint .drone/drone.yml
 	drone sign --save grafana/pyroscope-rs .drone/drone.yml
 
-include python.mk
+include ffi.mk

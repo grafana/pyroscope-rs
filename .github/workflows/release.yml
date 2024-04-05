@@ -258,49 +258,12 @@ jobs:
           prerelease: false
   ruby-release-linux:
     needs: [ 'ruby-release' ]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - build-arch: x86_64
-            target: x86_64-unknown-linux-gnu
-
-    name: Linux - ${{ matrix.build-arch }}
+    name: Release Linux gem amd64
     runs-on: ubuntu-latest
-
     steps:
       - uses: AutoModality/action-clean@v1
-      - run: id
       - uses: actions/checkout@v4
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.1'
-
-      - name: Install bundles
-        run: bundle
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2014_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
-
-      - name: Copy generated extra libraries
-        run: mkdir -p lib/thread_id && cp ext/thread_id/target/release/libthread_id.so lib/thread_id/thread_id.so
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Copy generated extra libraries
-        run: mkdir -p lib/rbspy && cp  ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Copy generated extra libraries
-        run: cp -r ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy.libs lib/rbspy.libs
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build linux gem
-        run: rake x86_64_linux:gem
-        working-directory: pyroscope_ffi/ruby
-
-
+      - run: make gem/linux/amd64
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
@@ -316,54 +279,12 @@ jobs:
 
   ruby-release-linux-arm:
     needs: [ 'ruby-release' ]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - build-arch: aarch64
-            target: arm-unknown-linux-gnueabihf
-
-    name: Linux - ${{ matrix.build-arch }}
+    name: Release Linux gem arm64
     runs-on: [ self-hosted, Linux, ARM64 ]
 
     steps:
-      - name: rm -rf * - custom script instead of AutoModality/action-clean@v1 to run as sudo to remove root owned directories created by docker.sh
-        run: bash  -c "set -e ; shopt -s dotglob; sudo rm -rf *"
-
       - uses: actions/checkout@v4
-
-      - name: asdf clone
-        run: ~/.asdf/bin/asdf || git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.1 ;
-
-      - name: asdf install
-        run: echo $HOME/.asdf/bin >> $GITHUB_PATH ; echo $HOME/.asdf/shims >> $GITHUB_PATH
-
-      - name: asdf install .tools-versions
-        run: asdf install
-
-      - name: Install bundles
-        run: bundle
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2014_aarch64 ./pyroscope_ffi/ruby/scripts/docker.sh
-
-      - name: Copy generated extra libraries
-        run: mkdir -p lib/thread_id && cp ext/thread_id/target/release/libthread_id.so lib/thread_id/thread_id.so
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Copy generated extra libraries
-        run: mkdir -p lib/rbspy && cp ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-aarch64-linux-gnu.so lib/rbspy/rbspy.so
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Copy generated extra libraries
-        run: cp -r ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy.libs lib/rbspy.libs
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build linux gem
-        run: rake aarch64_linux:gem
-        working-directory: pyroscope_ffi/ruby
-
+      - run: make gem/linux/arm64
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
@@ -385,10 +306,10 @@ jobs:
         include:
           - macos-version: "11.0"
             target: x86_64-apple-darwin
-            py-platform: macosx-11_0_x86_64
+            mk-arch: amd64
           - macos-version: "11.0"
             target: aarch64-apple-darwin
-            py-platform: macosx-11_0_arm64
+            mk-arch: arm64
 
     name: macOS - ${{ matrix.platform }}
     runs-on: macos-${{ matrix.macos-version }}
@@ -398,40 +319,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.76.0
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.1'
-
-      - name: Install bundles
-        run: bundle
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build native extensions
-        run: rake rbspy_install
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build native extensions
-        run: rake thread_id_install
-        working-directory: pyroscope_ffi/ruby
-
-      - if: matrix.target == 'x86_64-apple-darwin'
-        name: Build macos gem
-        run: rake x86_64_darwin:gem
-        working-directory: pyroscope_ffi/ruby
-
-      - if: matrix.target == 'aarch64-apple-darwin'
-        name: Build macos gem
-        run: rake arm64_darwin:gem
-        working-directory: pyroscope_ffi/ruby
-
+      - run: make gem/mac/${{ mk-arch }}
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}

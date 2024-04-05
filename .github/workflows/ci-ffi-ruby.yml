@@ -8,51 +8,41 @@ on:
 
 jobs:
   linux-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - build-arch: x86_64
-            target: x86_64-unknown-linux-gnu
-
-    name: Linux - ${{ matrix.build-arch }}
+    name: Build linux gem amd64
     runs-on: ubuntu-latest
 
     steps:
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v4
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.1'
-
-      - name: Install bundles
-        run: bundle
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build native extensions
-        run: rake thread_id_install
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Generate extra libraries
-        run: BUILD_ARCH=manylinux2014_x86_64 ./pyroscope_ffi/ruby/scripts/docker.sh
-
-      - name: Copy generated extra libraries
-        run: mkdir -p lib/rbspy && cp  ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy/_native__lib.cpython-37m-x86_64-linux-gnu.so lib/rbspy/rbspy.so
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Copy generated extra libraries
-        run: cp -r ./elflib/rbspy/wheelhouse/rbspy-1.0.0/rbspy.libs lib/rbspy.libs
-        working-directory: pyroscope_ffi/ruby
-
-      - name: Build linux gem
-        run: rake x86_64_linux:gem
-        working-directory: pyroscope_ffi/ruby
-
-
+      - run: make gem/linux/amd64
       - uses: actions/upload-artifact@v2
         with:
           name: "linux.gem"
+          path: pyroscope_ffi/ruby/pkg/*.gem
+  macos-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - macos-version: "11.0"
+            target: x86_64-apple-darwin
+            mk-arch: amd64
+          - macos-version: "11.0"
+            target: aarch64-apple-darwin
+            mk-arch: arm64
+
+    name: macOS - ${{ matrix.platform }}
+    runs-on: macos-${{ matrix.macos-version }}
+
+    env:
+      RUST_TARGET: ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: make gem/mac/${{ mk-arch }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
           path: pyroscope_ffi/ruby/pkg/*.gem
 
   linux-test:
@@ -61,7 +51,7 @@ jobs:
       matrix:
         PYROSCOPE_DETECT_SUBPROCESSES: [1, 0]
         PYROSCOPE_ONCPU: [1, 0]
-        RUBY_VERSION: ['2.6', '2.7', '3.0', '3.1']
+        RUBY_VERSION: ['2.6', '2.7', '3.0', '3.1', '3.2']
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-latest
