@@ -10,7 +10,7 @@ LIB_DIR = str(SCRIPT_DIR / "lib")
 def build_native(spec):
     # Step 1: build the rust library
     build = spec.add_external_build(
-        cmd=['cargo', 'build', '--release'],
+        cmd=['cargo', 'build', '-p' 'pyroscope_ffi', '--release'],
         path=LIB_DIR
     )
 
