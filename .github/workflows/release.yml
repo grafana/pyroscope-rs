@@ -145,7 +145,8 @@ jobs:
   python-release-linux-arm:
     needs: [ 'python-release' ]
     name: Release python linux arm64
-    runs-on: [self-hosted, Linux, ARM64]
+    #    runs-on: [self-hosted, Linux, ARM64] # TODO
+    runs-on: ubuntu-latest
 
     steps:
       - uses: docker/setup-qemu-action@v3

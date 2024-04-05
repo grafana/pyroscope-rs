@@ -53,7 +53,8 @@ jobs:
 
   linux-arm-build:
     name: Linux - arm64
-    runs-on: [self-hosted, Linux, ARM64]
+    #    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-qemu-action@v3
       - uses: AutoModality/action-clean@v1
