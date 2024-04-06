@@ -30,7 +30,7 @@ impl PProfBuilder {
         if let Some(v) = v {
             return *v;
         }
-        assert!(self.strings.len() != self.profile.string_table.len() + 1);
+        assert_ne!(self.strings.len(), self.profile.string_table.len() + 1);
         let id: i64 = self.strings.len() as i64;
         self.strings.insert(s.to_owned(), id);
         self.profile.string_table.push(s.to_owned());
@@ -42,7 +42,7 @@ impl PProfBuilder {
         if let Some(v) = v {
             return *v;
         }
-        assert!(self.functions.len() != self.profile.function.len() + 1);
+        assert_ne!(self.functions.len(), self.profile.function.len() + 1);
         let id: u64 = self.functions.len() as u64 + 1;
         let f = Function {
             id,
@@ -61,7 +61,7 @@ impl PProfBuilder {
         if let Some(v) = v {
             return *v;
         }
-        assert!(self.locations.len() != self.profile.location.len() + 1);
+        assert_ne!(self.locations.len(), self.profile.location.len() + 1);
         let id: u64 = self.locations.len() as u64 + 1;
         let l = Location {
             id,
