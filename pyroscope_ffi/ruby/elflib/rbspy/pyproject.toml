@@ -1,7 +1,0 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel",
-    "milksnakex>=0.1.6"
-]
-build-backend = "setuptools.build_meta"

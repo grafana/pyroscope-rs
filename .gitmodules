@@ -1,3 +1,0 @@
-[submodule "pyroscope_backends/rbspy"]
-	path = pyroscope_backends/rbspy
-	url = https://github.com/pyroscope-io/rbspy.git

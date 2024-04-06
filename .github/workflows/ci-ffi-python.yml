@@ -2,43 +2,31 @@ name: Python Package
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   linux-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        build-arch:
-          - manylinux2014_x86_64
-
-    name: Linux - ${{ matrix.build-arch }}
-    runs-on: ubuntu-latest
+    name: Linux - amd64
+    runs-on: ubuntu-latest # TODO try using grafana runners
 
     steps:
-      - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
       - name: Build in Docker
-        run: pyroscope_ffi/python/scripts/docker.sh
-        env:
-          BUILD_ARCH: ${{ matrix.build-arch }}
+        run: make wheel/linux/amd64
 
       - uses: actions/upload-artifact@v2
         with:
-          name: "linux.whl" 
+          name: "linux.whl"
           path: pyroscope_ffi/python/dist/*
 
   linux-test:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: [ '3.7', '3.8', '3.9', '3.10'] # todo bring back 2.7, do not rely on gh runners, use docker environment
-    needs: ['linux-build']
+        PYTHON_VERSION: [ '3.7', '3.8', '3.9', '3.10', '3.11' ]
+    needs: [ 'linux-build' ]
     name: Linux Test
     runs-on: ubuntu-latest
     env:
@@ -60,202 +48,29 @@ jobs:
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip install *.whl"
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - run: docker run -d -p4040:4040 grafana/pyroscope
       - run: python pyroscope_ffi/python/scripts/tests/test.py
 
   linux-arm-build:
-    strategy:
-      fail-fast: false
-      matrix:
-        build-arch:
-          - manylinux2014_aarch64
-
-    name: Linux - ${{ matrix.build-arch }}
+    name: Linux - arm64
     runs-on: [self-hosted, Linux, ARM64]
-
     steps:
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - name: Build in Docker
-        run: pyroscope_ffi/python/scripts/docker.sh
-        env:
-          BUILD_ARCH: ${{ matrix.build-arch }}
+        run: make wheel/linux/arm64
 
       - uses: actions/upload-artifact@v2
         with:
           name: "linux-arm.whl"
           path: pyroscope_ffi/python/dist/*
 
-#  macos-build:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        include:
-#          - macos-version: "11.0"
-#            target: x86_64-apple-darwin
-#            py-platform: macosx-11_0_x86_64
-#          - macos-version: "11.0"
-#            target: aarch64-apple-darwin
-#            py-platform: macosx-11_0_arm64
-#
-#    name: macOS - ${{ matrix.py-platform }}
-#    runs-on: macos-${{ matrix.macos-version }}
-#
-#    steps:
-#      - uses: actions/checkout@v3
-#        with:
-#          submodules: recursive
-#
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: stable
-#          target: ${{ matrix.target }}
-#          profile: minimal
-#          override: true
-#
-#      - uses: actions/setup-python@v4
-#        with:
-#          python-version: 3.9
-#
-#
-#      - name: Build Wheel
-#        run: |
-#          pip install wheel
-#          python3 setup.py bdist_wheel -p ${{ matrix.py-platform }}
-#        working-directory: pyroscope_ffi/python
-#        env:
-#          CARGO_BUILD_TARGET: ${{ matrix.target }}
-#
-#      - uses: actions/upload-artifact@v2
-#        with:
-#          name: ${{ matrix.target }}
-#          path: pyroscope_ffi/python/dist/*
-#
-#  macos-intel-test:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        PYTHON_VERSION: ['3.7', '3.8', '3.9', '3.10']
-#    needs: ['macos-build']
-#    name: Macos Test
-#    runs-on: macos-11.0
-#    env:
-#      PYROSCOPE_RUN_ID: ${{ github.run_id }}
-#      PYROSCOPE_ARCH: x86-64-apple-darwin
-#      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-#      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
-#    steps:
-#      - name: Set up Python
-#        uses: actions/setup-python@v4
-#        with:
-#          python-version: ${{ matrix.PYTHON_VERSION }}
-#          architecture: x64
-#      - uses: actions/download-artifact@master
-#        with:
-#          name: x86_64-apple-darwin
-#          path: "${{github.workspace}}/python"
-#      - run: "python --version ; pip --version ; python3 --version ; pip3 --version; pip list; uname -a"
-#      - run: "pip install pip cffi --upgrade"
-#      - run: "cd ${{ github.workspace }}/python && ls -l"
-#      - name: Install wheel
-#        run: "cd ${{ github.workspace }}/python && pip install *.whl"
-#        env:
-#          SYSTEM_VERSION_COMPAT: 0
-#      - uses: actions/checkout@v3
-#        with:
-#          submodules: recursive
-#      - run: python pyroscope_ffi/python/scripts/tests/test.py
-
-
-#  windows-build:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        include:
-#          - windows-version: "2022"
-#            target: x86_64-pc-windows-gnu
-#            py-platform: win_amd64
-#
-#    name: windows - ${{ matrix.py-platform }}
-#    runs-on: windows-${{ matrix.windows-version }}
-#
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: stable
-#          target: ${{ matrix.target }}
-#          profile: minimal
-#          override: true
-#
-#      - uses: actions/setup-python@v2
-#        with:
-#          python-version: 3.9
-#
-#
-#      - name: Build Wheel
-#        run: |
-#          pip install wheel
-#          python3 setup.py bdist_wheel -p ${{ matrix.py-platform }}
-#        working-directory: pyroscope_ffi/python
-#        env:
-#          CARGO_BUILD_TARGET: ${{ matrix.target }}
-#
-#      - uses: actions/upload-artifact@v2
-#        with:
-#          name: ${{ matrix.target }}
-#          path: pyroscope_ffi/python/dist/*
-#
-#  windows-test:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9', '3.10']
-#    needs: ['windows-build']
-#    name: Windows Test
-#    runs-on: windows-2022
-#    env:
-#      PYROSCOPE_RUN_ID: ${{ github.run_id }}
-#      PYROSCOPE_ARCH: x86_64-pc-windows-gnu
-#      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-#      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
-#    steps:
-#      - name: Set up Python
-#        uses: actions/setup-python@v4
-#        with:
-#          python-version: ${{ matrix.PYTHON_VERSION }}
-#          architecture: x64
-#      - uses: actions/download-artifact@master
-#        with:
-#          name: x86_64-pc-windows-gnu
-#          path: "${{github.workspace}}/python"
-#
-#      - run: "python --version"
-#      - run: "python3 --version"
-#      - run: "cd ${{ github.workspace }}/python && ls"
-#      - run: |
-#          cd ${{ github.workspace }}/python
-#          foreach($file in Get-ChildItem -Filter *.whl){pip install $file}
-#      - uses: actions/checkout@v3
-#        with:
-#          submodules: recursive
-#      - run: python pyroscope_ffi/python/scripts/tests/test.py
-
   sdist-build:
     name: sdist
     runs-on: ubuntu-latest
 
     steps:
-      - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9
@@ -269,4 +84,40 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: "sdist.whl"
+          path: pyroscope_ffi/python/dist/*
+
+  macos-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - macos-version: "11.0"
+            target: x86_64-apple-darwin
+            py-platform: macosx-11_0_x86_64
+            mk-arch: amd64
+          - macos-version: "11.0"
+            target: aarch64-apple-darwin
+            py-platform: macosx-11_0_arm64
+            mk-arch: arm64
+
+    name: macOS - ${{ matrix.py-platform }}
+    runs-on: macos-${{ matrix.macos-version }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.76.0
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - run: make wheel/mac/${{ matrix.mk-arch }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
           path: pyroscope_ffi/python/dist/*

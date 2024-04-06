@@ -1,0 +1,23 @@
+PATH
+  remote: .
+  specs:
+    pyroscope (0.5.11)
+      ffi
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ffi (1.16.3)
+    rake (13.2.0)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  bundler
+  pyroscope!
+  rake (~> 13.0)
+
+BUNDLED WITH
+   2.5.3
