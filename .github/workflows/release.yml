@@ -172,7 +172,7 @@ jobs:
           - macos-version: "11.0"
             target: x86_64-apple-darwin
             py-platform: macosx-11_0_x86_64
-            mk-arch: arm64
+            mk-arch: amd64
           - macos-version: "11.0"
             target: aarch64-apple-darwin
             py-platform: macosx-11_0_arm64
