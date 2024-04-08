@@ -56,7 +56,7 @@ gem/linux/amd64: pyroscope_ffi/clean
 gem/linux/arm64: pyroscope_ffi/clean
 	docker buildx build  \
 		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_ARM):$(MANYLINUX_VERSION) \
-		--build-arg="TARGET_TASK=arm64_darwin:gem" \
+		--build-arg="TARGET_TASK=aarch64_linux:gem" \
 		--output=pyroscope_ffi/ruby \
 		--platform=linux/arm64 \
 		-f docker/gem.Dockerfile \
