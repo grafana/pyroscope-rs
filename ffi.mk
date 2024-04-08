@@ -68,7 +68,7 @@ gem/mac/amd64: pyroscope_ffi/clean
 		bundle && \
 		rake rbspy_install && \
 		rake thread_id_install && \
-		rake x86_64_linux:gem
+		rake x86_64_darwin:gem
 
 .phony: gem/mac/arm64
 gem/mac/arm64: pyroscope_ffi/clean
