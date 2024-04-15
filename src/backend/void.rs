@@ -118,10 +118,6 @@ impl Backend for VoidBackend {
     /// Set the configuration.
     fn set_config(&self, _config: BackendConfig) {}
 
-    /// Return the configuration.
-    fn get_config(&self) -> Result<BackendConfig> {
-        Ok(BackendConfig::default())
-    }
 
     /// Add a Rule to the Backend.
     fn add_rule(&self, rule: Rule) -> Result<()> {

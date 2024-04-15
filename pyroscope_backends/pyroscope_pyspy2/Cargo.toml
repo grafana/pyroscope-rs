@@ -1,5 +1,5 @@
 [package]
-name = "pyroscope_pyspy"
+name = "pyroscope_pyspy2"
 description = """
 pyspy backend for Pyroscope Profiler.
 """
@@ -9,16 +9,21 @@ version = "0.2.5"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io"
-documentation  = "https://docs.rs/pyroscope"
+documentation = "https://docs.rs/pyroscope"
 repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 
 [dependencies]
 py-spy = { version = "0.3.14", path = "../py-spy" }
-pyroscope = { version = "0.5.7", path = "../../" , default-features = false }
-thiserror ="1.0"
+pyroscope = { version = "0.5.7", path = "../../", default-features = false }
+thiserror = "1.0"
 log = "0.4"
 inferno = "0.11.17"
+proc-maps = "0.3.2"
+regex = "1.10.4"
+anyhow = "1.0.82"
+remoteprocess="0.4.13"
+lazy_static = "1.4.0"
 
 [features]
 default = ["pyroscope/default"]

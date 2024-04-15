@@ -217,10 +217,6 @@ impl Backend for Pyspy {
 
     fn set_config(&self, _config: BackendConfig) {}
 
-    fn get_config(&self) -> Result<BackendConfig> {
-        Ok(self.config.backend_config)
-    }
-
     /// Add a rule to the ruleset.
     fn add_rule(&self, rule: Rule) -> Result<()> {
         self.ruleset.lock()?.add_rule(rule)?;

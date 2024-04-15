@@ -2,7 +2,8 @@ use ffikit::Signal;
 use pyroscope::backend::Tag;
 use pyroscope::PyroscopeAgent;
 use pyroscope::pyroscope::ReportEncoding;
-use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
+// use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
+use pyroscope_pyspy2::{pyspy2_backend, Pyspy2Config};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
 use std::hash::Hasher;
@@ -110,36 +111,16 @@ pub extern "C" fn initialize_agent(
 
     let pid = std::process::id();
 
-    // Configure the Pyspy Backend.
-    let mut pyspy_config = PyspyConfig::new(pid.try_into().unwrap())
-        .sample_rate(sample_rate)
-        .lock_process(false)
-        .detect_subprocesses(detect_subprocesses)
-        .oncpu(oncpu)
-        .native(false)
-        .gil_only(gil_only);
+    let mut pyspy_config = Pyspy2Config::new()
+        .sample_rate(sample_rate);
 
-    // Report the PID.
-    if report_pid {
-        pyspy_config = pyspy_config.report_pid();
-    }
-
-    // Report thread IDs.
-    if report_thread_id {
-        pyspy_config = pyspy_config.report_thread_id();
-    }
-
-    // Report thread names.
-    if report_thread_name {
-        pyspy_config = pyspy_config.report_thread_name();
-    }
 
     // Convert the tags to a vector of strings.
     let tags_ref = tags_string.as_str();
     let tags = string_to_tags(tags_ref);
 
     // Create the Pyspy Backend.
-    let pyspy = pyspy_backend(pyspy_config);
+    let pyspy = pyspy2_backend(pyspy_config);
 
     // Create the Pyroscope Agent.
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)

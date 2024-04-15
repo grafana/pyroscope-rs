@@ -40,8 +40,7 @@ pub trait Backend: Send + Debug {
     fn remove_rule(&self, ruleset: Rule) -> Result<()>;
     /// Set the backend's configuration.
     fn set_config(&self, config: BackendConfig);
-    /// Get the backend's configuration.
-    fn get_config(&self) -> Result<BackendConfig>;
+
 }
 
 /// Marker struct for Empty BackendImpl
@@ -149,13 +148,13 @@ impl<S: BackendAccessible> BackendImpl<S> {
     }
 
     /// Return the backend configuration
-    pub fn get_config(&self) -> Result<BackendConfig> {
-        self.backend
-            .lock()?
-            .as_ref()
-            .ok_or(PyroscopeError::BackendImpl)?
-            .get_config()
-    }
+    // pub fn get_config(&self) -> Result<BackendConfig> {
+    //     self.backend
+    //         .lock()?
+    //         .as_ref()
+    //         .ok_or(PyroscopeError::BackendImpl)?
+    //         .get_config()
+    // }
 
     /// Add a report-splitting rule to the backend
     pub fn add_rule(&self, rule: Rule) -> Result<()> {

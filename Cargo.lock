@@ -8,7 +8,7 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a30b2e23b9e17a9f90641c7ab1549cd9b44f296d3ccbf309d2863cfe398a0cb"
 dependencies = [
- "cpp_demangle 0.4.3",
+ "cpp_demangle",
  "fallible-iterator",
  "gimli",
  "memmap2 0.5.10",
@@ -28,17 +28,6 @@ name = "adler32"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
-
-[[package]]
-name = "ahash"
-version = "0.7.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891477e0c6a8957309ee5c45a6368af3ae14bb510732d2684ffa19af310920f9"
-dependencies = [
- "getrandom",
- "once_cell",
- "version_check",
-]
 
 [[package]]
 name = "ahash"
@@ -136,9 +125,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.81"
+version = "1.0.82"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0952808a6c2afd1aa8947271f3a60f1a6763c7b912d210184c5149b5cf147247"
+checksum = "f538837af36e6f6a9be0faa67f9a314f8119e4e4b5867c6ab40ed60360142519"
 
 [[package]]
 name = "arc-swap"
@@ -280,29 +269,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e30759b3b99a1b802a7a3aa21c85c3ded5c28e1c83170d82d70f08bbf7f3e4c"
 dependencies = [
  "virtue",
-]
-
-[[package]]
-name = "bindgen"
-version = "0.59.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bd2a9a458e8f4304c52c43ebb0cfbd520289f8379a52e329a38afda99bf8eb8"
-dependencies = [
- "bitflags 1.3.2",
- "cexpr",
- "clang-sys",
- "clap 2.34.0",
- "env_logger 0.9.3",
- "lazy_static",
- "lazycell",
- "log",
- "peeking_take_while",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
- "which",
 ]
 
 [[package]]
@@ -668,15 +634,6 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 
 [[package]]
 name = "cpp_demangle"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eeaa953eaad386a53111e47172c2fedba671e5684c8dd601a5f474f4f118710f"
-dependencies = [
- "cfg-if",
-]
-
-[[package]]
-name = "cpp_demangle"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e8227005286ec39567949b33df9896bcadfa6051bccca2488129f108ca23119"
@@ -863,12 +820,12 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.9.3"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
+checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
 dependencies = [
- "atty",
  "humantime 2.1.0",
+ "is-terminal",
  "log",
  "regex",
  "termcolor",
@@ -895,33 +852,12 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "errno"
-version = "0.2.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f639046355ee4f37944e44f60642c6f3a7efa3cf6b78c78a0d989a8ce6c396a1"
-dependencies = [
- "errno-dragonfly",
- "libc",
- "winapi",
-]
-
-[[package]]
-name = "errno"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a258e46cdc063eb8519c00b9fc845fc47bcfca4130e2f08e88665ceda8474245"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "errno-dragonfly"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
-dependencies = [
- "cc",
- "libc",
 ]
 
 [[package]]
@@ -1139,17 +1075,6 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
 name = "goblin"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7666983ed0dd8d21a6f6576ee00053ca0926fb281a5522577a4dbd0f1b54143"
-dependencies = [
- "log",
- "plain",
- "scroll 0.11.0",
-]
-
-[[package]]
-name = "goblin"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27c1b4369c2cd341b5de549380158b105a04c331be5db9110eef7b6d2742134"
@@ -1175,8 +1100,14 @@ name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
+name = "hashbrown"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
- "ahash 0.7.8",
+ "ahash",
 ]
 
 [[package]]
@@ -1428,38 +1359,47 @@ dependencies = [
 
 [[package]]
 name = "indicatif"
-version = "0.16.2"
+version = "0.17.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d207dc617c7a380ab07ff572a6e52fa202a2a8f355860ac9c38e23f8196be1b"
+checksum = "763a5a8f45087d6bcea4222e7b72c291a054edf80e4ef6efd2a4979878c7bea3"
 dependencies = [
  "console",
- "lazy_static",
+ "instant",
  "number_prefix",
- "regex",
+ "portable-atomic",
+ "unicode-width",
 ]
 
 [[package]]
 name = "inferno"
-version = "0.11.14"
+version = "0.11.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6e66fa9bb3c52f40d05c11b78919ff2f18993c2305bd8a62556d20cb3e9606f"
+checksum = "321f0f839cd44a4686e9504b0a62b4d69a50b62072144c71c68f5873c167b8d9"
 dependencies = [
- "ahash 0.8.11",
- "atty",
- "clap 3.2.25",
+ "ahash",
+ "clap 4.5.4",
  "crossbeam-channel",
  "crossbeam-utils",
  "dashmap",
- "env_logger 0.9.3",
- "indexmap 1.9.3",
+ "env_logger 0.10.2",
+ "indexmap 2.2.6",
+ "is-terminal",
  "itoa",
  "log",
  "num-format",
- "num_cpus",
  "once_cell",
  "quick-xml",
  "rgb",
  "str_stack",
+]
+
+[[package]]
+name = "instant"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -1633,22 +1573,12 @@ checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 
 [[package]]
 name = "libproc"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6466fc1f834276563fbbd4be1c24236ef92bb9efdbd4691e07f1cf85a0b407f0"
-dependencies = [
- "errno 0.2.8",
- "libc",
-]
-
-[[package]]
-name = "libproc"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eb6497078a4c9c2aca63df56d8dce6eb4381d53a960f781a3a748f7ea97436d"
 dependencies = [
  "bindgen 0.69.4",
- "errno 0.3.8",
+ "errno",
  "libc",
 ]
 
@@ -1701,11 +1631,11 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.7.8"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e999beba7b6e8345721bd280141ed958096a2e4abdf74f67ff4ce49b4b54e47a"
+checksum = "718e8fae447df0c7e1ba7f5189829e63fd536945c8988d61444c19039f16b670"
 dependencies = [
- "hashbrown 0.12.3",
+ "hashbrown 0.13.2",
 ]
 
 [[package]]
@@ -2127,6 +2057,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
+name = "portable-atomic"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7170ef9988bc169ba16dd36a7fa041e5c4cbeb6a35b76d4c03daded371eae7c0"
+
+[[package]]
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2254,20 +2190,6 @@ dependencies = [
 
 [[package]]
 name = "proc-maps"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2f62c16ccc63ce2f590b17b8b9b33616f59631b8982ad52ed21e7f6d936c409"
-dependencies = [
- "anyhow",
- "bindgen 0.59.2",
- "libc",
- "libproc 0.10.0",
- "mach2",
- "winapi",
-]
-
-[[package]]
-name = "proc-maps"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ec8fdc22cb95c02f6a26a91fb1cd60a7a115916c2ed3b09d0a312e11785bd57"
@@ -2275,7 +2197,7 @@ dependencies = [
  "anyhow",
  "bindgen 0.68.1",
  "libc",
- "libproc 0.14.6",
+ "libproc",
  "mach2",
  "winapi",
 ]
@@ -2329,18 +2251,16 @@ dependencies = [
 [[package]]
 name = "py-spy"
 version = "0.3.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c08585ad9771560e3243153e5194ba15910507bfb2e8000285cfe0432ae17ba6"
 dependencies = [
  "anyhow",
  "chrono",
  "clap 3.2.25",
  "clap_complete",
  "console",
- "cpp_demangle 0.3.5",
+ "cpp_demangle",
  "ctrlc",
- "env_logger 0.9.3",
- "goblin 0.5.4",
+ "env_logger 0.10.2",
+ "goblin 0.7.1",
  "indicatif",
  "inferno",
  "lazy_static",
@@ -2348,7 +2268,8 @@ dependencies = [
  "log",
  "lru",
  "memmap",
- "proc-maps 0.2.1",
+ "proc-maps",
+ "py-spy-testdata",
  "rand",
  "rand_distr",
  "regex",
@@ -2360,6 +2281,12 @@ dependencies = [
  "termios",
  "winapi",
 ]
+
+[[package]]
+name = "py-spy-testdata"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "188970d7e0a2e1c4e17d48c821de4d3ad37df749306b249020adc92c1c40a8a1"
 
 [[package]]
 name = "pyroscope"
@@ -2433,11 +2360,11 @@ dependencies = [
  "inferno",
  "lazy_static",
  "libc",
- "libproc 0.14.6",
+ "libproc",
  "log",
  "memmap2 0.9.4",
  "nix 0.28.0",
- "proc-maps 0.3.2",
+ "proc-maps",
  "prost 0.12.3",
  "rand",
  "rbspy-ruby-structs",
@@ -2464,6 +2391,7 @@ dependencies = [
  "pretty_env_logger",
  "pyroscope",
  "pyroscope_pyspy",
+ "pyroscope_pyspy2",
 ]
 
 [[package]]
@@ -2484,6 +2412,22 @@ dependencies = [
  "log",
  "py-spy",
  "pyroscope",
+ "thiserror",
+]
+
+[[package]]
+name = "pyroscope_pyspy2"
+version = "0.2.5"
+dependencies = [
+ "anyhow",
+ "inferno",
+ "lazy_static",
+ "log",
+ "proc-maps",
+ "py-spy",
+ "pyroscope",
+ "regex",
+ "remoteprocess",
  "thiserror",
 ]
 
@@ -2653,14 +2597,14 @@ dependencies = [
  "goblin 0.7.1",
  "lazy_static",
  "libc",
- "libproc 0.14.6",
+ "libproc",
  "log",
  "mach",
  "mach_o_sys",
  "memmap",
  "nix 0.26.4",
  "object",
- "proc-maps 0.3.2",
+ "proc-maps",
  "read-process-memory",
  "regex",
  "winapi",
@@ -2775,7 +2719,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea8ca367a3a01fe35e6943c400addf443c0f57670e6ec51196f71a4b8762dd2"
 dependencies = [
  "bitflags 1.3.2",
- "errno 0.3.8",
+ "errno",
  "io-lifetimes",
  "libc",
  "linux-raw-sys 0.3.8",
@@ -2789,7 +2733,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65e04861e65f21776e67888bfbea442b3642beaa0138fdb1dd7a84a52dffdb89"
 dependencies = [
  "bitflags 2.5.0",
- "errno 0.3.8",
+ "errno",
  "libc",
  "linux-raw-sys 0.4.13",
  "windows-sys 0.52.0",
@@ -3142,7 +3086,7 @@ dependencies = [
  "libc",
  "log",
  "memmap2 0.9.4",
- "proc-maps 0.3.2",
+ "proc-maps",
  "regex",
  "remoteprocess",
 ]
@@ -3207,7 +3151,7 @@ version = "12.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76a99812da4020a67e76c4eb41f08c87364c14170495ff780f30dd519c221a68"
 dependencies = [
- "cpp_demangle 0.4.3",
+ "cpp_demangle",
  "rustc-demangle",
  "symbolic-common",
 ]
