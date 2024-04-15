@@ -24,6 +24,8 @@ regex = "1.10.4"
 anyhow = "1.0.82"
 remoteprocess="0.4.13"
 lazy_static = "1.4.0"
+signal-hook = "0.3"
+libc = "0.2.153"
 
 [features]
 default = ["pyroscope/default"]

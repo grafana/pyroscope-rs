@@ -13,15 +13,17 @@ use pyroscope::{
     error::{PyroscopeError, Result},
 };
 use proc_maps::{get_process_maps, MapRange, Pid};
-use std::{
-    ops::Deref,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
-    thread::JoinHandle,
-};
+use std::{mem, ops::Deref, sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+}, thread::JoinHandle};
+use std::collections::BTreeMap;
+use std::ffi::c_void;
+use std::io::Error;
+use libc::itimerval;
+
 use log::info;
+use signal_hook::consts::SIGPROF;
 use py_spy::python_process_info::{get_interpreter_address, get_python_version, get_threadstate_address};
 
 const LOG_TAG: &str = "Pyroscope::Pyspy2";
@@ -64,7 +66,6 @@ impl Pyspy2Config {
             ..self
         }
     }
-
 }
 
 #[derive(Default)]
@@ -128,7 +129,7 @@ impl Backend for Pyspy2 {
             .map_err(|_| PyroscopeError::new("Pyspy2: get_interpreter_address"))?;
         info!("Found interpreter at 0x{:016x}", interpreter_address);
 
-        let mut config : Config = Config::default();
+        let mut config: Config = Config::default();
         config.gil_only = true;
         let threadstate_address = get_threadstate_address(&pi, &version, &config)
             .map_err(|_| PyroscopeError::new("Pyspy2: get_interpreter_address"))?;
@@ -136,18 +137,51 @@ impl Backend for Pyspy2 {
         let version_string = format!("python{}.{}", version.major, version.minor);
         info!("python version {:?}", version_string);
 
+        new_signal_handler(SIGPROF).expect("failed to set up signal handler"); //todo
+
+        start_timer().expect("failed to start timer"); //todo
 
         Ok(())
     }
 
     fn shutdown(self: Box<Self>) -> Result<()> {
-
         Ok(())
     }
 
     fn report(&mut self) -> Result<Vec<Report>> {
         Ok(vec![])
     }
+}
+
+fn new_signal_handler(signal: libc::c_int) -> std::result::Result<(), Error> {
+    let mut new: libc::sigaction = unsafe { mem::zeroed() };
+    new.sa_sigaction = handler as usize;
+    new.sa_flags = libc::SA_RESTART | libc::SA_SIGINFO;
+    let mut old: libc::sigaction = unsafe { mem::zeroed() };
+    if unsafe { libc::sigaction(signal, &new, &mut old) } != 0 {
+        return Err(Error::last_os_error());
+    }
+    Ok(()) // todo keep prev for fallback
+}
+
+fn start_timer() -> std::result::Result<(), Error>  {
+    let interval = 10000000; //
+    let sec = interval / 1000000000;
+    let usec = (interval % 1000000000) / 1000;
+    let mut tv: libc::itimerval = unsafe { mem::zeroed() };
+    tv.it_value.tv_sec = sec;
+    tv.it_value.tv_usec = usec as libc::suseconds_t;
+    tv.it_interval.tv_sec = sec;
+    tv.it_interval.tv_usec = usec as libc::suseconds_t;
+    if unsafe { libc::setitimer(libc::ITIMER_PROF, &tv, std::ptr::null_mut()) } != 0 {
+        return Err(Error::last_os_error());
+    }
+    return Ok(());
+}
+
+#[cfg(not(windows))]
+extern "C" fn handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut c_void) {
+    println!("handler")// this is not safe, only for debugging
 }
 
 
