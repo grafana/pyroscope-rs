@@ -195,7 +195,7 @@ jobs:
         with:
           python-version: 3.11
 
-      - run: make wheel/mac/${{ matrix.mk-arch }}
+      - run: make pyroscope_ffi/clean wheel/mac/${{ matrix.mk-arch }}
 
       - uses: actions/upload-artifact@v2
         with:
@@ -314,9 +314,6 @@ jobs:
     name: macOS - ${{ matrix.target }}
     runs-on: macos-${{ matrix.macos-version }}
 
-    env:
-      RUST_TARGET: ${{ matrix.target }}
-
     steps:
       - uses: actions/checkout@v3
       - uses: ruby/setup-ruby@v1
@@ -328,7 +325,9 @@ jobs:
           target: ${{ matrix.target }}
           profile: minimal
           override: true
-      - run: make gem/mac/${{ matrix.mk-arch }}
+
+      - run: make pyroscope_ffi/clean gem/mac/${{ matrix.mk-arch }}
+
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}

@@ -33,13 +33,15 @@ wheel/linux/arm64: pyroscope_ffi/clean
 wheel/mac/amd64:
 	cd pyroscope_ffi/python && \
 		pip install wheel && \
-		python setup.py bdist_wheel -p macosx-11_0_x86_64
+		CARGO_BUILD_TARGET=x86_64-apple-darwin \
+			python setup.py bdist_wheel -p macosx-11_0_x86_64
 
 .phony: wheel/mac/arm64
 wheel/mac/arm64:
 	cd pyroscope_ffi/python && \
 		pip install wheel && \
-		python setup.py bdist_wheel -p macosx-11_0_arm64
+		CARGO_BUILD_TARGET=aarch64-apple-darwin \
+			python setup.py bdist_wheel -p macosx-11_0_arm64
 
 
 .phony: gem/linux/amd64
@@ -66,14 +68,14 @@ gem/linux/arm64: pyroscope_ffi/clean
 gem/mac/amd64: pyroscope_ffi/clean
 	cd pyroscope_ffi/ruby && \
 		bundle && \
-		rake rbspy_install && \
-		rake thread_id_install && \
-		rake x86_64_darwin:gem
+		RUST_TARGET=x86_64-apple-darwin rake rbspy_install && \
+		RUST_TARGET=x86_64-apple-darwin rake thread_id_install && \
+		RUST_TARGET=x86_64-apple-darwin rake x86_64_darwin:gem
 
 .phony: gem/mac/arm64
 gem/mac/arm64: pyroscope_ffi/clean
 	cd pyroscope_ffi/ruby && \
 		bundle && \
-		rake rbspy_install && \
-		rake thread_id_install && \
-		rake arm64_darwin:gem
+		RUST_TARGET=aarch64-apple-darwin rake rbspy_install && \
+		RUST_TARGET=aarch64-apple-darwin rake thread_id_install && \
+		RUST_TARGET=aarch64-apple-darwin rake arm64_darwin:gem
