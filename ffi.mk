@@ -33,13 +33,15 @@ wheel/linux/arm64: pyroscope_ffi/clean
 wheel/mac/amd64:
 	cd pyroscope_ffi/python && \
 		pip install wheel && \
-		python setup.py bdist_wheel -p macosx-11_0_x86_64
+		CARGO_BUILD_TARGET=x86_64-apple-darwin \
+			python setup.py bdist_wheel -p macosx-11_0_x86_64
 
 .phony: wheel/mac/arm64
 wheel/mac/arm64:
 	cd pyroscope_ffi/python && \
 		pip install wheel && \
-		python setup.py bdist_wheel -p macosx-11_0_arm64
+		CARGO_BUILD_TARGET=aarch64-apple-darwin \
+			python setup.py bdist_wheel -p macosx-11_0_arm64
 
 
 .phony: gem/linux/amd64
