@@ -314,9 +314,6 @@ jobs:
     name: macOS - ${{ matrix.target }}
     runs-on: macos-${{ matrix.macos-version }}
 
-    env:
-      RUST_TARGET: ${{ matrix.target }}
-
     steps:
       - uses: actions/checkout@v3
       - uses: ruby/setup-ruby@v1
