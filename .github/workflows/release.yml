@@ -197,6 +197,11 @@ jobs:
 
       - run: make wheel/mac/${{ matrix.mk-arch }}
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
