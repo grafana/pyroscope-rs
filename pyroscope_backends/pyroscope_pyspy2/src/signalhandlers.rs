@@ -1,6 +1,5 @@
 use std::io::Error;
 use std::mem;
-use crate::handler;
 
 pub fn new_signal_handler(signal: libc::c_int, handler: usize) -> std::result::Result<libc::sigaction, Error> {
     let mut new: libc::sigaction = unsafe { mem::zeroed() };

@@ -4,16 +4,21 @@ pub mod offsets;
 mod unwind;
 mod pystr;
 
+// copy from py-spy
+pub mod python_process_info;
+// copy from py-spy
+pub mod binary_parser;
+pub mod version;
+mod print;
+
 use log::{debug, error};
 
-// #[macro_use]
-// extern crate log;
+
 
 #[macro_use]
 extern crate anyhow;
 
 
-use py_spy::{config::Config, sampler::Sampler, python_process_info::PythonProcessInfo};
 use pyroscope::{
     backend::{
         Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
@@ -21,24 +26,15 @@ use pyroscope::{
     },
     error::{PyroscopeError, Result},
 };
-use proc_maps::{get_process_maps, MapRange, Pid};
-use std::{mem, ops::Deref, sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
-}, thread::JoinHandle};
-use std::arch::asm;
-use std::collections::BTreeMap;
-use std::ffi::c_void;
-use std::io::Error;
-use libc::{exit, itimerval, SIGBUS, SIGSEGV};
 
-use log::info;
+
+use std::ffi::c_void;
+use libc::SIGPROF;
 use remoteprocess::ProcessMemory;
-use signal_hook::consts::SIGPROF;
-use py_spy::python_process_info::{get_interpreter_address, get_python_version, get_threadstate_address};
 use crate::kindasafe::read_u64;
 use crate::offsets::validate_python_offsets;
 use crate::unwind::PythonUnwinder;
+use crate::version::Version;
 
 const LOG_TAG: &str = "Pyroscope::Pyspy2";
 
@@ -104,10 +100,12 @@ impl Pyspy2 {
 
 impl Pyspy2 {
     fn initialize2(&mut self) -> anyhow::Result<()> {
-        let u = PythonUnwinder::new()?;
+        let res = PythonUnwinder::new();
+        debug!("PythonUnwinder::new {:?}", res);
+        let res = res?;
 
         unsafe {
-            unwinder = u;
+            unwinder = res;
         }
 
 
@@ -163,7 +161,7 @@ impl Backend for Pyspy2 {
     }
 }
 
-static mut unwinder : unwind::PythonUnwinder = unwind::PythonUnwinder{
+static mut unwinder: unwind::PythonUnwinder = unwind::PythonUnwinder {
     offsets: offsets::Offsets {
         PyVarObject_ob_size: 0,
         PyObject_ob_type: 0,
@@ -195,15 +193,13 @@ static mut unwinder : unwind::PythonUnwinder = unwind::PythonUnwinder{
         PyCompactUnicodeObjectSize: 0,
     },
     tss_key: 0,
-    version: unwind::Version{
+    version: Version {
         major: 0,
         minor: 0,
         patch: 0,
     },
     py_runtime: 0,
 };
-
-
 
 
 extern "C" fn handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut c_void) {

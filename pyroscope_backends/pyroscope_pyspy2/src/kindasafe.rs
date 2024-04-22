@@ -24,9 +24,9 @@ impl Debug for Error {
 impl std::error::Error for Error {}
 
 #[inline(never)]
-pub fn read_u64(at: usize) -> Result<u64, Error>{
-    let mut result: u64 = 0;
-    let mut signal: u64 = 0;
+pub fn read_u64(at: usize) -> Result<u64, Error> {
+    let mut result: u64;
+    let mut signal: u64;
     unsafe {
         asm!(
         "ldr x0, [{at}]",
@@ -89,16 +89,12 @@ pub fn init() -> anyhow::Result<()> {
 
 pub fn destroy() -> anyhow::Result<()> {
     if let Some(fallback) = unsafe { fallback_SIGSEGV } {
-        unsafe {
-            restore_signal_handler(libc::SIGSEGV, fallback)
-                .context("kindasafe failed to restore sigsegv handler")?;
-        }
+        restore_signal_handler(libc::SIGSEGV, fallback)
+            .context("kindasafe failed to restore sigsegv handler")?;
     }
     if let Some(fallback) = unsafe { fallback_SIGBUS } {
-        unsafe {
-            restore_signal_handler(libc::SIGBUS, fallback)
-                .context("kindasafe failed to restore sigbus handler")?;
-        }
+        restore_signal_handler(libc::SIGBUS, fallback)
+            .context("kindasafe failed to restore sigbus handler")?;
     }
     Ok(())
 }
@@ -145,7 +141,6 @@ extern "C" fn segv_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *
 
 #[cfg(test)]
 mod tests {
-
     #[test]
     fn test_read_u64() {
         assert!(super::init().is_ok());

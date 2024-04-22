@@ -1,13 +1,4 @@
-use goblin::mach::MachO;
-use goblin::Object;
-
-// use object::{Object, ObjectSection};
-use std::fs::File;
-use std::io::Read;
-use gimli::{DebugAbbrev, DebugInfo, DebugStr, LittleEndian, Dwarf};
-use gimli::Format::Dwarf64;
-use pyroscope::pyroscope::PyroscopeAgentRunning;
-
+use crate::version::Version;
 
 #[derive(Debug)]
 pub struct Offsets {
@@ -44,7 +35,7 @@ pub struct Offsets {
 
 
 
-pub fn validate_python_offsets(ver: &py_spy::version::Version, o: &Offsets) -> anyhow::Result<()> {
+pub fn validate_python_offsets(ver: &Version, o: &Offsets) -> anyhow::Result<()> {
     fn require(o: isize, name: &str) -> anyhow::Result<()> {
         if o == -1 {
             return Err(anyhow::anyhow!("offset {} is required", name));
@@ -67,7 +58,7 @@ pub fn validate_python_offsets(ver: &py_spy::version::Version, o: &Offsets) -> a
 }
 
 //todo validate all offsets at build time or a test
-pub fn get_python_offsets(ver: &py_spy::version::Version) -> Offsets {
+pub fn get_python_offsets(ver: &Version) -> Offsets {
     return Offsets {
         PyVarObject_ob_size: 16,
         PyObject_ob_type: 8,

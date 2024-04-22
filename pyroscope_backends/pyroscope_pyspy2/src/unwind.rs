@@ -1,14 +1,13 @@
 use std::ffi::c_void;
-use log::debug;
 use proc_maps::Pid;
+use crate::version::Version;
 
-
-//todo remove
-use py_spy::python_process_info::{get_python_version, PythonProcessInfo};
+use crate::python_process_info::{get_python_version, PythonProcessInfo};
 
 use crate::{kindasafe, offsets, pystr};
 use crate::kindasafe::{read_u64};
 use crate::offsets::validate_python_offsets;
+use crate::print::uwprintln;
 
 #[derive(Debug)]
 pub enum PythonUnwinderError {
@@ -23,12 +22,6 @@ impl From<kindasafe::Error> for PythonUnwinderError {
     }
 }
 
-#[derive(Debug)]
-pub struct Version {
-    pub major: u64,
-    pub minor: u64,
-    pub patch: u64,
-}
 
 
 #[derive(Debug)]
@@ -45,9 +38,9 @@ impl PythonUnwinder {
 
         let p = remoteprocess::Process::new(pid)?;
 
-        let pi = PythonProcessInfo::new(&p)?;
+        let pi = PythonProcessInfo::new(&p)?; //todo donot use remoteprocess
 
-        let version: py_spy::version::Version = get_python_version(&pi, &p)?;
+        let version = get_python_version(&pi, &p)?;
 
         let offsets = offsets::get_python_offsets(&version);
         validate_python_offsets(&version, &offsets)?;
@@ -67,7 +60,6 @@ impl PythonUnwinder {
                 patch: version.patch,
             },
         });
-        debug!("PythonUnwinder::new {:?}", res);
         return res;
     }
 
@@ -84,7 +76,7 @@ impl PythonUnwinder {
             return Err(PythonUnwinderError::NoTopFrame);
         }
 
-        unwind_println("==============");
+        uwprintln("==============");
 
         let mut count = 0;
         let mut frame = top_frame;
@@ -116,7 +108,7 @@ impl PythonUnwinder {
             // unwind_print_hex(code);
             // unwind_print_hex(back);
             // unwind_print_hex(name_ptr);
-            unwind_println(name);
+            uwprintln(name);
             frame = back;
             count += 1;
         }
@@ -159,43 +151,3 @@ extern "C" fn thread_id() -> u64 {
 }
 
 
-fn unwind_println(s: &str) {
-    unsafe {
-        libc::write(1, s.as_ptr() as *const c_void, s.len());
-        libc::write(1, "\n".as_ptr() as *const c_void, 1);
-    }
-}
-
-fn unwind_print(s: &str) {
-    unsafe {
-        libc::write(1, s.as_ptr() as *const c_void, s.len());
-    }
-}
-
-fn unwind_print_hex(v : usize) {
-    unwind_print(" ");
-    let mut buf = [0u8; 16];
-    let mut i = 0;
-    let mut v = v;
-    while v > 0 {
-        let c = (v & 0xf) as u8;
-        buf[i] = if c < 10 {
-            c + '0' as u8
-        } else {
-            c - 10 + 'a' as u8
-        };
-        v >>= 4;
-        i += 1;
-    }
-    if i == 0 {
-        buf[i] = '0' as u8;
-        i += 1;
-    }
-    while i > 0 {
-        i -= 1;
-        unsafe {
-            libc::write(1, &buf[i] as *const u8 as *const c_void, 1);
-        }
-    }
-    unwind_print(" ");
-}

@@ -14,21 +14,18 @@ repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 
 [dependencies]
-py-spy = { version = "0.3.14", path = "../py-spy" }
 pyroscope = { version = "0.5.7", path = "../../", default-features = false }
-thiserror = "1.0"
 log = "0.4"
-inferno = "0.11.17"
 proc-maps = "0.3.2"
 regex = "1.10.4"
 anyhow = "1.0.82"
 remoteprocess="0.4.13"
 lazy_static = "1.4.0"
-signal-hook = "0.3"
 libc = "0.2.153"
 object = "0.35.0"
 gimli = "0.29.0"
 goblin = "0.8.0"
+memmap = "0.7.0"
 
 [features]
 default = ["pyroscope/default"]
