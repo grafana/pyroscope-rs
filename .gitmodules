@@ -1,3 +1,0 @@
-[submodule "pyroscope_backends/py-spy"]
-	path = pyroscope_backends/py-spy
-	url = https://github.com/korniltsev/py-spy.git
