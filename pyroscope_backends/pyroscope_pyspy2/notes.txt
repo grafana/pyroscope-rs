@@ -1,0 +1,20 @@
+
+
+(lldb) p &((_PyRuntimeState  *)nullptr)->gilstate
+(_gilstate_runtime_state *) 0x0000000000000580
+
+(lldb) p &((_gilstate_runtime_state  *)nullptr)->autoTSSkey
+(Py_tss_t *) 0x0000000000000020
+
+(lldb) p &((Py_tss_t  *)nullptr)->_is_initialized
+(int *) 0x0000000000000000
+(lldb) p &((Py_tss_t  *)nullptr)->_key
+(pthread_key_t *) 0x0000000000000008
+(lldb)
+
+(lldb) p sizeof(pthread_key_t)
+(unsigned long) 8
+
+
+0x0000000100287da8
+0000000100287da8

@@ -26,6 +26,9 @@ remoteprocess="0.4.13"
 lazy_static = "1.4.0"
 signal-hook = "0.3"
 libc = "0.2.153"
+object = "0.35.0"
+gimli = "0.29.0"
+goblin = "0.8.0"
 
 [features]
 default = ["pyroscope/default"]

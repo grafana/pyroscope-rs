@@ -1,3 +1,7 @@
+mod kindasafe;
+mod signalhandlers;
+pub mod offsets;
+
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -17,14 +21,18 @@ use std::{mem, ops::Deref, sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 }, thread::JoinHandle};
+use std::arch::asm;
 use std::collections::BTreeMap;
 use std::ffi::c_void;
 use std::io::Error;
-use libc::itimerval;
+use libc::{exit, itimerval, SIGBUS, SIGSEGV};
 
 use log::info;
+use remoteprocess::ProcessMemory;
 use signal_hook::consts::SIGPROF;
 use py_spy::python_process_info::{get_interpreter_address, get_python_version, get_threadstate_address};
+use crate::kindasafe::read_u64;
+use crate::offsets::validate_python_offsets;
 
 const LOG_TAG: &str = "Pyroscope::Pyspy2";
 
@@ -87,6 +95,11 @@ impl Pyspy2 {
     }
 }
 
+
+
+
+
+
 impl Backend for Pyspy2 {
     fn spy_name(&self) -> Result<String> {
         Ok("pyspy2".to_string())
@@ -110,7 +123,7 @@ impl Backend for Pyspy2 {
         Ok(())
     }
 
-    fn initialize(&mut self) -> Result<()> {
+    fn initialize(&mut self) -> Result<()> { //todo anyhow
         println!("pyspy2 init");
 
         let pid: Pid = std::process::id() as i32;
@@ -121,25 +134,36 @@ impl Backend for Pyspy2 {
         let pi = PythonProcessInfo::new(&p)
             .map_err(|_| PyroscopeError::new("Pyspy2: PythonProcessInfo::new"))?;
 
-        let version = get_python_version(&pi, &p)
+        let version: py_spy::version::Version = get_python_version(&pi, &p)
             .map_err(|_| PyroscopeError::new("Pyspy2: get_python_version"))?;
         info!("python version {} detected", version);
 
-        let interpreter_address = get_interpreter_address(&pi, &p, &version)
-            .map_err(|_| PyroscopeError::new("Pyspy2: get_interpreter_address"))?;
-        info!("Found interpreter at 0x{:016x}", interpreter_address);
-
-        let mut config: Config = Config::default();
-        config.gil_only = true;
-        let threadstate_address = get_threadstate_address(&pi, &version, &config)
-            .map_err(|_| PyroscopeError::new("Pyspy2: get_interpreter_address"))?;
-        info!("threadstate_address {:016x}", threadstate_address);
         let version_string = format!("python{}.{}", version.major, version.minor);
         info!("python version {:?}", version_string);
 
-        new_signal_handler(SIGPROF).expect("failed to set up signal handler"); //todo
+        unsafe {
+            offsets = offsets::get_python_offsets(&version);
+            validate_python_offsets(&version, &offsets)
+                .map_err(|_| PyroscopeError::new("faild to validate offsets"))?;
+        }
 
-        start_timer().expect("failed to start timer"); //todo
+
+
+
+
+        kindasafe::init()
+            .map_err(|_| PyroscopeError::new("Pyspy2: kindasafe::init"))?;
+
+        unsafe  {
+            tss_key = get_tss_key(&pi, &offsets)?;
+            info!("tssKey {:016x}", tss_key);
+        }
+
+
+        signalhandlers::new_signal_handler(SIGPROF, handler as usize).expect("failed to set up signal handler"); //todo
+        // let interval = 10000000;
+        let interval = 100000000;
+        signalhandlers::start_timer(interval).expect("failed to start timer"); //todo
 
         Ok(())
     }
@@ -153,35 +177,132 @@ impl Backend for Pyspy2 {
     }
 }
 
-fn new_signal_handler(signal: libc::c_int) -> std::result::Result<(), Error> {
-    let mut new: libc::sigaction = unsafe { mem::zeroed() };
-    new.sa_sigaction = handler as usize;
-    new.sa_flags = libc::SA_RESTART | libc::SA_SIGINFO;
-    let mut old: libc::sigaction = unsafe { mem::zeroed() };
-    if unsafe { libc::sigaction(signal, &new, &mut old) } != 0 {
-        return Err(Error::last_os_error());
+
+
+fn get_tss_key(pi: &PythonProcessInfo, o: &offsets::Offsets) -> Result<u64> {
+    let _PyRuntime = pi.get_symbol("_PyRuntime")
+        .ok_or(PyroscopeError::new("get_tss_key: _PyRuntime"))?;// todo
+    let _PyRuntime: usize = *_PyRuntime as usize;
+    info!("_PyRuntime {:016x}", _PyRuntime);
+    let initialized: u32 = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_is_initialized as usize) as u32;
+    let key = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_key as usize);
+    if initialized != 1 {
+        return Err(PyroscopeError::new("get_tss_key: not initialized"));
     }
-    Ok(()) // todo keep prev for fallback
+    return Ok(key);
 }
 
-fn start_timer() -> std::result::Result<(), Error>  {
-    let interval = 10000000; //
-    let sec = interval / 1000000000;
-    let usec = (interval % 1000000000) / 1000;
-    let mut tv: libc::itimerval = unsafe { mem::zeroed() };
-    tv.it_value.tv_sec = sec;
-    tv.it_value.tv_usec = usec as libc::suseconds_t;
-    tv.it_interval.tv_sec = sec;
-    tv.it_interval.tv_usec = usec as libc::suseconds_t;
-    if unsafe { libc::setitimer(libc::ITIMER_PROF, &tv, std::ptr::null_mut()) } != 0 {
-        return Err(Error::last_os_error());
+fn get_thread_state() -> usize {
+    unsafe {
+        libc::pthread_getspecific(tss_key) as usize
     }
-    return Ok(());
 }
 
-#[cfg(not(windows))]
+static mut tss_key: libc::pthread_key_t = 0;
+
+static mut offsets: offsets::Offsets = offsets::Offsets{
+    PyVarObject_ob_size: 0,
+    PyObject_ob_type: 0,
+    PyTypeObject_tp_name: 0,
+    PyThreadState_frame: 0,
+    PyThreadState_cframe: 0,
+    PyThreadState_current_frame: 0,
+    PyCFrame_current_frame: 0,
+    PyFrameObject_f_back: 0,
+    PyFrameObject_f_code: 0,
+    PyFrameObject_f_localsplus: 0,
+    PyCodeObject_co_filename: 0,
+    PyCodeObject_co_name: 0,
+    PyCodeObject_co_varnames: 0,
+    PyCodeObject_co_localsplusnames: 0,
+    PyTupleObject_ob_item: 0,
+    PyInterpreterFrame_f_code: 0,
+    PyInterpreterFrame_f_executable: 0,
+    PyInterpreterFrame_previous: 0,
+    PyInterpreterFrame_localsplus: 0,
+    PyInterpreterFrame_owner: 0,
+    PyRuntimeState_gilstate: 0,
+    PyRuntimeState_autoTSSkey: 0,
+    Gilstate_runtime_state_autoTSSkey: 0,
+    PyTssT_is_initialized: 0,
+    PyTssT_key: 0,
+    PyTssTSize: 0,
+    PyASCIIObjectSize: 0,
+    PyCompactUnicodeObjectSize: 0,
+};
+
+
+
+
+
+struct pystr {
+    // buf array of 256
+    buf: [u8; 256],
+    len: usize
+}
+
+fn pystr_read(at: usize, s : &mut pystr) {
+    let o_len = 0x10;
+    let len = read_u64(at + 0x10) as usize;
+    let state = read_u64(at + 0x20) as usize as u32;
+    //todo check if it is ascii
+    // println!("str len {:016x} {:08x}", len, state);
+    let mut i = 0;
+
+    while i < 255 && i < len { // todo
+        s.buf[i] = read_u64(at + 0x30 +  i) as u8;
+        i += 1;
+    }
+    s.buf[i] = 0;
+    s.len = len
+}
+
 extern "C" fn handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut c_void) {
-    println!("handler")// this is not safe, only for debugging
+    let ts = get_thread_state();
+    let o = unsafe { &offsets };
+    if (ts == 0) {
+        return;
+    }
+
+    let top_frame = read_u64(ts + o.PyThreadState_frame as usize) as usize;
+    if (top_frame == 0) {
+        return;
+    }
+
+    println!("==============");
+
+    let mut count = 0;
+    let mut frame = top_frame;
+    while frame != 0 && count < 128 {
+        let code =  read_u64(frame + o.PyFrameObject_f_code as usize) as usize;
+        //todo owner check
+        let back =  read_u64(frame + o.PyFrameObject_f_back as usize) as usize;
+        let name_ptr: usize =
+        if code != 0 {
+            read_u64(code + o.PyCodeObject_co_name as usize) as usize
+        } else {
+            0
+        };
+        let mut name = pystr { buf: [0; 256], len:0 };
+        if name_ptr != 0 {
+            pystr_read(name_ptr, &mut name);
+        }
+        // let name = std::str::from_utf8(&name.buf).unwrap();//todo
+        let name = std::str::from_utf8(&name.buf[0..name.len]).unwrap();//todo
+
+
+
+
+        println!("frame {:016x} code {:016x} back {:016x} name {:016x} {:?}", frame, code, back, name_ptr, name);
+
+        frame = back;
+        count += 1;
+    }
 }
+
+extern "C" fn thread_id() -> u64 {
+    unsafe { libc::pthread_self() as u64 }
+}
+
 
 
