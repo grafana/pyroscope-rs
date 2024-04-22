@@ -1,8 +1,6 @@
 use std::arch::asm;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
-use std::io::{stdout, Write};
-
 use anyhow::Context;
 use crate::signalhandlers::{new_signal_handler, restore_signal_handler};
 
@@ -150,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_read_u64() {
-        super::init().unwrap();
+        assert!(super::init().is_ok());
 
         let x = 0x123456789abcdef0;
         let x_ptr = &x as *const u64 as usize;
@@ -158,20 +156,19 @@ mod tests {
         println!("i: {:?}", i);
         assert_eq!(i, Ok(x));
 
-        super::destroy().unwrap()
+        assert!(super::destroy().is_ok())
     }
 
 
     #[test]
     fn test_read_u64_fail() {
-        println!("test_read_u64_fail");
-        super::init().unwrap();
+        assert!(super::init().is_ok());
         let x: i64 = 0x123456789abcdef0;
         let x_ptr = 0xcafebabe;
         let i = super::read_u64(x_ptr);
         println!("i: {:?}", i);
         assert_eq!(i, Err(super::Error(libc::SIGSEGV as u64)));
-        super::destroy().unwrap();
+        assert!(super::destroy().is_ok());
     }
 
     // #[test]

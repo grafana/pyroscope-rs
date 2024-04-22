@@ -9,6 +9,7 @@ use gimli::Format::Dwarf64;
 use pyroscope::pyroscope::PyroscopeAgentRunning;
 
 
+#[derive(Debug)]
 pub struct Offsets {
     pub PyVarObject_ob_size: isize,
     pub PyObject_ob_type: isize,

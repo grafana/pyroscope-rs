@@ -1,9 +1,14 @@
 mod kindasafe;
 mod signalhandlers;
 pub mod offsets;
+mod unwind;
+mod pystr;
 
-#[macro_use]
-extern crate log;
+use log::{debug, error};
+
+// #[macro_use]
+// extern crate log;
+
 #[macro_use]
 extern crate anyhow;
 
@@ -33,6 +38,7 @@ use signal_hook::consts::SIGPROF;
 use py_spy::python_process_info::{get_interpreter_address, get_python_version, get_threadstate_address};
 use crate::kindasafe::read_u64;
 use crate::offsets::validate_python_offsets;
+use crate::unwind::PythonUnwinder;
 
 const LOG_TAG: &str = "Pyroscope::Pyspy2";
 
@@ -98,31 +104,10 @@ impl Pyspy2 {
 
 impl Pyspy2 {
     fn initialize2(&mut self) -> anyhow::Result<()> {
-        println!("pyspy2 init");
-
-        let pid: Pid = std::process::id() as i32;
-
-        let p = remoteprocess::Process::new(pid)?;
-
-        let pi = PythonProcessInfo::new(&p)?;
-
-        let version: py_spy::version::Version = get_python_version(&pi, &p)?;
-        info!("python version {} detected", version);
-
-        let version_string = format!("python{}.{}", version.major, version.minor);
-        info!("python version {:?}", version_string);
-        let o = offsets::get_python_offsets(&version);
-        validate_python_offsets(&version, &o)?;
-
-
-        kindasafe::init()?;
-
-        let k = get_tss_key(&pi, &o)?;
-        info!("tssKey {:016x}", k);
+        let u = PythonUnwinder::new()?;
 
         unsafe {
-            tss_key = k;
-            offsets = o;
+            unwinder = u;
         }
 
 
@@ -159,7 +144,6 @@ impl Backend for Pyspy2 {
         Ok(())
     }
 
-
     fn initialize(&mut self) -> Result<()> {
         let result = self.initialize2();
         debug!("pyspy2 init {:?}", result);
@@ -179,125 +163,59 @@ impl Backend for Pyspy2 {
     }
 }
 
-
-fn get_tss_key(pi: &PythonProcessInfo, o: &offsets::Offsets) -> anyhow::Result<u64> {
-    let _PyRuntime = pi.get_symbol("_PyRuntime").ok_or(anyhow!("no _PyRuntime found"))?;
-    let _PyRuntime: usize = *_PyRuntime as usize;
-    info!("_PyRuntime {:016x}", _PyRuntime);
-    let initialized: u32 = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_is_initialized as usize)? as u32;
-    let key = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_key as usize)?;
-    if initialized != 1 {
-        bail!("tss key not initialized");
-    }
-    return Ok(key);
-}
-
-fn get_thread_state() -> usize {
-    unsafe {
-        libc::pthread_getspecific(tss_key) as usize
-    }
-}
-
-static mut tss_key: libc::pthread_key_t = 0;
-
-static mut offsets: offsets::Offsets = offsets::Offsets {
-    PyVarObject_ob_size: 0,
-    PyObject_ob_type: 0,
-    PyTypeObject_tp_name: 0,
-    PyThreadState_frame: 0,
-    PyThreadState_cframe: 0,
-    PyThreadState_current_frame: 0,
-    PyCFrame_current_frame: 0,
-    PyFrameObject_f_back: 0,
-    PyFrameObject_f_code: 0,
-    PyFrameObject_f_localsplus: 0,
-    PyCodeObject_co_filename: 0,
-    PyCodeObject_co_name: 0,
-    PyCodeObject_co_varnames: 0,
-    PyCodeObject_co_localsplusnames: 0,
-    PyTupleObject_ob_item: 0,
-    PyInterpreterFrame_f_code: 0,
-    PyInterpreterFrame_f_executable: 0,
-    PyInterpreterFrame_previous: 0,
-    PyInterpreterFrame_localsplus: 0,
-    PyInterpreterFrame_owner: 0,
-    PyRuntimeState_gilstate: 0,
-    PyRuntimeState_autoTSSkey: 0,
-    Gilstate_runtime_state_autoTSSkey: 0,
-    PyTssT_is_initialized: 0,
-    PyTssT_key: 0,
-    PyTssTSize: 0,
-    PyASCIIObjectSize: 0,
-    PyCompactUnicodeObjectSize: 0,
+static mut unwinder : unwind::PythonUnwinder = unwind::PythonUnwinder{
+    offsets: offsets::Offsets {
+        PyVarObject_ob_size: 0,
+        PyObject_ob_type: 0,
+        PyTypeObject_tp_name: 0,
+        PyThreadState_frame: 0,
+        PyThreadState_cframe: 0,
+        PyThreadState_current_frame: 0,
+        PyCFrame_current_frame: 0,
+        PyFrameObject_f_back: 0,
+        PyFrameObject_f_code: 0,
+        PyFrameObject_f_localsplus: 0,
+        PyCodeObject_co_filename: 0,
+        PyCodeObject_co_name: 0,
+        PyCodeObject_co_varnames: 0,
+        PyCodeObject_co_localsplusnames: 0,
+        PyTupleObject_ob_item: 0,
+        PyInterpreterFrame_f_code: 0,
+        PyInterpreterFrame_f_executable: 0,
+        PyInterpreterFrame_previous: 0,
+        PyInterpreterFrame_localsplus: 0,
+        PyInterpreterFrame_owner: 0,
+        PyRuntimeState_gilstate: 0,
+        PyRuntimeState_autoTSSkey: 0,
+        Gilstate_runtime_state_autoTSSkey: 0,
+        PyTssT_is_initialized: 0,
+        PyTssT_key: 0,
+        PyTssTSize: 0,
+        PyASCIIObjectSize: 0,
+        PyCompactUnicodeObjectSize: 0,
+    },
+    tss_key: 0,
+    version: unwind::Version{
+        major: 0,
+        minor: 0,
+        patch: 0,
+    },
+    py_runtime: 0,
 };
 
 
-struct pystr {
-    // buf array of 256
-    buf: [u8; 256],
-    len: usize,
-}
 
-fn pystr_read(at: usize, s: &mut pystr) {
-    let o_len = 0x10;
-    let len = read_u64(at + 0x10).unwrap() as usize; //todo
-    let state = read_u64(at + 0x20).unwrap() as usize as u32; //todo
-    //todo check if it is ascii
-    // println!("str len {:016x} {:08x}", len, state);
-    let mut i = 0;
-
-    while i < 255 && i < len { // todo
-        s.buf[i] = read_u64(at + 0x30 + i).unwrap() as u8;//todo
-        i += 1;
-    }
-    s.buf[i] = 0;
-    s.len = len
-}
 
 extern "C" fn handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut c_void) {
-    let ts = get_thread_state();
-    let o = unsafe { &offsets };
-    if (ts == 0) {
-        return;
-    }
-
-    let top_frame = read_u64(ts + o.PyThreadState_frame as usize).unwrap() as usize;
-    if (top_frame == 0) {
-        return;
-    }
-
-    println!("==============");
-
-    let mut count = 0;
-    let mut frame = top_frame;
-    while frame != 0 && count < 128 {
-        let code = read_u64(frame + o.PyFrameObject_f_code as usize).unwrap() as usize;
-        //todo owner check
-        let back = read_u64(frame + o.PyFrameObject_f_back as usize).unwrap() as usize;
-        let name_ptr: usize =
-            if code != 0 {
-                read_u64(code + o.PyCodeObject_co_name as usize).unwrap() as usize
-            } else {
-                0
-            };
-        let mut name = pystr { buf: [0; 256], len: 0 };
-        if name_ptr != 0 {
-            pystr_read(name_ptr, &mut name);
+    unsafe {
+        let err = unwinder.read_python_stack();
+        if let Err(e) = err {
+            //todo log
         }
-        // let name = std::str::from_utf8(&name.buf).unwrap();//todo
-        let name = std::str::from_utf8(&name.buf[0..name.len]).unwrap();//todo
-
-
-        println!("frame {:016x} code {:016x} back {:016x} name {:016x} {:?}", frame, code, back, name_ptr, name);
-
-        frame = back;
-        count += 1;
-    }
+    };
 }
 
-extern "C" fn thread_id() -> u64 {
-    unsafe { libc::pthread_self() as u64 }
-}
+
 
 
 
