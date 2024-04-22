@@ -96,8 +96,44 @@ impl Pyspy2 {
 }
 
 
+impl Pyspy2 {
+    fn initialize2(&mut self) -> anyhow::Result<()> {
+        println!("pyspy2 init");
+
+        let pid: Pid = std::process::id() as i32;
+
+        let p = remoteprocess::Process::new(pid)?;
+
+        let pi = PythonProcessInfo::new(&p)?;
+
+        let version: py_spy::version::Version = get_python_version(&pi, &p)?;
+        info!("python version {} detected", version);
+
+        let version_string = format!("python{}.{}", version.major, version.minor);
+        info!("python version {:?}", version_string);
+        let o = offsets::get_python_offsets(&version);
+        validate_python_offsets(&version, &o)?;
 
 
+        kindasafe::init()?;
+
+        let k = get_tss_key(&pi, &o)?;
+        info!("tssKey {:016x}", k);
+
+        unsafe {
+            tss_key = k;
+            offsets = o;
+        }
+
+
+        signalhandlers::new_signal_handler(SIGPROF, handler as usize)?;
+        // let interval = 10000000;
+        let interval = 100000000;
+        signalhandlers::start_timer(interval)?;
+
+        Ok(())
+    }
+}
 
 
 impl Backend for Pyspy2 {
@@ -123,48 +159,14 @@ impl Backend for Pyspy2 {
         Ok(())
     }
 
-    fn initialize(&mut self) -> Result<()> { //todo anyhow
-        println!("pyspy2 init");
 
-        let pid: Pid = std::process::id() as i32;
-
-        let p = remoteprocess::Process::new(pid)
-            .map_err(|_| PyroscopeError::new("Pyspy2: remoteprocess::Process::new"))?;
-
-        let pi = PythonProcessInfo::new(&p)
-            .map_err(|_| PyroscopeError::new("Pyspy2: PythonProcessInfo::new"))?;
-
-        let version: py_spy::version::Version = get_python_version(&pi, &p)
-            .map_err(|_| PyroscopeError::new("Pyspy2: get_python_version"))?;
-        info!("python version {} detected", version);
-
-        let version_string = format!("python{}.{}", version.major, version.minor);
-        info!("python version {:?}", version_string);
-
-        unsafe {
-            offsets = offsets::get_python_offsets(&version);
-            validate_python_offsets(&version, &offsets)
-                .map_err(|_| PyroscopeError::new("faild to validate offsets"))?;
+    fn initialize(&mut self) -> Result<()> {
+        let result = self.initialize2();
+        debug!("pyspy2 init {:?}", result);
+        if let Err(e) = result {
+            error!("failed to initialize pyspy2 backend: {:?}", e);
+            return Err(PyroscopeError::new("pyspy2 init"));
         }
-
-
-
-
-
-        kindasafe::init()
-            .map_err(|_| PyroscopeError::new("Pyspy2: kindasafe::init"))?;
-
-        unsafe  {
-            tss_key = get_tss_key(&pi, &offsets)?;
-            info!("tssKey {:016x}", tss_key);
-        }
-
-
-        signalhandlers::new_signal_handler(SIGPROF, handler as usize).expect("failed to set up signal handler"); //todo
-        // let interval = 10000000;
-        let interval = 100000000;
-        signalhandlers::start_timer(interval).expect("failed to start timer"); //todo
-
         Ok(())
     }
 
@@ -178,16 +180,14 @@ impl Backend for Pyspy2 {
 }
 
 
-
-fn get_tss_key(pi: &PythonProcessInfo, o: &offsets::Offsets) -> Result<u64> {
-    let _PyRuntime = pi.get_symbol("_PyRuntime")
-        .ok_or(PyroscopeError::new("get_tss_key: _PyRuntime"))?;// todo
+fn get_tss_key(pi: &PythonProcessInfo, o: &offsets::Offsets) -> anyhow::Result<u64> {
+    let _PyRuntime = pi.get_symbol("_PyRuntime").ok_or(anyhow!("no _PyRuntime found"))?;
     let _PyRuntime: usize = *_PyRuntime as usize;
     info!("_PyRuntime {:016x}", _PyRuntime);
-    let initialized: u32 = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_is_initialized as usize) as u32;
-    let key = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_key as usize);
+    let initialized: u32 = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_is_initialized as usize)? as u32;
+    let key = read_u64(_PyRuntime + o.PyRuntimeState_gilstate as usize + o.Gilstate_runtime_state_autoTSSkey as usize + o.PyTssT_key as usize)?;
     if initialized != 1 {
-        return Err(PyroscopeError::new("get_tss_key: not initialized"));
+        bail!("tss key not initialized");
     }
     return Ok(key);
 }
@@ -200,7 +200,7 @@ fn get_thread_state() -> usize {
 
 static mut tss_key: libc::pthread_key_t = 0;
 
-static mut offsets: offsets::Offsets = offsets::Offsets{
+static mut offsets: offsets::Offsets = offsets::Offsets {
     PyVarObject_ob_size: 0,
     PyObject_ob_type: 0,
     PyTypeObject_tp_name: 0,
@@ -232,25 +232,22 @@ static mut offsets: offsets::Offsets = offsets::Offsets{
 };
 
 
-
-
-
 struct pystr {
     // buf array of 256
     buf: [u8; 256],
-    len: usize
+    len: usize,
 }
 
-fn pystr_read(at: usize, s : &mut pystr) {
+fn pystr_read(at: usize, s: &mut pystr) {
     let o_len = 0x10;
-    let len = read_u64(at + 0x10) as usize;
-    let state = read_u64(at + 0x20) as usize as u32;
+    let len = read_u64(at + 0x10).unwrap() as usize; //todo
+    let state = read_u64(at + 0x20).unwrap() as usize as u32; //todo
     //todo check if it is ascii
     // println!("str len {:016x} {:08x}", len, state);
     let mut i = 0;
 
     while i < 255 && i < len { // todo
-        s.buf[i] = read_u64(at + 0x30 +  i) as u8;
+        s.buf[i] = read_u64(at + 0x30 + i).unwrap() as u8;//todo
         i += 1;
     }
     s.buf[i] = 0;
@@ -264,7 +261,7 @@ extern "C" fn handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut c
         return;
     }
 
-    let top_frame = read_u64(ts + o.PyThreadState_frame as usize) as usize;
+    let top_frame = read_u64(ts + o.PyThreadState_frame as usize).unwrap() as usize;
     if (top_frame == 0) {
         return;
     }
@@ -274,23 +271,21 @@ extern "C" fn handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut c
     let mut count = 0;
     let mut frame = top_frame;
     while frame != 0 && count < 128 {
-        let code =  read_u64(frame + o.PyFrameObject_f_code as usize) as usize;
+        let code = read_u64(frame + o.PyFrameObject_f_code as usize).unwrap() as usize;
         //todo owner check
-        let back =  read_u64(frame + o.PyFrameObject_f_back as usize) as usize;
+        let back = read_u64(frame + o.PyFrameObject_f_back as usize).unwrap() as usize;
         let name_ptr: usize =
-        if code != 0 {
-            read_u64(code + o.PyCodeObject_co_name as usize) as usize
-        } else {
-            0
-        };
-        let mut name = pystr { buf: [0; 256], len:0 };
+            if code != 0 {
+                read_u64(code + o.PyCodeObject_co_name as usize).unwrap() as usize
+            } else {
+                0
+            };
+        let mut name = pystr { buf: [0; 256], len: 0 };
         if name_ptr != 0 {
             pystr_read(name_ptr, &mut name);
         }
         // let name = std::str::from_utf8(&name.buf).unwrap();//todo
         let name = std::str::from_utf8(&name.buf[0..name.len]).unwrap();//todo
-
-
 
 
         println!("frame {:016x} code {:016x} back {:016x} name {:016x} {:?}", frame, code, back, name_ptr, name);
