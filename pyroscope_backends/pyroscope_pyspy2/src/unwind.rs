@@ -9,6 +9,9 @@ use crate::kindasafe::{read_u64};
 use crate::offsets::validate_python_offsets;
 use crate::print::uwprintln;
 
+//TODO we need to make sure wed dont call into any async-unsafe code.
+// lets try to compile unwind code without std, to at least avoid this issue in std
+
 #[derive(Debug)]
 pub enum PythonUnwinderError {
     NoThreadState,
