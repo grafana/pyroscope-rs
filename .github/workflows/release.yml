@@ -145,7 +145,7 @@ jobs:
   python-release-linux-arm:
     needs: [ 'python-release' ]
     name: Release python linux arm64
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-arm64
 
     steps:
       - uses: AutoModality/action-clean@v1
@@ -280,7 +280,7 @@ jobs:
   ruby-release-linux-arm:
     needs: [ 'ruby-release' ]
     name: Release Linux gem arm64
-    runs-on: [ self-hosted, Linux, ARM64 ]
+    runs-on: ubuntu-arm64
 
     steps:
       - uses: actions/checkout@v3
