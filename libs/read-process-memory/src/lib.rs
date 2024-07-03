@@ -22,6 +22,7 @@
 //! # Ok(())
 //! # }
 //! ```
+#![feature(test)]
 
 #[doc(hidden)]
 #[doc = include_str!("../README.md")]
@@ -63,6 +64,7 @@ pub use crate::platform::ProcessHandle;
 
 #[cfg(target_os = "linux")]
 mod platform {
+    use once_cell::sync::Lazy;
     use libc::{c_void, iovec, pid_t, process_vm_readv};
     use std::convert::TryFrom;
     use std::fs;
@@ -70,21 +72,31 @@ mod platform {
     use std::io::Read;
     use std::io::Seek;
     use std::process::Child;
-
     use super::CopyAddress;
 
     /// On Linux a `Pid` is just a `libc::pid_t`.
     pub type Pid = pid_t;
     /// On Linux a `ProcessHandle` is just a `libc::pid_t`.
     #[derive(Clone)]
-    pub struct ProcessHandle(Pid);
+    pub struct ProcessHandle {
+        pid: Pid,
+        local: bool,
+    }
+
+    fn getpid() -> Pid {
+        return unsafe { libc::getpid() };
+    }
 
     /// On Linux, process handle is a pid.
     impl TryFrom<Pid> for ProcessHandle {
         type Error = io::Error;
 
         fn try_from(pid: Pid) -> io::Result<Self> {
-            Ok(Self(pid))
+            static SELF_PID: Lazy<Pid> = Lazy::new(getpid);
+            Ok(Self {
+                pid,
+                local: pid == *SELF_PID,
+            })
         }
     }
 
@@ -99,6 +111,15 @@ mod platform {
 
     impl CopyAddress for ProcessHandle {
         fn copy_address(&self, addr: usize, buf: &mut [u8]) -> io::Result<()> {
+            #[cfg(target_arch = "x86_64")]
+            if self.local {
+                // unsafe {
+                //     std::ptr::copy_nonoverlapping(addr as *mut u8, buf.as_mut_ptr(), buf.len());
+                // }
+                return kindasafe::read_vec(addr, buf).map_err(|e| io::Error::new(io::ErrorKind::Other, e));
+            }
+            //todo forbid reading other processes , deprecate detect_subprocesses
+            return Err(io::Error::new(io::ErrorKind::Other, "not implemented"));
             let local_iov = iovec {
                 iov_base: buf.as_mut_ptr() as *mut c_void,
                 iov_len: buf.len(),
@@ -107,13 +128,13 @@ mod platform {
                 iov_base: addr as *mut c_void,
                 iov_len: buf.len(),
             };
-            let result = unsafe { process_vm_readv(self.0, &local_iov, 1, &remote_iov, 1, 0) };
+            let result = unsafe { process_vm_readv(self.pid, &local_iov, 1, &remote_iov, 1, 0) };
             if result == -1 {
                 match io::Error::last_os_error().raw_os_error() {
                     Some(libc::ENOSYS) | Some(libc::EPERM) => {
                         // fallback to reading /proc/$pid/mem if kernel does not
                         // implement process_vm_readv()
-                        let mut procmem = fs::File::open(format!("/proc/{}/mem", self.0))?;
+                        let mut procmem = fs::File::open(format!("/proc/{}/mem", self.pid))?;
                         procmem.seek(io::SeekFrom::Start(addr as u64))?;
                         procmem.read_exact(buf)
                     }
@@ -411,7 +432,7 @@ mod platform {
         type Target = HANDLE;
 
         fn deref(&self) -> &Self::Target {
-            &self.0 .0
+            &self.0.0
         }
     }
 
@@ -461,7 +482,7 @@ mod platform {
 
             if unsafe {
                 ReadProcessMemory(
-                    self.0 .0,
+                    self.0.0,
                     addr as *const c_void,
                     buf.as_mut_ptr().cast(),
                     mem::size_of_val(buf),
@@ -498,8 +519,10 @@ where
         .and(Ok(copy))
 }
 
+extern crate test;
+
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use std::convert::TryFrom;
     use std::env;
@@ -567,5 +590,40 @@ mod test {
             .map(|v| (v % (u8::max_value() as usize + 1)) as u8)
             .collect::<Vec<u8>>();
         assert_eq!(mem, expected);
+    }
+
+    #[test]
+    fn test_read_large_local() {
+        assert!(kindasafe::init().is_ok());
+        let size = 20000;
+        let data = (0..size)
+            .map(|v| (v % (u8::max_value() as usize + 1)) as u8)
+            .collect::<Vec<u8>>();
+        let mypid = unsafe { libc::getpid() };
+        let h = ProcessHandle::try_from(mypid as Pid).unwrap();
+        let buf = &mut vec![0; size];
+        let res = h.copy_address(data.as_ptr() as usize, buf);
+        assert!(res.is_ok());
+        assert_eq!(data, buf.as_slice());
+        assert!(kindasafe::destroy().is_ok());
+    }
+
+    #[bench]
+    fn bench_local(b: &mut test::Bencher) {
+        assert!(kindasafe::init().is_ok());
+        let size = 128;
+        let data = (0..size)
+            .map(|v| (v % (u8::max_value() as usize + 1)) as u8)
+            .collect::<Vec<u8>>();
+        let mypid = unsafe { libc::getpid() };
+        let h = ProcessHandle::try_from(mypid as Pid).unwrap();
+        let buf = &mut vec![0; size];
+        b.iter(|| {
+            let _res = h.copy_address(data.as_ptr() as usize, buf);
+        });
+        // let res = h.copy_address(data.as_ptr() as usize, buf);
+        // assert!(res.is_ok());
+        // assert_eq!(data, buf.as_slice());
+        // assert!(kindasafe::destroy().is_ok());
     }
 }

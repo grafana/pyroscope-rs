@@ -9,7 +9,7 @@ version = "0.5.7"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io/docs/rust"
-documentation  = "https://docs.rs/pyroscope"
+documentation = "https://docs.rs/pyroscope"
 repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 autobins = false
@@ -27,6 +27,8 @@ members = [
     "pyroscope_ffi/ruby/ext/thread_id",
     "pyroscope_ffi/python/lib",
     "pyroscope_ffi/ffikit",
+    "libs/read-process-memory",
+    "libs/kindasafe",
 ]
 
 [[example]]
@@ -54,7 +56,7 @@ name = "internal-rbspy-connect"
 path = "examples/internal/rbspy-connect.rs"
 
 [dependencies]
-thiserror ="1.0"
+thiserror = "1.0"
 log = "0.4"
 names = { version = "0.14.0", default-features = false }
 reqwest = { version = "0.12", features = ["blocking"], default-features = false }
@@ -80,7 +82,7 @@ rustls-tls = ["reqwest/rustls-tls"]
 native-tls = ["reqwest/native-tls"]
 
 [profile.dev]
-opt-level=0
+opt-level = 0
 debug = true
 rpath = false
 lto = false
@@ -88,7 +90,7 @@ debug-assertions = true
 codegen-units = 4
 
 [profile.release]
-opt-level=3
+opt-level = 3
 debug = false
 rpath = false
 lto = true

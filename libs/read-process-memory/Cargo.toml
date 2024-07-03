@@ -12,6 +12,9 @@ rust-version = "1.56"
 [dependencies]
 libc = "0.2"
 log = "0.4"
+once_cell = "1.19.0"
+windows-sys = "0.52.0"
+kindasafe = {path = "../kindasafe" }
 
 [target.'cfg(target_os="macos")'.dependencies]
 mach = "0.3.2"
