@@ -1,0 +1,24 @@
+[package]
+name = "read-process-memory"
+edition = "2021"
+version = "0.1.7-pre"
+authors = ["Ted Mielczarek <ted@mielczarek.org>"]
+license = "MIT"
+description = "Read memory from another process."
+homepage = "https://github.com/rbspy/read-process-memory"
+repository = "https://github.com/rbspy/read-process-memory"
+rust-version = "1.56"
+
+[dependencies]
+libc = "0.2"
+log = "0.4"
+
+[target.'cfg(target_os="macos")'.dependencies]
+mach = "0.3.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.52.0", features = [
+  "Win32_Foundation",
+  "Win32_System_Diagnostics_Debug",
+  "Win32_System_Threading",
+] }

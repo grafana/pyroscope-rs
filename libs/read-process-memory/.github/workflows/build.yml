@@ -1,0 +1,85 @@
+name: Build
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022, macos-13, macos-14]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose --all-targets
+    - name: Run tests
+      run: cargo test --verbose
+      if: runner.os != 'macOS'
+    - name: Run tests (macos)
+      run: sudo "PATH=$PATH" cargo test --verbose
+      if: runner.os == 'macOS'
+
+  build-freebsd:
+    name: build (FreeBSD)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@984d158d699777abbaa79de23de3134e60c187fa # stable branch
+
+      - name: Cross-compile crate
+        run: |
+          wget -q -O cross https://github.com/acj/freebsd-firecracker/releases/download/v0.0.10/cross
+          chmod +x cross
+          mv cross /usr/local/bin/cross
+
+          cross build --release --target x86_64-unknown-freebsd
+          cross test --release --no-run --target x86_64-unknown-freebsd
+
+      - name: Launch Firecracker VM
+        uses: acj/freebsd-firecracker-action@v0.1.1
+        with:
+          verbose: false
+          pre-run: |
+            rm -rf .cargo
+            ln -s $HOME/.cargo .cargo
+
+            include_path="$(mktemp)"
+            cat <<EOF > $include_path
+            target
+            target/x86_64-unknown-freebsd
+            target/x86_64-unknown-freebsd/release
+            target/x86_64-unknown-freebsd/release/deps
+            target/x86_64-unknown-freebsd/release/deps/read_process_memory-*
+            target/x86_64-unknown-freebsd/release/test
+            EOF
+            
+            rsync -r -e "ssh" \
+              --relative \
+              --copy-links \
+              --include-from "$include_path" \
+              --exclude "*" \
+              . firecracker:
+            rm -f "$exclude_path"
+          run-in-vm: |
+            mkdir -p /home/runner
+            ln -s $(pwd)/.cargo /home/runner/.cargo
+
+            failed=0
+            for testbin in $(find target/x86_64-unknown-freebsd/release/deps -type f -perm -u+x ! -name "*.d" -print); do
+              if ! $testbin; then
+                failed=1
+              fi
+            done
+
+            if [ $failed -ne 0 ]; then
+              exit 1
+            fi
+          post-run: ""
