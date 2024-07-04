@@ -60,6 +60,10 @@ pub extern "C" fn initialize_agent(
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
 
+    if let Err(_) = kindasafe::init() {
+        return false;
+    }
+
     // application_name
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()

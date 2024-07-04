@@ -112,3 +112,9 @@ rpath = false
 lto = true
 debug-assertions = false
 codegen-units = 1
+
+
+[patch.crates-io]
+read-process-memory = {  path = "libs/read-process-memory" }
+#[replace]
+#"read-process-memory:0.1.6" = { path = "libs/read-process-memory" }

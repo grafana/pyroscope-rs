@@ -35,12 +35,16 @@ def configure(
     if native is not None:
         warnings.warn("native is deprecated and not supported", DeprecationWarning)
 
+    if detect_subprocesses:
+        warnings.warn("detect_subprocesses is deprecated and not supported", DeprecationWarning)
+        detect_subprocesses = False
+
     if enable_logging:
         logger = logging.getLogger()
         log_level = logger.getEffectiveLevel()
         lib.initialize_logging(log_level)
 
-    lib.initialize_agent(
+    return lib.initialize_agent(
         application_name.encode("UTF-8"),
         server_address.encode("UTF-8"),
         auth_token.encode("UTF-8"),
@@ -65,6 +69,7 @@ def shutdown():
         logging.info("Pyroscope Agent successfully shutdown")
     else:
         logging.warn("Pyroscope Agent shutdown failed")
+    return drop
 
 def add_thread_tag(thread_id, key, value):
     lib.add_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))

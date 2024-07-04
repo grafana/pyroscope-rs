@@ -11,11 +11,13 @@ ADD Cross.toml \
     ./
 
 ADD src src
+ADD libs libs
 ADD pyroscope_backends pyroscope_backends
 ADD pyroscope_cli pyroscope_cli
 ADD pyroscope_ffi/ pyroscope_ffi/
 
-RUN cd /pyroscope-rs/pyroscope_ffi/python && ./manylinux.sh
+RUN  --mount=type=cache,target=/usr/local/cargo/registry \
+     cd /pyroscope-rs/pyroscope_ffi/python && ./manylinux.sh
 
 FROM scratch
 COPY --from=builder /pyroscope-rs/pyroscope_ffi/python/dist dist/

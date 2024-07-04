@@ -1594,7 +1594,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e310b3a6b5907f99202fcdb4960ff45b93735d7c7d96b760fcff8db2dc0e103d"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -2431,11 +2431,11 @@ dependencies = [
  "cbindgen",
  "ffikit",
  "inferno",
+ "kindasafe",
  "log",
  "pretty_env_logger",
  "pyroscope",
  "pyroscope_pyspy",
- "read-process-memory 0.1.7-pre",
 ]
 
 [[package]]
@@ -2604,18 +2604,6 @@ checksum = "9d38f09757045491426da66c673c38c17c957a0ef5734dab882d2633746cc590"
 [[package]]
 name = "read-process-memory"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8497683b2f0b6887786f1928c118f26ecc6bb3d78bbb6ed23e8e7ba110af3bb0"
-dependencies = [
- "libc",
- "log",
- "mach",
- "winapi",
-]
-
-[[package]]
-name = "read-process-memory"
-version = "0.1.7-pre"
 dependencies = [
  "kindasafe",
  "libc",
@@ -2692,7 +2680,7 @@ dependencies = [
  "nix 0.26.4",
  "object",
  "proc-maps 0.3.2",
- "read-process-memory 0.1.6",
+ "read-process-memory",
  "regex",
  "winapi",
 ]

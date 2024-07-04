@@ -9,17 +9,23 @@ LIB_DIR = str(SCRIPT_DIR / "lib")
 
 def build_native(spec):
     # Step 1: build the rust library
+    release = os.environ.get('PYROSCOPE_BUILD_TYPE') != 'debug'
+    cmd = ['cargo', 'build', '-p' 'pyroscope_ffi'] + (['--release'] if release else [])
+    print(cmd)
+    print(f"Running {' '.join(cmd)}")
     build = spec.add_external_build(
-        cmd=['cargo', 'build', '-p' 'pyroscope_ffi', '--release'],
+        cmd=cmd,
         path=LIB_DIR
     )
 
     def find_dylib():
+        build_type_dir = 'release' if release else 'debug'
         cargo_target = os.environ.get('CARGO_BUILD_TARGET')
         if cargo_target:
-            in_path = '../../../target/%s/release' % (cargo_target)
+            in_path = '../../../target/%s/%s' % (cargo_target, build_type_dir)
         else:
-            in_path = '../../../target/release'
+            in_path = '../../../target/%s' % (build_type_dir)
+        print(f"Looking for dylib in {in_path}")
         return build.find_dylib('pyroscope_ffi', in_path=in_path)
 
     # Step 2: package the compiled library

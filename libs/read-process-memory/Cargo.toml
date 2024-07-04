@@ -1,7 +1,8 @@
 [package]
 name = "read-process-memory"
 edition = "2021"
-version = "0.1.7-pre"
+#version = "0.1.7-pre"
+version = "0.1.6"
 authors = ["Ted Mielczarek <ted@mielczarek.org>"]
 license = "MIT"
 description = "Read memory from another process."
