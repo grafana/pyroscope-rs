@@ -60,7 +60,8 @@ pub extern "C" fn initialize_agent(
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
 
-    if let Err(_) = kindasafe::init() {
+    if let Err(e) = kindasafe::init() {
+        log::error!(target: LOG_TAG, "failed to init kindasafe crate: {}. Maybe it is debug build and it does not work in debug build", e);
         return false;
     }
 
