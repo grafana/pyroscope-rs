@@ -31,7 +31,7 @@ pub enum PyroscopeError {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    Json(#[from] json::JsonError),
+    Json(#[from] serde_json::Error),
 }
 
 impl PyroscopeError {

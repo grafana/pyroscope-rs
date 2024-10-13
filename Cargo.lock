@@ -1559,12 +1559,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "json"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2367,7 +2361,6 @@ version = "0.5.7"
 dependencies = [
  "assert_matches",
  "claims",
- "json",
  "libc",
  "libflate",
  "log",
@@ -2378,6 +2371,7 @@ dependencies = [
  "pyroscope_pyspy",
  "pyroscope_rbspy",
  "reqwest",
+ "serde_json",
  "thiserror",
  "tokio",
  "url",
@@ -2397,7 +2391,6 @@ dependencies = [
  "ctrlc",
  "duct",
  "human-panic",
- "json",
  "lazy_static",
  "log",
  "names 0.13.0",
@@ -2408,6 +2401,7 @@ dependencies = [
  "pyroscope_pyspy",
  "pyroscope_rbspy",
  "serde 1.0.197",
+ "serde_json",
  "slog",
  "slog-async",
  "slog-scope",

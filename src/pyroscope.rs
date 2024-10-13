@@ -18,8 +18,6 @@ use crate::{
     PyroscopeError,
 };
 
-use json;
-
 use crate::backend::BackendImpl;
 use crate::pyroscope::Compression::GZIP;
 use crate::pyroscope::ReportEncoding::PPROF;
@@ -841,16 +839,16 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 
 pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>> {
     let mut http_headers = HashMap::new();
-    let parsed = json::parse(&http_headers_json)?;
+    let parsed: serde_json::Value = serde_json::from_str(&http_headers_json)?;
     if !parsed.is_object() {
         return Err(PyroscopeError::AdHoc(format!(
             "expected object, got {}",
             parsed
         )));
     }
-    for (k, v) in parsed.entries() {
+    for (k, v) in parsed.as_object().unwrap() {
         if v.is_string() {
-            http_headers.insert(k.to_string(), v.to_string());
+            http_headers.insert(k.to_string(), v.as_str().unwrap().to_string());
         } else {
             return Err(PyroscopeError::AdHoc(format!(
                 "invalid http header value, not a string: {}",
@@ -862,17 +860,17 @@ pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<Stri
 }
 
 pub fn parse_vec_string_json(s: String) -> Result<Vec<String>> {
-    let parsed = json::parse(&s)?;
+    let parsed: serde_json::Value = serde_json::from_str(&s)?;
     if !parsed.is_array() {
         return Err(PyroscopeError::AdHoc(format!(
             "expected array, got {}",
             parsed
         )));
     }
-    let mut res = Vec::with_capacity(parsed.len());
-    for v in parsed.members() {
+    let mut res = Vec::with_capacity(parsed.as_array().unwrap().len());
+    for v in parsed.as_array().unwrap() {
         if v.is_string() {
-            res.push(v.to_string());
+            res.push(v.as_str().unwrap().to_string());
         } else {
             return Err(PyroscopeError::AdHoc(format!(
                 "invalid element value, not a string: {}",
