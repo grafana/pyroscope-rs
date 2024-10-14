@@ -29,6 +29,9 @@ pub enum Error {
 
     #[error(transparent)]
     PyroscopeError(#[from] pyroscope::PyroscopeError),
+
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 impl Error {

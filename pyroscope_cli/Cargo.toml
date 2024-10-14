@@ -38,7 +38,7 @@ pyroscope = { path = "../", default-features = false }
 pyroscope_pprofrs = { path = "../pyroscope_backends/pyroscope_pprofrs", default-features = false }
 pyroscope_rbspy = { path = "../pyroscope_backends/pyroscope_rbspy", default-features = false }
 pyroscope_pyspy = { path = "../pyroscope_backends/pyroscope_pyspy", default-features = false }
-json = "0.12.4"
+serde_json = "1.0.115"
 
 [dependencies.clap]
 version = "3.2"

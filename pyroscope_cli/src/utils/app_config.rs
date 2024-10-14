@@ -172,7 +172,7 @@ impl AppConfig {
                         .map(|s| s.to_string())
                         .collect::<Vec<String>>();
 
-                    AppConfig::set("command_args", &json::stringify(command_args))?;
+                    AppConfig::set("command_args", &serde_json::to_string(&command_args)?)?;
                 }
             }
             if sub_exec.is_present("log_level") {
@@ -314,7 +314,7 @@ fn set_http_headers(cmd: &clap::ArgMatches) -> Result<()> {
                     http_headers_map.insert(kv[0].to_string(), kv[1].to_string());
                 }
             }
-            let http_header = json::stringify(http_headers_map);
+            let http_header = serde_json::to_string(&http_headers_map)?;
             AppConfig::set("http_headers_json", &http_header)?;
         };
     }
