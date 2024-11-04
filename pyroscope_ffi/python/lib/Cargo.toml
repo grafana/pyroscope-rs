@@ -13,7 +13,7 @@ pyroscope = { path  = "../../../" }
 pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy" }
 ffikit = { path = "../../ffikit" }
 pretty_env_logger = "0.4.0"
-inferno = "=0.11.14"
+inferno = "0.11.21"
 log = "0.4"
 
 
