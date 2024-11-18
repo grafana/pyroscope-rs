@@ -1,4 +1,4 @@
-use pprof::{ProfilerGuard, ProfilerGuardBuilder};
+use pprof2::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
         Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
@@ -259,8 +259,8 @@ impl From<StackBufferWrapper> for StackBuffer {
     }
 }
 
-impl From<(pprof::Report, &BackendConfig)> for StackBufferWrapper {
-    fn from(arg: (pprof::Report, &BackendConfig)) -> Self {
+impl From<(pprof2::Report, &BackendConfig)> for StackBufferWrapper {
+    fn from(arg: (pprof2::Report, &BackendConfig)) -> Self {
         let (report, config) = arg;
         //convert report to stackbuffer
         let buffer_data: HashMap<StackTrace, usize> = report
@@ -285,8 +285,8 @@ impl From<StackTraceWrapper> for StackTrace {
     }
 }
 
-impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
-    fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
+impl From<(pprof2::Frames, &BackendConfig)> for StackTraceWrapper {
+    fn from(arg: (pprof2::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
         StackTraceWrapper(StackTrace::new(
             config,
@@ -311,8 +311,8 @@ impl From<StackFrameWrapper> for StackFrame {
     }
 }
 
-impl From<pprof::Symbol> for StackFrameWrapper {
-    fn from(symbol: pprof::Symbol) -> Self {
+impl From<pprof2::Symbol> for StackFrameWrapper {
+    fn from(symbol: pprof2::Symbol) -> Self {
         StackFrameWrapper(StackFrame::new(
             None,
             Some(symbol.name()),
