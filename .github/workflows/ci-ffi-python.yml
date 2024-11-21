@@ -53,7 +53,7 @@ jobs:
 
   linux-arm-build:
     name: Linux - arm64
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: github-hosted-ubuntu-arm64
     steps:
       - uses: AutoModality/action-clean@v1
       - uses: actions/checkout@v3
