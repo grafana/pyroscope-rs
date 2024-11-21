@@ -1,6 +1,5 @@
 ARG BASE
 
-
 FROM ${BASE} as builder-native
 
 WORKDIR /pyroscope-rs
@@ -17,8 +16,6 @@ ADD pyroscope_cli pyroscope_cli
 ADD pyroscope_ffi/ pyroscope_ffi/
 RUN cargo build -p rbspy --release
 RUN cargo build -p thread_id --release
-
-
 
 FROM ruby:3.3 as builder-gem
 WORKDIR /gem

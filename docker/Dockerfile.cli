@@ -8,10 +8,8 @@ ADD src ./src
 ADD Cargo.toml ./Cargo.toml
 
 RUN --mount=type=cache,target=/root/.cargo/registry \
-    cd pyroscope_cli && \
+    cd pyroscope_cli &&
     cargo build --release --bin pyroscope-cli
-
-
 
 FROM scratch as final
 
