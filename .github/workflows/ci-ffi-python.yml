@@ -91,16 +91,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: "11.0"
+          - macos-version: "14"
             target: x86_64-apple-darwin
-            py-platform: macosx-11_0_x86_64
             mk-arch: amd64
-          - macos-version: "11.0"
+          - macos-version: "14"
             target: aarch64-apple-darwin
-            py-platform: macosx-11_0_arm64
             mk-arch: arm64
 
-    name: macOS - ${{ matrix.py-platform }}
+    name: macOS - ${{ matrix.target }}
     runs-on: macos-${{ matrix.macos-version }}
 
     steps:
