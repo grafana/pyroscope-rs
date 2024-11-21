@@ -14,7 +14,7 @@ pyroscope_ffi/clean:
 .phony: wheel/linux/amd64
 wheel/linux/amd64: pyroscope_ffi/clean
 	docker buildx build \
-		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_AMD):$(MANYLINUX_VERSION) \
+		--build-arg=PLATFORM=x86_64 \
 	 	--platform=linux/amd64 \
 	 	--output=pyroscope_ffi/python \
 	 	-f docker/wheel.Dockerfile \
@@ -23,7 +23,7 @@ wheel/linux/amd64: pyroscope_ffi/clean
 .phony: wheel/linux/arm64
 wheel/linux/arm64: pyroscope_ffi/clean
 	docker buildx build \
-		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_ARM):$(MANYLINUX_VERSION) \
+		--build-arg=PLATFORM=aarch64 \
 	 	--platform=linux/arm64 \
 	 	--output=pyroscope_ffi/python \
 	 	-f docker/wheel.Dockerfile \

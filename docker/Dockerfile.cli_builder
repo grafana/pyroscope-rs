@@ -1,7 +1,7 @@
 
 
 
-FROM alpine:3.18 as rust-builder
+FROM alpine:3.20 AS rust-builder
 
 RUN apk add wget
 ARG TARGETPLATFORM
@@ -20,15 +20,15 @@ RUN case "${TARGETPLATFORM}" in                       \
 RUN source ./.env  && \
     wget https://static.rust-lang.org/rustup/dist/${RUST_TARGET}/rustup-init && \
     chmod +x rustup-init && \
-    ./rustup-init  -y --default-toolchain=1.76.0 --default-host=${RUST_TARGET}
+    ./rustup-init  -y --default-toolchain=stable --default-host=${RUST_TARGET}
 ENV PATH=/root/.cargo/bin:$PATH
 
 
 RUN apk add make gcc musl-dev
 RUN source ./.env && \
-     wget https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz && \
-     tar -zxvf libunwind-1.6.2.tar.gz && \
-     cd libunwind-1.6.2 && \
+     wget https://github.com/libunwind/libunwind/releases/download/v1.8.1/libunwind-1.8.1.tar.gz && \
+     tar -zxvf libunwind-1.8.1.tar.gz && \
+     cd libunwind-1.8.1 && \
      ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation --prefix=/usr/local/musl/${RUST_TARGET} && \
      make -j16 && \
      make install
