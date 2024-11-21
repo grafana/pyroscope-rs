@@ -115,5 +115,5 @@ jobs:
       - run: make wheel/mac/${{ matrix.mk-arch }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-python-${{ matrix.target }}
           path: pyroscope_ffi/python/dist/*
