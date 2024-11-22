@@ -2,7 +2,7 @@ name: Python Package
 
 on:
   push:
-    branches: [ main ]
+    branches:
   pull_request:
     branches: [ main ]
 
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest # TODO try using grafana runners
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build in Docker
         run: make wheel/linux/amd64
 
@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+        PYTHON_VERSION: [ '3.9', '3.10', '3.11', '3.12', '3.13']
     needs: [ 'linux-build' ]
     name: Linux Test
     runs-on: ubuntu-latest
@@ -36,18 +36,18 @@ jobs:
       PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
     steps:
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
           architecture: x64
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: "linux.whl"
           path: "${{github.workspace}}/python"
 
       - run: "cd ${{ github.workspace }}/python && ls -l"
       - run: "cd ${{ github.workspace }}/python && pip install *.whl"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: docker run -d -p4040:4040 grafana/pyroscope
       - run: python pyroscope_ffi/python/scripts/tests/test.py
 
@@ -56,7 +56,7 @@ jobs:
     runs-on: github-hosted-ubuntu-arm64
     steps:
       - uses: AutoModality/action-clean@v1
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build in Docker
         run: make wheel/linux/arm64
 
@@ -70,8 +70,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.9
       - name: Upgrade pip
@@ -91,33 +91,29 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: "11.0"
+          - macos-version: "14"
             target: x86_64-apple-darwin
-            py-platform: macosx-11_0_x86_64
             mk-arch: amd64
-          - macos-version: "11.0"
+          - macos-version: "14"
             target: aarch64-apple-darwin
-            py-platform: macosx-11_0_arm64
             mk-arch: arm64
 
-    name: macOS - ${{ matrix.py-platform }}
+    name: macOS - ${{ matrix.target }}
     runs-on: macos-${{ matrix.macos-version }}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: 1.76.0
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
+          toolchain: 1.82.0
+          targets: ${{ matrix.target }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.11
 
       - run: make wheel/mac/${{ matrix.mk-arch }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-python-${{ matrix.target }}
           path: pyroscope_ffi/python/dist/*

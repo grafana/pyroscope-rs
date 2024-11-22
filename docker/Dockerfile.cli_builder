@@ -1,13 +1,9 @@
-
-
-
-FROM alpine:3.18 as rust-builder
+FROM alpine:3.20 AS rust-builder
 
 RUN apk add wget
 ARG TARGETPLATFORM
 
-
-
+ENV RUST_VERSION=1.82
 RUN case "${TARGETPLATFORM}" in                       \
     "linux/amd64")                                    \
         echo 'export RUST_TARGET="x86_64-unknown-linux-musl"' > ./.env ;;    \
@@ -20,18 +16,19 @@ RUN case "${TARGETPLATFORM}" in                       \
 RUN source ./.env  && \
     wget https://static.rust-lang.org/rustup/dist/${RUST_TARGET}/rustup-init && \
     chmod +x rustup-init && \
-    ./rustup-init  -y --default-toolchain=1.76.0 --default-host=${RUST_TARGET}
+    ./rustup-init -y --default-toolchain=${RUST_VERSION} --default-host=${RUST_TARGET}
 ENV PATH=/root/.cargo/bin:$PATH
 
 
+ENV LIBUNWIND_VERSION=1.8.1
 RUN apk add make gcc musl-dev
 RUN source ./.env && \
-     wget https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz && \
-     tar -zxvf libunwind-1.6.2.tar.gz && \
-     cd libunwind-1.6.2 && \
-     ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation --prefix=/usr/local/musl/${RUST_TARGET} && \
-     make -j16 && \
-     make install
+    wget https://github.com/libunwind/libunwind/releases/download/v${LIBUNWIND_VERSION}/libunwind-${LIBUNWIND_VERSION}.tar.gz && \
+    tar -zxvf libunwind-${LIBUNWIND_VERSION}.tar.gz && \
+    cd libunwind-${LIBUNWIND_VERSION} && \
+    ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation --prefix=/usr/local/musl/${RUST_TARGET} && \
+    make -j16 && \
+    make install
 
 RUN source ./.env && \
     wget https://zlib.net/zlib-1.3.1.tar.gz && \

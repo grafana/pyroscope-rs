@@ -11,11 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'lib-')"
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: stable
-          override: true
+          toolchain: 1.82.0
       - name: publish pyroscope crate
         continue-on-error: true
         run: |
@@ -26,13 +25,12 @@ jobs:
 #    runs-on: ubuntu-latest
 #    if: "startsWith(github.event.release.tag_name, 'cli-')"
 #    steps:
-#      - uses: actions/checkout@v3
+#      - uses: actions/checkout@v4
 #        with:
 #          submodules: recursive
-#      - uses: actions-rs/toolchain@v1
+#      - uses: dtolnay/rust-toolchain@v1
 #        with:
-#          toolchain: stable
-#          override: true
+#          toolchain: 1.82.0
 #      - name: install libunwind (for pprof)
 #        run: sudo apt install libunwind8-dev
 #      - name: publish pyroscope crate
@@ -45,11 +43,10 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'pprofrs-')"
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: stable
-          override: true
+          toolchain: 1.82.0
       - name: publish pprofrs crate
         continue-on-error: true
         run: |
@@ -60,11 +57,10 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'rbspy-')"
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: stable
-          override: true
+          toolchain: 1.82.0
       - name: publish rbspy crate
         continue-on-error: true
         run: |
@@ -75,11 +71,10 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'pyspy-')"
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: stable
-          override: true
+          toolchain: 1.82.0
       - name: publish pyspy crate
         continue-on-error: true
         run: |
@@ -90,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'python-')"
     steps:
-      - uses: robinraju/release-downloader@v1.4
+      - uses: robinraju/release-downloader@v1
         with: 
           tag: ${{ github.event.release.tag_name }}
           fileName: "*"
@@ -99,7 +94,7 @@ jobs:
           out-file-path: "dist"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish a Python distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@v1.12.2
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
@@ -110,7 +105,7 @@ jobs:
     outputs:
       files_json: ${{ steps.list-files.outputs.files_json }}
     steps:
-      - uses: robinraju/release-downloader@v1.4
+      - uses: robinraju/release-downloader@v1
         with:
           tag: ${{ github.event.release.tag_name }}
           fileName: "*"
@@ -138,7 +133,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1'
-      - uses: robinraju/release-downloader@v1.4
+      - uses: robinraju/release-downloader@v1
         with: 
           tag: ${{ github.event.release.tag_name }}
           fileName: "*"
