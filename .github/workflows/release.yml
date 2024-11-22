@@ -132,7 +132,7 @@ jobs:
       - run: make wheel/linux/amd64
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-python-amd64
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
@@ -152,7 +152,7 @@ jobs:
       - run: make wheel/linux/arm64
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-python-arm64
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
@@ -194,7 +194,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-python-macos-${{ matrix.target }}
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
@@ -225,7 +225,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-python-sdist
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
@@ -261,7 +261,7 @@ jobs:
       - run: make gem/linux/amd64
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-ruby-amd64
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
@@ -281,7 +281,7 @@ jobs:
       - run: make gem/linux/arm64
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-ruby-arm64
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
@@ -322,7 +322,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-ruby-mac-${{ matrix.target }}
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
@@ -356,7 +356,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ github.sha }}-ruby-source
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
