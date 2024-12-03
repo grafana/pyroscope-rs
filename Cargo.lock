@@ -2341,7 +2341,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "0.5.7"
+version = "0.5.8"
 dependencies = [
  "assert_matches",
  "claims",
@@ -2446,7 +2446,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope_pprofrs"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "log",
  "pprof2",
