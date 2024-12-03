@@ -67,7 +67,7 @@ serde_json = "1.0.115"
 
 [dev-dependencies]
 tokio = { version = "1.18", features = ["full"] }
-pretty_env_logger = "0.4.0"
+pretty_env_logger = "0.5.0"
 assert_matches = "1"
 claims = "0.7.1"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
