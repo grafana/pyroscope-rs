@@ -47,7 +47,7 @@ wheel/mac/arm64:
 .phony: gem/linux/amd64
 gem/linux/amd64: pyroscope_ffi/clean
 	docker buildx build \
-		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_AMD):$(MANYLINUX_VERSION) \
+		--build-arg=PLATFORM=x86_64 \
 		--build-arg="TARGET_TASK=x86_64_linux:gem" \
 		--output=pyroscope_ffi/ruby \
 	 	--platform=linux/amd64 \
@@ -57,7 +57,7 @@ gem/linux/amd64: pyroscope_ffi/clean
 .phony: gem/linux/arm64
 gem/linux/arm64: pyroscope_ffi/clean
 	docker buildx build  \
-		--build-arg=BASE=$(MANYLINUX_PREFIX)_$(BUILD_ARCH_ARM):$(MANYLINUX_VERSION) \
+		--build-arg=PLATFORM=aarch64 \
 		--build-arg="TARGET_TASK=aarch64_linux:gem" \
 		--output=pyroscope_ffi/ruby \
 		--platform=linux/arm64 \
