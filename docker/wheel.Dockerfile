@@ -1,7 +1,7 @@
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
 
-ENV RUST_VERSION=1.82
+ENV RUST_VERSION=1.85
 RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rustup-init -o ./rustup-init \
     && chmod +x ./rustup-init \
     && ./rustup-init  -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-gnu
