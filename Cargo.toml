@@ -54,14 +54,14 @@ name = "internal-rbspy-connect"
 path = "examples/internal/rbspy-connect.rs"
 
 [dependencies]
-thiserror ="1.0"
+thiserror = "2.0.12"
 log = "0.4"
 names = { version = "0.14.0", default-features = false }
 reqwest = { version = "0.12", features = ["blocking"], default-features = false }
 url = "2.2.2"
-libflate = "1.2.0"
+libflate = "2.1.0"
 libc = "^0.2.124"
-prost = "0.11"
+prost = "0.13"
 winapi = "0.3.9"
 serde_json = "1.0.115"
 
@@ -69,7 +69,7 @@ serde_json = "1.0.115"
 tokio = { version = "1.18", features = ["full"] }
 pretty_env_logger = "0.5.0"
 assert_matches = "1"
-claims = "0.7.1"
+claims = "0.8.0"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 pyroscope_pyspy = { path = "pyroscope_backends/pyroscope_pyspy" }
 pyroscope_rbspy = { path = "pyroscope_backends/pyroscope_rbspy" }

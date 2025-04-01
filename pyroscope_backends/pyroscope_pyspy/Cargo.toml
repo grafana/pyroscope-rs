@@ -16,9 +16,7 @@ readme = "README.md"
 [dependencies]
 py-spy = "0.4.0"
 pyroscope = { version = "0.5.7", path = "../../" , default-features = false }
-thiserror = "2.0.11"
 log = "0.4"
-inferno = "0.12.1"
 
 [features]
 default = ["pyroscope/default"]
