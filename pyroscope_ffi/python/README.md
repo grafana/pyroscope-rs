@@ -66,6 +66,26 @@ with pyroscope.tag_wrapper({ "controller": "slow_controller_i_want_to_profile" }
   slow_code()
 ```
 
+### Span profiles support for OpenTelemetry
+Register the `PyroscopeSpanProcessor` in your `OpenTelemetry` integration:
+```python3
+# import span processor
+from pyroscope.otel import PyroscopeSpanProcessor
+
+# obtain a OpenTelemetry tracer provider
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+provider = TracerProvider()
+
+# register the span processor
+provider.add_span_processor(PyroscopeSpanProcessor())
+
+# register the tracer provider
+trace.set_tracer_provider(provider)
+
+# ...
+```
+
 ### Example
 
 Check out this [example python project in our repository](https://github.com/pyroscope-io/pyroscope/tree/main/examples/python) for examples of how you can use these features.
