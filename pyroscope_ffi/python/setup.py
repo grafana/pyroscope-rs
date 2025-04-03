@@ -38,4 +38,5 @@ setup(
     platforms="any",
     milksnake_tasks=[build_native],
     setup_requires=["pyromilksnakex==0.1.8"],
+    install_requires=["opentelemetry-api>=1.27.0, <2.0.0", "opentelemetry-sdk>=1.27.0, <2.0.0"]
 )
