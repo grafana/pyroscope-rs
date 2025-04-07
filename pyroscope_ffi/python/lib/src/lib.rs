@@ -1,7 +1,7 @@
 use ffikit::Signal;
 use pyroscope::backend::Tag;
-use pyroscope::PyroscopeAgent;
 use pyroscope::pyroscope::ReportEncoding;
+use pyroscope::PyroscopeAgent;
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
@@ -15,22 +15,22 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
     // Force rustc to display the log messages in the console.
     match logging_level {
         50 => {
-            std::env::set_var("RUST_LOG", "off");
+            unsafe { std::env::set_var("RUST_LOG", "off") };
         }
         40 => {
-            std::env::set_var("RUST_LOG", "error");
+            unsafe { std::env::set_var("RUST_LOG", "error") };
         }
         30 => {
-            std::env::set_var("RUST_LOG", "warn");
+            unsafe { std::env::set_var("RUST_LOG", "warn") };
         }
         20 => {
-            std::env::set_var("RUST_LOG", "info");
+            unsafe { std::env::set_var("RUST_LOG", "info") };
         }
         10 => {
-            std::env::set_var("RUST_LOG", "debug");
+            unsafe { std::env::set_var("RUST_LOG", "debug") };
         }
         _ => {
-            std::env::set_var("RUST_LOG", "debug");
+            unsafe { std::env::set_var("RUST_LOG", "debug") };
         }
     }
 
@@ -41,21 +41,11 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 
 #[no_mangle]
 pub extern "C" fn initialize_agent(
-    application_name: *const c_char,
-    server_address: *const c_char,
-    auth_token: *const c_char,
-    basic_auth_username: *const c_char,
-    basic_auth_password: *const c_char,
-    sample_rate: u32,
-    detect_subprocesses: bool,
-    oncpu: bool,
-    gil_only: bool,
-    report_pid: bool,
-    report_thread_id: bool,
-    report_thread_name: bool,
-    tags: *const c_char,
-    tenant_id: *const c_char,
-    http_headers_json: *const c_char,
+    application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
+    basic_auth_username: *const c_char, basic_auth_password: *const c_char, sample_rate: u32,
+    detect_subprocesses: bool, oncpu: bool, gil_only: bool, report_pid: bool,
+    report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
+    tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -117,6 +107,7 @@ pub extern "C" fn initialize_agent(
         .detect_subprocesses(detect_subprocesses)
         .oncpu(oncpu)
         .native(false)
+        .line_no(line_no.into())
         .gil_only(gil_only);
 
     // Report the PID.
@@ -162,17 +153,15 @@ pub extern "C" fn initialize_agent(
         Ok(http_headers) => {
             agent_builder = agent_builder.http_headers(http_headers);
         }
-        Err(e) => {
-            match e {
-                pyroscope::PyroscopeError::Json(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
-                }
-                pyroscope::PyroscopeError::AdHoc(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
-                }
-                _ => {}
+        Err(e) => match e {
+            pyroscope::PyroscopeError::Json(e) => {
+                log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
             }
-        }
+            pyroscope::PyroscopeError::AdHoc(e) => {
+                log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
+            }
+            _ => {}
+        },
     }
 
     // Build the agent.
@@ -290,4 +279,22 @@ fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     }
 
     tags_vec
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub enum LineNo {
+    LastInstruction = 0,
+    First = 1,
+    NoLine = 2,
+}
+
+impl Into<pyroscope_pyspy::LineNo> for LineNo {
+    fn into(self) -> pyroscope_pyspy::LineNo {
+        match self {
+            LineNo::LastInstruction => pyroscope_pyspy::LineNo::LastInstruction,
+            LineNo::First => pyroscope_pyspy::LineNo::First,
+            LineNo::NoLine => pyroscope_pyspy::LineNo::NoLine,
+        }
+    }
 }

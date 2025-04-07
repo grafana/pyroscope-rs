@@ -1,4 +1,4 @@
-use py_spy::{config::Config, sampler::Sampler};
+use py_spy::{config::Config, sampler::Sampler, Pid};
 use pyroscope::{
     backend::{
         Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
@@ -14,7 +14,6 @@ use std::{
     },
     thread::JoinHandle,
 };
-use py_spy::Pid;
 
 const LOG_TAG: &str = "Pyroscope::Pyspy";
 
@@ -47,6 +46,8 @@ pub struct PyspyConfig {
     gil_only: bool,
     /// Profile native C extensions
     native: bool,
+
+    line_no: py_spy::config::LineNo,
 }
 
 impl Default for PyspyConfig {
@@ -61,6 +62,7 @@ impl Default for PyspyConfig {
             oncpu: false,
             gil_only: false,
             native: false,
+            line_no: py_spy::config::LineNo::LastInstruction,
         }
     }
 }
@@ -160,6 +162,13 @@ impl PyspyConfig {
     pub fn native(self, native: bool) -> Self {
         PyspyConfig { native, ..self }
     }
+
+    pub fn line_no(self, line_no: LineNo) -> Self {
+        PyspyConfig {
+            line_no: line_no.into(),
+            ..self
+        }
+    }
 }
 
 /// Pyspy Backend
@@ -258,6 +267,7 @@ impl Backend for Pyspy {
             include_thread_ids: true,
             subprocesses: self.config.detect_subprocesses,
             gil_only: self.config.gil_only,
+            lineno: self.config.line_no.clone().into(),
             duration,
             ..Config::default()
         });
@@ -401,5 +411,24 @@ impl From<(py_spy::StackTrace, &BackendConfig)> for StackTraceWrapper {
                 .collect(),
         );
         StackTraceWrapper(stacktrace)
+    }
+}
+
+// This is because we do not depdend on pyspy in ffikit
+// We probably need to change that and remove the glue
+// Not today
+pub enum LineNo {
+    LastInstruction = 0,
+    First = 1,
+    NoLine = 2,
+}
+
+impl Into<py_spy::config::LineNo> for LineNo {
+    fn into(self) -> py_spy::config::LineNo {
+        match self {
+            LineNo::LastInstruction => py_spy::config::LineNo::LastInstruction,
+            LineNo::First => py_spy::config::LineNo::First,
+            LineNo::NoLine => py_spy::config::LineNo::NoLine,
+        }
     }
 }

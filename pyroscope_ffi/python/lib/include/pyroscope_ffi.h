@@ -12,6 +12,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+typedef enum {
+  LastInstruction = 0,
+  First = 1,
+  NoLine = 2,
+} LineNo;
+
 bool initialize_logging(uint32_t logging_level);
 
 bool initialize_agent(const char *application_name,
@@ -28,7 +34,8 @@ bool initialize_agent(const char *application_name,
                       bool report_thread_name,
                       const char *tags,
                       const char *tenant_id,
-                      const char *http_headers_json);
+                      const char *http_headers_json,
+                      LineNo line_no);
 
 bool drop_agent(void);
 
