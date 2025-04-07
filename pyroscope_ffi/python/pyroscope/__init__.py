@@ -2,10 +2,15 @@ import threading
 import warnings
 import logging
 import json
-from collections import namedtuple
-from pyroscope._native import ffi, lib
-from contextlib import contextmanager 
+from enum import Enum
 
+from pyroscope._native import lib
+from contextlib import contextmanager
+
+class LineNo(Enum):
+    LastInstruction = 0
+    First = 1
+    NoLine = 2
 
 def configure(
         app_name=None,
@@ -26,6 +31,7 @@ def configure(
         tags=None,
         tenant_id="",
         http_headers=None,
+        line_no=LineNo.LastInstruction,
 ):
 
     if app_name is not None:
@@ -56,7 +62,8 @@ def configure(
         tags_to_string(tags).encode("UTF-8"),
         (tenant_id or "").encode("UTF-8"),
         http_headers_to_json(http_headers).encode("UTF-8"),
-)
+        line_no.value
+    )
 
 def shutdown():
     drop = lib.drop_agent()

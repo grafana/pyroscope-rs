@@ -17,6 +17,11 @@ braces = "SameLine"
 tab_width = 2
 line_length = 80
 
+
 [parse]
 # Do not parse dependent crates
 parse_deps = false
+include = ["LineNoFFI"]
+
+[export]
+include = ["LineNoFFI"]

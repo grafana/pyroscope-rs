@@ -1,4 +1,5 @@
 [package]
+# todo rename this, include python in the name
 name = "pyroscope_ffi"
 version = "0.1.0"
 authors = ["Abid Omar <contact@pyroscope.io>"]
