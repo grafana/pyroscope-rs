@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "kit",
+    "procmaps",
+    "kindasafe",
+    "sigsafe",
+]

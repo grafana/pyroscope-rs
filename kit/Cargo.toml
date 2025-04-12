@@ -1,0 +1,23 @@
+[package]
+name = "kit"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+sigsafe = { path = "../sigsafe" }
+kindasafe = { path = "../kindasafe" }
+procmaps = { path = "../procmaps" }
+libc = "0.2.168"
+object = { version = "0.36.7", default-features = false, features = ["read_core", "archive", "coff", "elf", "unaligned"] }
+memmap2 = "0.9.5"
+
+
+#//todo create a fresh branch with only kit in it
+[dev-dependencies]
+kindasafe = { path = "../kindasafe" }
+# todo remove this
+anyhow = "1.0.56"
+

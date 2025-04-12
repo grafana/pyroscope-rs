@@ -1,0 +1,14 @@
+[package]
+name = "kindasafe"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+libc = "0.2.168"
+
+
+[dev-dependencies]
+anyhow = "1.0.56"
