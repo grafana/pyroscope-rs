@@ -20,18 +20,18 @@ pub fn new_signal_handler(
     }
 }
 
-pub unsafe fn restore_signal_handler(
+pub fn restore_signal_handler(
     signal: libc::c_int, prev: libc::sigaction,
 ) -> Result<(), Error> {
-    let mut old: libc::sigaction = std::mem::zeroed();
-    if libc::sigaction(signal, &prev, &mut old) != 0 {
+    let mut old: libc::sigaction = unsafe {std::mem::zeroed()};
+    if unsafe {libc::sigaction(signal, &prev, &mut old)} != 0 {
         return Err(Error::last_os_error());
     }
     Ok(())
 }
 
-pub unsafe fn restore_default(sig: libc::c_int) {
-    let mut action: libc::sigaction = std::mem::zeroed();
+pub fn restore_default(sig: libc::c_int) {
+    let mut action: libc::sigaction = unsafe{std::mem::zeroed()};
     action.sa_sigaction = libc::SIG_DFL;
-    libc::sigaction(sig, &action, std::ptr::null_mut());
+    unsafe{libc::sigaction(sig, &action, std::ptr::null_mut())};
 }

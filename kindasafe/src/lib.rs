@@ -12,8 +12,7 @@ pub enum ReadMemError {
 
 pub type Ptr = u64;
 
-
-pub fn u64(at :Ptr) -> Result<Ptr, ReadMemError> {
+pub fn u64(at: Ptr) -> Result<Ptr, ReadMemError> {
     arch::read_u64(at)
 }
 
@@ -23,7 +22,7 @@ mod arch {
     use std::arch::asm;
     use std::mem;
 
-    use super::{is_initialized};
+    use super::is_initialized;
 
     #[inline(never)]
     pub fn read_vec(at: crate::Ptr, buf: &mut [u8]) -> Result<(), crate::ReadMemError> {
@@ -60,7 +59,8 @@ mod arch {
         let mut result: u64;
         let mut signal: u64;
         unsafe {
-            if !is_initialized() { //todo think of api where we don't need this check at all
+            if !is_initialized() {
+                //todo think of api where we don't need this check at all
                 return Err(crate::ReadMemError::NotInitialized);
             }
             asm!(
@@ -79,15 +79,15 @@ mod arch {
         Err(crate::ReadMemError::Signal { signal })
     }
 
-    pub unsafe fn find_read_u64_insn() -> Option<usize> {
+    pub fn find_read_u64_insn() -> Option<usize> {
         find_insn(read_u64 as usize, 0xd2_31_48_07_8b_48, 0x0000ffffffffffff)
     }
 
-    pub unsafe fn find_read_vec_insn() -> Option<usize> {
+    pub fn find_read_vec_insn() -> Option<usize> {
         find_insn(read_vec as usize, 0xd2_31_48_a4_f3, 0x000000ffffffffff)
     }
 
-    unsafe fn find_insn(fptr: usize, marker: u64, mask: u64) -> Option<usize> {
+    fn find_insn(fptr: usize, marker: u64, mask: u64) -> Option<usize> {
         #[cfg(debug_assertions)]
         const SEARCH_DEPTH: usize = 200;
         #[cfg(not(debug_assertions))]
@@ -95,7 +95,7 @@ mod arch {
 
         for i in 0..SEARCH_DEPTH {
             let insnp = ((fptr as usize) + i) as *const u64;
-            let insn = std::ptr::read_unaligned(insnp) & mask;
+            let insn = unsafe { std::ptr::read_unaligned(insnp) } & mask;
             if insn == marker {
                 return Some(insnp as usize);
             }
@@ -185,13 +185,15 @@ pub fn init_with_options(opt: InitOptions) -> Result<(), InitError> {
     Ok(())
 }
 
-unsafe fn install_handlers() -> Result<(), InitError> {
+fn install_handlers() -> Result<(), InitError> {
     let sigsegv = handlers::new_signal_handler(libc::SIGSEGV, arch::crash_handler);
     let sigbus = handlers::new_signal_handler(libc::SIGBUS, arch::crash_handler);
     match (sigsegv, sigbus) {
         (Ok(sigsegv), Ok(sigbus)) => {
-            FALLBACK_SIGSEGV = sigsegv;
-            FALLBACK_SIGBUS = sigbus;
+            unsafe {
+                FALLBACK_SIGSEGV = sigsegv;
+                FALLBACK_SIGBUS = sigbus;
+            }
             Ok(())
         }
         (Err(_), Ok(sigbus)) => {
@@ -267,27 +269,32 @@ fn destroy_handlers() -> Result<(), DestroyError> {
 }
 
 unsafe fn fallback(sig: libc::c_int, info: *const libc::siginfo_t, data: *mut libc::c_void) {
-    unsafe fn call_fallback(
-        sig: libc::c_int, info: *const libc::siginfo_t, data: *mut libc::c_void,
+    fn call_fallback(
+        sig: libc::c_int,
+        info: *const libc::siginfo_t,
+        data: *mut libc::c_void,
         fallback: libc::sigaction,
     ) {
         if fallback.sa_sigaction == 0 {
             handlers::restore_default(sig);
         } else {
             // In practice, we call rust's signal handler from stack_overflow.rs
-            let handler = std::mem::transmute::<
-                usize,
-                extern "C" fn(libc::c_int, *const libc::siginfo_t, *mut libc::c_void),
-            >(fallback.sa_sigaction);
+            let handler = unsafe {
+                std::mem::transmute::<
+                    usize,
+                    extern "C" fn(libc::c_int, *const libc::siginfo_t, *mut libc::c_void),
+                >(fallback.sa_sigaction)
+            };
             handler(sig, info, data);
         }
     }
     if sig == libc::SIGSEGV {
-        call_fallback(sig, info, data, FALLBACK_SIGSEGV); // todo there may be a race if someone calls destroy concurrently
+        call_fallback(sig, info, data, unsafe { FALLBACK_SIGSEGV }); // todo there may be a race if someone calls destroy concurrently
+
         return;
     }
     if sig == libc::SIGBUS {
-        call_fallback(sig, info, data, FALLBACK_SIGBUS); // todo there may be a race if someone calls destroy concurrently
+        call_fallback(sig, info, data, unsafe { FALLBACK_SIGBUS }); // todo there may be a race if someone calls destroy concurrently
         return;
     }
 }
@@ -296,9 +303,7 @@ pub static SERIALIZE_TESTS_LOCK: Mutex<()> = Mutex::new(());
 
 #[cfg(test)]
 pub mod tests {
-
     use super::{init_with_options, InitError, Ptr, ReadMemError};
-
 
     pub struct TestScopedInit {}
     impl TestScopedInit {
@@ -328,7 +333,6 @@ pub mod tests {
     //         }
     //     }
     // }
-
 
     pub fn serialize(f: impl FnOnce() -> Result<(), anyhow::Error>) -> Result<(), anyhow::Error> {
         let _shared = super::SERIALIZE_TESTS_LOCK.lock();
@@ -597,7 +601,9 @@ pub mod tests {
 
     #[cfg(target_arch = "x86_64")]
     fn fallback_sigsegv_sigbus_crash_handler(
-        _sig: libc::c_int, _info: *const libc::siginfo_t, data: *mut libc::c_void,
+        _sig: libc::c_int,
+        _info: *const libc::siginfo_t,
+        data: *mut libc::c_void,
     ) {
         use libc::{greg_t, REG_RIP};
 
