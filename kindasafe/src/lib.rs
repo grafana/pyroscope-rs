@@ -492,7 +492,7 @@ pub mod tests {
 
     #[test]
     fn test_fallback_sigsegv() -> Result<(), anyhow::Error> {
-        serialize(|| unsafe {
+        serialize(|| {
             let prev = super::handlers::new_signal_handler(
                 libc::SIGSEGV,
                 fallback_sigsegv_sigbus_crash_handler,
@@ -511,7 +511,7 @@ pub mod tests {
 
     #[test]
     fn test_fallback_sigbus() -> Result<(), anyhow::Error> {
-        serialize(|| unsafe {
+        serialize(|| {
             let prev = super::handlers::new_signal_handler(
                 libc::SIGBUS,
                 fallback_sigsegv_sigbus_crash_handler,
@@ -569,34 +569,39 @@ pub mod tests {
 
     static FALLBACK_CALLED: AtomicI32 = AtomicI32::new(0);
 
-    unsafe fn trigger_sigsegv() {
-        let m = libc::mmap(
-            0xdead000 as *mut libc::c_void,
-            4,
-            libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
-            -1,
-            0,
-        );
-        let m = m as *mut i32;
-        *m = 0;
-        libc::munmap(m as *mut libc::c_void, 4);
+    fn trigger_sigsegv() {
+        unsafe {
+            let m = libc::mmap(
+                0xdead000 as *mut libc::c_void,
+                4,
+                libc::PROT_NONE,
+                libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+                -1,
+                0,
+            );
+            let m = m as *mut i32;
+            *m = 0;
+            libc::munmap(m as *mut libc::c_void, 4);
+        }
     }
 
-    unsafe fn trigger_sigbus() {
-        let f = libc::tmpfile();
-        let m = libc::mmap(
-            0 as *mut libc::c_void,
-            4,
-            libc::PROT_WRITE,
-            libc::MAP_PRIVATE,
-            libc::fileno(f),
-            0,
-        );
-        let m = m as *mut i32;
-        *m = 0;
-        libc::munmap(m as *mut libc::c_void, 4);
-        libc::fclose(f);
+    fn trigger_sigbus() {
+        unsafe {
+            let f = libc::tmpfile();
+            let m = libc::mmap(
+                0 as *mut libc::c_void,
+                4,
+                libc::PROT_WRITE,
+                libc::MAP_PRIVATE,
+                libc::fileno(f),
+                0,
+            );
+            let m = m as *mut i32;
+            *m = 0;
+
+            libc::munmap(m as *mut libc::c_void, 4);
+            libc::fclose(f);
+        }
     }
 
     #[cfg(target_arch = "x86_64")]
