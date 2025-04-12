@@ -1,7 +1,9 @@
 [workspace]
+resolver = "3"
 members = [
     "kit",
     "procmaps",
     "kindasafe",
     "sigsafe",
+    "python",
 ]
