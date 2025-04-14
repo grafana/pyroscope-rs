@@ -48,8 +48,9 @@ jobs:
         with:
           toolchain: 1.85.0
       - name: publish pprofrs crate
-        continue-on-error: true
+        continue-on-error: false
         run: |
+          set -ex
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
   publish-rbspy:
