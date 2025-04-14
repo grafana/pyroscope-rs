@@ -2440,8 +2440,7 @@ dependencies = [
 [[package]]
 name = "py-spy"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4f4300b4ae8b012f43c3ec196a5c24dfb7921d293b3b47e6856617271ae6d3b"
+source = "git+https://github.com/grafana/py-spy?rev=20ecc5b#20ecc5bb257698c48db4f4952aeff9364e1f574e"
 dependencies = [
  "anyhow",
  "chrono",
