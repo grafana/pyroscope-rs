@@ -7,6 +7,8 @@ from enum import Enum
 from pyroscope._native import lib
 from contextlib import contextmanager
 
+LOGGER = logging.getLogger(__name__)
+
 class LineNo(Enum):
     LastInstruction = 0
     First = 1
@@ -41,9 +43,9 @@ def configure(
     if native is not None:
         warnings.warn("native is deprecated and not supported", DeprecationWarning)
 
+    LOGGER.disabled = not enable_logging
     if enable_logging:
-        logger = logging.getLogger()
-        log_level = logger.getEffectiveLevel()
+        log_level = LOGGER.getEffectiveLevel()
         lib.initialize_logging(log_level)
 
     lib.initialize_agent(
@@ -69,9 +71,9 @@ def shutdown():
     drop = lib.drop_agent()
 
     if drop:
-        logging.info("Pyroscope Agent successfully shutdown")
+        LOGGER.info("Pyroscope Agent successfully shutdown")
     else:
-        logging.warn("Pyroscope Agent shutdown failed")
+        LOGGER.warning("Pyroscope Agent shutdown failed")
 
 def add_thread_tag(thread_id, key, value):
     lib.add_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
