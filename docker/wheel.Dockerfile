@@ -11,8 +11,12 @@ ADD src src
 ADD pyroscope_backends pyroscope_backends
 ADD pyroscope_cli pyroscope_cli
 ADD pyroscope_ffi/ pyroscope_ffi/
+ADD README.md README.md
 
-RUN cd /pyroscope-rs/pyroscope_ffi/python && maturin build --release --manylinux 2014
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    cd /pyroscope-rs/pyroscope_ffi/python && \
+    maturin build --release --locked &&\
+    maturin build --release --sdist --locked
 
 FROM scratch
 COPY --from=builder /pyroscope-rs/target/wheels /dist

@@ -13,7 +13,7 @@ ADD Cargo.toml ./Cargo.toml
 
 RUN --mount=type=cache,target=/root/.cargo/registry \
     cd pyroscope_cli && \
-    cargo build --release --bin pyroscope-cli --target x86_64-unknown-linux-musl
+    cargo build --locked --release --bin pyroscope-cli --target x86_64-unknown-linux-musl
 
 FROM scratch as final
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/pyroscope-cli /pyroscope-cli

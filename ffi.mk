@@ -7,33 +7,33 @@ BUILD_ARCH_ARM=manylinux2014_aarch64
 .phony: pyroscope_ffi/clean
 pyroscope_ffi/clean:
 	cargo clean
-	make -C pyroscope_ffi/python/ clean
+	rm -rf pyroscope_ffi/python/dist
 	make -C pyroscope_ffi/ruby/ clean
 
 
 .phony: wheel/linux/amd64
-wheel/linux/amd64: pyroscope_ffi/clean
+wheel/linux/amd64:
 	docker buildx build --platform=linux/amd64 --progress=plain \
 	 	--output=pyroscope_ffi/python \
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
 .phony: wheel/linux/arm64
-wheel/linux/arm64: pyroscope_ffi/clean
+wheel/linux/arm64:
 	docker buildx build --platform=linux/arm64 --progress=plain \
 	 	--output=pyroscope_ffi/python \
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
 .phony: wheel/mac/amd64
-wheel/mac/amd64:
+wheel/mac/amd64: # todo
 	cd pyroscope_ffi/python && \
 		pip install wheel && \
 		CARGO_BUILD_TARGET=x86_64-apple-darwin \
 			python setup.py bdist_wheel -p macosx-11_0_x86_64
 
 .phony: wheel/mac/arm64
-wheel/mac/arm64:
+wheel/mac/arm64: # todo
 	cd pyroscope_ffi/python && \
 		pip install wheel && \
 		CARGO_BUILD_TARGET=aarch64-apple-darwin \
