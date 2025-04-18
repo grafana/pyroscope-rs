@@ -1,3 +1,6 @@
+.venv/
+.env/
+
 .idea/
 /target/
 **/*.rs.bk

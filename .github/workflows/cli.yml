@@ -8,8 +8,14 @@ jobs:
   linux-build:
     name: Linux build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - run: rustup toolchain install stable && rustup default stable
       - run: cargo build -p pyroscope-cli
+
+  linux-build-docker:
+    name: Linux build docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make cli/docker-image
