@@ -15,7 +15,7 @@ ADD README.md README.md
 
 RUN --mount=type=cache,target=/root/.cargo/registry \
     cd /pyroscope-rs/pyroscope_ffi/python && \
-    maturin build --release --locked &&\
+    maturin build --release --locked --compatibility=manylinux2014 &&\
     maturin build --release --sdist --locked
 
 FROM scratch

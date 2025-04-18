@@ -182,6 +182,13 @@ impl PyroscopeConfig {
         }
     }
 
+    pub fn tags_map(self, tags: HashMap<String, String>) -> Self {
+        Self {
+            tags: tags,
+            ..self
+        }
+    }
+
     /// Set the http request body compression.
     ///
     /// # Example
@@ -349,17 +356,16 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// Set tags. Default is empty.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .tags(vec![("env", "dev")])
-    /// .build()?;
-    /// ```
     pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
             config: self.config.tags(tags),
+            ..self
+        }
+    }
+
+    pub fn tags_map(self, tags: HashMap<String, String>) -> Self {
+        Self {
+            config: self.config.tags_map(tags),
             ..self
         }
     }
@@ -835,42 +841,4 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 
         Ok(())
     }
-}
-
-pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>> {
-    let mut http_headers = HashMap::new();
-    let parsed: serde_json::Value = serde_json::from_str(&http_headers_json)?;
-    let parsed = parsed.as_object().ok_or_else(||
-        PyroscopeError::AdHoc(format!("expected object, got {}", parsed))
-    )?;
-    for (k, v) in parsed {
-        if let Some(value) = v.as_str() {
-            http_headers.insert(k.to_string(), value.to_string());
-        } else {
-            return Err(PyroscopeError::AdHoc(format!(
-                "invalid http header value, not a string: {}",
-                v
-            )));
-        }
-    }
-    Ok(http_headers)
-}
-
-pub fn parse_vec_string_json(s: String) -> Result<Vec<String>> {
-    let parsed: serde_json::Value = serde_json::from_str(&s)?;
-    let parsed = parsed.as_array().ok_or_else(||
-        PyroscopeError::AdHoc(format!("expected array, got {}", parsed))
-    )?;
-    let mut res = Vec::with_capacity(parsed.len());
-    for v in parsed {
-        if let Some(s) = v.as_str() {
-            res.push(s.to_string());
-        } else {
-            return Err(PyroscopeError::AdHoc(format!(
-                "invalid element value, not a string: {}",
-                v
-            )));
-        }
-    }
-    Ok(res)
 }

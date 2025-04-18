@@ -742,6 +742,7 @@ dependencies = [
  "pretty_env_logger",
  "pyroscope",
  "pyroscope_rbspy",
+ "serde_json",
 ]
 
 [[package]]

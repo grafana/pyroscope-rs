@@ -1,4 +1,5 @@
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::env;
 use std::ffi::CStr;
 use std::hash::Hasher;
@@ -9,7 +10,7 @@ use ffikit::Signal;
 use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
 use pyroscope;
-use pyroscope::{pyroscope::Compression, PyroscopeAgent};
+use pyroscope::{pyroscope::Compression, PyroscopeAgent, PyroscopeError};
 use pyroscope::backend::{Report, StackFrame, Tag};
 use pyroscope::pyroscope::ReportEncoding;
 
@@ -211,21 +212,13 @@ pub extern "C" fn initialize_agent(
         agent_builder = agent_builder.tenant_id(tenant_id);
     }
 
-    let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
+    let http_headers = parse_http_headers_json(http_headers_json);
     match http_headers {
         Ok(http_headers) => {
             agent_builder = agent_builder.http_headers(http_headers);
         }
         Err(e) => {
-            match e {
-                pyroscope::PyroscopeError::Json(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
-                }
-                pyroscope::PyroscopeError::AdHoc(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
-                }
-                _ => {}
-            }
+            log::error!(target: LOG_TAG, "parse_http_headers_json {:?}", e);
         }
     }
 
@@ -339,6 +332,7 @@ pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) ->
     true
 }
 
+//todo remove, this panics with tags containing ,
 // Convert a string of tags to a Vec<(&str, &str)>
 fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     let mut tags_vec = Vec::new();
@@ -355,4 +349,27 @@ fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     }
 
     tags_vec
+}
+
+
+//todo remove
+pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>, PyroscopeError> {
+    let mut http_headers = HashMap::new();
+    let parsed: serde_json::Value = serde_json::from_str(&http_headers_json).map_err(|err|
+        PyroscopeError::AdHoc(format!("json parse {:?}", err))
+    )?;
+    let parsed = parsed.as_object().ok_or_else(||
+        PyroscopeError::AdHoc(format!("expected object, got {}", parsed))
+    )?;
+    for (k, v) in parsed {
+        if let Some(value) = v.as_str() {
+            http_headers.insert(k.to_string(), value.to_string());
+        } else {
+            return Err(PyroscopeError::AdHoc(format!(
+                "invalid http header value, not a string: {}",
+                v
+            )));
+        }
+    }
+    Ok(http_headers)
 }

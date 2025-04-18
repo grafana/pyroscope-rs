@@ -1,19 +1,14 @@
-use ffikit::Signal;
 use pyo3::prelude::*;
 use pyroscope::backend::Tag;
 use pyroscope::pyroscope::ReportEncoding;
 use pyroscope::PyroscopeAgent;
 use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
 use std::collections::hash_map::DefaultHasher;
-use std::ffi::CStr;
+use std::collections::HashMap;
 use std::hash::Hasher;
-use std::os::raw::c_char;
 
-const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
-
-#[no_mangle]
-pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
-    // Force rustc to display the log messages in the console.
+#[pyfunction]
+fn initialize_logging(logging_level: u32) -> bool {
     match logging_level {
         50 => {
             unsafe { std::env::set_var("RUST_LOG", "off") };
@@ -35,9 +30,7 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
         }
     }
 
-    // Initialize the logger.
-    pretty_env_logger::init_timed();
-    true
+    pretty_env_logger::try_init_timed().is_ok()
 }
 
 #[pyfunction]
@@ -45,21 +38,28 @@ fn initialize_agent(
     application_name: String, server_address: String, auth_token: Option<String>,
     basic_auth_username: Option<String>, basic_auth_password: Option<String>, sample_rate: u32,
     detect_subprocesses: bool, oncpu: bool, gil_only: bool, report_pid: bool,
-    report_thread_id: bool, report_thread_name: bool, tags: Option<Vec<(String, String)>>,
-    tenant_id: Option<String>, http_headers_json: Option<String>,
+    report_thread_id: bool, report_thread_name: bool, tags: Option<HashMap<String, String>>,
+    tenant_id: Option<String>, http_headers: Option<HashMap<String, String>>,
     line_no: Option<LineNo>,
-) -> PyResult<()> {
-    let recv = ffikit::initialize_ffi().unwrap(); //todo do not unwrap
+) -> bool {
+    let recv = match ffikit::initialize_ffi() {
+        Ok(recv) => recv,
+        Err(_) => return false, // todo return Err(PyErr)
+    };
 
     let pid = std::process::id();
 
+    let line_no = match line_no {
+        None => LineNo::NoLine,
+        Some(line_no) => line_no,
+    };
     let mut pyspy_config = PyspyConfig::new(pid.try_into().unwrap())
         .sample_rate(sample_rate)
         .lock_process(false)
         .detect_subprocesses(detect_subprocesses)
         .oncpu(oncpu)
         .native(false)
-        // .line_no(line_no.into()) //todo
+        .line_no(line_no.into())
         .gil_only(gil_only);
 
     if report_pid {
@@ -74,17 +74,15 @@ fn initialize_agent(
         pyspy_config = pyspy_config.report_thread_name();
     }
 
-    // Convert the tags to a vector of strings.
-    // let tags_ref = tags.as_str();
-    // let tags = string_to_tags(tags_ref);
-
     let pyspy = pyspy_backend(pyspy_config);
 
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
         .report_encoding(ReportEncoding::PPROF)
         .backend(pyspy);
-    // .tags(tags); //todo
 
+    if let Some(tags) = tags {
+        agent_builder = agent_builder.tags_map(tags);
+    }
     if let Some(auth_token) = auth_token {
         agent_builder = agent_builder.auth_token(auth_token);
     } else if let (Some(basic_auth_username), Some(basic_auth_password)) =
@@ -95,22 +93,9 @@ fn initialize_agent(
     if let Some(tenant_id) = tenant_id {
         agent_builder = agent_builder.tenant_id(tenant_id);
     }
-
-    // let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
-    // match http_headers {
-    //     Ok(http_headers) => {
-    //         agent_builder = agent_builder.http_headers(http_headers);
-    //     }
-    //     Err(e) => match e {
-    //         pyroscope::PyroscopeError::Json(e) => {
-    //             log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
-    //         }
-    //         pyroscope::PyroscopeError::AdHoc(e) => {
-    //             log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
-    //         }
-    //         _ => {}
-    //     },
-    // }
+    if let Some(headers) = http_headers {
+        agent_builder = agent_builder.http_headers(headers);
+    };
 
     let agent = agent_builder.build().unwrap();
 
@@ -119,94 +104,66 @@ fn initialize_agent(
     std::thread::spawn(move || {
         while let Ok(signal) = recv.recv() {
             match signal {
-                Signal::Kill => {
+                ffikit::Signal::Kill => {
                     agent_running.stop().unwrap();
                     break;
                 }
-                Signal::AddGlobalTag(name, value) => {
+                ffikit::Signal::AddGlobalTag(name, value) => {
                     agent_running.add_global_tag(Tag::new(name, value)).unwrap();
                 }
-                Signal::RemoveGlobalTag(name, value) => {
+                ffikit::Signal::RemoveGlobalTag(name, value) => {
                     agent_running
                         .remove_global_tag(Tag::new(name, value))
                         .unwrap();
                 }
-                Signal::AddThreadTag(thread_id, key, value) => {
+                ffikit::Signal::AddThreadTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
                     agent_running.add_thread_tag(thread_id, tag).unwrap();
                 }
-                Signal::RemoveThreadTag(thread_id, key, value) => {
+                ffikit::Signal::RemoveThreadTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
                     agent_running.remove_thread_tag(thread_id, tag).unwrap();
                 }
             }
         }
     });
-
-    Ok(())
+    true
 }
 
-#[no_mangle]
-pub extern "C" fn drop_agent() -> bool {
-    return ffikit::send(ffikit::Signal::Kill).is_ok();
+#[pyfunction]
+fn drop_agent() -> bool {
+    ffikit::send(ffikit::Signal::Kill).is_ok()
 }
 
-#[no_mangle]
-pub extern "C" fn add_thread_tag(thread_id: u64, key: *const c_char, value: *const c_char) -> bool {
-    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
-    let value = unsafe { CStr::from_ptr(value) }
-        .to_str()
-        .unwrap()
-        .to_owned();
-
+#[pyfunction]
+fn add_thread_tag(thread_id: u64, key: String, value: String) -> bool {
     let pid = std::process::id();
     let mut hasher = DefaultHasher::new();
     hasher.write_u64(thread_id % pid as u64);
     let id = hasher.finish();
 
-    return ffikit::send(ffikit::Signal::AddThreadTag(id, key, value)).is_ok();
+    ffikit::send(ffikit::Signal::AddThreadTag(id, key, value)).is_ok()
 }
 
-#[no_mangle]
-pub extern "C" fn remove_thread_tag(
-    thread_id: u64, key: *const c_char, value: *const c_char,
-) -> bool {
-    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
-    let value = unsafe { CStr::from_ptr(value) }
-        .to_str()
-        .unwrap()
-        .to_owned();
-
+#[pyfunction]
+fn remove_thread_tag(thread_id: u64, key: String, value: String) -> bool {
     let pid = std::process::id();
     let mut hasher = DefaultHasher::new();
     hasher.write_u64(thread_id % pid as u64);
     let id = hasher.finish();
 
-    return ffikit::send(ffikit::Signal::RemoveThreadTag(id, key, value)).is_ok();
+    ffikit::send(ffikit::Signal::RemoveThreadTag(id, key, value)).is_ok()
 }
 
-#[no_mangle]
-pub extern "C" fn add_global_tag(key: *const c_char, value: *const c_char) -> bool {
-    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
-    let value = unsafe { CStr::from_ptr(value) }
-        .to_str()
-        .unwrap()
-        .to_owned();
-
-    return ffikit::send(ffikit::Signal::AddGlobalTag(key, value)).is_ok();
+#[pyfunction]
+fn add_global_tag(key: String, value: String) -> bool {
+    ffikit::send(ffikit::Signal::AddGlobalTag(key, value)).is_ok()
 }
 
-#[no_mangle]
-pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) -> bool {
-    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
-    let value = unsafe { CStr::from_ptr(value) }
-        .to_str()
-        .unwrap()
-        .to_owned();
-
-    return ffikit::send(ffikit::Signal::RemoveGlobalTag(key, value)).is_ok();
+#[pyfunction]
+fn remove_global_tag(key: String, value: String) -> bool {
+    ffikit::send(ffikit::Signal::RemoveGlobalTag(key, value)).is_ok()
 }
-
 
 #[derive(Eq, PartialEq, Hash, Debug, Clone)]
 #[pyclass(eq, eq_int)]
@@ -228,7 +185,13 @@ impl Into<pyroscope_pyspy::LineNo> for LineNo {
 
 #[pymodule]
 fn python_wheel(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(initialize_logging, m)?)?;
     m.add_function(wrap_pyfunction!(initialize_agent, m)?)?;
+    m.add_function(wrap_pyfunction!(drop_agent, m)?)?;
+    m.add_function(wrap_pyfunction!(add_thread_tag, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_thread_tag, m)?)?;
+    m.add_function(wrap_pyfunction!(add_global_tag, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_global_tag, m)?)?;
     m.add_class::<LineNo>()?;
     Ok(())
 }
