@@ -1,0 +1,15 @@
+name: pyroscope-cli
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  linux-build:
+    name: Linux build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install stable && rustup default stable
+      - run: cargo build -p pyroscope-cli
