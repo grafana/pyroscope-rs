@@ -13,18 +13,14 @@ pyroscope_ffi/clean:
 
 .phony: wheel/linux/amd64
 wheel/linux/amd64: pyroscope_ffi/clean
-	docker buildx build \
-		--build-arg=PLATFORM=x86_64 \
-	 	--platform=linux/amd64 \
+	docker buildx build --platform=linux/amd64 --progress=plain \
 	 	--output=pyroscope_ffi/python \
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
 .phony: wheel/linux/arm64
 wheel/linux/arm64: pyroscope_ffi/clean
-	docker buildx build \
-		--build-arg=PLATFORM=aarch64 \
-	 	--platform=linux/arm64 \
+	docker buildx build --platform=linux/arm64 --progress=plain \
 	 	--output=pyroscope_ffi/python \
 	 	-f docker/wheel.Dockerfile \
 	 	.

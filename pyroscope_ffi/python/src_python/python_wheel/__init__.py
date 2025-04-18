@@ -4,15 +4,17 @@ import logging
 import json
 from enum import Enum
 
-from pyroscope._native import lib
+from python_wheel import python_wheel
+
 from contextlib import contextmanager
 
 LOGGER = logging.getLogger(__name__)
 
-class LineNo(Enum):
-    LastInstruction = 0
-    First = 1
-    NoLine = 2
+
+# class LineNo(Enum):
+#     LastInstruction = 0
+#     First = 1
+#     NoLine = 2
 
 def configure(
         app_name=None,
@@ -33,7 +35,7 @@ def configure(
         tags=None,
         tenant_id="",
         http_headers=None,
-        line_no=LineNo.LastInstruction,
+        line_no=python_wheel.LineNo.LastInstruction,
 ):
 
     if app_name is not None:
@@ -46,14 +48,15 @@ def configure(
     LOGGER.disabled = not enable_logging
     if enable_logging:
         log_level = LOGGER.getEffectiveLevel()
-        lib.initialize_logging(log_level)
+        python_wheel.initialize_logging(log_level)
 
-    lib.initialize_agent(
-        application_name.encode("UTF-8"),
-        server_address.encode("UTF-8"),
-        auth_token.encode("UTF-8"),
-        basic_auth_username.encode("UTF-8"),
-        basic_auth_password.encode("UTF-8"),
+
+    python_wheel.initialize_agent(
+        application_name,
+        server_address,
+        auth_token,
+        basic_auth_username,
+        basic_auth_password,
         sample_rate,
         detect_subprocesses,
         oncpu,
@@ -61,14 +64,14 @@ def configure(
         report_pid,
         report_thread_id,
         report_thread_name,
-        tags_to_string(tags).encode("UTF-8"),
-        (tenant_id or "").encode("UTF-8"),
-        http_headers_to_json(http_headers).encode("UTF-8"),
-        line_no.value
+        tags,
+        tenant_id,
+        http_headers,
+        line_no
     )
 
 def shutdown():
-    drop = lib.drop_agent()
+    drop = python_wheel.drop_agent()
 
     if drop:
         LOGGER.info("Pyroscope Agent successfully shutdown")
@@ -76,36 +79,26 @@ def shutdown():
         LOGGER.warning("Pyroscope Agent shutdown failed")
 
 def add_thread_tag(thread_id, key, value):
-    lib.add_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
+    python_wheel.add_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
 
 def remove_thread_tag(thread_id, key, value):
-    lib.remove_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
+    python_wheel.remove_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
 
 def add_global_tag(thread_id, key, value):
-    lib.add_global_tag(key.encode("UTF-8"), value.encode("UTF-8"))
+    python_wheel.add_global_tag(key.encode("UTF-8"), value.encode("UTF-8"))
 
 def remove_global_tag(key, value):
-    lib.remove_global_tag(key.encode("UTF-8"), value.encode("UTF-8"))
-
-def tags_to_string(tags):
-    if tags is None:
-        return ""
-    return ",".join(["{}={}".format(key, value) for key, value in tags.items()])
-
-def http_headers_to_json(headers):
-    if headers is None:
-        return "{}"
-    return json.dumps(headers)
+    python_wheel.remove_global_tag(key.encode("UTF-8"), value.encode("UTF-8"))
 
 @contextmanager
 def tag_wrapper(tags):
     for key, value in tags.items():
-        lib.add_thread_tag(threading.get_ident(), key.encode("UTF-8"), value.encode("UTF-8"))
+        python_wheel.add_thread_tag(threading.get_ident(), key.encode("UTF-8"), value.encode("UTF-8"))
     try:
         yield
     finally:
         for key, value in tags.items():
-            lib.remove_thread_tag(threading.get_ident(), key.encode("UTF-8"), value.encode("UTF-8"))
+            python_wheel.remove_thread_tag(threading.get_ident(), key.encode("UTF-8"), value.encode("UTF-8"))
 
 def stop():
     warnings.warn("deprecated, no longer applicable", DeprecationWarning)

@@ -1,4 +1,5 @@
 use ffikit::Signal;
+use pyo3::prelude::*;
 use pyroscope::backend::Tag;
 use pyroscope::pyroscope::ReportEncoding;
 use pyroscope::PyroscopeAgent;
@@ -39,138 +40,82 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
     true
 }
 
-#[no_mangle]
-pub extern "C" fn initialize_agent(
-    application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
-    basic_auth_username: *const c_char, basic_auth_password: *const c_char, sample_rate: u32,
+#[pyfunction]
+fn initialize_agent(
+    application_name: String, server_address: String, auth_token: Option<String>,
+    basic_auth_username: Option<String>, basic_auth_password: Option<String>, sample_rate: u32,
     detect_subprocesses: bool, oncpu: bool, gil_only: bool, report_pid: bool,
-    report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
-    tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo
-) -> bool {
-    // Initialize FFIKit
-    let recv = ffikit::initialize_ffi().unwrap();
-
-    // application_name
-    let application_name = unsafe { CStr::from_ptr(application_name) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    // server_address
-    let mut server_address = unsafe { CStr::from_ptr(server_address) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let adhoc_server_address = std::env::var("PYROSCOPE_ADHOC_SERVER_ADDRESS");
-    if let Ok(adhoc_server_address) = adhoc_server_address {
-        server_address = adhoc_server_address
-    }
-
-    let auth_token = unsafe { CStr::from_ptr(auth_token) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let basic_auth_username = unsafe { CStr::from_ptr(basic_auth_username) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let basic_auth_password = unsafe { CStr::from_ptr(basic_auth_password) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    // tags
-    let tags_string = unsafe { CStr::from_ptr(tags) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let tenant_id = unsafe { CStr::from_ptr(tenant_id) }
-        .to_str()
-        .unwrap()
-        .to_string();
-
-    let http_headers_json = unsafe { CStr::from_ptr(http_headers_json) }
-        .to_str()
-        .unwrap()
-        .to_string();
+    report_thread_id: bool, report_thread_name: bool, tags: Option<Vec<(String, String)>>,
+    tenant_id: Option<String>, http_headers_json: Option<String>,
+    line_no: Option<LineNo>,
+) -> PyResult<()> {
+    let recv = ffikit::initialize_ffi().unwrap(); //todo do not unwrap
 
     let pid = std::process::id();
 
-    // Configure the Pyspy Backend.
     let mut pyspy_config = PyspyConfig::new(pid.try_into().unwrap())
         .sample_rate(sample_rate)
         .lock_process(false)
         .detect_subprocesses(detect_subprocesses)
         .oncpu(oncpu)
         .native(false)
-        .line_no(line_no.into())
+        // .line_no(line_no.into()) //todo
         .gil_only(gil_only);
 
-    // Report the PID.
     if report_pid {
         pyspy_config = pyspy_config.report_pid();
     }
 
-    // Report thread IDs.
     if report_thread_id {
         pyspy_config = pyspy_config.report_thread_id();
     }
 
-    // Report thread names.
     if report_thread_name {
         pyspy_config = pyspy_config.report_thread_name();
     }
 
     // Convert the tags to a vector of strings.
-    let tags_ref = tags_string.as_str();
-    let tags = string_to_tags(tags_ref);
+    // let tags_ref = tags.as_str();
+    // let tags = string_to_tags(tags_ref);
 
-    // Create the Pyspy Backend.
     let pyspy = pyspy_backend(pyspy_config);
 
-    // Create the Pyroscope Agent.
     let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
         .report_encoding(ReportEncoding::PPROF)
-        .backend(pyspy)
-        .tags(tags);
+        .backend(pyspy);
+    // .tags(tags); //todo
 
-    // Add the auth token if it is not empty.
-    if auth_token != "" {
+    if let Some(auth_token) = auth_token {
         agent_builder = agent_builder.auth_token(auth_token);
-    } else if basic_auth_username != "" && basic_auth_password != "" {
+    } else if let (Some(basic_auth_username), Some(basic_auth_password)) =
+        (basic_auth_username, basic_auth_password)
+    {
         agent_builder = agent_builder.basic_auth(basic_auth_username, basic_auth_password);
     }
-    if tenant_id != "" {
+    if let Some(tenant_id) = tenant_id {
         agent_builder = agent_builder.tenant_id(tenant_id);
     }
 
-    let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
-    match http_headers {
-        Ok(http_headers) => {
-            agent_builder = agent_builder.http_headers(http_headers);
-        }
-        Err(e) => match e {
-            pyroscope::PyroscopeError::Json(e) => {
-                log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
-            }
-            pyroscope::PyroscopeError::AdHoc(e) => {
-                log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
-            }
-            _ => {}
-        },
-    }
+    // let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
+    // match http_headers {
+    //     Ok(http_headers) => {
+    //         agent_builder = agent_builder.http_headers(http_headers);
+    //     }
+    //     Err(e) => match e {
+    //         pyroscope::PyroscopeError::Json(e) => {
+    //             log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
+    //         }
+    //         pyroscope::PyroscopeError::AdHoc(e) => {
+    //             log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
+    //         }
+    //         _ => {}
+    //     },
+    // }
 
-    // Build the agent.
     let agent = agent_builder.build().unwrap();
 
-    // Start the agent.
     let agent_running = agent.start().unwrap();
 
-    // Spawn a thread to receive signals from the FFIKit merge channel.
     std::thread::spawn(move || {
         while let Ok(signal) = recv.recv() {
             match signal {
@@ -198,7 +143,7 @@ pub extern "C" fn initialize_agent(
         }
     });
 
-    true
+    Ok(())
 }
 
 #[no_mangle]
@@ -262,31 +207,13 @@ pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) ->
     return ffikit::send(ffikit::Signal::RemoveGlobalTag(key, value)).is_ok();
 }
 
-// Convert a string of tags to a Vec<(&str, &str)>
-fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
-    let mut tags_vec = Vec::new();
 
-    // check if string is empty
-    if tags.is_empty() {
-        return tags_vec;
-    }
-
-    for tag in tags.split(',') {
-        let mut tag_split = tag.split('=');
-        let key = tag_split.next().unwrap();
-        let value = tag_split.next().unwrap();
-        tags_vec.push((key, value));
-    }
-
-    tags_vec
-}
-
-#[repr(C)]
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Hash, Debug, Clone)]
+#[pyclass(eq, eq_int)]
 pub enum LineNo {
-    LastInstruction = 0,
-    First = 1,
-    NoLine = 2,
+    LastInstruction,
+    First,
+    NoLine,
 }
 
 impl Into<pyroscope_pyspy::LineNo> for LineNo {
@@ -297,4 +224,11 @@ impl Into<pyroscope_pyspy::LineNo> for LineNo {
             LineNo::NoLine => pyroscope_pyspy::LineNo::NoLine,
         }
     }
+}
+
+#[pymodule]
+fn python_wheel(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(initialize_agent, m)?)?;
+    m.add_class::<LineNo>()?;
+    Ok(())
 }
