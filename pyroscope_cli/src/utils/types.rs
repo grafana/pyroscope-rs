@@ -1,12 +1,11 @@
-use clap::ArgEnum;
 use serde::{Deserialize, Serialize};
 
 use super::error::Result;
+use clap::ValueEnum;
 use std::str::FromStr;
-
 // TODO: These definitions should be placed in the core workspace.
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, ArgEnum)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, ValueEnum)]
 pub enum LogLevel {
     #[serde(rename = "trace")]
     Trace,
@@ -18,8 +17,6 @@ pub enum LogLevel {
     Warn,
     #[serde(rename = "error")]
     Error,
-    #[serde(rename = "critical")]
-    Critical,
 }
 
 impl FromStr for LogLevel {
@@ -31,39 +28,27 @@ impl FromStr for LogLevel {
             "info" => Ok(LogLevel::Info),
             "warn" => Ok(LogLevel::Warn),
             "error" => Ok(LogLevel::Error),
-            _ => Ok(LogLevel::Info),
+            "trace" => Ok(LogLevel::Trace),
+            _ => Err(super::error::Error::new(
+                format!("unknown LogLevel: {:?}", s).as_str(),
+            )),
+        }
+    }
+}
+impl AsRef<str> for LogLevel {
+    fn as_ref(&self) -> &str {
+        match self {
+            LogLevel::Trace => "trace",
+            LogLevel::Debug => "debug",
+            LogLevel::Info => "info",
+            LogLevel::Warn => "warn",
+            LogLevel::Error => "error",
         }
     }
 }
 
-/// Output Format for Adhoc profiling
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ArgEnum)]
-pub enum OutputFormat {
-    #[serde(rename = "none")]
-    None,
-    #[serde(rename = "html")]
-    Html,
-    #[serde(rename = "pprof")]
-    Pprof,
-    #[serde(rename = "collpased")]
-    Collapsed,
-}
 
-impl FromStr for OutputFormat {
-    type Err = super::error::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            "none" => Ok(OutputFormat::None),
-            "html" => Ok(OutputFormat::Html),
-            "pprof" => Ok(OutputFormat::Pprof),
-            "collapsed" => Ok(OutputFormat::Collapsed),
-            _ => Ok(OutputFormat::None),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ArgEnum)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
 pub enum Spy {
     #[serde(rename = "rbspy")]
     Rbspy,
@@ -78,7 +63,18 @@ impl FromStr for Spy {
         match s {
             "rbspy" => Ok(Spy::Rbspy),
             "pyspy" => Ok(Spy::Pyspy),
-            _ => Ok(Spy::Rbspy),
+            _ => Err(super::error::Error::new(
+                format!("unknown spy {:?}", s).as_str(),
+            )),
+        }
+    }
+}
+
+impl AsRef<str> for Spy {
+    fn as_ref(&self) -> &str {
+        match self {
+            Spy::Rbspy => "rbspy",
+            Spy::Pyspy => "pyspy",
         }
     }
 }

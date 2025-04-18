@@ -1,5 +1,0 @@
-#!/bin/sh
-
-mkdir -p stage
-cp ../../ubuntu-install-packages ./stage/
-docker build -t omarabid/pyroscope-cli:x86_64-unknown-linux-musl .
