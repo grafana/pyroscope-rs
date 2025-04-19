@@ -1,9 +1,4 @@
 
-MANYLINUX_PREFIX=pyroscope/rust_builder
-MANYLINUX_VERSION=4
-BUILD_ARCH_AMD=manylinux2014_x86_64
-BUILD_ARCH_ARM=manylinux2014_aarch64
-
 .phony: pyroscope_ffi/clean
 pyroscope_ffi/clean:
 	cargo clean
@@ -13,31 +8,27 @@ pyroscope_ffi/clean:
 
 .phony: wheel/linux/amd64
 wheel/linux/amd64:
-	docker buildx build --platform=linux/amd64 --progress=plain \
-	 	--output=pyroscope_ffi/python \
-	 	-f docker/wheel.Dockerfile \
-	 	.
+	docker build --progress=plain --platform=linux/amd64 --output=pyroscope_ffi/python -f wheel.Dockerfile .
 
 .phony: wheel/linux/arm64
 wheel/linux/arm64:
-	docker buildx build --platform=linux/arm64 --progress=plain \
-	 	--output=pyroscope_ffi/python \
-	 	-f docker/wheel.Dockerfile \
-	 	.
+	docker build --progress=plain --platform=linux/arm64 --output=pyroscope_ffi/python -f wheel.Dockerfile .
 
 .phony: wheel/mac/amd64
-wheel/mac/amd64: # todo
-	cd pyroscope_ffi/python && \
-		pip install wheel && \
-		CARGO_BUILD_TARGET=x86_64-apple-darwin \
-			python setup.py bdist_wheel -p macosx-11_0_x86_64
+wheel/mac/amd64:
+	exit 239  # todo
+	#cd pyroscope_ffi/python && \
+#		pip install wheel && \
+#		CARGO_BUILD_TARGET=x86_64-apple-darwin \
+#			python setup.py bdist_wheel -p macosx-11_0_x86_64
 
 .phony: wheel/mac/arm64
-wheel/mac/arm64: # todo
-	cd pyroscope_ffi/python && \
-		pip install wheel && \
-		CARGO_BUILD_TARGET=aarch64-apple-darwin \
-			python setup.py bdist_wheel -p macosx-11_0_arm64
+wheel/mac/arm64:
+	exit 239  # todo
+	#cd pyroscope_ffi/python && \
+#		pip install wheel && \
+#		CARGO_BUILD_TARGET=aarch64-apple-darwin \
+#			python setup.py bdist_wheel -p macosx-11_0_arm64
 
 
 .phony: gem/linux/amd64

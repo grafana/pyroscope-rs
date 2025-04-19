@@ -5,3 +5,4 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module", "pyo3/abi3-py39"]
 python-source = "src_python"
+sdist-generator = "cargo"
