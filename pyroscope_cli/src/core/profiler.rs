@@ -1,121 +1,64 @@
-use std::collections::HashMap;
-use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
-use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
-use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
-use pyroscope::pyroscope::ReportEncoding;
-
+use crate::cli::CommandArgs;
 use crate::utils::{
-    app_config::AppConfig,
     error::{Error, Result},
     types::Spy,
 };
+use pyroscope::pyroscope::ReportEncoding;
+use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
+use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
+use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
+use std::collections::HashMap;
+use std::vec;
 
-const LOG_TAG: &str = "Pyroscope::cli";
-
-/// Wrapper for the `pyroscope` library and the `pyroscope_pyspy` and `pyroscope_rbspy` backends.
 #[derive(Debug, Default)]
 pub struct Profiler {
     agent: Option<PyroscopeAgent<PyroscopeAgentRunning>>,
 }
 
 impl Profiler {
-    /// Creates a new instance of the `Profiler` and initializes the `pyroscope` library and one of the backends.
-    pub fn init(&mut self) -> Result<()> {
-        let pid: i32 = AppConfig::get::<i32>("pid")?;
-
-        let app_name: String = AppConfig::get::<String>("application_name")?;
-
-        let auth_token: String = AppConfig::get::<String>("auth_token")?;
-        let basic_auth_username: String = AppConfig::get::<String>("basic_auth_username")?;
-        let basic_auth_password: String = AppConfig::get::<String>("basic_auth_password")?;
-
-        let tenant_id: String = AppConfig::get::<String>("tenant_id").unwrap_or("".to_string());
-
-        let http_headers = get_http_headers();
-
-        let mut server_address: String = AppConfig::get::<String>("server_address")?;
-
-        let adhoc_server_address = std::env::var("PYROSCOPE_ADHOC_SERVER_ADDRESS");
-        if let Ok(adhoc_server_address) = adhoc_server_address {
-            server_address = adhoc_server_address
+    pub fn init(&mut self, pid: i32, args: CommandArgs) -> Result<()> {
+        let mut builder = PyroscopeAgent::default_builder()
+            .url(args.server_address)
+            .application_name(&args.application_name)
+            .report_encoding(ReportEncoding::PPROF)
+            .http_headers(parse_headers(&args.http_header)?)
+            .tags(parse_tags(&args.tag)?);
+        if let Some(tenant_id) = &args.tenant_id {
+            builder = builder.tenant_id(tenant_id.clone());
+        }
+        if let Some(auth_token) = &args.auth_token {
+            builder = builder.auth_token(auth_token);
+        } else if let (Some(basic_auth_username), Some(basic_auth_password)) =
+            (&args.basic_auth_username, &args.basic_auth_password)
+        {
+            builder = builder.basic_auth(basic_auth_username, basic_auth_password);
         }
 
-        let sample_rate: u32 = AppConfig::get::<u32>("sample_rate")?;
-
-        let blocking: bool = AppConfig::get::<bool>("blocking")?;
-
-        let oncpu: bool = AppConfig::get::<bool>("oncpu")?;
-        let pyspy_gil: bool = AppConfig::get::<bool>("pyspy_gil")?;
-        let pyspy_native: bool = AppConfig::get::<bool>("pyspy_native")?;
-
-        let detect_subprocesses: bool = AppConfig::get::<bool>("detect_subprocesses")?;
-
-        let tag_str = &AppConfig::get::<String>("tag")?;
-        let tags = tags_to_array(tag_str)?;
-
-        let agent = match AppConfig::get::<Spy>("spy_name")? {
+        let agent = match args.spy_name {
             Spy::Pyspy => {
                 let config = PyspyConfig::new(pid)
-                    .sample_rate(sample_rate)
-                    .lock_process(blocking)
-                    .detect_subprocesses(detect_subprocesses)
-                    .oncpu(oncpu)
-                    .gil_only(pyspy_gil)
-                    .native(pyspy_native);
+                    .sample_rate(args.sample_rate)
+                    .lock_process(args.blocking)
+                    .detect_subprocesses(args.detect_subprocesses)
+                    .oncpu(args.oncpu)
+                    .gil_only(args.pyspy_gil)
+                    .native(false);
 
-                if blocking {
+                if args.blocking {
                     log::warn!("blocking is not recommended for production use");
-                }
-                if pyspy_native && !blocking {
-                    log::warn!("native profiling is not supported without blocking");
                 }
 
                 let backend = pyspy_backend(config);
-
-                let mut builder = PyroscopeAgent::default_builder();
-                builder = builder.url(server_address);
-                builder = builder.application_name(app_name);
-                builder = builder.report_encoding(ReportEncoding::PPROF);
-                if tenant_id != "" {
-                    builder = builder.tenant_id(tenant_id);
-                }
-                if http_headers.len() > 0 {
-                    builder = builder.http_headers(http_headers);
-                }
-
-                // There must be a better way to do this, hopefully as clap supports Option<String>
-                if auth_token.len() > 0 {
-                    builder = builder.auth_token(auth_token);
-                } else if basic_auth_username != "" && basic_auth_password != "" {
-                    builder = builder.basic_auth(basic_auth_username, basic_auth_password);
-                }
-
-                builder.backend(backend).tags(tags).build()?
+                builder.backend(backend).build()?
             }
             Spy::Rbspy => {
                 let config = RbspyConfig::new(pid)
-                    .sample_rate(sample_rate)
-                    .lock_process(blocking)
-                    .oncpu(oncpu)
-                    .detect_subprocesses(detect_subprocesses);
+                    .sample_rate(args.sample_rate)
+                    .lock_process(args.blocking)
+                    .oncpu(args.oncpu)
+                    .detect_subprocesses(args.detect_subprocesses);
                 let backend = rbspy_backend(config);
-
-                let mut builder = PyroscopeAgent::default_builder();
-                builder = builder.url(server_address);
-                builder = builder.application_name(app_name);
-                builder = builder.report_encoding(ReportEncoding::PPROF);
-                if tenant_id != "" {
-                    builder = builder.tenant_id(tenant_id);
-                }
-
-                // There must be a better way to do this, hopefully as clap supports Option<String>
-                if auth_token.len() > 0 {
-                    builder = builder.auth_token(auth_token);
-                } else if basic_auth_username != "" && basic_auth_password != "" {
-                    builder = builder.basic_auth(basic_auth_username, basic_auth_password);
-                }
-
-                builder.backend(backend).tags(tags).build()?
+                builder.backend(backend).build()?
             }
         };
 
@@ -126,7 +69,6 @@ impl Profiler {
         Ok(())
     }
 
-    /// Stops the `pyroscope` library agent and the backend.
     pub fn stop(self) -> Result<()> {
         if let Some(agent_running) = self.agent {
             let agent_ready = agent_running.stop()?;
@@ -137,73 +79,68 @@ impl Profiler {
     }
 }
 
-/// Converts a string of semi-colon-separated tags into an array of tags.
-fn tags_to_array(tags: &str) -> Result<Vec<(&str, &str)>> {
-    // check if tags is empty
-    if tags.is_empty() {
-        return Ok(Vec::new());
+fn parse_headers(headers: &Option<Vec<String>>) -> Result<HashMap<String, String>> {
+    let headers = parse_tags(headers)?;
+    let mut res = HashMap::new();
+    for (k, v) in headers {
+        res.insert(k.to_string(), v.to_string());
     }
+    Ok(res)
+}
 
-    let mut tags_array = Vec::new();
-
-    for tag in tags.split(';') {
-        let mut tag_array = tag.split('=');
-        let key = tag_array
-            .next()
-            .ok_or_else(|| Error::new("failed to parse tag key"))?;
-        let value = tag_array
-            .next()
-            .ok_or_else(|| Error::new("failed to parse tag value"))?;
-        tags_array.push((key, value));
+fn parse_tag(tag: &str) -> Result<(&str, &str)> {
+    let pivot = tag.find('=');
+    match pivot {
+        None => Err(Error::new("no '=' found")),
+        Some(pivot) => {
+            let k = &tag[..pivot];
+            let v = &tag[pivot + 1..];
+            Ok((k, v))
+        }
     }
-
-    Ok(tags_array)
 }
 
 #[cfg(test)]
-mod test_tags_to_array {
-    use super::*;
-
-    #[test]
-    fn test_tags_to_array_empty() {
-        let tags = tags_to_array("").unwrap();
-        assert_eq!(tags.len(), 0);
-    }
-
-    #[test]
-    fn test_tags_to_array_one_tag() {
-        let tags = tags_to_array("key=value").unwrap();
-
-        assert_eq!(tags.len(), 1);
-
-        assert_eq!(tags, vec![("key", "value")]);
-    }
-
-    #[test]
-    fn test_tags_to_array_multiple_tags() {
-        let tags = tags_to_array("key1=value1;key2=value2").unwrap();
-        assert_eq!(tags.len(), 2);
-
-        assert_eq!(tags, vec![("key1", "value1"), ("key2", "value2")]);
-    }
+#[test]
+fn test_parse_tags() {
+    match parse_tag("key=value") {
+        Ok((k, v)) => {
+            assert_eq!("key", k);
+            assert_eq!("value", v);
+        }
+        Err(_) => {
+            assert!(false)
+        }
+    };
+    match parse_tag("key=value==") {
+        Ok((k, v)) => {
+            assert_eq!("key", k);
+            assert_eq!("value==", v);
+        }
+        Err(_) => {
+            assert!(false)
+        }
+    };
+    match parse_tag("key=") {
+        Ok((k, v)) => {
+            assert_eq!("key", k);
+            assert_eq!("", v);
+        }
+        Err(_) => {
+            assert!(false)
+        }
+    };
 }
 
-fn get_http_headers() -> HashMap<String, String> {
-    let http_headers: String = AppConfig::get::<String>("http_headers_json")
-        .unwrap_or("{}".to_string());
-
-    let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers)
-        .unwrap_or_else(|e| {
-            match e {
-                pyroscope::PyroscopeError::Json(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
-                }
-                pyroscope::PyroscopeError::AdHoc(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
-                }
-                _ => {}
+fn parse_tags(tags: &Option<Vec<String>>) -> Result<Vec<(&str, &str)>> {
+    match tags {
+        None => Ok(vec![]),
+        Some(tags) => {
+            let mut res = Vec::with_capacity(tags.len());
+            for tag in tags {
+                res.push(parse_tag(tag)?)
             }
-            HashMap::new()
-        });
-    return http_headers;
+            Ok(res)
+        }
+    }
 }

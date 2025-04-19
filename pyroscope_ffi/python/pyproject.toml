@@ -1,7 +1,8 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel",
-    "pyromilksnakex==0.1.8"
-]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.8,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+features = ["pyo3/extension-module", "pyo3/abi3-py39"]
+python-source = "src_python"
+sdist-generator = "cargo"
