@@ -8,3 +8,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 kit = {path = "../kit"}
+kindasafe = {path = "../kindasafe"}

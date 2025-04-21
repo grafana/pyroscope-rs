@@ -66,24 +66,6 @@ fn fs_0x10() -> Ptr {
     }
 }
 
-// impl Display for Error {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Error::UnsupportedKey => write!(f, "UnsupportedKey"),
-//             Error::ReadMem(err) => write!(f, "ReadMem: {}", err),
-//         }
-//     }
-// }
-//
-// impl StdError for Error {
-//     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-//         match self {
-//             Error::UnsupportedKey => None,
-//             Error::ReadMem(err) => Some(err),
-//         }
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use crate::tls::LibcReadTLS;

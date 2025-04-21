@@ -162,6 +162,7 @@ impl Default for InitOptions {
     }
 }
 
+//todo create unloadable API
 pub fn init() -> Result<(), InitError> {
     init_with_options(InitOptions::default())
 }

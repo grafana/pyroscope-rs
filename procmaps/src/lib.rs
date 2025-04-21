@@ -43,8 +43,8 @@ impl Default for Flags {
 /// variants have identical exposed methods
 #[derive(Debug, Clone, PartialEq)]
 pub struct MapRange {
-    range_start: usize,
-    range_end: usize,
+    pub range_start: usize,
+    pub range_end: usize,
     pub offset: usize,
     pub dev: String, // todo make it not string
     pub flags: Flags,
