@@ -8,15 +8,6 @@ RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rus
 ENV PATH=/root/.cargo/bin:$PATH
 RUN yum -y install gcc libffi-devel openssl-devel wget gcc-c++ glibc-devel make
 
-# for python
-ENV LIBUNWIND_VERSION=1.8.1
-RUN wget https://github.com/libunwind/libunwind/releases/download/v${LIBUNWIND_VERSION}/libunwind-${LIBUNWIND_VERSION}.tar.gz \
-    && tar -zxvf libunwind-${LIBUNWIND_VERSION}.tar.gz \
-    && cd libunwind-${LIBUNWIND_VERSION} \
-    && ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation \
-    && make \
-    && make install
-
 WORKDIR /pyroscope-rs
 
 ADD Cross.toml \
@@ -29,8 +20,9 @@ ADD src src
 ADD pyroscope_backends pyroscope_backends
 ADD pyroscope_cli pyroscope_cli
 ADD pyroscope_ffi/ pyroscope_ffi/
-RUN cargo build -p ffiruby --release
-RUN cargo build -p thread_id --release
+# TODO --frozen
+RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
+RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p thread_id --release
 
 FROM ruby:3.3 as builder-gem
 WORKDIR /gem
