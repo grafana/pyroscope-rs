@@ -32,9 +32,9 @@ bool initialize_agent(const char *application_name,
 
 bool drop_agent(void);
 
-bool add_thread_tag(uint64_t thread_id, const char *key, const char *value);
+bool add_thread_tag(const char *key, const char *value);
 
-bool remove_thread_tag(uint64_t thread_id, const char *key, const char *value);
+bool remove_thread_tag(const char *key, const char *value);
 
 bool add_global_tag(const char *key, const char *value);
 
