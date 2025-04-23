@@ -8,6 +8,7 @@ puts RUBY_VERSION
 
 Pyroscope.configure do |config|
   config.application_name = "#{ENV["PYROSCOPE_RUN_ID"]}"
+  # TODO please no og cloud
   config.server_address = "https://ingest.pyroscope.cloud"
   config.auth_token = ENV["PYROSCOPE_API_TOKEN"]
   config.detect_subprocesses = ENV["PYROSCOPE_DETECT_SUBPROCESSES"] == "1"
