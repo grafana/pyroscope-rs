@@ -1,7 +1,5 @@
-/// Result Alias with BackendError
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// Error type of PyroscopeBackend
 #[non_exhaustive]
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -18,29 +16,22 @@ pub enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error(transparent)]
-    Clap(#[from] clap::Error),
+    // #[error(transparent)]
+    // Clap(#[from] clap::Error),
 
     #[error(transparent)]
     SetLogger(#[from] log::SetLoggerError),
 
     #[error(transparent)]
-    Config(#[from] config::ConfigError),
-
-    #[error(transparent)]
     PyroscopeError(#[from] pyroscope::PyroscopeError),
 
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
 }
 
 impl Error {
-    /// Create a new instance of PyroscopeError
     pub fn new(msg: &str) -> Self {
         Error::AdHoc(msg.to_string())
     }
 
-    /// Create a new instance of PyroscopeError with source
     pub fn new_with_source<E>(msg: &str, source: E) -> Self
     where
         E: std::error::Error + Send + Sync + 'static,
