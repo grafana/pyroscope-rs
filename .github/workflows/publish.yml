@@ -5,14 +5,19 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   publish-pyroscope:
     name: pyroscope-lib
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'lib-')"
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
           toolchain: 1.85.0
       - name: publish pyroscope crate
@@ -25,10 +30,10 @@ jobs:
 #    runs-on: ubuntu-latest
 #    if: "startsWith(github.event.release.tag_name, 'cli-')"
 #    steps:
-#      - uses: actions/checkout@v4
+#      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 #        with:
 #          submodules: recursive
-#      - uses: dtolnay/rust-toolchain@v1
+#      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
 #        with:
 #          toolchain: 1.82.0
 #      - name: install libunwind (for pprof)
@@ -43,8 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'pprofrs-')"
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
           toolchain: 1.85.0
       - name: publish pprofrs crate
@@ -58,8 +65,10 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'rbspy-')"
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
           toolchain: 1.85.0
       - name: publish rbspy crate
@@ -72,8 +81,10 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'pyspy-')"
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
           toolchain: 1.85.0
       - name: publish pyspy crate
@@ -86,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.release.tag_name, 'python-')"
     steps:
-      - uses: robinraju/release-downloader@v1
+      - uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # 1.12
         with: 
           tag: ${{ github.event.release.tag_name }}
           fileName: "*"
@@ -95,7 +106,7 @@ jobs:
           out-file-path: "dist"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish a Python distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.12.4
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
@@ -106,7 +117,7 @@ jobs:
     outputs:
       files_json: ${{ steps.list-files.outputs.files_json }}
     steps:
-      - uses: robinraju/release-downloader@v1
+      - uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # 1.12
         with:
           tag: ${{ github.event.release.tag_name }}
           fileName: "*"
@@ -128,13 +139,13 @@ jobs:
     env:
       GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
     strategy:
-      matrix:
+      matrix: # TODO get rid of list-ruby-gems step
         file: ${{ fromJson(needs.list-ruby-gems.outputs.files_json) }}
     steps:
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
         with:
           ruby-version: '3.1'
-      - uses: robinraju/release-downloader@v1
+      - uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # 1.12
         with: 
           tag: ${{ github.event.release.tag_name }}
           fileName: "*"
@@ -144,4 +155,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           cd dist
-          gem push ${{ matrix.file }}
+          gem push ${GEM_FILE}
+        env:
+          GEM_FILE: ${{ matrix.file }}
