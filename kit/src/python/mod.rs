@@ -74,6 +74,8 @@ pub fn load() -> std::result::Result<(), Error> {
 
     let f = OpenOptions::new().read(true).open(python.path)?;
 
+    let auto_tss_key : u32;
+    
     unsafe {
         let m = MmapOptions::new().map(&f)?;
         let elf = object::File::parse(m.as_ref())?;
@@ -81,9 +83,12 @@ pub fn load() -> std::result::Result<(), Error> {
         //todo does this use gnu hash table?
         let py_runtime = elf.symbol_by_name("_PyRuntime")
             .ok_or_else(|| Error::PythonSymbolNotFound)?;
-        let auto_tss_key = get_auto_tss(&python, &py_runtime)?;
+        auto_tss_key = get_auto_tss(&python, &py_runtime)?;
         println!("tss {:?}", auto_tss_key);
     };
+    
+    crate::sigprof::new_signal_handler(python_handler)?;
+    
     Ok(())
 }
 
@@ -136,4 +141,9 @@ fn get_auto_tss(m: &MappingInfo, py_runtime: &Symbol) -> std::result::Result<u32
     assert_eq!(initialized, 1);
     let key = tss >> 32;
     Ok(key as u32)
+}
+
+
+pub fn python_handler(_sig: libc::c_int, _info: *const libc::siginfo_t, _data: *mut libc::c_void) {
+    println!("python_handler")
 }
