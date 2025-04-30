@@ -46,13 +46,6 @@ Gem::Specification.new do |s|
     "ext/rbspy/extconf.rb",
     "ext/rbspy/include/rbspy.h",
     "ext/rbspy/src/lib.rs",
-    "ext/thread_id/Cargo.toml",
-    "ext/thread_id/Rakefile",
-    "ext/thread_id/build.rs",
-    "ext/thread_id/cbindgen.toml",
-    "ext/thread_id/extconf.rb",
-    "ext/thread_id/include/thread_id.h",
-    "ext/thread_id/src/lib.rs",
     "lib/pyroscope.rb",
     "lib/pyroscope/version.rb",
     "pyroscope.gemspec",
@@ -62,7 +55,7 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = ">= 1.9.3"
 
-  s.extensions = ['ext/rbspy/extconf.rb', 'ext/thread_id/extconf.rb']
+  s.extensions = ['ext/rbspy/extconf.rb']
 
   s.add_dependency 'ffi'
 
