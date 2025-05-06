@@ -21,7 +21,6 @@ jobs:
         with:
           toolchain: 1.85.0
       - name: publish pyroscope crate
-        continue-on-error: false
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish
@@ -37,7 +36,6 @@ jobs:
         with:
           toolchain: 1.85.0
       - name: publish pprofrs crate
-        continue-on-error: false
         run: |
           set -ex
           cargo login ${{ secrets.CARGO_TOKEN }}
@@ -54,7 +52,6 @@ jobs:
         with:
           toolchain: 1.85.0
       - name: publish rbspy crate
-        continue-on-error: false
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
@@ -70,7 +67,6 @@ jobs:
         with:
           toolchain: 1.85.0
       - name: publish pyspy crate
-        continue-on-error: false
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
