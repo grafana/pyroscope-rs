@@ -112,4 +112,5 @@ debug-assertions = false
 codegen-units = 1
 
 [patch.crates-io]
-py-spy = { git = "https://github.com/grafana/py-spy?rev=062d827" }
+py-spy = { git = "https://github.com/grafana/py-spy", rev = "062d827" }
+rbspy = { git = "https://github.com/korniltsev/rbspy", rev = "888bb18"}
