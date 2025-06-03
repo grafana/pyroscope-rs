@@ -1,4 +1,4 @@
-name: Publish Gems
+name: Push ruby gems
 
 on:
   workflow_dispatch:
@@ -36,5 +36,7 @@ jobs:
             gem push "${gem}";
             sleep 5;
           done
- 
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+
 
