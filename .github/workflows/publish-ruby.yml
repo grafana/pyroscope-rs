@@ -1,0 +1,38 @@
+name: Publish Gems
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  push-ruby-gems:
+    name: "Push ruby gems"
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.release.tag_name, 'ruby-')"
+    outputs:
+      files_json: ${{ steps.list-files.outputs.files_json }}
+    steps:
+      - uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # 1.12
+        with:
+          tag: ${{ github.event.release.tag_name }}
+          fileName: "*"
+          tarBall: false
+          zipBall: false
+          out-file-path: "dist"
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
+        with:
+          ruby-version: '3.1'
+      - run: |
+          set -ex
+          cd dist
+          for gem in $(ls dist);
+          do
+            gem push "${gem}";
+            sleep 5;
+          done
+
