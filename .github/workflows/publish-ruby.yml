@@ -30,9 +30,11 @@ jobs:
       - run: |
           set -ex
           cd dist
-          for gem in $(ls dist);
+          ls
+          for gem in *.gem;
           do
             gem push "${gem}";
             sleep 5;
           done
+ 
 
