@@ -37,5 +37,5 @@ def build_native(spec):
 setup(
     platforms="any",
     milksnake_tasks=[build_native],
-    setup_requires=["pyromilksnakex==0.1.8"],
+    setup_requires=["pyromilksnakex==0.1.8", "cffi>=1.6.0", "pycparser"],
 )
