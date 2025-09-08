@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
-          toolchain: 1.85.0
+          toolchain: stable
       - run: cargo build -p pyroscope-cli
 
   linux-build-docker:
@@ -29,5 +29,5 @@ jobs:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
-          toolchain: 1.85.0
+          toolchain: stable
       - run: make cli/docker-image
