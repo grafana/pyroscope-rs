@@ -12,7 +12,7 @@ permissions:
 jobs:
   linux-build:
     name: Linux - amd64
-    runs-on: ubuntu-x64-small # TODO try using grafana runners
+    runs-on: ubuntu-x64-small
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
