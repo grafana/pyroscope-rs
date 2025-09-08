@@ -118,7 +118,7 @@ jobs:
   python-release-linux-arm:
     needs: [ 'python-release' ]
     name: Release python linux arm64
-    runs-on: ubuntu-x64-small
+    runs-on: ubuntu-arm64-small
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -252,7 +252,7 @@ jobs:
   ruby-release-linux-arm:
     needs: [ 'ruby-release' ]
     name: Release Linux gem arm64
-    runs-on: ubuntu-x64-small
+    runs-on: ubuntu-arm64-small
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
