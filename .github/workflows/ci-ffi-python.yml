@@ -2,9 +2,9 @@ name: Python Package
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -23,6 +23,9 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install pip dependencies
+        run: pip install -r pyroscope_ffi/python/requirements.txt
+
       - name: Build in Docker
         run: make wheel/linux/amd64
 
@@ -35,8 +38,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: [ '3.9', '3.10', '3.11', '3.12', '3.13']
-    needs: [ 'linux-build' ]
+        PYTHON_VERSION: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    needs: ["linux-build"]
     name: Linux Test
     runs-on: ubuntu-x64-small
     env:
@@ -74,6 +77,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
           toolchain: stable
+
+      - name: Install pip dependencies
+        run: pip install -r pyroscope_ffi/python/requirements.txt
 
       - name: Build in Docker
         run: make wheel/linux/arm64
