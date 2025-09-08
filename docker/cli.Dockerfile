@@ -1,8 +1,8 @@
-FROM rust:latest as builder
+FROM rust:latest AS builder
 
 RUN rustup default 1.85
 #RUN rustup target add aarch64-unknown-linux-musl
-run rustup target add x86_64-unknown-linux-musl
+RUN rustup target add x86_64-unknown-linux-musl
 RUN apt-get update && apt-get -y install musl-dev
 WORKDIR /app
 ADD pyroscope_backends ./pyroscope_backends
