@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   push-ruby-gems:
@@ -16,6 +17,11 @@ jobs:
     outputs:
       files_json: ${{ steps.list-files.outputs.files_json }}
     steps:
+      - name: Get secrets from Vault
+        uses: grafana/shared-workflows/actions/get-vault-secrets@main
+        with:
+          repo_secrets: |
+            RUBYGEMS_API_KEY=publishing:rubygems_api_key
       - uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # 1.12
         with:
           tag: ${{ github.event.release.tag_name }}
@@ -37,6 +43,6 @@ jobs:
             sleep 5;
           done
         env:
-          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+          GEM_HOST_API_KEY: ${{ env.RUBYGEMS_API_KEY }}
 
 
