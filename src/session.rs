@@ -236,7 +236,7 @@ impl Session {
             req_builder = req_builder.header(k, v);
         }
 
-        let response = req_builder
+        let mut response = req_builder
             .query(&[
                 ("name", application_name.as_str()),
                 ("from", &format!("{}", self.from)),
@@ -249,8 +249,18 @@ impl Session {
             .timeout(Duration::from_secs(10))
             .send()?;
 
-        if !response.status().is_success() {
-            log::error!(target: LOG_TAG, "Sending Session failed {}", response.status().as_u16());
+        let status = response.status();
+
+        if status.is_success() {
+            let mut sink = std::io::sink();
+            _ = response.copy_to(&mut sink);
+        } else {
+            let resp = response.text();
+            let resp = match &resp {
+                Ok(t) => t,
+                Err(_) => "",
+            };
+            log::error!(target: LOG_TAG, "Sending Session failed {} {}", status.as_u16(), resp);
         }
         Ok(())
     }
