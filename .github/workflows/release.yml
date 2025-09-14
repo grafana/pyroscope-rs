@@ -18,46 +18,7 @@ jobs:
           title: "pyroscope-${{ github.ref_name }}"
           draft: true
           prerelease: false
-  cli-release:
-    name: pyroscope-cli
-    runs-on: ubuntu-x64-small
-    if: "startsWith(github.ref, 'refs/tags/cli-')"
-    outputs:
-      upload_url: ${{ steps.auto-release.outputs.upload_url }}
-    steps:
-      - id: auto-release
-        uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ github.ref_name }}"
-          title: "pyroscope-${{ github.ref_name }}"
-          draft: true
-          prerelease: false
-  cli-artifacts:
-    name: pyroscope-cli - build aritifacts
-    needs: cli-release
-    runs-on: ubuntu-x64-large
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
-        name: Login to Docker Hub
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      - run: DOCKER_EXTRA="--push" make cli/docker-image
-      - run: DOCKER_EXTRA="--output=." make cli/docker-image
 
-      - name: Upload release archive
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.cli-release.outputs.upload_url }}
-          asset_path: "./pyroscope-cli"
-          asset_name: "pyroscope-cli"
-          asset_content_type: application/octet-stream
   pprofrs-release:
     name: pyroscope-pprofrs
     runs-on: ubuntu-x64-small

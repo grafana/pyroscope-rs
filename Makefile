@@ -4,10 +4,6 @@ DOCKER_EXTRA ?=
 DOCKER_BUILDKIT=1
 
 
-.PHONY: cli/test
-cli/test:
-	cargo  test --manifest-path pyroscope_cli/Cargo.toml
-
 
 .PHONY: lib/test
 lib/test:
@@ -31,17 +27,7 @@ ffikit/test:
 	cargo  test --manifest-path pyroscope_ffi/ffikit/Cargo.toml
 
 .PHONY: test
-test: cli/test pprofrs/test pyspy/test rbspy/test lib/test ffikit/test
+test: pprofrs/test pyspy/test rbspy/test lib/test ffikit/test
 
-
-.PHONY: cli/version
-cli/version:
-	@ cd pyroscope_cli && cargo pkgid | cut -d @ -f 2
-
-.PHONY: cli/docker-image
-cli/docker-image:
-	 docker buildx build --platform linux/amd64 --load --progress=plain \
-		-t pyroscope/pyroscope-rs-cli:$(shell make cli/version)-$(COMMIT)  \
-		-f docker/cli.Dockerfile $(DOCKER_EXTRA) .
 
 include ffi.mk
