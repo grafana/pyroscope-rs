@@ -70,30 +70,6 @@ jobs:
           title: "Backend: ${{ github.ref_name }}"
           draft: true
           prerelease: false
-  rbspy-release:
-    name: pyroscope-rbspy
-    runs-on: ubuntu-x64-small
-    if: "startsWith(github.ref, 'refs/tags/rbspy-')"
-    steps:
-      - uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ github.ref_name }}"
-          title: "Backend: ${{ github.ref_name }}"
-          draft: true
-          prerelease: false
-  pyspy-release:
-    name: pyroscope-pyspy
-    runs-on: ubuntu-x64-small
-    if: "startsWith(github.ref, 'refs/tags/pyspy-')"
-    steps:
-      - uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ github.ref_name }}"
-          title: "Backend: ${{ github.ref_name }}"
-          draft: true
-          prerelease: false
   python-release-linux:
     needs: [ 'python-release' ]
     name: Release python linux amd64
