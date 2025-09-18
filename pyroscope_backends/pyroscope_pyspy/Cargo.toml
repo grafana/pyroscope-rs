@@ -14,7 +14,7 @@ repository = "https://github.com/pyroscope-io/pyroscope-rs"
 readme = "README.md"
 
 [dependencies]
-py-spy = "0.4.0"
+py-spy = { version = "0.4.0", features = ["unwind"]}
 pyroscope = { version = "0.5.7", path = "../../" , default-features = false }
 log = "0.4"
 
