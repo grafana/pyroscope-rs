@@ -1,5 +1,0 @@
-/target/
-**/*.rs.bk
-.cache
-.DS_Store
-scripts
