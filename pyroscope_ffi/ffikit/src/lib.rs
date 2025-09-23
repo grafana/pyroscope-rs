@@ -95,39 +95,43 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
             );
 
             // Bind to the socket.
-            let listener = LocalSocketListener::bind(socket_address)?;
+            match LocalSocketListener::bind(socket_address) {
+                Ok(listener) => {
+                    // Listen for connections.
+                    listener
+                        .incoming()
+                        .map(|packet| {
+                            log::trace!(target: LOG_TAG, "Received socket packet");
 
-            // Listen for connections.
-            listener
-                .incoming()
-                .map(|packet| {
-                    log::trace!(target: LOG_TAG, "Received socket packet");
+                            // Read the packet using a BufReader.
+                            let mut conn = BufReader::new(packet?);
+                            // Initialize a buffer to store the message.
+                            let mut buffer = [0; 2048];
+                            // Read the message.
+                            conn.read(&mut buffer)?;
 
-                    // Read the packet using a BufReader.
-                    let mut conn = BufReader::new(packet?);
-                    // Initialize a buffer to store the message.
-                    let mut buffer = [0; 2048];
-                    // Read the message.
-                    conn.read(&mut buffer)?;
+                            // Decode the message.
+                            let (signal, _len): (Signal, usize) =
+                                bincode::decode_from_slice(&buffer, config::standard()).unwrap();
 
-                    // Decode the message.
-                    let (signal, _len): (Signal, usize) =
-                        bincode::decode_from_slice(&buffer, config::standard()).unwrap();
+                            // Send the signal to the merge channel.
+                            socket_sender.send(signal.clone())?;
 
-                    // Send the signal to the merge channel.
-                    socket_sender.send(signal.clone())?;
+                            if signal == Signal::Kill {
+                                log::info!(target: LOG_TAG, "FFI socket received kill signal.");
+                                return Ok(());
+                            }
 
-                    if signal == Signal::Kill {
-                        log::info!(target: LOG_TAG, "FFI socket received kill signal.");
-                        return Ok(());
-                    }
+                            log::trace!(target: LOG_TAG, "Sent Socket signal to merge channel");
 
-                    log::trace!(target: LOG_TAG, "Sent Socket signal to merge channel");
-
-                    return Ok(());
-                })
-                .collect::<Result<()>>()?;
-
+                            return Ok(());
+                        })
+                        .collect::<Result<()>>()?;
+                }
+                Err(error) => {
+                    log::error!(target: LOG_TAG, "Socket failed to bind {} - can't receive signals", error)
+                }
+            }
             Ok(())
         });
     });
@@ -139,10 +143,16 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
 pub fn send(signal: Signal) -> Result<()> {
     if get_parent_pid() != std::process::id() {
         let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
-        let mut conn = LocalSocketStream::connect(socket_address)?;
-        let buffer = bincode::encode_to_vec(&signal, config::standard()).unwrap();
-        conn.write_all(&buffer)?;
-        conn.flush()?;
+        match LocalSocketStream::connect(socket_address) {
+            Ok(mut conn) => {
+                let buffer = bincode::encode_to_vec(&signal, config::standard()).unwrap();
+                conn.write_all(&buffer)?;
+                conn.flush()?;
+            }
+            Err(error) => {
+                log::error!(target: LOG_TAG, "Socket failed to connect {}", error)
+            }
+        }
     } else {
         if let Some(sender) = &*SENDER.lock()? {
             sender.send(signal)?;
