@@ -1,3 +1,5 @@
+mod backend;
+
 use std::collections::hash_map::DefaultHasher;
 use std::env;
 use std::ffi::CStr;
@@ -6,10 +8,10 @@ use std::os::raw::c_char;
 use std::str::FromStr;
 
 use ffikit::Signal;
-use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
+use backend::{rbspy_backend, RbspyConfig};
 
 use pyroscope;
-use pyroscope::{pyroscope::Compression, PyroscopeAgent};
+use pyroscope::{pyroscope::Compression};
 use pyroscope::backend::{BackendConfig, Report, StackFrame, Tag};
 use pyroscope::pyroscope::{PyroscopeAgentBuilder, ReportEncoding};
 

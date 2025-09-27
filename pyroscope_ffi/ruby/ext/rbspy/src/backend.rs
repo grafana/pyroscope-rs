@@ -26,7 +26,6 @@ pub struct RbspyConfig {
     pid: Option<i32>,
     sample_rate: u32,
     lock_process: bool,
-    time_limit: Option<core::time::Duration>,
     detect_subprocesses: bool,
     oncpu: bool,
 }
@@ -37,7 +36,6 @@ impl Default for RbspyConfig {
             pid: None,
             sample_rate: 100,
             lock_process: false,
-            time_limit: None,
             detect_subprocesses: false,
             oncpu: false,
         }
@@ -67,11 +65,6 @@ impl RbspyConfig {
             lock_process,
             ..self
         }
-    }
-
-    /// Set the time limit
-    pub fn time_limit(self, time_limit: Option<core::time::Duration>) -> Self {
-        RbspyConfig { time_limit, ..self }
     }
 
     /// Include subprocesses
@@ -170,7 +163,7 @@ impl Backend for Rbspy {
             self.config.pid.unwrap(), // unwrap is safe because of check above
             self.config.sample_rate,
             self.config.lock_process,
-            self.config.time_limit,
+            None,
             self.config.detect_subprocesses,
             None,
             self.config.oncpu,
