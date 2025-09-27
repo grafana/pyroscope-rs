@@ -21,7 +21,7 @@ pub struct BackendConfig {
 }
 
 /// Backend Trait
-pub trait Backend: Send + Debug {
+pub trait Backend: Send {
     /// Backend Spy Name
     fn spy_name(&self) -> Result<String>;
     /// Backend name extension
@@ -38,10 +38,6 @@ pub trait Backend: Send + Debug {
     fn add_rule(&self, ruleset: Rule) -> Result<()>;
     /// Remove a report-splitting rule from the backend.
     fn remove_rule(&self, ruleset: Rule) -> Result<()>;
-    /// Set the backend's configuration.
-    fn set_config(&self, config: BackendConfig);
-    /// Get the backend's configuration.
-    fn get_config(&self) -> Result<BackendConfig>;
 }
 
 /// Marker struct for Empty BackendImpl
@@ -71,7 +67,6 @@ impl BackendAccessible for BackendReady {}
 /// This struct is used to implement the Backend trait. It serves two purposes:
 /// 1. It enforces state transitions using the Type System.
 /// 2. It manages the lifetime of the backend through an Arc<Mutex<T>>.
-#[derive(Debug)]
 pub struct BackendImpl<S: BackendState + ?Sized> {
     /// Backend
     pub backend: Arc<Mutex<Option<Box<dyn Backend>>>>,
@@ -83,16 +78,8 @@ pub struct BackendImpl<S: BackendState + ?Sized> {
 impl BackendImpl<BackendBare> {
     /// Create a new BackendImpl instance
     pub fn new(
-        backend_box: Box<dyn Backend>, config: Option<BackendConfig>,
+        backend_box: Box<dyn Backend>,
     ) -> BackendImpl<BackendUninitialized> {
-        // Set the backend's configuration if it exists.
-        if let Some(config) = config {
-            backend_box.set_config(config);
-        } else {
-            backend_box.set_config(BackendConfig::default());
-        }
-
-        // Transition to BackendUninitialized
         BackendImpl {
             backend: Arc::new(Mutex::new(Some(backend_box))),
             _state: std::marker::PhantomData,
@@ -148,14 +135,6 @@ impl<S: BackendAccessible> BackendImpl<S> {
             .sample_rate()
     }
 
-    /// Return the backend configuration
-    pub fn get_config(&self) -> Result<BackendConfig> {
-        self.backend
-            .lock()?
-            .as_ref()
-            .ok_or(PyroscopeError::BackendImpl)?
-            .get_config()
-    }
 
     /// Add a report-splitting rule to the backend
     pub fn add_rule(&self, rule: Rule) -> Result<()> {

@@ -1,8 +1,10 @@
+mod backend;
+
 use ffikit::Signal;
 use pyroscope::backend::Tag;
 use pyroscope::pyroscope::ReportEncoding;
 use pyroscope::PyroscopeAgent;
-use pyroscope_pyspy::{pyspy_backend, PyspyConfig};
+use backend::{pyspy_backend, PyspyConfig};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
 use std::hash::Hasher;
@@ -289,12 +291,12 @@ pub enum LineNo {
     NoLine = 2,
 }
 
-impl Into<pyroscope_pyspy::LineNo> for LineNo {
-    fn into(self) -> pyroscope_pyspy::LineNo {
+impl Into<py_spy::config::LineNo> for LineNo {
+    fn into(self) -> py_spy::config::LineNo {
         match self {
-            LineNo::LastInstruction => pyroscope_pyspy::LineNo::LastInstruction,
-            LineNo::First => pyroscope_pyspy::LineNo::First,
-            LineNo::NoLine => pyroscope_pyspy::LineNo::NoLine,
+            LineNo::LastInstruction => py_spy::config::LineNo::LastInstruction,
+            LineNo::First => py_spy::config::LineNo::First,
+            LineNo::NoLine => py_spy::config::LineNo::NoLine,
         }
     }
 }

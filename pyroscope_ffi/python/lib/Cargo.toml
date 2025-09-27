@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyroscope = { path  = "../../../" }
-pyroscope_pyspy = { path = "../../../pyroscope_backends/pyroscope_pyspy" }
+py-spy = "0.4.0"
 ffikit = { path = "../../ffikit" }
 pretty_env_logger = "0.5.0"
 log = "0.4"
