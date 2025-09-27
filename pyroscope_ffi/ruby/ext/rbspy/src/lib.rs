@@ -197,10 +197,9 @@ pub extern "C" fn initialize_agent(
 
     let tags_ref = tags_string.as_str();
     let tags = string_to_tags(tags_ref);
-    let rbspy = rbspy_backend(rbspy_config);
+    let rbspy = rbspy_backend(rbspy_config, backend_config);
 
-    let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name)
-        .backend(rbspy)
+    let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, rbspy)
         .func(transform_report)
         .tags(tags)
         .report_encoding(ReportEncoding::PPROF);

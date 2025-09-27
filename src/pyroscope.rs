@@ -284,18 +284,7 @@ impl PyroscopeAgentBuilder {
             ..self
         }
     }
-
-    /// Set the agent backend. Default is void-backend.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .backend(PprofConfig::new().sample_rate(100))
-    /// .build()?;
-    /// ```
-    pub fn backend(self, backend: BackendImpl<BackendUninitialized>) -> Self {
-        Self { backend, ..self }
-    }
+    
 
     /// Set JWT authentication token.
     /// This is optional. If not set, the agent will not send any authentication token.

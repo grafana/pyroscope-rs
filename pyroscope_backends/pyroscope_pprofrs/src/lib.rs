@@ -19,55 +19,15 @@ pub fn pprof_backend(config: PprofConfig, backend_config: BackendConfig) -> Back
     BackendImpl::new(Box::new(Pprof::new(config, backend_config)))
 }
 
-/// Pprof Configuration
 #[derive(Debug)]
 pub struct PprofConfig {
-    sample_rate: u32,
-    backend_config: BackendConfig,
+    pub sample_rate: u32,
 }
 
 impl Default for PprofConfig {
     fn default() -> Self {
         PprofConfig {
             sample_rate: 100,
-            backend_config: BackendConfig::default(),
-        }
-    }
-}
-
-impl PprofConfig {
-    pub fn new() -> Self {
-        PprofConfig::default()
-    }
-
-    pub fn sample_rate(self, sample_rate: u32) -> Self {
-        PprofConfig {
-            sample_rate,
-            ..self
-        }
-    }
-
-    pub fn report_thread_id(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_id: true,
-            ..self.backend_config
-        };
-
-        PprofConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    pub fn report_thread_name(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_name: true,
-            ..self.backend_config
-        };
-
-        PprofConfig {
-            backend_config,
-            ..self
         }
     }
 }

@@ -7,6 +7,8 @@ use std::{
     hash::{Hash, Hasher},
     thread,
 };
+use pyroscope::backend::BackendConfig;
+use pyroscope::pyroscope::PyroscopeAgentBuilder;
 
 fn hash_rounds1(n: u64) -> u64 {
     let hash_str = "Some string to hash";
@@ -65,9 +67,9 @@ fn extra_rounds2(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread")
+    let backend = pprof_backend(PprofConfig{sample_rate: 100}, BackendConfig::default());
+    let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "example.multithread", backend)
         .tags([("Host", "Rust")].to_vec())
-        .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .build()?;
 
     // Show start time

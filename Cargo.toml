@@ -36,13 +36,7 @@ path = "examples/internal/backend-pprof.rs"
 name = "internal-timer"
 path = "examples/internal/timer.rs"
 
-[[example]]
-name = "internal-pyspy-connect"
-path = "examples/internal/pyspy-connect.rs"
 
-[[example]]
-name = "internal-rbspy-connect"
-path = "examples/internal/rbspy-connect.rs"
 
 [dependencies]
 thiserror = "2.0.12"

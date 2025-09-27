@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::backend::Backend;
+use pyroscope::backend::{Backend, BackendConfig};
 use pyroscope::Result;
 use pyroscope_pprofrs::{Pprof, PprofConfig};
 
@@ -12,25 +12,25 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    // Create Pprof configuration
-    let backend_config = PprofConfig::new().sample_rate(100);
+    let config = PprofConfig{
+        sample_rate: 100,
+    };
+    let backend_config = BackendConfig{
+        report_thread_id: false,
+        report_thread_name: false,
+        report_pid: false,
+    };
 
-    // Create backend
-    let mut backend = Pprof::new(backend_config);
+    let mut backend = Pprof::new(config, backend_config);
 
-    // Initialize backend
     backend.initialize()?;
 
-    // Do some work
     fibonacci(45);
 
-    // Collect profile data
     let report = backend.report()?;
 
-    // Print report
     dbg!(report);
 
-    // Stop profiling
     Box::new(backend).shutdown()?;
 
     Ok(())
