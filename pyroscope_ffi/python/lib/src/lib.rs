@@ -1,10 +1,9 @@
 mod backend;
 
+use backend::pyspy_backend;
 use ffikit::Signal;
-use pyroscope::backend::Tag;
-use pyroscope::pyroscope::ReportEncoding;
-use pyroscope::PyroscopeAgent;
-use backend::{pyspy_backend, PyspyConfig};
+use pyroscope::backend::{BackendConfig, Tag};
+use pyroscope::pyroscope::{PyroscopeAgentBuilder, ReportEncoding};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
 use std::hash::Hasher;
@@ -47,7 +46,7 @@ pub extern "C" fn initialize_agent(
     basic_auth_username: *const c_char, basic_auth_password: *const c_char, sample_rate: u32,
     detect_subprocesses: bool, oncpu: bool, gil_only: bool, report_pid: bool,
     report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
-    tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo
+    tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo,
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -102,45 +101,37 @@ pub extern "C" fn initialize_agent(
 
     let pid = std::process::id();
 
-    // Configure the Pyspy Backend.
-    let mut pyspy_config = PyspyConfig::new(pid.try_into().unwrap())
-        .sample_rate(sample_rate)
-        .lock_process(false)
-        .detect_subprocesses(detect_subprocesses)
-        .oncpu(oncpu)
-        .native(false)
-        .line_no(line_no.into())
-        .gil_only(gil_only);
+    let backend_config = BackendConfig {
+        report_thread_id,
+        report_thread_name,
+        report_pid,
+    };
 
-    // Report the PID.
-    if report_pid {
-        pyspy_config = pyspy_config.report_pid();
-    }
+    let pid = pid.try_into().unwrap();
 
-    // Report thread IDs.
-    if report_thread_id {
-        pyspy_config = pyspy_config.report_thread_id();
-    }
+    let pyspy_config = py_spy::Config {
+        blocking: py_spy::config::LockingStrategy::NonBlocking,
+        native: false,
+        pid: Some(pid),
+        sampling_rate: sample_rate.into(),
+        include_idle: !oncpu,
+        include_thread_ids: true,
+        subprocesses: detect_subprocesses,
+        gil_only,
+        lineno: line_no.into(),
+        duration: py_spy::config::RecordDuration::Unlimited,
+        ..py_spy::Config::default()
+    };
 
-    // Report thread names.
-    if report_thread_name {
-        pyspy_config = pyspy_config.report_thread_name();
-    }
-
-    // Convert the tags to a vector of strings.
     let tags_ref = tags_string.as_str();
     let tags = string_to_tags(tags_ref);
 
-    // Create the Pyspy Backend.
-    let pyspy = pyspy_backend(pyspy_config);
+    let pyspy = pyspy_backend(pyspy_config, backend_config);
 
-    // Create the Pyroscope Agent.
-    let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
+    let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, pyspy)
         .report_encoding(ReportEncoding::PPROF)
-        .backend(pyspy)
         .tags(tags);
 
-    // Add the auth token if it is not empty.
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);
     } else if basic_auth_username != "" && basic_auth_password != "" {

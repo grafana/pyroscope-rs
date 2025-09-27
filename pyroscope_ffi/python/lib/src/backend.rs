@@ -1,4 +1,4 @@
-use py_spy::{config::Config, sampler::Sampler, Pid};
+use py_spy::{sampler::Sampler};
 use pyroscope::{
     backend::{
         Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
@@ -19,125 +19,6 @@ const LOG_TAG: &str = "Pyroscope::Pyspy";
 
 pub fn pyspy_backend(config: py_spy::config::Config, backend_config: BackendConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Pyspy::new(config, backend_config)))
-}
-
-#[derive(Debug, Clone)]
-pub struct PyspyConfig {
-    pid: Option<Pid>,
-    sample_rate: u32,
-    backend_config: BackendConfig,
-    lock_process: py_spy::config::LockingStrategy,
-    detect_subprocesses: bool,
-    oncpu: bool,
-    gil_only: bool,
-    native: bool,
-
-    line_no: py_spy::config::LineNo,
-}
-
-impl Default for PyspyConfig {
-    fn default() -> Self {
-        PyspyConfig {
-            pid: Some(0),
-            sample_rate: 100,
-            backend_config: BackendConfig::default(),
-            lock_process: py_spy::config::LockingStrategy::NonBlocking,
-            detect_subprocesses: false,
-            oncpu: false,
-            gil_only: false,
-            native: false,
-            line_no: py_spy::config::LineNo::LastInstruction,
-        }
-    }
-}
-
-impl PyspyConfig {
-    pub fn new(pid: Pid) -> Self {
-        PyspyConfig {
-            pid: Some(pid),
-            ..Default::default()
-        }
-    }
-
-    pub fn sample_rate(self, sample_rate: u32) -> Self {
-        PyspyConfig {
-            sample_rate,
-            ..self
-        }
-    }
-
-    pub fn report_pid(self) -> Self {
-        let backend_config = BackendConfig {
-            report_pid: true,
-            ..self.backend_config
-        };
-
-        PyspyConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    pub fn report_thread_id(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_id: true,
-            ..self.backend_config
-        };
-
-        PyspyConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    pub fn report_thread_name(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_name: true,
-            ..self.backend_config
-        };
-
-        PyspyConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    pub fn lock_process(self, lock_process: bool) -> Self {
-        PyspyConfig {
-            lock_process: if lock_process {
-                py_spy::config::LockingStrategy::Lock
-            } else {
-                py_spy::config::LockingStrategy::NonBlocking
-            },
-            ..self
-        }
-    }
-
-    pub fn detect_subprocesses(self, detect_subprocesses: bool) -> Self {
-        PyspyConfig {
-            detect_subprocesses,
-            ..self
-        }
-    }
-
-    pub fn oncpu(self, oncpu: bool) -> Self {
-        PyspyConfig { oncpu, ..self }
-    }
-
-    pub fn gil_only(self, gil_only: bool) -> Self {
-        PyspyConfig { gil_only, ..self }
-    }
-
-    pub fn native(self, native: bool) -> Self {
-        PyspyConfig { native, ..self }
-    }
-
-    pub fn line_no(self, line_no: py_spy::config::LineNo) -> Self {
-        PyspyConfig {
-            line_no,
-            ..self
-        }
-    }
 }
 
 #[derive(Default)]
@@ -200,20 +81,6 @@ impl Backend for Pyspy {
             return Err(PyroscopeError::new("Pyspy: No Process ID Specified"));
         }
 
-
-        // self.sampler_config = Some(Config {
-        //     blocking: self.config.lock_process.clone(),
-        //     native: self.config.native,
-        //     pid: self.config.pid,
-        //     sampling_rate: self.config.sample_rate as u64,
-        //     include_idle: !self.config.oncpu,
-        //     include_thread_ids: true,
-        //     subprocesses: self.config.detect_subprocesses,
-        //     gil_only: self.config.gil_only,
-        //     lineno: self.config.line_no,
-        //     duration: py_spy::config::RecordDuration::Unlimited,
-        //     ..Config::default()
-        // });
 
         let running = Arc::clone(&self.running);
         running.store(true, Ordering::Relaxed);
