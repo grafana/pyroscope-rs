@@ -1,80 +1,60 @@
-name: Pre-Release
+name: Ruby Release
 
-on: [ push ]
+on:
+  push:
+    tags:
+      - 'ruby-*'
 
 permissions:
   contents: write
 
 jobs:
-  lib-release:
-    name: pyroscope-main
-    runs-on: ubuntu-x64-small
-    if: "startsWith(github.ref, 'refs/tags/lib-')"
-    steps:
-      - uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ github.ref_name }}"
-          title: "pyroscope-${{ github.ref_name }}"
-          draft: true
-          prerelease: false
-
-  pprofrs-release:
-    name: pyroscope-pprofrs
-    runs-on: ubuntu-x64-small
-    if: "startsWith(github.ref, 'refs/tags/pprofrs-')"
-    steps:
-      - uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ github.ref_name }}"
-          title: "Backend: ${{ github.ref_name }}"
-          draft: true
-          prerelease: false
-  python-release-linux:
-    needs: [ 'python-release' ]
-    name: Release python linux amd64
+  ruby-release-linux:
+    needs: [ 'ruby-release' ]
+    name: Release Linux gem amd64
     runs-on: ubuntu-x64-large
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - run: make wheel/linux/amd64
+      - run: make gem/linux/amd64
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ github.sha }}-python-amd64
-          path: pyroscope_ffi/python/dist/*
+          name: ${{ github.sha }}-ruby-amd64
+          path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
         uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.python-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
-  python-release-linux-arm:
-    needs: [ 'python-release' ]
-    name: Release python linux arm64
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release-linux-arm:
+    needs: [ 'ruby-release' ]
+    name: Release Linux gem arm64
     runs-on: ubuntu-arm64-large
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - run: make wheel/linux/arm64
+      - run: make gem/linux/arm64
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ github.sha }}-python-arm64
-          path: pyroscope_ffi/python/dist/*
+          name: ${{ github.sha }}-ruby-arm64
+          path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
         uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.python-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
-  python-release-macos:
-    needs: [ 'python-release' ]
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release-macos:
+    needs: [ 'ruby-release' ]
     strategy:
       fail-fast: false
       matrix:
@@ -93,33 +73,32 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-
+      - uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
+        with:
+          ruby-version: '3.1'
       - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
         with:
           toolchain: 1.85.0
           target: ${{ matrix.target }}
 
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # 5.6.0
-        with:
-          python-version: 3.11
-
-      - run: make pyroscope_ffi/clean wheel/mac/${{ matrix.mk-arch }}
+      - run: make pyroscope_ffi/clean gem/mac/${{ matrix.mk-arch }}
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ github.sha }}-python-macos-${{ matrix.target }}
-          path: pyroscope_ffi/python/dist/*
+          name: ${{ github.sha }}-ruby-mac-${{ matrix.target }}
+          path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
         uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.python-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
-  python-release-sdist:
-    needs: [ 'python-release' ]
-    name: sdist
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release-source:
+    needs: [ 'ruby-release' ]
+    name: source
     runs-on: ubuntu-x64-small
 
     steps:
@@ -127,32 +106,34 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # 5.6.0
+      - uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
         with:
-          python-version: 3.9
-      - name: Upgrade pip
-        run: |
-          python -m pip install --upgrade pip pipenv wheel
-      - name: Build sdist
-        run: python setup.py sdist
-        working-directory: pyroscope_ffi/python
+          ruby-version: '3.1'
+
+      - name: Install bundles
+        run: bundle
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build source gem
+        run: rake source:gem
+        working-directory: pyroscope_ffi/ruby
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ github.sha }}-python-sdist
-          path: pyroscope_ffi/python/dist/*
+          name: ${{ github.sha }}-ruby-source
+          path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
         uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.python-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/python/dist/pyroscope-io-*.tar.gz"
-  python-release:
-    name: Python Package
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release:
+    name: Ruby Gem
     runs-on: ubuntu-x64-small
-    if: "startsWith(github.ref, 'refs/tags/python-')"
     outputs:
       upload_url: ${{ steps.auto-release.outputs.upload_url }}
     steps:
@@ -161,6 +142,6 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "${{ github.ref_name }}"
-          title: "Python Package: ${{ github.ref_name }}"
+          title: "Ruby Gem: ${{ github.ref_name }}"
           draft: true
           prerelease: false
