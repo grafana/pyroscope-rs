@@ -17,9 +17,7 @@ use std::{
 
 const LOG_TAG: &str = "Pyroscope::Pyspy";
 
-pub fn pyspy_backend(config: py_spy::config::Config, backend_config: BackendConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Box::new(Pyspy::new(config, backend_config)))
-}
+
 
 #[derive(Default)]
 pub struct Pyspy {

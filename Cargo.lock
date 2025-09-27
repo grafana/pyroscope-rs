@@ -731,6 +731,7 @@ dependencies = [
  "pretty_env_logger",
  "pyroscope",
  "rbspy",
+ "remoteprocess",
 ]
 
 [[package]]

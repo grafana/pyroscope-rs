@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 pyroscope = { path = "../../../../" }
 rbspy = { version="0.37" }
+remoteprocess = "0.5.0"
 anyhow = "1.0"
 ffikit = { path = "../../../ffikit" }
 # todo remove this dependency

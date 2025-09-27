@@ -1,13 +1,13 @@
 mod backend;
 
-use backend::pyspy_backend;
 use ffikit::Signal;
-use pyroscope::backend::{BackendConfig, Tag};
+use pyroscope::backend::{BackendConfig, BackendImpl, Tag};
 use pyroscope::pyroscope::{PyroscopeAgentBuilder, ReportEncoding};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
+use crate::backend::Pyspy;
 
 const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
 
@@ -109,7 +109,7 @@ pub extern "C" fn initialize_agent(
 
     let pid = pid.try_into().unwrap();
 
-    let pyspy_config = py_spy::Config {
+    let config = py_spy::Config {
         blocking: py_spy::config::LockingStrategy::NonBlocking,
         native: false,
         pid: Some(pid),
@@ -126,7 +126,7 @@ pub extern "C" fn initialize_agent(
     let tags_ref = tags_string.as_str();
     let tags = string_to_tags(tags_ref);
 
-    let pyspy = pyspy_backend(pyspy_config, backend_config);
+    let pyspy = BackendImpl::new(Box::new(Pyspy::new(config, backend_config)));
 
     let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, pyspy)
         .report_encoding(ReportEncoding::PPROF)
