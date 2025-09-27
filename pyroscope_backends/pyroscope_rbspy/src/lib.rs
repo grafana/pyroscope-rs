@@ -17,31 +17,17 @@ use std::{
 
 const LOG_TAG: &str = "Pyroscope::Rbspy";
 
-/// Short-hand function for creating a new Rbspy backend.
-pub fn rbspy_backend(config: RbspyConfig) -> BackendImpl<BackendUninitialized> {
-    // Clone BackendConfig to pass to the backend object.
-    let backend_config = config.backend_config;
-
-    // Create a new backend object.
-    BackendImpl::new(Box::new(Rbspy::new(config)), Some(backend_config))
+pub fn rbspy_backend(config: RbspyConfig, backend_config: BackendConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Box::new(Rbspy::new(config, backend_config)))
 }
 
-/// Rbspy Configuration
 #[derive(Debug)]
 pub struct RbspyConfig {
-    /// Process to monitor
     pid: Option<i32>,
-    /// Sampling rate
     sample_rate: u32,
-    /// Backend Config
-    backend_config: BackendConfig,
-    /// Lock Process while sampling
     lock_process: bool,
-    /// Profiling duration. None for infinite.
     time_limit: Option<core::time::Duration>,
-    /// Include subprocesses
     detect_subprocesses: bool,
-    /// Include Oncpu Time
     oncpu: bool,
 }
 
@@ -50,7 +36,6 @@ impl Default for RbspyConfig {
         RbspyConfig {
             pid: None,
             sample_rate: 100,
-            backend_config: BackendConfig::default(),
             lock_process: false,
             time_limit: None,
             detect_subprocesses: false,
@@ -72,32 +57,6 @@ impl RbspyConfig {
     pub fn sample_rate(self, sample_rate: u32) -> Self {
         RbspyConfig {
             sample_rate,
-            ..self
-        }
-    }
-
-    /// Tag thread id in report
-    pub fn report_pid(self, report_pid: bool) -> Self {
-        let backend_config = BackendConfig {
-            report_pid,
-            ..self.backend_config
-        };
-
-        RbspyConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    /// Tag thread id in report
-    pub fn report_thread_id(self, report_thread_id: bool) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_id,
-            ..self.backend_config
-        };
-
-        RbspyConfig {
-            backend_config,
             ..self
         }
     }
@@ -134,10 +93,9 @@ impl RbspyConfig {
 pub struct Rbspy {
     /// Rbspy Configuration
     config: RbspyConfig,
+    backend_config: BackendConfig,
     /// Rbspy Sampler
     sampler: Option<Sampler>,
-    /// StackTrace Receiver
-    //stack_receiver: Option<Receiver<pyroscope_rbspy_oncpu::StackTrace>>,
     /// Error Receiver
     error_receiver: Option<Receiver<std::result::Result<(), anyhow::Error>>>,
     /// Profiling buffer
@@ -154,10 +112,10 @@ impl std::fmt::Debug for Rbspy {
 
 impl Rbspy {
     /// Create a new Rbspy instance
-    pub fn new(config: RbspyConfig) -> Self {
+    pub fn new(config: RbspyConfig, backend_config: BackendConfig) -> Self {
         Rbspy {
             sampler: None,
-            //stack_receiver: None,
+            backend_config,
             error_receiver: None,
             config,
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
@@ -184,12 +142,6 @@ impl Backend for Rbspy {
     /// Return the sample rate
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
-    }
-
-    fn set_config(&self, _config: BackendConfig) {}
-
-    fn get_config(&self) -> Result<BackendConfig> {
-        Ok(self.config.backend_config)
     }
 
     /// Add a rule to the ruleset
@@ -261,7 +213,7 @@ impl Backend for Rbspy {
         // ruleset reference
         let ruleset = self.ruleset.clone();
 
-        let backend_config = self.config.backend_config;
+        let backend_config = self.backend_config;
 
         let _: JoinHandle<Result<()>> = std::thread::spawn(move || {
             // Iterate over the StackTrace

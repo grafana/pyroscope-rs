@@ -10,8 +10,8 @@ use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
 use pyroscope;
 use pyroscope::{pyroscope::Compression, PyroscopeAgent};
-use pyroscope::backend::{Report, StackFrame, Tag};
-use pyroscope::pyroscope::ReportEncoding;
+use pyroscope::backend::{BackendConfig, Report, StackFrame, Tag};
+use pyroscope::pyroscope::{PyroscopeAgentBuilder, ReportEncoding};
 
 const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
 
@@ -183,19 +183,23 @@ pub extern "C" fn initialize_agent(
 
     let pid = std::process::id();
 
+    let backend_config = BackendConfig{
+        report_thread_id,
+        report_thread_name: false,
+        report_pid,
+    };
+
     let rbspy_config = RbspyConfig::new(pid.try_into().unwrap())
         .sample_rate(sample_rate)
         .lock_process(false)
         .detect_subprocesses(detect_subprocesses)
-        .oncpu(oncpu)
-        .report_pid(report_pid)
-        .report_thread_id(report_thread_id);
+        .oncpu(oncpu);
 
     let tags_ref = tags_string.as_str();
     let tags = string_to_tags(tags_ref);
     let rbspy = rbspy_backend(rbspy_config);
 
-    let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
+    let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name)
         .backend(rbspy)
         .func(transform_report)
         .tags(tags)
