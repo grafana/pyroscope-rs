@@ -13,21 +13,13 @@ lib/test:
 pprofrs/test:
 	cargo  test --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
 
-.PHONY: pyspy/test
-pyspy/test:
-	cargo  test --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
-
-.PHONY: rbspy/test
-rbspy/test:
-	cargo  test --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
-
 
 .PHONY: ffikit/test
 ffikit/test:
 	cargo  test --manifest-path pyroscope_ffi/ffikit/Cargo.toml
 
 .PHONY: test
-test: pprofrs/test pyspy/test rbspy/test lib/test ffikit/test
+test: pprofrs/test  lib/test ffikit/test
 
 
 include ffi.mk
