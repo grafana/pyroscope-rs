@@ -1,17 +1,20 @@
+mod backend;
+
 use std::collections::hash_map::DefaultHasher;
 use std::env;
 use std::ffi::CStr;
 use std::hash::Hasher;
 use std::os::raw::c_char;
 use std::str::FromStr;
-
+use rbspy::sampler::Sampler;
+use remoteprocess::Pid;
 use ffikit::Signal;
-use pyroscope_rbspy::{rbspy_backend, RbspyConfig};
 
 use pyroscope;
-use pyroscope::{pyroscope::Compression, PyroscopeAgent};
-use pyroscope::backend::{Report, StackFrame, Tag};
-use pyroscope::pyroscope::ReportEncoding;
+use pyroscope::{pyroscope::Compression};
+use pyroscope::backend::{BackendConfig, BackendImpl, Report, StackFrame, Tag};
+use pyroscope::pyroscope::{PyroscopeAgentBuilder, ReportEncoding};
+use crate::backend::Rbspy;
 
 const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
 
@@ -183,20 +186,28 @@ pub extern "C" fn initialize_agent(
 
     let pid = std::process::id();
 
-    let rbspy_config = RbspyConfig::new(pid.try_into().unwrap())
-        .sample_rate(sample_rate)
-        .lock_process(false)
-        .detect_subprocesses(detect_subprocesses)
-        .oncpu(oncpu)
-        .report_pid(report_pid)
-        .report_thread_id(report_thread_id);
+    let backend_config = BackendConfig{
+        report_thread_id,
+        report_thread_name: false,
+        report_pid,
+    };
+
+    let sampler = Sampler::new(
+        pid as Pid,
+        sample_rate,
+        false,
+        None,
+        detect_subprocesses,
+        None,
+        oncpu
+    );
+
 
     let tags_ref = tags_string.as_str();
     let tags = string_to_tags(tags_ref);
-    let rbspy = rbspy_backend(rbspy_config);
+    let rbspy = BackendImpl::new(Box::new(Rbspy::new(sampler, sample_rate, backend_config)));
 
-    let mut agent_builder = PyroscopeAgent::builder(server_address, application_name)
-        .backend(rbspy)
+    let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, rbspy)
         .func(transform_report)
         .tags(tags)
         .report_encoding(ReportEncoding::PPROF);

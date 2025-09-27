@@ -17,127 +17,11 @@ use std::{
 
 const LOG_TAG: &str = "Pyroscope::Rbspy";
 
-/// Short-hand function for creating a new Rbspy backend.
-pub fn rbspy_backend(config: RbspyConfig) -> BackendImpl<BackendUninitialized> {
-    // Clone BackendConfig to pass to the backend object.
-    let backend_config = config.backend_config;
 
-    // Create a new backend object.
-    BackendImpl::new(Box::new(Rbspy::new(config)), Some(backend_config))
-}
-
-/// Rbspy Configuration
-#[derive(Debug)]
-pub struct RbspyConfig {
-    /// Process to monitor
-    pid: Option<i32>,
-    /// Sampling rate
-    sample_rate: u32,
-    /// Backend Config
-    backend_config: BackendConfig,
-    /// Lock Process while sampling
-    lock_process: bool,
-    /// Profiling duration. None for infinite.
-    time_limit: Option<core::time::Duration>,
-    /// Include subprocesses
-    detect_subprocesses: bool,
-    /// Include Oncpu Time
-    oncpu: bool,
-}
-
-impl Default for RbspyConfig {
-    fn default() -> Self {
-        RbspyConfig {
-            pid: None,
-            sample_rate: 100,
-            backend_config: BackendConfig::default(),
-            lock_process: false,
-            time_limit: None,
-            detect_subprocesses: false,
-            oncpu: false,
-        }
-    }
-}
-
-impl RbspyConfig {
-    /// Create a new RbspyConfig
-    pub fn new(pid: i32) -> Self {
-        RbspyConfig {
-            pid: Some(pid),
-            ..Default::default()
-        }
-    }
-
-    /// Set the sampling rate
-    pub fn sample_rate(self, sample_rate: u32) -> Self {
-        RbspyConfig {
-            sample_rate,
-            ..self
-        }
-    }
-
-    /// Tag thread id in report
-    pub fn report_pid(self, report_pid: bool) -> Self {
-        let backend_config = BackendConfig {
-            report_pid,
-            ..self.backend_config
-        };
-
-        RbspyConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    /// Tag thread id in report
-    pub fn report_thread_id(self, report_thread_id: bool) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_id,
-            ..self.backend_config
-        };
-
-        RbspyConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    /// Set the lock process flag
-    pub fn lock_process(self, lock_process: bool) -> Self {
-        RbspyConfig {
-            lock_process,
-            ..self
-        }
-    }
-
-    /// Set the time limit
-    pub fn time_limit(self, time_limit: Option<core::time::Duration>) -> Self {
-        RbspyConfig { time_limit, ..self }
-    }
-
-    /// Include subprocesses
-    pub fn detect_subprocesses(self, detect_subprocesses: bool) -> Self {
-        RbspyConfig {
-            detect_subprocesses,
-            ..self
-        }
-    }
-
-    /// Include idle time
-    pub fn oncpu(self, oncpu: bool) -> Self {
-        RbspyConfig { oncpu, ..self }
-    }
-}
-
-/// Rbspy Backend
-#[derive(Default)]
 pub struct Rbspy {
-    /// Rbspy Configuration
-    config: RbspyConfig,
-    /// Rbspy Sampler
-    sampler: Option<Sampler>,
-    /// StackTrace Receiver
-    //stack_receiver: Option<Receiver<pyroscope_rbspy_oncpu::StackTrace>>,
+    sample_rate: u32,
+    backend_config: BackendConfig,
+    sampler: Sampler,
     /// Error Receiver
     error_receiver: Option<Receiver<std::result::Result<(), anyhow::Error>>>,
     /// Profiling buffer
@@ -154,12 +38,12 @@ impl std::fmt::Debug for Rbspy {
 
 impl Rbspy {
     /// Create a new Rbspy instance
-    pub fn new(config: RbspyConfig) -> Self {
+    pub fn new(sampler: Sampler, sample_rate: u32, backend_config: BackendConfig) -> Self {
         Rbspy {
-            sampler: None,
-            //stack_receiver: None,
+            sample_rate,
+            sampler,
+            backend_config,
             error_receiver: None,
-            config,
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
             ruleset: Ruleset::default(),
         }
@@ -183,13 +67,7 @@ impl Backend for Rbspy {
 
     /// Return the sample rate
     fn sample_rate(&self) -> Result<u32> {
-        Ok(self.config.sample_rate)
-    }
-
-    fn set_config(&self, _config: BackendConfig) {}
-
-    fn get_config(&self) -> Result<BackendConfig> {
-        Ok(self.config.backend_config)
+        Ok(self.sample_rate)
     }
 
     /// Add a rule to the ruleset
@@ -208,21 +86,7 @@ impl Backend for Rbspy {
 
     /// Initialize the backend
     fn initialize(&mut self) -> Result<()> {
-        // Check if a process ID is set
-        if self.config.pid.is_none() {
-            return Err(PyroscopeError::new("Rbspy: No Process ID Specified"));
-        }
 
-        // Create Sampler
-        self.sampler = Some(Sampler::new(
-            self.config.pid.unwrap(), // unwrap is safe because of check above
-            self.config.sample_rate,
-            self.config.lock_process,
-            self.config.time_limit,
-            self.config.detect_subprocesses,
-            None,
-            self.config.oncpu,
-        ));
 
         // Channel for Errors generated by the RubySpy Sampler
         let (error_sender, error_receiver): (ErrorSender, ErrorReceiver) = channel();
@@ -230,7 +94,7 @@ impl Backend for Rbspy {
         // This is provides enough space for 100 threads.
         // It might be a better idea to figure out how many threads are running and determine the
         // size of the channel based on that.
-        let queue_size: usize = self.config.sample_rate as usize * 10 * 100;
+        let queue_size: usize = self.sample_rate as usize * 10 * 100;
 
         // Channel for StackTraces generated by the RubySpy Sampler
         let (stack_sender, stack_receiver): (
@@ -242,14 +106,8 @@ impl Backend for Rbspy {
         //self.stack_receiver = Some(stack_receiver);
         self.error_receiver = Some(error_receiver);
 
-        // Get the Sampler
-        let sampler = self
-            .sampler
-            .as_ref()
-            .ok_or_else(|| PyroscopeError::new("Rbspy: Sampler is not set"))?;
 
-        // Start the Sampler
-        sampler
+        self.sampler
             .start(stack_sender, error_sender)
             .map_err(|e| PyroscopeError::new(&format!("Rbspy: Sampler Error: {}", e)))?;
 
@@ -261,7 +119,7 @@ impl Backend for Rbspy {
         // ruleset reference
         let ruleset = self.ruleset.clone();
 
-        let backend_config = self.config.backend_config;
+        let backend_config = self.backend_config;
 
         let _: JoinHandle<Result<()>> = std::thread::spawn(move || {
             // Iterate over the StackTrace
@@ -284,11 +142,7 @@ impl Backend for Rbspy {
     fn shutdown(self: Box<Self>) -> Result<()> {
         log::trace!(target: LOG_TAG, "Shutting down sampler thread");
 
-        // Stop Sampler
-        self.sampler
-            .as_ref()
-            .ok_or_else(|| PyroscopeError::new("Rbspy: Sampler is not set"))?
-            .stop();
+        self.sampler.stop();
 
         Ok(())
     }

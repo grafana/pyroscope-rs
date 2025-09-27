@@ -319,9 +319,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-if"
-version = "1.0.0"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
 
 [[package]]
 name = "cfg_aliases"
@@ -592,7 +592,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.1",
 ]
 
 [[package]]
@@ -724,12 +724,14 @@ dependencies = [
 name = "ffiruby"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cbindgen",
  "ffikit",
  "log",
  "pretty_env_logger",
  "pyroscope",
- "pyroscope_rbspy",
+ "rbspy",
+ "remoteprocess",
 ]
 
 [[package]]
@@ -2084,8 +2086,6 @@ dependencies = [
  "pretty_env_logger",
  "prost 0.13.5",
  "pyroscope_pprofrs",
- "pyroscope_pyspy",
- "pyroscope_rbspy",
  "reqwest",
  "serde_json",
  "thiserror 2.0.16",
@@ -2102,8 +2102,8 @@ dependencies = [
  "ffikit",
  "log",
  "pretty_env_logger",
+ "py-spy",
  "pyroscope",
- "pyroscope_pyspy",
 ]
 
 [[package]]
@@ -2113,25 +2113,6 @@ dependencies = [
  "log",
  "pprof2",
  "pyroscope",
-]
-
-[[package]]
-name = "pyroscope_pyspy"
-version = "0.2.5"
-dependencies = [
- "log",
- "py-spy",
- "pyroscope",
-]
-
-[[package]]
-name = "pyroscope_rbspy"
-version = "0.2.5"
-dependencies = [
- "anyhow",
- "log",
- "pyroscope",
- "rbspy",
 ]
 
 [[package]]
@@ -2928,7 +2909,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.1",
 ]
 
 [[package]]

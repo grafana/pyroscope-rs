@@ -1,5 +1,7 @@
 extern crate pyroscope;
 
+use pyroscope::backend::BackendConfig;
+use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use pyroscope::{PyroscopeAgent, Result};
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::{
@@ -65,14 +67,17 @@ fn extra_rounds2(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let agent = PyroscopeAgent::builder("http://localhost:4040", "example.multithread.report")
+    let backend = pprof_backend(
+        PprofConfig { sample_rate: 100 },
+        BackendConfig {
+            report_thread_id: true,
+            report_thread_name: true,
+            report_pid: false,
+        },
+    );
+
+    let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "example.multithread.report", backend)
         .tags([("Host", "Rust")].to_vec())
-        .backend(pprof_backend(
-            PprofConfig::new()
-                .sample_rate(100)
-                .report_thread_id()
-                .report_thread_name(),
-        ))
         .build()?;
 
     // Show start time

@@ -15,82 +15,30 @@ use std::{
 
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
 
-pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
-    let backend_config = config.backend_config;
-    BackendImpl::new(Box::new(Pprof::new(config)), Some(backend_config))
+pub fn pprof_backend(config: PprofConfig, backend_config: BackendConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Box::new(Pprof::new(config, backend_config)))
 }
 
-/// Pprof Configuration
 #[derive(Debug)]
 pub struct PprofConfig {
-    sample_rate: u32,
-    backend_config: BackendConfig,
+    pub sample_rate: u32,
 }
 
 impl Default for PprofConfig {
     fn default() -> Self {
         PprofConfig {
             sample_rate: 100,
-            backend_config: BackendConfig::default(),
         }
     }
 }
 
-impl PprofConfig {
-    /// Create a new Pprof configuration
-    pub fn new() -> Self {
-        PprofConfig::default()
-    }
-
-    /// Set the sample rate
-    pub fn sample_rate(self, sample_rate: u32) -> Self {
-        PprofConfig {
-            sample_rate,
-            ..self
-        }
-    }
-
-    /// Tag thread id in report
-    pub fn report_thread_id(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_id: true,
-            ..self.backend_config
-        };
-
-        PprofConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    /// Tag thread name in report
-    pub fn report_thread_name(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_name: true,
-            ..self.backend_config
-        };
-
-        PprofConfig {
-            backend_config,
-            ..self
-        }
-    }
-}
-
-/// Pprof Backend
 #[derive(Default)]
 pub struct Pprof<'a> {
-    /// Profling buffer
     buffer: Arc<Mutex<StackBuffer>>,
-    /// pprof-rs Configuration
     config: PprofConfig,
-    /// Backend Configuration
     backend_config: BackendConfig,
-    /// pprof-rs profiler Guard Builder
     inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
-    /// pprof-rs profiler Guard
     guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
-    /// Ruleset
     ruleset: Ruleset,
 }
 
@@ -101,9 +49,7 @@ impl std::fmt::Debug for Pprof<'_> {
 }
 
 impl<'a> Pprof<'a> {
-    /// Create a new Pprof Backend
-    pub fn new(config: PprofConfig) -> Self {
-        let backend_config = config.backend_config;
+    pub fn new(config: PprofConfig, backend_config: BackendConfig) -> Self {
         Pprof {
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
@@ -167,12 +113,6 @@ impl Backend for Pprof<'_> {
         buffer.lock()?.clear();
 
         Ok(reports)
-    }
-
-    fn set_config(&self, _config: BackendConfig) {}
-
-    fn get_config(&self) -> Result<BackendConfig> {
-        Ok(self.backend_config)
     }
 
     fn add_rule(&self, rule: Rule) -> Result<()> {

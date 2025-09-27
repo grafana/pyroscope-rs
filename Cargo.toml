@@ -21,20 +21,12 @@ rust-version = "1.64"
 [workspace]
 members = [
     "pyroscope_backends/pyroscope_pprofrs",
-    "pyroscope_backends/pyroscope_pyspy",
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/ruby/ext/thread_id",
     "pyroscope_ffi/python/lib",
     "pyroscope_ffi/ffikit",
 ]
 
-[[example]]
-name = "internal-backend-void"
-path = "examples/internal/backend-void.rs"
-
-[[example]]
-name = "internal-backend-void-run"
-path = "examples/internal/backend-void-run.rs"
 
 [[example]]
 name = "internal-backend-pprof"
@@ -44,13 +36,7 @@ path = "examples/internal/backend-pprof.rs"
 name = "internal-timer"
 path = "examples/internal/timer.rs"
 
-[[example]]
-name = "internal-pyspy-connect"
-path = "examples/internal/pyspy-connect.rs"
 
-[[example]]
-name = "internal-rbspy-connect"
-path = "examples/internal/rbspy-connect.rs"
 
 [dependencies]
 thiserror = "2.0.12"
@@ -70,8 +56,6 @@ pretty_env_logger = "0.5.0"
 assert_matches = "1"
 claims = "0.8.0"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
-pyroscope_pyspy = { path = "pyroscope_backends/pyroscope_pyspy" }
-pyroscope_rbspy = { path = "pyroscope_backends/pyroscope_rbspy" }
 
 [features]
 default = ["rustls-tls"]
