@@ -11,8 +11,8 @@ dependencies = [
  "cpp_demangle",
  "fallible-iterator",
  "gimli",
- "memmap2",
- "object",
+ "memmap2 0.9.8",
+ "object 0.36.7",
  "rustc-demangle",
  "smallvec",
  "typed-arena",
@@ -50,6 +50,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "aligned-vec"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc890384c8602f339876ded803c97ad529f3842aba97f6392b3dba0dd171769b"
+dependencies = [
+ "equator",
 ]
 
 [[package]]
@@ -186,7 +195,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "miniz_oxide",
- "object",
+ "object 0.36.7",
  "rustc-demangle",
  "windows-targets 0.52.6",
 ]
@@ -661,6 +670,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "equator"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4711b213838dfee0117e3be6ac926007d7f433d7bbe33595975d4190cb07e6fc"
+dependencies = [
+ "equator-macro",
+]
+
+[[package]]
+name = "equator-macro"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44f23cf4b44bfce11a86ace86f8a73ffdec849c9fd00a386a53d278bd9e81fb3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.101",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -784,6 +813,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
  "percent-encoding",
+]
+
+[[package]]
+name = "framehop"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09a5a3f0acb82df800ca3aa50c0d60d286c5d13d4cfc3114b3a9663f13b032fe"
+dependencies = [
+ "arrayvec",
+ "cfg-if",
+ "fallible-iterator",
+ "gimli",
+ "macho-unwind-info",
+ "pe-unwind-info",
 ]
 
 [[package]]
@@ -1477,7 +1520,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.53.4",
 ]
 
 [[package]]
@@ -1581,10 +1624,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e854583a83f20cf329bb9283366335387f7db59d640d1412167e05fedb98826"
 
 [[package]]
+name = "macho-unwind-info"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb4bdc8b0ce69932332cf76d24af69c3a155242af95c226b2ab6c2e371ed1149"
+dependencies = [
+ "thiserror 2.0.16",
+ "zerocopy",
+ "zerocopy-derive",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "memmap2"
+version = "0.5.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83faa42c0a078c393f6b29d5db232d8be22776a891f8f56e5284faee4a20b327"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "memmap2"
@@ -1666,17 +1729,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
-dependencies = [
- "bitflags 2.9.1",
- "cfg-if",
- "libc",
-]
-
-[[package]]
-name = "nix"
 version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
@@ -1722,6 +1774,16 @@ name = "number_prefix"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
+
+[[package]]
+name = "object"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21158b2c33aa6d4561f1c0a6ea283ca92bc54802a93b263e910746d679a7eb53"
+dependencies = [
+ "flate2",
+ "memchr",
+]
 
 [[package]]
 name = "object"
@@ -1832,6 +1894,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pe-unwind-info"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "500fa4cdeacd98997c5865e3d0d1cb8fe7e9d7d75ecc775e07989a433a9a9a59"
+dependencies = [
+ "arrayvec",
+ "bitflags 2.9.1",
+ "thiserror 2.0.16",
+ "zerocopy",
+ "zerocopy-derive",
+]
+
+[[package]]
 name = "percent-encoding"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1897,20 +1972,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "pprof2"
-version = "0.13.1"
+name = "pprof"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8961ed0a916b512e565f8070eb0dfa05773dd140160b45ac9a5ad339b557adeb"
+checksum = "38a01da47675efa7673b032bf8efd8214f1917d89685e07e395ab125ea42b187"
 dependencies = [
+ "aligned-vec",
  "backtrace",
  "cfg-if",
  "findshlibs",
+ "framehop",
  "libc",
  "log",
- "nix 0.27.1",
+ "memmap2 0.5.10",
+ "nix 0.26.4",
+ "object 0.29.0",
  "once_cell",
- "parking_lot",
  "smallvec",
+ "spin",
  "symbolic-demangle",
  "tempfile",
  "thiserror 2.0.16",
@@ -2058,7 +2137,7 @@ dependencies = [
  "libc",
  "log",
  "lru",
- "memmap2",
+ "memmap2 0.9.8",
  "num-traits",
  "proc-maps",
  "rand 0.8.5",
@@ -2111,7 +2190,7 @@ name = "pyroscope_pprofrs"
 version = "0.2.10"
 dependencies = [
  "log",
- "pprof2",
+ "pprof",
  "pyroscope",
 ]
 
@@ -2290,7 +2369,7 @@ dependencies = [
  "libc",
  "libproc",
  "log",
- "memmap2",
+ "memmap2 0.9.8",
  "nix 0.30.1",
  "proc-maps",
  "prost 0.14.1",
@@ -2390,9 +2469,9 @@ dependencies = [
  "log",
  "mach",
  "mach_o_sys",
- "memmap2",
+ "memmap2 0.9.8",
  "nix 0.26.4",
- "object",
+ "object 0.36.7",
  "proc-maps",
  "read-process-memory",
  "regex",
@@ -2773,6 +2852,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spin"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
+dependencies = [
+ "lock_api",
+]
+
+[[package]]
 name = "spinning"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2792,7 +2880,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "memmap2",
+ "memmap2 0.9.8",
  "proc-maps",
  "regex",
  "remoteprocess",
@@ -2841,7 +2929,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a1150bdda9314f6cfeeea801c23f5593c6e6a6c72e64f67e48d723a12b8efdb"
 dependencies = [
  "debugid",
- "memmap2",
+ "memmap2 0.9.8",
  "stable_deref_trait",
  "uuid",
 ]
