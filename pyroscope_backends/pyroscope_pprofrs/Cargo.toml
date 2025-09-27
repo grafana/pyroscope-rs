@@ -15,15 +15,14 @@ readme = "README.md"
 
 
 [dependencies]
-pprof2 = "0.13"
+pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"] }
 pyroscope = { version = "0.5.7", path = "../..", default-features = false }
 log = "0.4"
 
 [features]
 default = ["pyroscope/default"]
-frame-pointer = ["pprof2/frame-pointer"]
 
 [target.aarch64-apple-darwin.dependencies]
-pprof2 = { version = "0.13", features = ["frame-pointer"] }
+pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"] }
 
 
