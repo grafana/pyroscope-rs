@@ -1,0 +1,147 @@
+name: Ruby Release
+
+on:
+  push:
+    tags:
+      - 'ruby-*'
+
+permissions:
+  contents: write
+
+jobs:
+  ruby-release-linux:
+    needs: [ 'ruby-release' ]
+    name: Release Linux gem amd64
+    runs-on: ubuntu-x64-large
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: make gem/linux/amd64
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ github.sha }}-ruby-amd64
+          path: pyroscope_ffi/ruby/pkg/*.gem
+
+      - name: Upload release artifact
+        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release-linux-arm:
+    needs: [ 'ruby-release' ]
+    name: Release Linux gem arm64
+    runs-on: ubuntu-arm64-large
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: make gem/linux/arm64
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ github.sha }}-ruby-arm64
+          path: pyroscope_ffi/ruby/pkg/*.gem
+
+      - name: Upload release artifact
+        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release-macos:
+    needs: [ 'ruby-release' ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - macos-version: "14"
+            target: x86_64-apple-darwin
+            mk-arch: amd64
+          - macos-version: "14"
+            target: aarch64-apple-darwin
+            mk-arch: arm64
+
+    name: macOS - ${{ matrix.target }}
+    runs-on: macos-${{ matrix.macos-version }}
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
+        with:
+          ruby-version: '3.1'
+      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
+        with:
+          toolchain: 1.85.0
+          target: ${{ matrix.target }}
+
+      - run: make pyroscope_ffi/clean gem/mac/${{ matrix.mk-arch }}
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ github.sha }}-ruby-mac-${{ matrix.target }}
+          path: pyroscope_ffi/ruby/pkg/*.gem
+
+      - name: Upload release artifact
+        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release-source:
+    needs: [ 'ruby-release' ]
+    name: source
+    runs-on: ubuntu-x64-small
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
+        with:
+          ruby-version: '3.1'
+
+      - name: Install bundles
+        run: bundle
+        working-directory: pyroscope_ffi/ruby
+
+      - name: Build source gem
+        run: rake source:gem
+        working-directory: pyroscope_ffi/ruby
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ github.sha }}-ruby-source
+          path: pyroscope_ffi/ruby/pkg/*.gem
+
+      - name: Upload release artifact
+        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
+          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+
+  ruby-release:
+    name: Ruby Gem
+    runs-on: ubuntu-x64-small
+    outputs:
+      upload_url: ${{ steps.auto-release.outputs.upload_url }}
+    steps:
+      - id: auto-release
+        uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "${{ github.ref_name }}"
+          title: "Ruby Gem: ${{ github.ref_name }}"
+          draft: true
+          prerelease: false
