@@ -1,4 +1,4 @@
-use pprof2::{ProfilerGuard, ProfilerGuardBuilder};
+use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
         Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
@@ -82,10 +82,9 @@ impl Backend for Pprof<'_> {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        // Construct a ProfilerGuardBuilder
-        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
+        let profiler = ProfilerGuardBuilder::default()
+            .frequency(self.config.sample_rate as i32);
 
-        // Set inner_builder field
         *self.inner_builder.lock()? = Some(profiler);
 
         *self.guard.lock()? = Some(
@@ -199,8 +198,8 @@ impl From<StackBufferWrapper> for StackBuffer {
     }
 }
 
-impl From<(pprof2::Report, &BackendConfig)> for StackBufferWrapper {
-    fn from(arg: (pprof2::Report, &BackendConfig)) -> Self {
+impl From<(pprof::Report, &BackendConfig)> for StackBufferWrapper {
+    fn from(arg: (pprof::Report, &BackendConfig)) -> Self {
         let (report, config) = arg;
         //convert report to stackbuffer
         let buffer_data: HashMap<StackTrace, usize> = report
@@ -225,8 +224,8 @@ impl From<StackTraceWrapper> for StackTrace {
     }
 }
 
-impl From<(pprof2::Frames, &BackendConfig)> for StackTraceWrapper {
-    fn from(arg: (pprof2::Frames, &BackendConfig)) -> Self {
+impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
+    fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
         StackTraceWrapper(StackTrace::new(
             config,
@@ -251,8 +250,8 @@ impl From<StackFrameWrapper> for StackFrame {
     }
 }
 
-impl From<pprof2::Symbol> for StackFrameWrapper {
-    fn from(symbol: pprof2::Symbol) -> Self {
+impl From<pprof::Symbol> for StackFrameWrapper {
+    fn from(symbol: pprof::Symbol) -> Self {
         StackFrameWrapper(StackFrame::new(
             None,
             Some(symbol.name()),
