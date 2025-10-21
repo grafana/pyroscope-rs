@@ -25,7 +25,7 @@ def configure(
         sample_rate=100,
         detect_subprocesses=False,
         oncpu=True,
-        native=None,
+        native=False,
         gil_only=True,
         report_pid=False,
         report_thread_id=False,
@@ -39,9 +39,6 @@ def configure(
     if app_name is not None:
         warnings.warn("app_name is deprecated, use application_name", DeprecationWarning)
         application_name = app_name
-
-    if native is not None:
-        warnings.warn("native is deprecated and not supported", DeprecationWarning)
 
     LOGGER.disabled = not enable_logging
     if enable_logging:
@@ -64,7 +61,8 @@ def configure(
         tags_to_string(tags).encode("UTF-8"),
         (tenant_id or "").encode("UTF-8"),
         http_headers_to_json(http_headers).encode("UTF-8"),
-        line_no.value
+        line_no.value,
+        native
     )
 
 def shutdown():

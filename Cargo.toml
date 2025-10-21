@@ -93,6 +93,3 @@ rpath = false
 lto = true
 debug-assertions = false
 codegen-units = 1
-
-[patch.crates-io]
-py-spy = { git = "https://github.com/grafana/py-spy", rev = "062d827" }

@@ -47,6 +47,7 @@ pub extern "C" fn initialize_agent(
     detect_subprocesses: bool, oncpu: bool, gil_only: bool, report_pid: bool,
     report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
     tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo,
+    native: bool,
 ) -> bool {
     // Initialize FFIKit
     let recv = ffikit::initialize_ffi().unwrap();
@@ -111,7 +112,7 @@ pub extern "C" fn initialize_agent(
 
     let config = py_spy::Config {
         blocking: py_spy::config::LockingStrategy::NonBlocking,
-        native: false,
+        native: native,
         pid: Some(pid),
         sampling_rate: sample_rate.into(),
         include_idle: !oncpu,

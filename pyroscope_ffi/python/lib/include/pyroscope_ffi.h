@@ -33,7 +33,8 @@ bool initialize_agent(const char *application_name,
                       const char *tags,
                       const char *tenant_id,
                       const char *http_headers_json,
-                      LineNo line_no);
+                      LineNo line_no,
+                      bool native);
 
 bool drop_agent(void);
 
