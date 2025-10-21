@@ -8,6 +8,14 @@ RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rus
 ENV PATH=/root/.cargo/bin:$PATH
 RUN yum -y install gcc libffi-devel openssl-devel wget gcc-c++ glibc-devel make
 
+ENV LIBUNWIND_VERSION=1.8.3
+RUN wget https://github.com/libunwind/libunwind/releases/download/v${LIBUNWIND_VERSION}/libunwind-${LIBUNWIND_VERSION}.tar.gz \
+    && tar -zxvf libunwind-${LIBUNWIND_VERSION}.tar.gz \
+    && cd libunwind-${LIBUNWIND_VERSION} \
+    && ./configure --disable-minidebuginfo --enable-ptrace --disable-tests --disable-documentation \
+    && make \
+    && make install
+
 WORKDIR /pyroscope-rs
 
 ADD Cross.toml \
