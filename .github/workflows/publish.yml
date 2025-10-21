@@ -11,7 +11,7 @@ permissions:
 jobs:
   publish-pyroscope:
     name: pyroscope-lib
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-x64-small
     if: "startsWith(github.event.release.tag_name, 'lib-')"
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -26,7 +26,7 @@ jobs:
           cargo publish
   publish-pprofrs:
     name: "Backend: pprofrs"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-x64-small
     if: "startsWith(github.event.release.tag_name, 'pprofrs-')"
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -40,39 +40,9 @@ jobs:
           set -ex
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
-  publish-rbspy:
-    name: "Backend: rbspy"
-    runs-on: ubuntu-latest
-    if: "startsWith(github.event.release.tag_name, 'rbspy-')"
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
-        with:
-          toolchain: 1.85.0
-      - name: publish rbspy crate
-        run: |
-          cargo login ${{ secrets.CARGO_TOKEN }}
-          cargo publish --manifest-path pyroscope_backends/pyroscope_rbspy/Cargo.toml
-  publish-pyspy:
-    name: "Backend: pyspy" 
-    runs-on: ubuntu-latest
-    if: "startsWith(github.event.release.tag_name, 'pyspy-')"
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@888c2e1ea69ab0d4330cbf0af1ecc7b68f368cc1
-        with:
-          toolchain: 1.85.0
-      - name: publish pyspy crate
-        run: |
-          cargo login ${{ secrets.CARGO_TOKEN }}
-          cargo publish --manifest-path pyroscope_backends/pyroscope_pyspy/Cargo.toml
   publish-python:
     name: "Python" 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-x64-small
     if: "startsWith(github.event.release.tag_name, 'python-')"
     steps:
       - uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # 1.12

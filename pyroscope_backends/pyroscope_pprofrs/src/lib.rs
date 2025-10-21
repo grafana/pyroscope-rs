@@ -1,4 +1,4 @@
-use pprof2::{ProfilerGuard, ProfilerGuardBuilder};
+use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
         Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
@@ -15,82 +15,30 @@ use std::{
 
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
 
-pub fn pprof_backend(config: PprofConfig) -> BackendImpl<BackendUninitialized> {
-    let backend_config = config.backend_config;
-    BackendImpl::new(Box::new(Pprof::new(config)), Some(backend_config))
+pub fn pprof_backend(config: PprofConfig, backend_config: BackendConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Box::new(Pprof::new(config, backend_config)))
 }
 
-/// Pprof Configuration
 #[derive(Debug)]
 pub struct PprofConfig {
-    sample_rate: u32,
-    backend_config: BackendConfig,
+    pub sample_rate: u32,
 }
 
 impl Default for PprofConfig {
     fn default() -> Self {
         PprofConfig {
             sample_rate: 100,
-            backend_config: BackendConfig::default(),
         }
     }
 }
 
-impl PprofConfig {
-    /// Create a new Pprof configuration
-    pub fn new() -> Self {
-        PprofConfig::default()
-    }
-
-    /// Set the sample rate
-    pub fn sample_rate(self, sample_rate: u32) -> Self {
-        PprofConfig {
-            sample_rate,
-            ..self
-        }
-    }
-
-    /// Tag thread id in report
-    pub fn report_thread_id(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_id: true,
-            ..self.backend_config
-        };
-
-        PprofConfig {
-            backend_config,
-            ..self
-        }
-    }
-
-    /// Tag thread name in report
-    pub fn report_thread_name(self) -> Self {
-        let backend_config = BackendConfig {
-            report_thread_name: true,
-            ..self.backend_config
-        };
-
-        PprofConfig {
-            backend_config,
-            ..self
-        }
-    }
-}
-
-/// Pprof Backend
 #[derive(Default)]
 pub struct Pprof<'a> {
-    /// Profling buffer
     buffer: Arc<Mutex<StackBuffer>>,
-    /// pprof-rs Configuration
     config: PprofConfig,
-    /// Backend Configuration
     backend_config: BackendConfig,
-    /// pprof-rs profiler Guard Builder
     inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
-    /// pprof-rs profiler Guard
     guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
-    /// Ruleset
     ruleset: Ruleset,
 }
 
@@ -101,9 +49,7 @@ impl std::fmt::Debug for Pprof<'_> {
 }
 
 impl<'a> Pprof<'a> {
-    /// Create a new Pprof Backend
-    pub fn new(config: PprofConfig) -> Self {
-        let backend_config = config.backend_config;
+    pub fn new(config: PprofConfig, backend_config: BackendConfig) -> Self {
         Pprof {
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
@@ -136,10 +82,9 @@ impl Backend for Pprof<'_> {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        // Construct a ProfilerGuardBuilder
-        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
+        let profiler = ProfilerGuardBuilder::default()
+            .frequency(self.config.sample_rate as i32);
 
-        // Set inner_builder field
         *self.inner_builder.lock()? = Some(profiler);
 
         *self.guard.lock()? = Some(
@@ -167,12 +112,6 @@ impl Backend for Pprof<'_> {
         buffer.lock()?.clear();
 
         Ok(reports)
-    }
-
-    fn set_config(&self, _config: BackendConfig) {}
-
-    fn get_config(&self) -> Result<BackendConfig> {
-        Ok(self.backend_config)
     }
 
     fn add_rule(&self, rule: Rule) -> Result<()> {
@@ -259,8 +198,8 @@ impl From<StackBufferWrapper> for StackBuffer {
     }
 }
 
-impl From<(pprof2::Report, &BackendConfig)> for StackBufferWrapper {
-    fn from(arg: (pprof2::Report, &BackendConfig)) -> Self {
+impl From<(pprof::Report, &BackendConfig)> for StackBufferWrapper {
+    fn from(arg: (pprof::Report, &BackendConfig)) -> Self {
         let (report, config) = arg;
         //convert report to stackbuffer
         let buffer_data: HashMap<StackTrace, usize> = report
@@ -285,8 +224,8 @@ impl From<StackTraceWrapper> for StackTrace {
     }
 }
 
-impl From<(pprof2::Frames, &BackendConfig)> for StackTraceWrapper {
-    fn from(arg: (pprof2::Frames, &BackendConfig)) -> Self {
+impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
+    fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
         StackTraceWrapper(StackTrace::new(
             config,
@@ -311,8 +250,8 @@ impl From<StackFrameWrapper> for StackFrame {
     }
 }
 
-impl From<pprof2::Symbol> for StackFrameWrapper {
-    fn from(symbol: pprof2::Symbol) -> Self {
+impl From<pprof::Symbol> for StackFrameWrapper {
+    fn from(symbol: pprof::Symbol) -> Self {
         StackFrameWrapper(StackFrame::new(
             None,
             Some(symbol.name()),

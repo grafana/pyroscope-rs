@@ -51,13 +51,14 @@ impl SessionManager {
         // Create a thread for the SessionManager
         let handle = Some(thread::spawn(move || {
             log::trace!(target: LOG_TAG, "Started");
+            let client = reqwest::blocking::Client::new();
             while let Ok(signal) = rx.recv() {
                 match signal {
                     SessionSignal::Session(session) => {
                         // Send the session
                         // Matching is done here (instead of ?) to avoid breaking
                         // the SessionManager thread if the server is not available.
-                        match session.send() {
+                        match session.send_with_client(&client) {
                             Ok(_) => log::trace!("SessionManager - Session sent"),
                             Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
                         }
@@ -125,16 +126,13 @@ impl Session {
         })
     }
 
-    /// Send the session to the server and consumes the session object.
-    /// # Example
-    /// ```ignore
-    /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app");
-    /// let report = vec![1, 2, 3];
-    /// let until = 154065120;
-    /// let session = Session::new(until, config, report)?;
-    /// session.send()?;
-    /// ```
+    /// deprecated
     pub fn send(self) -> Result<()> {
+        let client = reqwest::blocking::Client::new();
+        self.send_with_client(&client)
+    }
+
+    pub fn send_with_client(self, client: &reqwest::blocking::Client) -> Result<()> {
         // Check if the report is empty
         if self.reports.is_empty() {
             return Ok(());
@@ -145,7 +143,7 @@ impl Session {
         let reports = self.compress_reports(reports);
 
         for report in reports {
-            self.upload(report)?;
+            self.upload(report, client)?;
         }
 
         Ok(())
@@ -194,15 +192,12 @@ impl Session {
             .collect()
     }
 
-    fn upload(&self, report: EncodedReport) -> Result<()> {
+    fn upload(&self, report: EncodedReport, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
         if report.data.is_empty() {
             return Ok(());
         }
-
-        //todo do not create a new client for every request
-        let client = reqwest::blocking::Client::new();
 
         let application_name = merge_tags_with_app_name(
             self.config.application_name.clone(),
@@ -236,7 +231,7 @@ impl Session {
             req_builder = req_builder.header(k, v);
         }
 
-        let response = req_builder
+        let mut response = req_builder
             .query(&[
                 ("name", application_name.as_str()),
                 ("from", &format!("{}", self.from)),
@@ -249,8 +244,18 @@ impl Session {
             .timeout(Duration::from_secs(10))
             .send()?;
 
-        if !response.status().is_success() {
-            log::error!(target: LOG_TAG, "Sending Session failed {}", response.status().as_u16());
+        let status = response.status();
+
+        if status.is_success() {
+            let mut sink = std::io::sink();
+            _ = response.copy_to(&mut sink);
+        } else {
+            let resp = response.text();
+            let resp = match &resp {
+                Ok(t) => t,
+                Err(_) => "",
+            };
+            log::error!(target: LOG_TAG, "Sending Session failed {} {}", status.as_u16(), resp);
         }
         Ok(())
     }

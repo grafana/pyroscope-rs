@@ -18,7 +18,6 @@ ADD Cross.toml \
 
 ADD src src
 ADD pyroscope_backends pyroscope_backends
-ADD pyroscope_cli pyroscope_cli
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release

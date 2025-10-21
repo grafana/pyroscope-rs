@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    backend::{void_backend, BackendReady, BackendUninitialized, Report, Rule, Tag, VoidConfig},
+    backend::{BackendReady, BackendUninitialized, Report, Rule, Tag},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
@@ -237,14 +237,6 @@ pub struct PyroscopeAgentBuilder {
     config: PyroscopeConfig,
 }
 
-impl Default for PyroscopeAgentBuilder {
-    fn default() -> Self {
-        Self {
-            backend: void_backend(VoidConfig::default()),
-            config: PyroscopeConfig::default(),
-        }
-    }
-}
 
 impl PyroscopeAgentBuilder {
     /// Create a new PyroscopeAgentBuilder object. url and application_name are required.
@@ -254,9 +246,9 @@ impl PyroscopeAgentBuilder {
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
     /// ```
-    pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
+    pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>, backend: BackendImpl<BackendUninitialized>) -> Self {
         Self {
-            backend: void_backend(VoidConfig::default()), // Default Backend
+            backend,
             config: PyroscopeConfig::new(url, application_name),
         }
     }
@@ -292,18 +284,7 @@ impl PyroscopeAgentBuilder {
             ..self
         }
     }
-
-    /// Set the agent backend. Default is void-backend.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .backend(PprofConfig::new().sample_rate(100))
-    /// .build()?;
-    /// ```
-    pub fn backend(self, backend: BackendImpl<BackendUninitialized>) -> Self {
-        Self { backend, ..self }
-    }
+    
 
     /// Set JWT authentication token.
     /// This is optional. If not set, the agent will not send any authentication token.
@@ -516,7 +497,6 @@ impl PyroscopeAgentState for PyroscopeAgentReady {}
 impl PyroscopeAgentState for PyroscopeAgentRunning {}
 
 /// PyroscopeAgent is the main object of the library. It is used to start and stop the profiler, schedule the timer, and send the profiler data to the server.
-#[derive(Debug)]
 pub struct PyroscopeAgent<S: PyroscopeAgentState> {
     /// Instance of the Timer
     timer: Timer,
@@ -602,31 +582,6 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
         }
 
         log::debug!(target: LOG_TAG, "Agent Shutdown");
-    }
-}
-
-impl PyroscopeAgent<PyroscopeAgentBare> {
-    /// Short-hand for PyroscopeAgentBuilder::new(url, application_name). This is a convenience method.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// ```
-    pub fn builder<S: AsRef<str>>(url: S, application_name: S) -> PyroscopeAgentBuilder {
-        // Build PyroscopeAgent
-        PyroscopeAgentBuilder::new(url, application_name)
-    }
-
-    /// Short-hand for PyroscopeAgentBuilder::default(). This is a convenience method.
-    /// Default URL is "http://localhost:4040". Default application name is randomly generated.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::default_builder().build()?;
-    /// ```
-    pub fn default_builder() -> PyroscopeAgentBuilder {
-        // Build PyroscopeAgent
-        PyroscopeAgentBuilder::default()
     }
 }
 

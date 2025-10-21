@@ -6,7 +6,6 @@ clean:
 	rm -rf pyroscope_beta.egg-info
 	rm -rf pyroscope_io.egg-info
 	rm -rf .eggs
-	rm -rf lib/target
 
 .PHONY: build
 build: clean

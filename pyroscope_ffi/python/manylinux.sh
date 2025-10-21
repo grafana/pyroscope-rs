@@ -5,6 +5,7 @@ cargo --version
 
 # Build wheels
 # todo this one is deprecated, use "build" package
+/opt/python/cp39-cp39/bin/python -m pip install -r requirements.txt
 /opt/python/cp39-cp39/bin/python setup.py bdist_wheel
 
 # Audit wheels
