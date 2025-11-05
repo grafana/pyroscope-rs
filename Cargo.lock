@@ -3922,8 +3922,3 @@ dependencies = [
  "quote",
  "syn 2.0.101",
 ]
-
-[[patch.unused]]
-name = "py-spy"
-version = "0.4.0"
-source = "git+https://github.com/grafana/py-spy?rev=062d827#062d8279c15e949f507e22dce17414ab083ef477"
