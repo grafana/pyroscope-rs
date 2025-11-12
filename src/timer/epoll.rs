@@ -35,6 +35,7 @@ pub struct Timer {
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
     pub fn initialize(cycle: Duration) -> Result<Self> {
+        #[cfg(feature = "log")]
         log::info!(target: LOG_TAG, "Initializing Timer");
 
         let txs = Arc::new(Mutex::new(Vec::new()));
@@ -56,6 +57,7 @@ impl Timer {
                         unsafe { libc::close(timer_fd) };
                         unsafe { libc::close(epoll_fd) };
 
+                        #[cfg(feature = "log")]
                         log::info!(target: LOG_TAG, "Timer thread terminated");
 
                         return Ok::<_, PyroscopeError>(());
@@ -72,6 +74,7 @@ impl Timer {
                     // Get the current time range
                     let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
 
+                    #[cfg(feature = "log")]
                     log::trace!(target: LOG_TAG, "Timer fired @ {}", from);
 
                     // Iterate through Senders
@@ -79,6 +82,7 @@ impl Timer {
                         // Send event to attached Sender
                         match tx.send(from) {
                             Ok(_) => {
+                                #[cfg(feature = "log")]
                                 log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", &tx)
                             }
                             Err(_e) => {} // There could be a less confusing message, or this

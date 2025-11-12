@@ -62,6 +62,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
             while let Ok(signal) = receiver.recv() {
                 match signal {
                     Signal::Kill => {
+                        #[cfg(feature = "log")]
                         log::info!(target: LOG_TAG, "FFI channel received kill signal.");
 
                         // Send the signal to the merge channel.
@@ -70,11 +71,13 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                         break;
                     }
                     _ => {
+                        #[cfg(feature = "log")]
                         log::trace!(target: LOG_TAG, "FFI channel received signal: {:?}", signal);
 
                         // Send the signal to the merge channel.
                         fn_sender.send(signal)?;
 
+                        #[cfg(feature = "log")]
                         log::trace!(target: LOG_TAG, "Sent FFI signal to merge channel");
                     }
                 }
@@ -88,6 +91,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
         let _socket_listener: JoinHandle<Result<()>> = std::thread::spawn(move || {
             let socket_address = format!("/tmp/PYROSCOPE-{}", get_parent_pid());
 
+            #[cfg(feature = "log")]
             log::trace!(
                 target: LOG_TAG,
                 "FFI Socket Listening on {}",
@@ -101,6 +105,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                     listener
                         .incoming()
                         .map(|packet| {
+                            #[cfg(feature = "log")]
                             log::trace!(target: LOG_TAG, "Received socket packet");
 
                             // Read the packet using a BufReader.
@@ -118,10 +123,12 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                             socket_sender.send(signal.clone())?;
 
                             if signal == Signal::Kill {
+                                #[cfg(feature = "log")]
                                 log::info!(target: LOG_TAG, "FFI socket received kill signal.");
                                 return Ok(());
                             }
 
+                            #[cfg(feature = "log")]
                             log::trace!(target: LOG_TAG, "Sent Socket signal to merge channel");
 
                             return Ok(());
@@ -129,6 +136,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
                         .collect::<Result<()>>()?;
                 }
                 Err(error) => {
+                    #[cfg(feature = "log")]
                     log::error!(target: LOG_TAG, "Socket failed to bind {} - can't receive signals", error)
                 }
             }
@@ -150,6 +158,7 @@ pub fn send(signal: Signal) -> Result<()> {
                 conn.flush()?;
             }
             Err(error) => {
+                #[cfg(feature = "log")]
                 log::error!(target: LOG_TAG, "Socket failed to connect {}", error)
             }
         }
@@ -169,6 +178,7 @@ fn set_parent_pid() {
     // Get the parent PID.
     let pid = std::process::id();
 
+    #[cfg(feature = "log")]
     log::trace!(target: LOG_TAG, "Set PARENT_PID: {}", pid);
 
     // Set the parent PID.

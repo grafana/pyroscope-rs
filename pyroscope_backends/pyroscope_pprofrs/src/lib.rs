@@ -75,6 +75,7 @@ impl Backend for Pprof<'_> {
     }
 
     fn shutdown(self: Box<Self>) -> Result<()> {
+        #[cfg(feature = "log")]
         log::trace!(target: LOG_TAG, "Shutting down sampler thread");
         //drop(self.guard.take());
 

@@ -40,7 +40,7 @@ path = "examples/internal/timer.rs"
 
 [dependencies]
 thiserror = "2.0.12"
-log = "0.4"
+log =  {version = "0.4", optional = true }
 names = { version = "0.14.0", default-features = false }
 reqwest = { version = "0.12", features = ["blocking"], default-features = false }
 url = "2.2.2"
@@ -58,9 +58,10 @@ claims = "0.8.0"
 pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 
 [features]
-default = ["rustls-tls"]
+default = ["rustls-tls", "log"]
 rustls-tls = ["reqwest/rustls-tls"]
 native-tls = ["reqwest/native-tls"]
+log = ["dep:log"]
 
 [profile.dev]
 opt-level=0

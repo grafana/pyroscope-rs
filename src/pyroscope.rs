@@ -414,14 +414,17 @@ impl PyroscopeAgentBuilder {
 
         // Initialize the Backend
         let backend_ready = self.backend.initialize()?;
+        #[cfg(feature = "log")]
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start the Timer
         let timer = Timer::initialize(std::time::Duration::from_secs(10))?;
+        #[cfg(feature = "log")]
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
         let session_manager = SessionManager::new()?;
+        #[cfg(feature = "log")]
         log::trace!(target: LOG_TAG, "SessionManager initialized");
 
         // Return PyroscopeAgent
@@ -535,35 +538,57 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
 impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
     /// Properly shutdown the agent.
     pub fn shutdown(mut self) {
+        #[cfg(feature = "log")]
         log::debug!(target: LOG_TAG, "PyroscopeAgent::drop()");
 
         // Shutdown Backend
         match self.backend.shutdown() {
-            Ok(_) => log::debug!(target: LOG_TAG, "Backend shutdown"),
+            Ok(_) => {
+                #[cfg(feature = "log")]
+                log::debug!(target: LOG_TAG, "Backend shutdown");
+            }
             Err(e) => log::error!(target: LOG_TAG, "Backend shutdown error: {}", e),
         }
 
         // Drop Timer listeners
         match self.timer.drop_listeners() {
-            Ok(_) => log::trace!(target: LOG_TAG, "Dropped timer listeners"),
-            Err(_) => log::error!(target: LOG_TAG, "Error Dropping timer listeners"),
+            Ok(_) => {
+                #[cfg(feature = "log")]
+                log::trace!(target: LOG_TAG, "Dropped timer listeners");
+            }
+            Err(_) => {
+                #[cfg(feature = "log")]
+                log::error!(target: LOG_TAG, "Error Dropping timer listeners");
+            }
         }
 
         // Wait for the Timer thread to finish
         if let Some(handle) = self.timer.handle.take() {
             match handle.join() {
-                Ok(_) => log::trace!(target: LOG_TAG, "Dropped timer thread"),
-                Err(_) => log::error!(target: LOG_TAG, "Error Dropping timer thread"),
+                Ok(_) => {
+                    #[cfg(feature = "log")]
+                    log::trace!(target: LOG_TAG, "Dropped timer thread");
+                }
+                Err(_) => {
+                    #[cfg(feature = "log")]
+                    log::error!(target: LOG_TAG, "Error Dropping timer thread");
+                }
             }
         }
 
         // Stop the SessionManager
         match self.session_manager.push(SessionSignal::Kill) {
-            Ok(_) => log::trace!(target: LOG_TAG, "Sent kill signal to SessionManager"),
-            Err(_) => log::error!(
+            Ok(_) => {
+                #[cfg(feature = "log")]
+                log::trace!(target: LOG_TAG, "Sent kill signal to SessionManager");
+            }
+            Err(_) => {
+                #[cfg(feature = "log")]
+                log::error!(
                 target: LOG_TAG,
                 "Error sending kill signal to SessionManager"
-            ),
+            );
+            }
         }
 
         if let Some(handle) = self.session_manager.handle.take() {
@@ -581,6 +606,7 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
             }
         }
 
+        #[cfg(feature = "log")]
         log::debug!(target: LOG_TAG, "Agent Shutdown");
     }
 }
@@ -594,6 +620,7 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
     /// let agent_running = agent.start()?;
     /// ```
     pub fn start(mut self) -> Result<PyroscopeAgent<PyroscopeAgentRunning>> {
+        #[cfg(feature = "log")]
         log::debug!(target: LOG_TAG, "Starting");
 
         // Create a clone of Backend
@@ -675,6 +702,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// let agent_ready = agent_running.stop();
     /// ```
     pub fn stop(mut self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
+        #[cfg(feature = "log")]
         log::debug!(target: LOG_TAG, "Stopping");
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
@@ -683,6 +711,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
             // Terminate PyroscopeAgent internal thread
             sender.send(TimerSignal::Terminate)?;
         } else {
+            #[cfg(feature = "log")]
             log::error!("PyroscopeAgent - Missing sender")
         }
 

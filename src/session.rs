@@ -43,6 +43,7 @@ pub struct SessionManager {
 impl SessionManager {
     /// Create a new SessionManager
     pub fn new() -> Result<Self> {
+        #[cfg(feature = "log")]
         log::info!(target: LOG_TAG, "Creating SessionManager");
 
         // Create a channel for sending and receiving sessions
@@ -50,6 +51,7 @@ impl SessionManager {
 
         // Create a thread for the SessionManager
         let handle = Some(thread::spawn(move || {
+            #[cfg(feature = "log")]
             log::trace!(target: LOG_TAG, "Started");
             let client = reqwest::blocking::Client::new();
             while let Ok(signal) = rx.recv() {
@@ -59,12 +61,19 @@ impl SessionManager {
                         // Matching is done here (instead of ?) to avoid breaking
                         // the SessionManager thread if the server is not available.
                         match session.send_with_client(&client) {
-                            Ok(_) => log::trace!("SessionManager - Session sent"),
-                            Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
+                            Ok(_) => {
+                                #[cfg(feature = "log")]
+                                log::trace!(target: LOG_TAG, "SessionManager - Session sent");
+                            }
+                            Err(e) => {
+                                #[cfg(feature = "log")]
+                                log::error!(target: LOG_TAG, "SessionManager - Failed to send session: {}", e);
+                            }
                         }
                     }
                     SessionSignal::Kill => {
                         // Kill the session manager
+                        #[cfg(feature = "log")]
                         log::trace!(target: LOG_TAG, "Kill signal received");
                         return Ok(());
                     }
@@ -81,6 +90,7 @@ impl SessionManager {
         // Push the session into the SessionManager
         self.tx.send(session)?;
 
+        #[cfg(feature = "log")]
         log::trace!(target: LOG_TAG, "SessionSignal pushed");
 
         Ok(())
@@ -112,6 +122,7 @@ impl Session {
     /// let session = Session::new(until, config, report)?;
     /// ```
     pub fn new(until: u64, config: PyroscopeConfig, reports: Vec<Report>) -> Result<Self> {
+        #[cfg(feature = "log")]
         log::info!(target: LOG_TAG, "Creating Session");
 
         // get_time_range should be used with "from". We balance this by reducing
@@ -158,6 +169,7 @@ impl Session {
     }
 
     fn encode_reports(&self, reports: Vec<Report>) -> Vec<EncodedReport> {
+        #[cfg(feature = "log")]
         log::debug!(target: LOG_TAG, "Encoding {} reports to {:?}", reports.len(), self.config.report_encoding);
         match &self.config.report_encoding {
             ReportEncoding::FOLDED => folded::encode(&reports),
@@ -171,6 +183,7 @@ impl Session {
     }
 
     fn compress_reports(&self, reports: Vec<EncodedReport>) -> Vec<EncodedReport> {
+        #[cfg(feature = "log")]
         log::debug!(target: LOG_TAG, "Compressing {} reports to {:?}", reports.len(), self.config.compression);
         reports
             .into_iter()
@@ -193,6 +206,7 @@ impl Session {
     }
 
     fn upload(&self, report: EncodedReport, client: &reqwest::blocking::Client) -> Result<()> {
+        #[cfg(feature = "log")]
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
         if report.data.is_empty() {
@@ -255,6 +269,7 @@ impl Session {
                 Ok(t) => t,
                 Err(_) => "",
             };
+            #[cfg(feature = "log")]
             log::error!(target: LOG_TAG, "Sending Session failed {} {}", status.as_u16(), resp);
         }
         Ok(())
