@@ -46,7 +46,7 @@ reqwest = { version = "0.12", features = ["blocking"], default-features = false 
 url = "2.2.2"
 libflate = "2.1.0"
 libc = "^0.2.124"
-prost = "0.13"
+prost = "0.14"
 winapi = "0.3.9"
 serde_json = "1.0.115"
 
