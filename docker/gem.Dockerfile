@@ -23,7 +23,7 @@ ADD pyroscope_ffi/ pyroscope_ffi/
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p thread_id --release
 
-FROM ruby:3.3 as builder-gem
+FROM ruby:3.3@sha256:bff96f25259cd10bd92955bd84f2995230d5144ec0cdd5dc05384b302b3d3270 as builder-gem
 WORKDIR /gem
 ADD pyroscope_ffi/ruby /gem/
 
