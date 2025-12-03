@@ -24,7 +24,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        uses: korniltsev/actions-upload-release-asset@32f18be3a7dab6873e1d27e3aee2e0fec3620d5d # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -45,7 +45,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        uses: korniltsev/actions-upload-release-asset@32f18be3a7dab6873e1d27e3aee2e0fec3620d5d # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -89,7 +89,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        uses: korniltsev/actions-upload-release-asset@32f18be3a7dab6873e1d27e3aee2e0fec3620d5d # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -121,7 +121,7 @@ jobs:
           path: pyroscope_ffi/python/dist/*
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
+        uses: korniltsev/actions-upload-release-asset@32f18be3a7dab6873e1d27e3aee2e0fec3620d5d # TODO(korniltsev): get rid of this fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
