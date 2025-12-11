@@ -5,11 +5,10 @@ on:
     tags:
       - 'python-*'
 
-permissions:
-  contents: write
-
 jobs:
   python-release-linux:
+    permissions:
+      contents: write
     needs: [ 'python-release' ]
     name: Release python linux amd64
     runs-on: ubuntu-x64-large
@@ -31,6 +30,8 @@ jobs:
           upload_url: ${{ needs.python-release.outputs.upload_url }}
           asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
   python-release-linux-arm:
+    permissions:
+      contents: write
     needs: [ 'python-release' ]
     name: Release python linux arm64
     runs-on: ubuntu-arm64-large
@@ -52,6 +53,8 @@ jobs:
           upload_url: ${{ needs.python-release.outputs.upload_url }}
           asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
   python-release-macos:
+    permissions:
+      contents: write
     needs: [ 'python-release' ]
     strategy:
       fail-fast: false
@@ -96,6 +99,8 @@ jobs:
           upload_url: ${{ needs.python-release.outputs.upload_url }}
           asset_path: "pyroscope_ffi/python/dist/pyroscope*.whl"
   python-release-sdist:
+    permissions:
+      contents: write
     needs: [ 'python-release' ]
     name: sdist
     runs-on: ubuntu-x64-small
@@ -128,6 +133,8 @@ jobs:
           upload_url: ${{ needs.python-release.outputs.upload_url }}
           asset_path: "pyroscope_ffi/python/dist/pyroscope-io-*.tar.gz"
   python-release:
+    permissions:
+      contents: write
     name: Python Package
     runs-on: ubuntu-x64-small
     outputs:

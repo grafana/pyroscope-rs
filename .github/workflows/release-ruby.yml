@@ -5,11 +5,11 @@ on:
     tags:
       - 'ruby-*'
 
-permissions:
-  contents: write
 
 jobs:
   ruby-release-linux:
+    permissions:
+      contents: write
     needs: [ 'ruby-release' ]
     name: Release Linux gem amd64
     runs-on: ubuntu-x64-large
@@ -32,6 +32,8 @@ jobs:
           asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
 
   ruby-release-linux-arm:
+    permissions:
+      contents: write
     needs: [ 'ruby-release' ]
     name: Release Linux gem arm64
     runs-on: ubuntu-arm64-large
@@ -54,6 +56,8 @@ jobs:
           asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
 
   ruby-release-macos:
+    permissions:
+      contents: write
     needs: [ 'ruby-release' ]
     strategy:
       fail-fast: false
@@ -97,6 +101,8 @@ jobs:
           asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
 
   ruby-release-source:
+    permissions:
+      contents: write
     needs: [ 'ruby-release' ]
     name: source
     runs-on: ubuntu-x64-small
@@ -132,6 +138,8 @@ jobs:
           asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
 
   ruby-release:
+    permissions:
+      contents: write
     name: Ruby Gem
     runs-on: ubuntu-x64-small
     outputs:

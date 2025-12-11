@@ -2,11 +2,10 @@ name: Pre-Release
 
 on: [ push ]
 
-permissions:
-  contents: write
-
 jobs:
   lib-release:
+    permissions:
+      contents: write
     name: pyroscope-main
     runs-on: ubuntu-x64-small
     if: "startsWith(github.ref, 'refs/tags/lib-')"
@@ -20,6 +19,8 @@ jobs:
           prerelease: false
 
   pprofrs-release:
+    permissions:
+      contents: write
     name: pyroscope-pprofrs
     runs-on: ubuntu-x64-small
     if: "startsWith(github.ref, 'refs/tags/pprofrs-')"
