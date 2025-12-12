@@ -41,6 +41,8 @@ jobs:
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
   publish-python:
+    permissions:
+      id-token: write
     name: "Python" 
     runs-on: ubuntu-x64-small
     if: "startsWith(github.event.release.tag_name, 'python-')"
