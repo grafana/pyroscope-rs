@@ -17,7 +17,7 @@ jobs:
         with:
           persist-credentials: false
       - run: make wheel/linux/amd64
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-amd64
           path: pyroscope_ffi/python/dist/*
@@ -40,7 +40,7 @@ jobs:
         with:
           persist-credentials: false
       - run: make wheel/linux/arm64
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-arm64
           path: pyroscope_ffi/python/dist/*
@@ -86,7 +86,7 @@ jobs:
 
       - run: make pyroscope_ffi/clean wheel/mac/${{ matrix.mk-arch }}
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-macos-${{ matrix.target }}
           path: pyroscope_ffi/python/dist/*
@@ -120,7 +120,7 @@ jobs:
         run: python setup.py sdist
         working-directory: pyroscope_ffi/python
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-sdist
           path: pyroscope_ffi/python/dist/*
