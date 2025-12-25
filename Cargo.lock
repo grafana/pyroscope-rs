@@ -610,7 +610,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.1",
 ]
 
 [[package]]
@@ -1505,7 +1505,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.53.4",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -2442,9 +2442,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.24"
+version = "0.12.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d0946410b9f7b082a427e4ef5c8ff541a88b357bc6c637c40db3a68ac70a36f"
+checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
  "base64",
  "bytes",
@@ -2930,7 +2930,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.1",
 ]
 
 [[package]]
@@ -3166,9 +3166,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.5"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cc2d9e086a412a451384326f521c8123a99a466b329941a9403696bff9b0da2"
+checksum = "d4e6559d53cc268e5031cd8429d05415bc4cb4aefc4aa5d6cc35fbf5b924a1f8"
 dependencies = [
  "bitflags 2.9.1",
  "bytes",
