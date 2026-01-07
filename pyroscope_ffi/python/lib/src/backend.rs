@@ -162,10 +162,17 @@ impl From<StackFrameWrapper> for StackFrame {
 
 impl From<py_spy::Frame> for StackFrameWrapper {
     fn from(frame: py_spy::Frame) -> Self {
+        // Format name as "module.function" when module is available,
+        // otherwise just use the function name.
+        let formatted_name = match &frame.module {
+            Some(module) => format!("{}.{}", module, frame.name),
+            None => frame.name.clone(),
+        };
+
         StackFrameWrapper(StackFrame {
             module: frame.module.clone(),
-            name: Some(frame.name.clone()),
-            filename: frame.short_filename.clone(),
+            name: Some(formatted_name),
+            filename: Some(frame.filename.clone()),
             relative_path: None,
             absolute_path: Some(frame.filename.clone()),
             line: Some(frame.line as u32),
@@ -198,6 +205,128 @@ impl From<(py_spy::StackTrace, &BackendConfig)> for StackTraceWrapper {
                 .collect(),
         );
         StackTraceWrapper(stacktrace)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_frame(name: &str, filename: &str, module: Option<&str>, line: i32) -> py_spy::Frame {
+        py_spy::Frame {
+            name: name.to_string(),
+            filename: filename.to_string(),
+            module: module.map(|s| s.to_string()),
+            short_filename: None,
+            line,
+            locals: None,
+            is_entry: false,
+            is_shim_entry: false,
+        }
+    }
+
+    #[test]
+    fn test_frame_name_with_module() {
+        // When module is provided (e.g., native frames or class methods),
+        // name should be "module.function"
+        let frame = create_test_frame(
+            "find_longest_match",
+            "/usr/lib/python3.12/difflib.py",
+            Some("SequenceMatcher"),
+            42,
+        );
+
+        let wrapper: StackFrameWrapper = frame.into();
+        let stack_frame: StackFrame = wrapper.into();
+
+        assert_eq!(
+            stack_frame.name,
+            Some("SequenceMatcher.find_longest_match".to_string())
+        );
+        assert_eq!(
+            stack_frame.module,
+            Some("SequenceMatcher".to_string())
+        );
+        // filename preserves the full absolute path
+        assert_eq!(
+            stack_frame.filename,
+            Some("/usr/lib/python3.12/difflib.py".to_string())
+        );
+        assert_eq!(stack_frame.line, Some(42));
+    }
+
+    #[test]
+    fn test_frame_name_without_module() {
+        // When module is None, name should just be the function name
+        let frame = create_test_frame(
+            "my_function",
+            "/home/user/app/main.py",
+            None,
+            10,
+        );
+
+        let wrapper: StackFrameWrapper = frame.into();
+        let stack_frame: StackFrame = wrapper.into();
+
+        assert_eq!(
+            stack_frame.name,
+            Some("my_function".to_string())
+        );
+        assert_eq!(stack_frame.module, None);
+        // filename preserves the full absolute path
+        assert_eq!(
+            stack_frame.filename,
+            Some("/home/user/app/main.py".to_string())
+        );
+        assert_eq!(stack_frame.line, Some(10));
+    }
+
+    #[test]
+    fn test_frame_absolute_path_preserved() {
+        // absolute_path should always contain the full path
+        let frame = create_test_frame(
+            "test_func",
+            "/path/to/file.py",
+            None,
+            1,
+        );
+
+        let wrapper: StackFrameWrapper = frame.into();
+        let stack_frame: StackFrame = wrapper.into();
+
+        assert_eq!(
+            stack_frame.absolute_path,
+            Some("/path/to/file.py".to_string())
+        );
+        assert_eq!(
+            stack_frame.filename,
+            Some("/path/to/file.py".to_string())
+        );
+        assert_eq!(stack_frame.relative_path, None);
+    }
+
+    #[test]
+    fn test_name_never_contains_path_separator() {
+        // The function name field should NEVER contain path separators
+        // This would indicate the filename is leaking into the name
+        let test_cases = vec![
+            ("func1", "/a/b/c.py", None),
+            ("func2", "/very/long/path/to/module.py", Some("MyClass")),
+            ("func3", "relative/path.py", None),
+        ];
+
+        for (func_name, filename, module) in test_cases {
+            let frame = create_test_frame(func_name, filename, module, 1);
+            let wrapper: StackFrameWrapper = frame.into();
+            let stack_frame: StackFrame = wrapper.into();
+
+            let name = stack_frame.name.unwrap();
+            assert!(
+                !name.contains('/'),
+                "Function name '{}' should not contain '/' path separator! Input: func={}, file={}, module={:?}",
+                name, func_name, filename, module
+            );
+        }
     }
 }
 
