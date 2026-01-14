@@ -61,6 +61,7 @@ pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 default = ["rustls-tls"]
 rustls-tls = ["reqwest/rustls"]
 native-tls = ["reqwest/native-tls"]
+rustls-no-provider = ["reqwest/rustls-no-provider"]
 
 [profile.dev]
 opt-level=0
