@@ -18,5 +18,5 @@ log = "0.4"
 
 
 [build-dependencies]
-cbindgen = "0.28.0"
+cbindgen = "0.29.0"
 
