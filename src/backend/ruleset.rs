@@ -86,15 +86,6 @@ impl StackTrace {
                         if thread_id == &stack_thread_id {
                             return Some(tag.clone());
                         }
-                        if let (Some(stack_thread_id), Some(stack_pid)) = (self.thread_id, self.pid)
-                        {
-                            let mut hasher = DefaultHasher::new();
-                            hasher.write_u64(stack_thread_id % stack_pid as u64);
-                            let id = hasher.finish();
-                            if &id == thread_id {
-                                return Some(tag.clone());
-                            }
-                        }
                     }
                 }
                 None
