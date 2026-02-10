@@ -68,9 +68,8 @@ impl Ruleset {
     }
 }
 
-impl std::ops::Add<&Ruleset> for StackTrace {
-    type Output = Self;
-    fn add(self, other: &Ruleset) -> Self {
+impl StackTrace {
+   pub fn add_tag_rules(self, other: &Ruleset) -> Self {
         // Get global Tags
         let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or_default();
 

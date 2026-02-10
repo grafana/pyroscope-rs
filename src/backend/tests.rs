@@ -335,7 +335,7 @@ fn test_stacktrace_add() {
     assert_eq!(stacktrace.metadata, initial_metadata);
 
     // Add the Stacktrace to the Ruleset
-    let applied_stacktrace = stacktrace + &ruleset;
+    let applied_stacktrace = stacktrace.add_tag_rules(&ruleset);
 
     initial_metadata.add_tag(Tag::new("key1".to_string(), "value".to_string()));
     initial_metadata.add_tag(Tag::new("key2".to_string(), "value".to_string()));

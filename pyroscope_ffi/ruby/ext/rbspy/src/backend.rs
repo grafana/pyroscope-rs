@@ -128,7 +128,7 @@ impl Backend for Rbspy {
                 let own_trace: StackTrace =
                     Into::<StackTraceWrapper>::into((stack_trace, &backend_config)).into();
 
-                let stacktrace = own_trace + &ruleset;
+                let stacktrace = own_trace.add_tag_rules(&ruleset);
 
                 buffer.lock()?.record(stacktrace)?;
             }
