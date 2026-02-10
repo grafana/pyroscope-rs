@@ -115,7 +115,7 @@ impl Backend for Pyspy {
                     let own_trace: StackTrace =
                         Into::<StackTraceWrapper>::into((trace.clone(), &backend_config)).into();
 
-                    let stacktrace = own_trace + &ruleset.lock()?.clone();
+                    let stacktrace = own_trace.add_tag_rules(&*ruleset.lock()?);
 
                     buffer.lock()?.record(stacktrace)?;
                 }
