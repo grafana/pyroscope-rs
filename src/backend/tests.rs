@@ -345,7 +345,7 @@ fn test_stacktrace_add() {
     assert_eq!(applied_stacktrace.metadata, initial_metadata);
 
     // Re-apply the Ruleset
-    let re_applied_stacktrace = applied_stacktrace + &ruleset;
+    let re_applied_stacktrace = applied_stacktrace.add_tag_rules(&ruleset);
 
     // assert that the metadata of the stacktrace is the same
     assert_eq!(re_applied_stacktrace.metadata, initial_metadata);
