@@ -44,7 +44,7 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
     basic_auth_username: *const c_char, basic_auth_password: *const c_char, sample_rate: u32,
-    detect_subprocesses: bool, oncpu: bool, gil_only: bool, report_pid: bool,
+    oncpu: bool, gil_only: bool, report_pid: bool,
     report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
     tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo,
 ) -> bool {
@@ -115,7 +115,7 @@ pub extern "C" fn initialize_agent(
         sampling_rate: sample_rate.into(),
         include_idle: !oncpu,
         include_thread_ids: true,
-        subprocesses: detect_subprocesses,
+        subprocesses: false,
         gil_only,
         lineno: line_no.into(),
         duration: py_spy::config::RecordDuration::Unlimited,
