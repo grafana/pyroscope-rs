@@ -36,8 +36,7 @@ pub enum Signal {
     RemoveThreadTag(u64, String, String),
 }
 
-/// pre-fork initialization.
-pub fn initialize_ffi() -> Result<Receiver<Signal>> {
+pub fn initialize_ffi() -> Receiver<Signal> {
     // Create another channel to merge communication.
     let (merge_sender, merge_receiver): (Sender<Signal>, Receiver<Signal>) = mpsc::channel();
 
@@ -78,8 +77,7 @@ pub fn initialize_ffi() -> Result<Receiver<Signal>> {
         });
     });
 
-    // Return the merge channel receiver.
-    Ok(merge_receiver)
+    merge_receiver
 }
 
 pub fn send(signal: Signal) -> Result<()> {

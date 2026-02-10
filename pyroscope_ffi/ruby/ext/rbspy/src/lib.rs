@@ -117,7 +117,6 @@ pub extern "C" fn initialize_agent(
     basic_auth_user: *const c_char,
     basic_auth_password: *const c_char,
     sample_rate: u32,
-    detect_subprocesses: bool,
     oncpu: bool,
     report_pid: bool,
     report_thread_id: bool,
@@ -127,8 +126,7 @@ pub extern "C" fn initialize_agent(
     tenant_id: *const c_char,
     http_headers_json: *const c_char,
 ) -> bool {
-    // Initialize FFIKit
-    let recv = ffikit::initialize_ffi().unwrap();
+    let recv = ffikit::initialize_ffi();
 
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()
@@ -195,7 +193,7 @@ pub extern "C" fn initialize_agent(
         sample_rate,
         false,
         None,
-        detect_subprocesses,
+        false,
         None,
         oncpu
     );
