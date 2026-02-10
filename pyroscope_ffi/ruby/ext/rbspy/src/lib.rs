@@ -129,8 +129,7 @@ pub extern "C" fn initialize_agent(
     tenant_id: *const c_char,
     http_headers_json: *const c_char,
 ) -> bool {
-    // Initialize FFIKit
-    let recv = ffikit::initialize_ffi().unwrap();
+    let recv = ffikit::initialize_ffi();
 
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()
