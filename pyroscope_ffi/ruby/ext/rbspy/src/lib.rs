@@ -1,9 +1,7 @@
 mod backend;
 
-use std::collections::hash_map::DefaultHasher;
 use std::env;
 use std::ffi::CStr;
-use std::hash::Hasher;
 use std::os::raw::c_char;
 use std::str::FromStr;
 use rbspy::sampler::Sampler;
@@ -294,12 +292,7 @@ pub extern "C" fn add_thread_tag(thread_id: u64, key: *const c_char, value: *con
         .unwrap()
         .to_owned();
 
-    let pid = std::process::id();
-    let mut hasher = DefaultHasher::new();
-    hasher.write_u64(thread_id % pid as u64);
-    let id = hasher.finish();
-
-    ffikit::send(ffikit::Signal::AddThreadTag(id, key, value)).unwrap();
+    ffikit::send(ffikit::Signal::AddThreadTag(thread_id, key, value)).unwrap();
 
     true
 }
@@ -314,12 +307,7 @@ pub extern "C" fn remove_thread_tag(
         .unwrap()
         .to_owned();
 
-    let pid = std::process::id();
-    let mut hasher = DefaultHasher::new();
-    hasher.write_u64(thread_id % pid as u64);
-    let id = hasher.finish();
-
-    ffikit::send(ffikit::Signal::RemoveThreadTag(id, key, value)).unwrap();
+    ffikit::send(ffikit::Signal::RemoveThreadTag(thread_id, key, value)).unwrap();
 
     true
 }
