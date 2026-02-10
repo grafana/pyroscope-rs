@@ -48,8 +48,7 @@ pub extern "C" fn initialize_agent(
     report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
     tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo,
 ) -> bool {
-    // Initialize FFIKit
-    let recv = ffikit::initialize_ffi().unwrap();
+    let recv = ffikit::initialize_ffi();
 
     // application_name
     let application_name = unsafe { CStr::from_ptr(application_name) }
