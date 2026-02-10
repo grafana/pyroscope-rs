@@ -43,6 +43,9 @@ def configure(
     if native is not None:
         warnings.warn("native is deprecated and not supported", DeprecationWarning)
 
+    if detect_subprocesses is not None:
+        warnings.warn("detect_subprocesses is deprecated and not supported", DeprecationWarning)
+
     LOGGER.disabled = not enable_logging
     if enable_logging:
         log_level = LOGGER.getEffectiveLevel()
@@ -55,7 +58,6 @@ def configure(
         basic_auth_username.encode("UTF-8"),
         basic_auth_password.encode("UTF-8"),
         sample_rate,
-        detect_subprocesses,
         oncpu,
         gil_only,
         report_pid,
