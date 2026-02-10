@@ -11,14 +11,12 @@ Pyroscope.configure do |config|
   # TODO please no og cloud
   config.server_address = "https://ingest.pyroscope.cloud"
   config.auth_token = ENV["PYROSCOPE_API_TOKEN"]
-  config.detect_subprocesses = ENV["PYROSCOPE_DETECT_SUBPROCESSES"] == "1"
   config.oncpu = ENV["PYROSCOPE_ONCPU"] == "1"
   config.log_level = "trace"
   config.report_pid = true
   config.report_thread_id = true
   config.tags = {
     :region => "us-east",
-    :detect_subprocesses => ENV["PYROSCOPE_DETECT_SUBPROCESSES"],
     :oncpu => ENV["PYROSCOPE_ONCPU"],
     :version => ENV["RUBY_VERSION"],
     :arch => ENV["PYROSCOPE_ARCH"]

@@ -119,7 +119,6 @@ pub extern "C" fn initialize_agent(
     basic_auth_user: *const c_char,
     basic_auth_password: *const c_char,
     sample_rate: u32,
-    detect_subprocesses: bool,
     oncpu: bool,
     report_pid: bool,
     report_thread_id: bool,
@@ -196,7 +195,7 @@ pub extern "C" fn initialize_agent(
         sample_rate,
         false,
         None,
-        detect_subprocesses,
+        false,
         None,
         oncpu
     );
