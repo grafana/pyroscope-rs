@@ -1,9 +1,6 @@
-use bincode::{config, Decode, Encode};
-use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
 use lazy_static::lazy_static;
 use pyroscope::error::{PyroscopeError, Result};
 use std::{
-    io::{BufReader, Read, Write},
     sync::{
         atomic::AtomicU32,
         mpsc::{self, Receiver, Sender},
@@ -30,7 +27,7 @@ lazy_static! {
 /// Signal enum.
 /// This enum is used to send signals to the main loop. It is used to add/remove global or thread
 /// tags and to exit the main loop.
-#[derive(Debug, Encode, Decode, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Signal {
     Kill,
     AddGlobalTag(String, String),
@@ -93,5 +90,3 @@ pub fn send(signal: Signal) -> Result<()> {
         Err(PyroscopeError::new("FFI channel not initialized"))
     }
 }
-
-
