@@ -43,7 +43,7 @@ def configure(
     if native is not None:
         warnings.warn("native is deprecated and not supported", DeprecationWarning)
 
-    if detect_subprocesses is not None:
+    if detect_subprocesses:
         warnings.warn("detect_subprocesses is deprecated and not supported", DeprecationWarning)
 
     LOGGER.disabled = not enable_logging
