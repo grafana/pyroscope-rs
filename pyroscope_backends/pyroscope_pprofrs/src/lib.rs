@@ -157,7 +157,7 @@ impl Pprof<'_> {
             .data
             .iter()
             .map(|(stacktrace, ss)| {
-                let stacktrace = stacktrace.to_owned() + &self.ruleset;
+                let stacktrace = stacktrace.to_owned().add_tag_rules(&self.ruleset);
                 (stacktrace, ss.to_owned())
             })
             .collect();
