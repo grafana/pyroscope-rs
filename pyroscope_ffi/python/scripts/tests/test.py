@@ -74,8 +74,8 @@ def wait_render(canary):
             continue
 
 
-def do_one_test(on_cpu, gil_only):
-    logging.info("do_one_test on_cpu=%s gil_only=%s", on_cpu, gil_only)
+def do_one_test(on_cpu, gil_only, detect_subprocesses):
+    logging.info("do_one_test on_cpu=%s gil_only=%s detect_subprocesses=%s", on_cpu, gil_only, detect_subprocesses)
     canary = uuid.uuid4().hex
     logging.info('canary %s', canary)
     runid = os.getenv("PYROSCOPE_RUN_ID")
@@ -83,6 +83,7 @@ def do_one_test(on_cpu, gil_only):
         application_name=app_name,
         server_address="http://localhost:4040",
         enable_logging=True,
+        detect_subprocesses=detect_subprocesses,
         oncpu=on_cpu,
         gil_only=gil_only,
         report_pid=True,
@@ -90,6 +91,7 @@ def do_one_test(on_cpu, gil_only):
         report_thread_name=True,
 
         tags={
+            "detect_subprocesses": '{}'.format(detect_subprocesses),
             "oncpu": '{}'.format(on_cpu),
             "gil_only": '{}'.format(gil_only),
             "version": '{}'.format(os.getenv("PYTHON_VERSION")),
@@ -133,9 +135,11 @@ if __name__ == '__main__':
         res = []
         for on_cpu in [True, False]:
             for gil_only in [True, False]:
-                p = multiprocessing.Process(target=do_one_test, args=(on_cpu, gil_only))
-                p.start()
-                procs.append((p, "{} {}".format(on_cpu, gil_only)))
+                for detect_subprocesses in [True, False]:
+                    p = multiprocessing.Process(target=do_one_test, args=(on_cpu, gil_only, detect_subprocesses))
+                    p.start()
+
+                    procs.append((p, "{} {} {}".format(on_cpu, gil_only, detect_subprocesses)))
         for p in procs:
             p[0].join()
             res.append((p[0].exitcode, p[1]))
@@ -148,4 +152,5 @@ if __name__ == '__main__':
     else:
         on_cpu = sys.argv[1] == "true"
         gil_only = sys.argv[2] == "true"
-        do_one_test(on_cpu, gil_only)
+        detect_subprocesses = sys.argv[3] == "true"
+        do_one_test(on_cpu, gil_only, detect_subprocesses)
