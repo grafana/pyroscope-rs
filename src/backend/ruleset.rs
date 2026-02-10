@@ -1,8 +1,6 @@
 use super::{StackTrace, Tag};
 use crate::error::Result;
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashSet;
-use std::hash::Hasher;
 use std::sync::{Arc, Mutex};
 
 /// Profiling Rule
@@ -69,34 +67,24 @@ impl Ruleset {
 }
 
 impl StackTrace {
-   pub fn add_tag_rules(self, other: &Ruleset) -> Self {
-        // Get global Tags
-        let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or_default();
+    pub fn add_tag_rules(self, other: &Ruleset) -> Self {
+        let mut metadata = self.metadata.clone();
 
-        // Filter Thread Tags
-        let stack_tags: Vec<Tag> = other
-            .rules
-            .lock()
-            .unwrap()
-            .iter()
-            .filter_map(|rule| {
-                if let Rule::ThreadTag(thread_id, tag) = rule {
-                    if let Some(stack_thread_id) = self.thread_id {
-                        // No PID, only thread ID to match
-                        if thread_id == &stack_thread_id {
-                            return Some(tag.clone());
-                        }
+        for t in other.get_global_tags().unwrap_or_default() {
+            metadata.add_tag(t);
+        }
+
+        other.rules.lock().unwrap().iter().for_each(|rule| {
+            if let Rule::ThreadTag(thread_id, tag) = rule {
+                if let Some(stack_thread_id) = self.thread_id {
+                    // No PID, only thread ID to match
+                    if thread_id == &stack_thread_id {
+                        metadata.add_tag(tag.clone());
                     }
                 }
-                None
-            })
-            .collect();
+            }
+        });
 
-        // Add tags to metadata
-        let mut metadata = self.metadata.clone();
-        for tag in global_tags.iter().chain(stack_tags.iter()) {
-            metadata.add_tag(tag.clone());
-        }
 
         Self {
             pid: self.pid,
