@@ -1,37 +1,26 @@
 use super::{StackTrace, Tag};
 use crate::error::Result;
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashSet;
-use std::hash::Hasher;
 use std::sync::{Arc, Mutex};
 
-/// Profiling Rule
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub enum Rule {
-    /// Global Tag
     GlobalTag(Tag),
-    /// Thread Tag
     ThreadTag(u64, Tag),
 }
 
-/// Ruleset is a set of rules that can be applied to a stacktrace. The rules
-/// are held in a Vector behind an Arc, so that they can be shared between
-/// threads.
 #[derive(Debug, Default, Clone)]
 pub struct Ruleset {
-    /// Rules vector
     pub rules: Arc<Mutex<HashSet<Rule>>>,
 }
 
 impl Ruleset {
-    /// Create a new empty ruleset
     pub fn new() -> Self {
         Self {
             rules: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
-    /// Add a rule to the ruleset
     pub fn add_rule(&self, rule: Rule) -> Result<bool> {
         let rules = self.rules.clone();
 
@@ -41,7 +30,6 @@ impl Ruleset {
         Ok(insert)
     }
 
-    /// Remove a rule from the ruleset
     pub fn remove_rule(&self, rule: Rule) -> Result<bool> {
         let rules = self.rules.clone();
 
@@ -51,7 +39,6 @@ impl Ruleset {
         Ok(remove)
     }
 
-    /// Return a list of all global tags
     pub fn get_global_tags(&self) -> Result<Vec<Tag>> {
         let rules = self.rules.clone();
 
@@ -70,10 +57,9 @@ impl Ruleset {
 
 impl StackTrace {
    pub fn add_tag_rules(self, other: &Ruleset) -> Self {
-        // Get global Tags
         let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or_default();
 
-        // Filter Thread Tags
+        // todo add a bench and optimize this, no need for intermediate vec
         let stack_tags: Vec<Tag> = other
             .rules
             .lock()
@@ -82,18 +68,8 @@ impl StackTrace {
             .filter_map(|rule| {
                 if let Rule::ThreadTag(thread_id, tag) = rule {
                     if let Some(stack_thread_id) = self.thread_id {
-                        // No PID, only thread ID to match
                         if thread_id == &stack_thread_id {
                             return Some(tag.clone());
-                        }
-                        if let (Some(stack_thread_id), Some(stack_pid)) = (self.thread_id, self.pid)
-                        {
-                            let mut hasher = DefaultHasher::new();
-                            hasher.write_u64(stack_thread_id % stack_pid as u64);
-                            let id = hasher.finish();
-                            if &id == thread_id {
-                                return Some(tag.clone());
-                            }
                         }
                     }
                 }
@@ -101,7 +77,6 @@ impl StackTrace {
             })
             .collect();
 
-        // Add tags to metadata
         let mut metadata = self.metadata.clone();
         for tag in global_tags.iter().chain(stack_tags.iter()) {
             metadata.add_tag(tag.clone());
