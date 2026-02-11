@@ -5,3 +5,4 @@
 **/*egg-info*/
 **/**/Makefile
 *.so
+*.gem
