@@ -9,6 +9,6 @@ rust-version = "1.64"
 [dependencies]
 interprocess = { version = "1.1.1", features = ["nonblocking"] }
 pyroscope = { path  = "../../" }
-bincode = "2.0.0-rc.1"
+bincode = "3.0.0"
 lazy_static = "1.4.0"
 log = "0.4"
