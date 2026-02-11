@@ -56,30 +56,25 @@ impl Ruleset {
 }
 
 impl StackTrace {
-   pub fn add_tag_rules(self, other: &Ruleset) -> Self {
-        let global_tags: Vec<Tag> = other.get_global_tags().unwrap_or_default();
+    pub fn add_tag_rules(self, other: &Ruleset) -> Self {
+        let mut metadata = self.metadata;
 
-        // todo add a bench and optimize this, no need for intermediate vec
-        let stack_tags: Vec<Tag> = other
-            .rules
-            .lock()
-            .unwrap()
-            .iter()
-            .filter_map(|rule| {
+        if let Ok(global_tags) = other.get_global_tags() {
+            for tag in global_tags {
+                metadata.add_tag(tag);
+            }
+        };
+
+        if let Ok(rules) =  other.rules.lock() {
+            rules.iter().for_each(|rule| {
                 if let Rule::ThreadTag(thread_id, tag) = rule {
                     if let Some(stack_thread_id) = &self.thread_id {
                         if thread_id == stack_thread_id {
-                            return Some(tag.clone());
+                            metadata.add_tag(tag.clone());
                         }
                     }
                 }
-                None
             })
-            .collect();
-
-        let mut metadata = self.metadata.clone();
-        for tag in global_tags.iter().chain(stack_tags.iter()) {
-            metadata.add_tag(tag.clone());
         }
 
         Self {

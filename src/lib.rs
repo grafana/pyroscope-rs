@@ -39,6 +39,9 @@
 //! agent_ready.shutdown();
 //! ```
 
+#![feature(test)]
+extern crate test;
+
 extern crate core;
 
 // Re-exports structs
