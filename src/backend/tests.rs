@@ -116,15 +116,17 @@ fn test_tag_new() {
 
 #[test]
 fn test_rule_new() {
-    let rule = Rule::ThreadTag(tid(0), Tag::new("key".to_string(), "value".to_string()));
+    let tid = crate::ThreadId::pthread_self();
+    let rule = Rule::ThreadTag(tid.clone(), Tag::new("key".to_string(), "value".to_string()));
 
     assert_eq!(
         rule,
-        Rule::ThreadTag(tid(0), Tag::new("key".to_string(), "value".to_string()))
+        Rule::ThreadTag(tid, Tag::new("key".to_string(), "value".to_string()))
     );
 }
 
-fn tid(v: u64) -> crate::utils::ThreadId {
+#[cfg(test)]
+fn test_thread_id(v: u64) -> crate::utils::ThreadId {
     (v as libc::pthread_t).into()
 }
 
@@ -137,9 +139,10 @@ fn test_ruleset_new() {
 
 #[test]
 fn test_ruleset_add_rule() {
+    let tid = crate::ThreadId::pthread_self();
     let ruleset = Ruleset::new();
 
-    let rule = Rule::ThreadTag(tid(0), Tag::new("key".to_string(), "value".to_string()));
+    let rule = Rule::ThreadTag(tid, Tag::new("key".to_string(), "value".to_string()));
 
     ruleset.add_rule(rule).unwrap();
 
@@ -148,15 +151,16 @@ fn test_ruleset_add_rule() {
 
 #[test]
 fn test_ruleset_remove_rule() {
+    let tid = crate::ThreadId::pthread_self();
     let ruleset = Ruleset::new();
 
-    let add_rule = Rule::ThreadTag(tid(0), Tag::new("key".to_string(), "value".to_string()));
+    let add_rule = Rule::ThreadTag(tid.clone(), Tag::new("key".to_string(), "value".to_string()));
 
     ruleset.add_rule(add_rule).unwrap();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 1);
 
-    let remove_rule = Rule::ThreadTag(tid(0), Tag::new("key".to_string(), "value".to_string()));
+    let remove_rule = Rule::ThreadTag(tid, Tag::new("key".to_string(), "value".to_string()));
 
     ruleset.remove_rule(remove_rule).unwrap();
 
@@ -169,21 +173,21 @@ fn test_ruleset() {
 
     ruleset
         .add_rule(Rule::ThreadTag(
-            tid(1),
+            test_thread_id(1),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
         .unwrap();
 
     ruleset
         .add_rule(Rule::ThreadTag(
-            tid(2),
+            test_thread_id(2),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
         .unwrap();
 
     ruleset
         .add_rule(Rule::ThreadTag(
-            tid(3),
+            test_thread_id(3),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
         .unwrap();
@@ -191,7 +195,7 @@ fn test_ruleset() {
     // Remove ThreadTag number 2
     ruleset
         .remove_rule(Rule::ThreadTag(
-            tid(2),
+            test_thread_id(2),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
         .unwrap();
@@ -200,8 +204,8 @@ fn test_ruleset() {
     assert_eq!(
         ruleset.rules.lock().unwrap().clone(),
         HashSet::from([
-            Rule::ThreadTag(tid(1), Tag::new("key1".to_string(), "value".to_string(),)),
-            Rule::ThreadTag(tid(3), Tag::new("key1".to_string(), "value".to_string(),))
+            Rule::ThreadTag(test_thread_id(1), Tag::new("key1".to_string(), "value".to_string(),)),
+            Rule::ThreadTag(test_thread_id(3), Tag::new("key1".to_string(), "value".to_string(),))
         ])
     );
 }
@@ -262,14 +266,14 @@ fn test_stacktrace_add() {
 
     ruleset
         .add_rule(Rule::ThreadTag(
-            tid(55),
+            test_thread_id(55),
             Tag::new("keyA".to_string(), "valueA".to_string()),
         ))
         .unwrap();
 
     ruleset
         .add_rule(Rule::ThreadTag(
-            tid(100),
+            test_thread_id(100),
             Tag::new("keyB".to_string(), "valueB".to_string()),
         ))
         .unwrap();
@@ -282,7 +286,7 @@ fn test_stacktrace_add() {
     let stacktrace = StackTrace::new(
         &backend_config,
         Some(1),
-        Some(tid(55)),
+        Some(test_thread_id(55)),
         Some("thread_name".to_string()),
         vec![crate::backend::StackFrame::new(
             Some("file1".to_string()),

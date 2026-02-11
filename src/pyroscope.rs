@@ -404,9 +404,9 @@ impl PyroscopeAgentBuilder {
         };
 
         // Set Global Tags
-        for (key, value) in config.tags.iter() {
+        // for (key, value) in config.tags.iter() {
             // todo!("implement")
-        }
+        // }
 
         // Initialize the Backend
         let backend_ready = self.backend.initialize()?;
