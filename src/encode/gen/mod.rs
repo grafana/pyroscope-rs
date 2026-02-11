@@ -1,6 +1,3 @@
-// @generated
-
 pub mod google;
-
 pub mod push;
-mod types;
+pub mod types;

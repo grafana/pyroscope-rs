@@ -232,4 +232,3 @@ pub struct Function {
     #[prost(int64, tag = "5")]
     pub start_line: i64,
 }
-// @@protoc_insertion_point(module)

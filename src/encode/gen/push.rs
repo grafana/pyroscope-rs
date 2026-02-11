@@ -32,4 +32,3 @@ pub struct RawSample {
 }
 
 
-// @@protoc_insertion_point(module)
