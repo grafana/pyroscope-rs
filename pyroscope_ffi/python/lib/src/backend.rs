@@ -1,7 +1,7 @@
 use py_spy::{sampler::Sampler};
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendUninitialized, Report, ThreadTag, Ruleset,
+        Backend, BackendConfig, BackendUninitialized, Report, ThreadTag, ThreadTagsSet,
         StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -26,7 +26,7 @@ pub struct Pyspy {
     backend_config: BackendConfig,
     sampler_thread: Option<JoinHandle<Result<()>>>,
     running: Arc<AtomicBool>,
-    ruleset: Arc<Mutex<Ruleset>>,
+    ruleset: Arc<Mutex<ThreadTagsSet>>,
 }
 
 impl std::fmt::Debug for Pyspy {
@@ -43,7 +43,7 @@ impl Pyspy {
             backend_config,
             sampler_thread: None,
             running: Arc::new(AtomicBool::new(false)),
-            ruleset: Arc::new(Mutex::new(Ruleset::default())),
+            ruleset: Arc::new(Mutex::new(ThreadTagsSet::default())),
         }
     }
 }
@@ -63,13 +63,13 @@ impl Backend for Pyspy {
 
 
     fn add_tag(&self, rule: ThreadTag) -> Result<()> {
-        self.ruleset.lock()?.add_rule(rule)?;
+        self.ruleset.lock()?.add(rule)?;
 
         Ok(())
     }
 
     fn remove_tag(&self, rule: ThreadTag) -> Result<()> {
-        self.ruleset.lock()?.remove_rule(rule)?;
+        self.ruleset.lock()?.remove(rule)?;
 
         Ok(())
     }

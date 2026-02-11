@@ -1,6 +1,6 @@
 #[cfg(test)]
 use crate::backend::{
-    BackendConfig, Report, Ruleset, StackBuffer, StackFrame, StackTrace, Tag,
+    BackendConfig, Report, ThreadTagsSet, StackBuffer, StackFrame, StackTrace, Tag,
 };
 #[cfg(test)]
 use std::collections::{HashMap, HashSet};
@@ -133,7 +133,7 @@ fn test_thread_id(v: u64) -> crate::utils::ThreadId {
 
 #[test]
 fn test_ruleset_new() {
-    let ruleset = Ruleset::new();
+    let ruleset = ThreadTagsSet::new();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 0);
 }
@@ -141,11 +141,11 @@ fn test_ruleset_new() {
 #[test]
 fn test_ruleset_add_rule() {
     let tid = crate::ThreadId::pthread_self();
-    let ruleset = Ruleset::new();
+    let ruleset = ThreadTagsSet::new();
 
     let rule = ThreadTag::new(tid, Tag::new("key".to_string(), "value".to_string()));
 
-    ruleset.add_rule(rule).unwrap();
+    ruleset.add(rule).unwrap();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 1);
 }
@@ -153,41 +153,41 @@ fn test_ruleset_add_rule() {
 #[test]
 fn test_ruleset_remove_rule() {
     let tid = crate::ThreadId::pthread_self();
-    let ruleset = Ruleset::new();
+    let ruleset = ThreadTagsSet::new();
 
     let add_rule = ThreadTag::new(tid.clone(), Tag::new("key".to_string(), "value".to_string()));
 
-    ruleset.add_rule(add_rule).unwrap();
+    ruleset.add(add_rule).unwrap();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 1);
 
     let remove_rule = ThreadTag::new(tid, Tag::new("key".to_string(), "value".to_string()));
 
-    ruleset.remove_rule(remove_rule).unwrap();
+    ruleset.remove(remove_rule).unwrap();
 
     assert_eq!(ruleset.rules.lock().unwrap().len(), 0);
 }
 
 #[test]
 fn test_ruleset() {
-    let ruleset = Ruleset::new();
+    let ruleset = ThreadTagsSet::new();
 
     ruleset
-        .add_rule(ThreadTag::new(
+        .add(ThreadTag::new(
             test_thread_id(1),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
         .unwrap();
 
     ruleset
-        .add_rule(ThreadTag::new(
+        .add(ThreadTag::new(
             test_thread_id(2),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
         .unwrap();
 
     ruleset
-        .add_rule(ThreadTag::new(
+        .add(ThreadTag::new(
             test_thread_id(3),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
@@ -195,7 +195,7 @@ fn test_ruleset() {
 
     // Remove ThreadTag number 2
     ruleset
-        .remove_rule(ThreadTag::new(
+        .remove(ThreadTag::new(
             test_thread_id(2),
             Tag::new("key1".to_string(), "value".to_string()),
         ))
@@ -213,18 +213,18 @@ fn test_ruleset() {
 
 #[test]
 fn test_ruleset_duplicates() {
-    let ruleset = Ruleset::new();
+    let ruleset = ThreadTagsSet::new();
 
     let tid = crate::ThreadId::pthread_self();
     ruleset
-        .add_rule(ThreadTag::new(tid.clone(), Tag::new(
+        .add(ThreadTag::new(tid.clone(), Tag::new(
             "key1".to_string(),
             "value".to_string(),
         )))
         .unwrap();
 
     ruleset
-        .add_rule(ThreadTag::new(tid.clone(), Tag::new(
+        .add(ThreadTag::new(tid.clone(), Tag::new(
             "key1".to_string(),
             "value".to_string(),
         )))
@@ -238,18 +238,18 @@ fn test_ruleset_duplicates() {
 
 #[test]
 fn test_ruleset_remove_nonexistent() {
-    let ruleset = Ruleset::new();
+    let ruleset = ThreadTagsSet::new();
 
     let tid = crate::ThreadId::pthread_self();
     ruleset
-        .add_rule(ThreadTag::new(tid.clone(), Tag::new(
+        .add(ThreadTag::new(tid.clone(), Tag::new(
             "key1".to_string(),
             "value".to_string(),
         )))
         .unwrap();
 
     ruleset
-        .remove_rule(ThreadTag::new(tid.clone(), Tag::new(
+        .remove(ThreadTag::new(tid.clone(), Tag::new(
             "key2".to_string(),
             "value".to_string(),
         )))
@@ -263,17 +263,17 @@ fn test_ruleset_remove_nonexistent() {
 
 #[test]
 fn test_stacktrace_add() {
-    let ruleset = Ruleset::new();
+    let ruleset = ThreadTagsSet::new();
 
     ruleset
-        .add_rule(ThreadTag::new(
+        .add(ThreadTag::new(
             test_thread_id(55),
             Tag::new("keyA".to_string(), "valueA".to_string()),
         ))
         .unwrap();
 
     ruleset
-        .add_rule(ThreadTag::new(
+        .add(ThreadTag::new(
             test_thread_id(100),
             Tag::new("keyB".to_string(), "valueB".to_string()),
         ))

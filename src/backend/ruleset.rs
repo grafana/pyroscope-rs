@@ -16,30 +16,28 @@ impl ThreadTag {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Ruleset {
+pub struct ThreadTagsSet {
     pub rules: Arc<Mutex<HashSet<ThreadTag>>>,
 }
 
-impl Ruleset {
+impl ThreadTagsSet {
     pub fn new() -> Self {
         Self {
             rules: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
-    pub fn add_rule(&self, rule: ThreadTag) -> Result<bool> {
+    pub fn add(&self, rule: ThreadTag) -> Result<bool> {
         let rules = self.rules.clone();
 
-        // Add the rule to the Ruleset
         let insert = rules.lock()?.insert(rule);
 
         Ok(insert)
     }
 
-    pub fn remove_rule(&self, rule: ThreadTag) -> Result<bool> {
+    pub fn remove(&self, rule: ThreadTag) -> Result<bool> {
         let rules = self.rules.clone();
 
-        // Remove the rule from the Ruleset
         let remove = rules.lock()?.remove(&rule);
 
         Ok(remove)
@@ -60,7 +58,7 @@ impl Ruleset {
 }
 
 impl StackTrace {
-    pub fn add_tag_rules(self, other: &Ruleset) -> Self {
+    pub fn add_tag_rules(self, other: &ThreadTagsSet) -> Self {
         let mut metadata = self.metadata;
 
         if let Ok(rules) = other.rules.lock() {

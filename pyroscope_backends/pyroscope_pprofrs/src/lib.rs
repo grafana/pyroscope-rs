@@ -1,7 +1,7 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Ruleset,
+        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ThreadTagsSet,
         StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -40,7 +40,7 @@ pub struct Pprof<'a> {
     backend_config: BackendConfig,
     inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
     guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
-    ruleset: Ruleset,
+    ruleset: ThreadTagsSet,
 }
 
 impl std::fmt::Debug for Pprof<'_> {
@@ -57,7 +57,7 @@ impl<'a> Pprof<'a> {
             backend_config,
             inner_builder: Arc::new(Mutex::new(None)),
             guard: Arc::new(Mutex::new(None)),
-            ruleset: Ruleset::default(),
+            ruleset: ThreadTagsSet::default(),
         }
     }
 }
@@ -120,7 +120,7 @@ impl Backend for Pprof<'_> {
             self.dump_report()?;
         }
 
-        self.ruleset.add_rule(tag)?;
+        self.ruleset.add(tag)?;
 
         Ok(())
     }
@@ -130,7 +130,7 @@ impl Backend for Pprof<'_> {
             self.dump_report()?;
         }
 
-        self.ruleset.remove_rule(tag)?;
+        self.ruleset.remove(tag)?;
 
         Ok(())
     }
