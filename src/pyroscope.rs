@@ -758,7 +758,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// recommended to use the `tag_wrapper` function.
     pub fn add_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
         let rule = ThreadTag::new(thread_id, tag);
-        self.backend.add_rule(rule)?;
+        self.backend.add_tag(rule)?;
 
         Ok(())
     }
@@ -767,7 +767,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// recommended to use the `tag_wrapper` function.
     pub fn remove_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
         let rule = ThreadTag::new(thread_id, tag);
-        self.backend.remove_rule(rule)?;
+        self.backend.remove_tag(rule)?;
 
         Ok(())
     }

@@ -132,7 +132,7 @@ impl<S: BackendAccessible> BackendImpl<S> {
     }
 
 
-    pub fn add_rule(&self, tag: ThreadTag) -> Result<()> {
+    pub fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         self.backend
             .lock()?
             .as_ref()
@@ -140,7 +140,7 @@ impl<S: BackendAccessible> BackendImpl<S> {
             .add_tag(tag)
     }
 
-    pub fn remove_rule(&self, rule: ThreadTag) -> Result<()> {
+    pub fn remove_tag(&self, rule: ThreadTag) -> Result<()> {
         self.backend
             .lock()?
             .as_ref()
