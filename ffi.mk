@@ -67,7 +67,6 @@ gem/mac/amd64: pyroscope_ffi/clean
 	cd pyroscope_ffi/ruby && \
 		bundle && \
 		RUST_TARGET=x86_64-apple-darwin rake rbspy_install && \
-		RUST_TARGET=x86_64-apple-darwin rake thread_id_install && \
 		RUST_TARGET=x86_64-apple-darwin rake x86_64_darwin:gem
 
 .phony: gem/mac/arm64
@@ -75,5 +74,4 @@ gem/mac/arm64: pyroscope_ffi/clean
 	cd pyroscope_ffi/ruby && \
 		bundle && \
 		RUST_TARGET=aarch64-apple-darwin rake rbspy_install && \
-		RUST_TARGET=aarch64-apple-darwin rake thread_id_install && \
 		RUST_TARGET=aarch64-apple-darwin rake arm64_darwin:gem
