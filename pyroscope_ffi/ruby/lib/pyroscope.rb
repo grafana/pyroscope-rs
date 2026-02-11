@@ -12,8 +12,6 @@ module Pyroscope
     attach_function :initialize_agent, [:string, :string, :string, :string, :string, :int, :bool, :bool, :bool, :string, :string, :string, :string, :string], :bool
     attach_function :add_thread_tag, [:string, :string], :bool
     attach_function :remove_thread_tag, [:string, :string], :bool
-    attach_function :add_global_tag, [:string, :string], :bool
-    attach_function :remove_global_tag, [:string, :string], :bool
     attach_function :drop_agent, [], :bool
   end
 
