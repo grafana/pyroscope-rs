@@ -203,24 +203,22 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
         .to_str()
         .unwrap()
         .to_owned();
-    // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
-    let thread_id = pyroscope::utils::ThreadID::pthread_self();
-    return ffikit::send(ffikit::Signal::AddThreadTag(thread_id, key, value)).is_ok();
+
+    return ffikit::send(ffikit::Signal::AddThreadTag(thread_id(), key, value)).is_ok();
 }
 
 #[no_mangle]
 pub extern "C" fn remove_thread_tag(
     key: *const c_char, value: *const c_char,
 ) -> bool {
-    // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
-    let thread_id = pyroscope::utils::ThreadID::pthread_self();
+
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
         .unwrap()
         .to_owned();
 
-    return ffikit::send(ffikit::Signal::RemoveThreadTag(thread_id, key, value)).is_ok();
+    return ffikit::send(ffikit::Signal::RemoveThreadTag(thread_id(), key, value)).is_ok();
 }
 
 #[no_mangle]
@@ -280,4 +278,9 @@ impl Into<py_spy::config::LineNo> for LineNo {
             LineNo::NoLine => py_spy::config::LineNo::NoLine,
         }
     }
+}
+
+pub fn thread_id() -> pyroscope::utils::ThreadID {
+    // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
+    pyroscope::utils::ThreadID::pthread_self()
 }
