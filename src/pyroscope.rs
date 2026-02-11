@@ -723,7 +723,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 
         (
             move |key, value| {
-                let thread_id = crate::utils::pthread_self()?;
+                let thread_id = crate::utils::pthread_self();
                 let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
                 let backend = backend_add.lock()?;
                 backend
@@ -738,7 +738,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
                 Ok(())
             },
             move |key, value| {
-                let thread_id = crate::utils::pthread_self()?;
+                let thread_id = crate::utils::pthread_self();
                 let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
                 let backend = backend_remove.lock()?;
                 backend

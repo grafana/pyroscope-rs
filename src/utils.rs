@@ -73,34 +73,8 @@ mod check_err_tests {
     }
 }
 
-#[cfg(all(not(target_os = "windows"), not(target_env = "musl")))]
-pub fn pthread_self() -> Result<u64> {
-    let thread_id = check_err(unsafe { libc::pthread_self() })? as u64;
-    Ok(thread_id)
-}
-
-#[cfg(all(not(target_os = "windows"), target_env = "musl"))]
-pub fn pthread_self() -> Result<u64> {
-    let thread_id = unsafe { libc::pthread_self() } as u64;
-    Ok(thread_id)
-}
-
-#[cfg(target_os = "windows")]
-pub fn pthread_self() -> Result<u64> {
-    let thread_id =
-        check_err(unsafe { winapi::um::processthreadsapi::GetCurrentThreadId() })? as u64;
-    Ok(thread_id)
-}
-
-#[cfg(test)]
-mod pthread_self_tests {
-    use crate::utils::pthread_self;
-
-    #[test]
-    fn pthread_self_success() {
-        // This function should always succeeds.
-        assert!(pthread_self().is_ok())
-    }
+pub fn pthread_self() -> u64 {
+    unsafe { libc::pthread_self() as u64 }
 }
 
 /// Return the current time in seconds.

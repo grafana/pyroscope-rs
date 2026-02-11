@@ -17,6 +17,7 @@ ffikit = { path = "../../../ffikit" }
 # todo remove this dependency
 pretty_env_logger = "0.5"
 log = "0.4"
+libc = "0.2.180"
 
 [build-dependencies]
 cbindgen = "0.29"

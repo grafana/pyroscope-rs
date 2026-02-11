@@ -4,3 +4,5 @@
 **/build/
 **/*egg-info*/
 **/**/Makefile
+*.so*
+*.gem

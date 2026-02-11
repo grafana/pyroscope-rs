@@ -831,6 +831,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "ffikit",
+ "libc",
  "log",
  "pretty_env_logger",
  "pyroscope",
@@ -3202,14 +3203,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.101",
-]
-
-[[package]]
-name = "thread_id"
-version = "0.1.0"
-dependencies = [
- "cbindgen",
- "libc",
 ]
 
 [[package]]
