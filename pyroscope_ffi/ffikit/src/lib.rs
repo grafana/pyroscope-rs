@@ -18,9 +18,6 @@ lazy_static! {
     static ref SENDER: Mutex<Option<Sender<Signal>>> = Mutex::new(None);
 }
 
-/// Signal enum.
-/// This enum is used to send signals to the main loop. It is used to add/remove global or thread
-/// tags and to exit the main loop.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Signal {
     Kill,
