@@ -113,7 +113,6 @@ module Pyroscope
         @config.basic_auth_username || "",
         @config.basic_auth_password || "",
         @config.sample_rate || 100,
-        @config.detect_subprocesses || false,
         @config.oncpu || false,
         @config.report_pid || false,
         @config.report_thread_id || false,
