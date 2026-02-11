@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub enum Rule {
     GlobalTag(Tag),
-    ThreadTag(u64, Tag),
+    ThreadTag(crate::utils::ThreadId, Tag),
 }
 
 #[derive(Debug, Default, Clone)]
@@ -67,8 +67,8 @@ impl StackTrace {
             .iter()
             .filter_map(|rule| {
                 if let Rule::ThreadTag(thread_id, tag) = rule {
-                    if let Some(stack_thread_id) = self.thread_id {
-                        if thread_id == &stack_thread_id {
+                    if let Some(stack_thread_id) = &self.thread_id {
+                        if thread_id == stack_thread_id {
                             return Some(tag.clone());
                         }
                     }

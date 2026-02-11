@@ -26,8 +26,8 @@ pub enum Signal {
     Kill,
     AddGlobalTag(String, String),
     RemoveGlobalTag(String, String),
-    AddThreadTag(u64, String, String),
-    RemoveThreadTag(u64, String, String),
+    AddThreadTag(pyroscope::ThreadId, String, String),
+    RemoveThreadTag(pyroscope::ThreadId, String, String),
 }
 
 // todo this looks like this does pretty much nothing - receive and send, consider deliting this alltogether
