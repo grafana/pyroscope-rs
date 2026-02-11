@@ -4,13 +4,20 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub enum Rule {
-    ThreadTag(crate::utils::ThreadId, Tag),
+pub struct ThreadTag {
+    tid: crate::utils::ThreadId,
+    tag: Tag,
+}
+
+impl ThreadTag {
+    pub fn new(tid: crate::ThreadId, tag: Tag) -> Self {
+        Self { tid, tag }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct Ruleset {
-    pub rules: Arc<Mutex<HashSet<Rule>>>,
+    pub rules: Arc<Mutex<HashSet<ThreadTag>>>,
 }
 
 impl Ruleset {
@@ -20,7 +27,7 @@ impl Ruleset {
         }
     }
 
-    pub fn add_rule(&self, rule: Rule) -> Result<bool> {
+    pub fn add_rule(&self, rule: ThreadTag) -> Result<bool> {
         let rules = self.rules.clone();
 
         // Add the rule to the Ruleset
@@ -29,7 +36,7 @@ impl Ruleset {
         Ok(insert)
     }
 
-    pub fn remove_rule(&self, rule: Rule) -> Result<bool> {
+    pub fn remove_rule(&self, rule: ThreadTag) -> Result<bool> {
         let rules = self.rules.clone();
 
         // Remove the rule from the Ruleset
@@ -58,11 +65,9 @@ impl StackTrace {
 
         if let Ok(rules) = other.rules.lock() {
             rules.iter().for_each(|rule| {
-                if let Rule::ThreadTag(thread_id, tag) = rule {
-                    if let Some(stack_thread_id) = &self.thread_id {
-                        if thread_id == stack_thread_id {
-                            metadata.add_tag(tag.clone());
-                        }
+                if let Some(stack_thread_id) = &self.thread_id {
+                    if rule.tid == *stack_thread_id {
+                        metadata.add_tag(rule.tag.clone());
                     }
                 }
             })

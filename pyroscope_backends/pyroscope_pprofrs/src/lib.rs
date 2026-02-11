@@ -1,7 +1,7 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Ruleset,
         StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -12,6 +12,7 @@ use std::{
     ops::Deref,
     sync::{Arc, Mutex},
 };
+use pyroscope::backend::ThreadTag;
 
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
 
@@ -114,22 +115,22 @@ impl Backend for Pprof<'_> {
         Ok(reports)
     }
 
-    fn add_rule(&self, rule: Rule) -> Result<()> {
+    fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         if self.guard.lock()?.as_ref().is_some() {
             self.dump_report()?;
         }
 
-        self.ruleset.add_rule(rule)?;
+        self.ruleset.add_rule(tag)?;
 
         Ok(())
     }
 
-    fn remove_rule(&self, rule: Rule) -> Result<()> {
+    fn remove_tag(&self, tag: ThreadTag) -> Result<()> {
         if self.guard.lock()?.as_ref().is_some() {
             self.dump_report()?;
         }
 
-        self.ruleset.remove_rule(rule)?;
+        self.ruleset.remove_rule(tag)?;
 
         Ok(())
     }

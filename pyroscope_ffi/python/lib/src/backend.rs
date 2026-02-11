@@ -1,7 +1,7 @@
 use py_spy::{sampler::Sampler};
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        Backend, BackendConfig, BackendUninitialized, Report, ThreadTag, Ruleset,
         StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -62,13 +62,13 @@ impl Backend for Pyspy {
     }
 
 
-    fn add_rule(&self, rule: Rule) -> Result<()> {
+    fn add_tag(&self, rule: ThreadTag) -> Result<()> {
         self.ruleset.lock()?.add_rule(rule)?;
 
         Ok(())
     }
 
-    fn remove_rule(&self, rule: Rule) -> Result<()> {
+    fn remove_tag(&self, rule: ThreadTag) -> Result<()> {
         self.ruleset.lock()?.remove_rule(rule)?;
 
         Ok(())

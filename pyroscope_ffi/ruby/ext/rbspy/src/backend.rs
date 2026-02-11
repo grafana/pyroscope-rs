@@ -1,6 +1,6 @@
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        Backend, BackendConfig, BackendUninitialized, Report, ThreadTag, Ruleset,
         StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -70,16 +70,14 @@ impl Backend for Rbspy {
         Ok(self.sample_rate)
     }
 
-    /// Add a rule to the ruleset
-    fn add_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.add_rule(rule)?;
+    fn add_tag(&self, tag: ThreadTag) -> Result<()> {
+        self.ruleset.add_rule(tag)?;
 
         Ok(())
     }
 
-    /// Remove a rule from the ruleset
-    fn remove_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.remove_rule(rule)?;
+    fn remove_tag(&self, tag: ThreadTag) -> Result<()> {
+        self.ruleset.remove_rule(tag)?;
 
         Ok(())
     }
