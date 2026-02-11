@@ -204,7 +204,7 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
         .unwrap()
         .to_owned();
 
-    return ffikit::send(ffikit::Signal::AddThreadTag(thread_id(), key, value)).is_ok();
+    return ffikit::send(ffikit::Signal::AddThreadTag(self_thread_id(), key, value)).is_ok();
 }
 
 #[no_mangle]
@@ -218,7 +218,7 @@ pub extern "C" fn remove_thread_tag(
         .unwrap()
         .to_owned();
 
-    return ffikit::send(ffikit::Signal::RemoveThreadTag(thread_id(), key, value)).is_ok();
+    return ffikit::send(ffikit::Signal::RemoveThreadTag(self_thread_id(), key, value)).is_ok();
 }
 
 #[no_mangle]
@@ -280,7 +280,7 @@ impl Into<py_spy::config::LineNo> for LineNo {
     }
 }
 
-pub fn thread_id() -> pyroscope::utils::ThreadID {
+pub fn self_thread_id() -> pyroscope::utils::ThreadID {
     // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
     pyroscope::utils::ThreadID::pthread_self()
 }

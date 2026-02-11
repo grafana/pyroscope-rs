@@ -210,7 +210,7 @@ impl From<(rbspy::StackTrace, &BackendConfig)> for StackTraceWrapper {
 }
 
 
-pub fn thread_id() -> pyroscope::utils::ThreadID {
+pub fn self_thread_id() -> pyroscope::utils::ThreadID {
     // for rbspy we use pthread_t as thread id
     // https://github.com/ruby/ruby/blob/54a74c42033e42869e69e7dc9e67efa1faf225be/include/ruby/thread_native.h#L41
     pyroscope::utils::ThreadID::pthread_self()
