@@ -45,7 +45,6 @@ extern crate core;
 pub use crate::pyroscope::PyroscopeAgent;
 pub use error::{PyroscopeError, Result};
 
-// Public modules
 pub mod backend;
 pub mod encode;
 pub mod error;
@@ -53,5 +52,4 @@ pub mod pyroscope;
 pub mod session;
 pub mod timer;
 
-// Private modules
 mod utils;

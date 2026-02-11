@@ -21,7 +21,6 @@ ADD pyroscope_backends pyroscope_backends
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
-RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p thread_id --release
 
 FROM ruby:3.3@sha256:bff96f25259cd10bd92955bd84f2995230d5144ec0cdd5dc05384b302b3d3270 as builder-gem
 WORKDIR /gem
@@ -30,7 +29,6 @@ ADD pyroscope_ffi/ruby /gem/
 RUN bundle install
 
 COPY --from=builder /pyroscope-rs/target/release/librbspy.so lib/rbspy/rbspy.so
-COPY --from=builder /pyroscope-rs/target/release/libthread_id.so lib/thread_id/thread_id.so
 ARG TARGET_TASK
 RUN rake ${TARGET_TASK}
 

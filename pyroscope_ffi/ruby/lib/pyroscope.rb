@@ -10,17 +10,11 @@ module Pyroscope
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
     attach_function :initialize_logging, [:int], :bool
     attach_function :initialize_agent, [:string, :string, :string, :string, :string, :int, :bool, :bool, :bool, :string, :string, :string, :string, :string], :bool
-    attach_function :add_thread_tag, [:uint64, :string, :string], :bool
-    attach_function :remove_thread_tag, [:uint64, :string, :string], :bool
+    attach_function :add_thread_tag, [:string, :string], :bool
+    attach_function :remove_thread_tag, [:string, :string], :bool
     attach_function :add_global_tag, [:string, :string], :bool
     attach_function :remove_global_tag, [:string, :string], :bool
     attach_function :drop_agent, [], :bool
-  end
-
-  module Utils
-    extend FFI::Library
-    ffi_lib File.expand_path(File.dirname(__FILE__)) + "/thread_id/thread_id.#{RbConfig::CONFIG["DLEXT"]}"
-    attach_function :thread_id, [], :uint64
   end
 
   if defined?(::Rails::Engine)
@@ -136,12 +130,11 @@ module Pyroscope
     end
 
     def tag_wrapper(tags)
-      tid = thread_id
-      _add_tags(tid, tags)
+      _add_tags(tags)
       begin
         yield
       ensure
-        _remove_tags(tid, tags)
+        _remove_tags(tags)
       end
     end
 
@@ -153,19 +146,15 @@ module Pyroscope
       warn("deprecated. Use `Pyroscope.tag_wrapper` instead.")
     end
 
-    def thread_id
-      return Utils.thread_id
-    end
-
-    def _add_tags(thread_id, tags)
+    def _add_tags(tags)
       tags.each do |tag_name, tag_value|
-        Rust.add_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
+        Rust.add_thread_tag(tag_name.to_s, tag_value.to_s)
       end
     end
 
-    def _remove_tags(thread_id, tags)
+    def _remove_tags(tags)
       tags.each do |tag_name, tag_value|
-        Rust.remove_thread_tag(thread_id, tag_name.to_s, tag_value.to_s)
+        Rust.remove_thread_tag(tag_name.to_s, tag_value.to_s)
       end
     end
 
