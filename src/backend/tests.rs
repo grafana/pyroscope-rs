@@ -167,22 +167,6 @@ fn test_ruleset_remove_rule() {
 fn test_ruleset() {
     let ruleset = Ruleset::new();
 
-    assert_eq!(ruleset.get_global_tags().unwrap(), Vec::new());
-
-    ruleset
-        .add_rule(Rule::GlobalTag(Tag::new(
-            "key1".to_string(),
-            "value".to_string(),
-        )))
-        .unwrap();
-
-    ruleset
-        .add_rule(Rule::GlobalTag(Tag::new(
-            "key2".to_string(),
-            "value".to_string(),
-        )))
-        .unwrap();
-
     ruleset
         .add_rule(Rule::ThreadTag(
             tid(1),
@@ -216,8 +200,6 @@ fn test_ruleset() {
     assert_eq!(
         ruleset.rules.lock().unwrap().clone(),
         HashSet::from([
-            Rule::GlobalTag(Tag::new("key1".to_string(), "value".to_string(),)),
-            Rule::GlobalTag(Tag::new("key2".to_string(), "value".to_string(),)),
             Rule::ThreadTag(tid(1), Tag::new("key1".to_string(), "value".to_string(),)),
             Rule::ThreadTag(tid(3), Tag::new("key1".to_string(), "value".to_string(),))
         ])
@@ -228,21 +210,23 @@ fn test_ruleset() {
 fn test_ruleset_duplicates() {
     let ruleset = Ruleset::new();
 
+    let tid = crate::ThreadId::pthread_self();
     ruleset
-        .add_rule(Rule::GlobalTag(Tag::new(
+        .add_rule(Rule::ThreadTag(tid.clone(), Tag::new(
             "key1".to_string(),
             "value".to_string(),
         )))
         .unwrap();
 
     ruleset
-        .add_rule(Rule::GlobalTag(Tag::new(
+        .add_rule(Rule::ThreadTag(tid.clone(), Tag::new(
             "key1".to_string(),
             "value".to_string(),
         )))
         .unwrap();
+
     assert_eq!(
-        ruleset.get_global_tags().unwrap(),
+        ruleset.thread_tags(tid),
         vec![Tag::new("key1".to_string(), "value".to_string())]
     );
 }
@@ -251,46 +235,31 @@ fn test_ruleset_duplicates() {
 fn test_ruleset_remove_nonexistent() {
     let ruleset = Ruleset::new();
 
+    let tid = crate::ThreadId::pthread_self();
     ruleset
-        .add_rule(Rule::GlobalTag(Tag::new(
+        .add_rule(Rule::ThreadTag(tid.clone(), Tag::new(
             "key1".to_string(),
             "value".to_string(),
         )))
         .unwrap();
 
     ruleset
-        .remove_rule(Rule::GlobalTag(Tag::new(
+        .remove_rule(Rule::ThreadTag(tid.clone(), Tag::new(
             "key2".to_string(),
             "value".to_string(),
         )))
         .unwrap();
 
     assert_eq!(
-        ruleset.get_global_tags().unwrap(),
+        ruleset.thread_tags(tid),
         vec![Tag::new("key1".to_string(), "value".to_string())]
     );
 }
 
 #[test]
 fn test_stacktrace_add() {
-    // Create a Ruleset
     let ruleset = Ruleset::new();
 
-    // Two global Tags
-    ruleset
-        .add_rule(Rule::GlobalTag(Tag::new(
-            "key1".to_string(),
-            "value".to_string(),
-        )))
-        .unwrap();
-    ruleset
-        .add_rule(Rule::GlobalTag(Tag::new(
-            "key2".to_string(),
-            "value".to_string(),
-        )))
-        .unwrap();
-
-    // One Thread tag with id 55
     ruleset
         .add_rule(Rule::ThreadTag(
             tid(55),
@@ -298,7 +267,6 @@ fn test_stacktrace_add() {
         ))
         .unwrap();
 
-    // One Thread tag with id 100
     ruleset
         .add_rule(Rule::ThreadTag(
             tid(100),
@@ -311,7 +279,6 @@ fn test_stacktrace_add() {
     backend_config.report_thread_id = true;
     backend_config.report_thread_name = true;
 
-    // Create Stacktrace with id 55
     let stacktrace = StackTrace::new(
         &backend_config,
         Some(1),
@@ -341,8 +308,6 @@ fn test_stacktrace_add() {
     // Add the Stacktrace to the Ruleset
     let applied_stacktrace = stacktrace.add_tag_rules(&ruleset);
 
-    initial_metadata.add_tag(Tag::new("key1".to_string(), "value".to_string()));
-    initial_metadata.add_tag(Tag::new("key2".to_string(), "value".to_string()));
     initial_metadata.add_tag(Tag::new("keyA".to_string(), "valueA".to_string()));
 
     // assert that the metadata of the stacktrace is updated

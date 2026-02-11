@@ -405,11 +405,7 @@ impl PyroscopeAgentBuilder {
 
         // Set Global Tags
         for (key, value) in config.tags.iter() {
-            self.backend
-                .add_rule(crate::backend::Rule::GlobalTag(Tag::new(
-                    key.to_owned(),
-                    value.to_owned(),
-                )))?;
+            // todo!("implement")
         }
 
         // Initialize the Backend
