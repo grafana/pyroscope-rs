@@ -442,35 +442,3 @@ fn test_stackbuffer_clear() {
     buffer.clear();
     assert_eq!(buffer.data.len(), 0);
 }
-
-#[bench]
-fn bench(b: &mut test::Bencher) {
-    let ruleset = Ruleset::new();
-
-    ruleset
-        .add_rule(Rule::ThreadTag(
-            tid(55),
-            Tag::new("keyA".to_string(), "valueA".to_string()),
-        ))
-        .unwrap();
-
-    ruleset
-        .add_rule(Rule::ThreadTag(
-            tid(55),
-            Tag::new("keyB".to_string(), "valueB".to_string()),
-        ))
-        .unwrap();
-
-
-
-    b.iter(||{
-        let stacktrace = StackTrace{
-            pid: None,
-            thread_id: Some(tid(55)),
-            thread_name: None,
-            frames: vec![],
-            metadata: Default::default(),
-        };
-        let _ = stacktrace.add_tag_rules(&ruleset);
-    })
-}
