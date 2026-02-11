@@ -18,7 +18,6 @@ readme = "README.md"
 pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"] }
 pyroscope = { version = "0.5.7", path = "../..", default-features = false }
 log = "0.4"
-libc = "0.2.181"
 
 [features]
 default = ["pyroscope/default"]

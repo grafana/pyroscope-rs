@@ -73,32 +73,9 @@ mod check_err_tests {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct ThreadID {
-    pthread: libc::pthread_t,
+pub fn pthread_self() -> u64 {
+    unsafe { libc::pthread_self() as u64 }
 }
-
-impl From<libc::pthread_t> for ThreadID {
-    fn from(value: libc::pthread_t) -> Self {
-        Self {
-            pthread: value
-        }
-    }
-}
-impl ThreadID {
-    
-    pub fn pthread_self() -> Self {
-        Self {
-            pthread: unsafe { libc::pthread_self() },
-        }
-    }
-
-    pub fn to_string(&self) -> String {
-        self.pthread.to_string()
-    }
-}
-
-
 
 /// Return the current time in seconds.
 pub fn get_current_time_secs() -> Result<u64> {
@@ -151,23 +128,32 @@ mod get_time_range_tests {
 
     #[test]
     fn get_time_range_verify() {
-        assert_eq!(get_time_range(1644194479).unwrap(), TimeRange {
-            from: 1644194470,
-            until: 1644194480,
-            current: 1644194479,
-            rem: 1,
-        });
-        assert_eq!(get_time_range(1644194470).unwrap(), TimeRange {
-            from: 1644194470,
-            until: 1644194480,
-            current: 1644194470,
-            rem: 10,
-        });
-        assert_eq!(get_time_range(1644194476).unwrap(), TimeRange {
-            from: 1644194470,
-            until: 1644194480,
-            current: 1644194476,
-            rem: 4,
-        });
+        assert_eq!(
+            get_time_range(1644194479).unwrap(),
+            TimeRange {
+                from: 1644194470,
+                until: 1644194480,
+                current: 1644194479,
+                rem: 1,
+            }
+        );
+        assert_eq!(
+            get_time_range(1644194470).unwrap(),
+            TimeRange {
+                from: 1644194470,
+                until: 1644194480,
+                current: 1644194470,
+                rem: 10,
+            }
+        );
+        assert_eq!(
+            get_time_range(1644194476).unwrap(),
+            TimeRange {
+                from: 1644194470,
+                until: 1644194480,
+                current: 1644194476,
+                rem: 4,
+            }
+        );
     }
 }
