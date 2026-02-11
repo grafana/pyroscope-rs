@@ -83,12 +83,6 @@ def add_thread_tag(key, value):
 def remove_thread_tag(key, value):
     lib.remove_thread_tag(key.encode("UTF-8"), value.encode("UTF-8"))
 
-def add_global_tag(key, value):
-    lib.add_global_tag(key.encode("UTF-8"), value.encode("UTF-8"))
-
-def remove_global_tag(key, value):
-    lib.remove_global_tag(key.encode("UTF-8"), value.encode("UTF-8"))
-
 def tags_to_string(tags):
     if tags is None:
         return ""

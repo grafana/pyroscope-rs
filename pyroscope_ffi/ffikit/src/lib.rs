@@ -24,8 +24,6 @@ lazy_static! {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Signal {
     Kill,
-    AddGlobalTag(String, String),
-    RemoveGlobalTag(String, String),
     AddThreadTag(pyroscope::ThreadId, String, String),
     RemoveThreadTag(pyroscope::ThreadId, String, String),
 }

@@ -251,14 +251,6 @@ pub extern "C" fn initialize_agent(
                     agent_running.stop().unwrap();
                     break;
                 }
-                Signal::AddGlobalTag(name, value) => {
-                    agent_running.add_global_tag(Tag::new(name, value)).unwrap();
-                }
-                Signal::RemoveGlobalTag(name, value) => {
-                    agent_running
-                        .remove_global_tag(Tag::new(name, value))
-                        .unwrap();
-                }
                 Signal::AddThreadTag(thread_id, key, value) => {
                     let tag = Tag::new(key, value);
                     agent_running.add_thread_tag(thread_id, tag).unwrap();
@@ -304,32 +296,6 @@ pub extern "C" fn remove_thread_tag(
         .to_owned();
 
     ffikit::send(ffikit::Signal::RemoveThreadTag(backend::self_thread_id(), key, value)).is_ok()
-}
-
-#[no_mangle]
-pub extern "C" fn add_global_tag(key: *const c_char, value: *const c_char) -> bool {
-    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
-    let value = unsafe { CStr::from_ptr(value) }
-        .to_str()
-        .unwrap()
-        .to_owned();
-
-    ffikit::send(ffikit::Signal::AddGlobalTag(key, value)).unwrap();
-
-    true
-}
-
-#[no_mangle]
-pub extern "C" fn remove_global_tag(key: *const c_char, value: *const c_char) -> bool {
-    let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
-    let value = unsafe { CStr::from_ptr(value) }
-        .to_str()
-        .unwrap()
-        .to_owned();
-
-    ffikit::send(ffikit::Signal::RemoveGlobalTag(key, value)).unwrap();
-
-    true
 }
 
 // Convert a string of tags to a Vec<(&str, &str)>

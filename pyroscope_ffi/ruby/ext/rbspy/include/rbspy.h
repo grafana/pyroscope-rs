@@ -33,8 +33,4 @@ bool add_thread_tag(const char *key, const char *value);
 
 bool remove_thread_tag(const char *key, const char *value);
 
-bool add_global_tag(const char *key, const char *value);
-
-bool remove_global_tag(const char *key, const char *value);
-
 #endif  /* RBSPY_H_ */

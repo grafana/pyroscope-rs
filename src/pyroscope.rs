@@ -757,23 +757,6 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         )
     }
 
-    /// Add a global Tag rule to the backend Ruleset. For tagging, it's
-    /// recommended to use the `tag_wrapper` function.
-    pub fn add_global_tag(&self, tag: Tag) -> Result<()> {
-        let rule = Rule::GlobalTag(tag);
-        self.backend.add_rule(rule)?;
-
-        Ok(())
-    }
-
-    /// Remove a global Tag rule from the backend Ruleset. For tagging, it's
-    /// recommended to use the `tag_wrapper` function.
-    pub fn remove_global_tag(&self, tag: Tag) -> Result<()> {
-        let rule = Rule::GlobalTag(tag);
-        self.backend.remove_rule(rule)?;
-
-        Ok(())
-    }
 
     /// Add a thread Tag rule to the backend Ruleset. For tagging, it's
     /// recommended to use the `tag_wrapper` function.
