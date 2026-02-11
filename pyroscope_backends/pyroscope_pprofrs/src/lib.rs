@@ -1,7 +1,7 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ThreadTagsSet,
         StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -12,6 +12,7 @@ use std::{
     ops::Deref,
     sync::{Arc, Mutex},
 };
+use pyroscope::backend::ThreadTag;
 
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
 
@@ -39,7 +40,7 @@ pub struct Pprof<'a> {
     backend_config: BackendConfig,
     inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
     guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
-    ruleset: Ruleset,
+    ruleset: ThreadTagsSet,
 }
 
 impl std::fmt::Debug for Pprof<'_> {
@@ -56,7 +57,7 @@ impl<'a> Pprof<'a> {
             backend_config,
             inner_builder: Arc::new(Mutex::new(None)),
             guard: Arc::new(Mutex::new(None)),
-            ruleset: Ruleset::default(),
+            ruleset: ThreadTagsSet::default(),
         }
     }
 }
@@ -114,22 +115,22 @@ impl Backend for Pprof<'_> {
         Ok(reports)
     }
 
-    fn add_rule(&self, rule: Rule) -> Result<()> {
+    fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         if self.guard.lock()?.as_ref().is_some() {
             self.dump_report()?;
         }
 
-        self.ruleset.add_rule(rule)?;
+        self.ruleset.add(tag)?;
 
         Ok(())
     }
 
-    fn remove_rule(&self, rule: Rule) -> Result<()> {
+    fn remove_tag(&self, tag: ThreadTag) -> Result<()> {
         if self.guard.lock()?.as_ref().is_some() {
             self.dump_report()?;
         }
 
-        self.ruleset.remove_rule(rule)?;
+        self.ruleset.remove(tag)?;
 
         Ok(())
     }

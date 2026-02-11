@@ -1,7 +1,6 @@
 #![allow(clippy::module_inception)]
 
 use crate::{
-    backend::Rule,
     error::{PyroscopeError, Result},
 };
 use std::{
@@ -9,7 +8,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use super::Report;
+use super::{Report, ThreadTag};
 
 /// Backend Config
 #[derive(Debug, Copy, Clone, Default)]
@@ -33,10 +32,8 @@ pub trait Backend: Send {
     fn shutdown(self: Box<Self>) -> Result<()>;
     /// Generate profiling report
     fn report(&mut self) -> Result<Vec<Report>>;
-    /// Add a report-splitting rule to the backend.
-    fn add_rule(&self, ruleset: Rule) -> Result<()>;
-    /// Remove a report-splitting rule from the backend.
-    fn remove_rule(&self, ruleset: Rule) -> Result<()>;
+    fn add_tag(&self, tag: ThreadTag) -> Result<()>;
+    fn remove_tag(&self, tag: ThreadTag) -> Result<()>;
 }
 
 /// Marker struct for Empty BackendImpl
@@ -135,22 +132,20 @@ impl<S: BackendAccessible> BackendImpl<S> {
     }
 
 
-    /// Add a report-splitting rule to the backend
-    pub fn add_rule(&self, rule: Rule) -> Result<()> {
+    pub fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         self.backend
             .lock()?
             .as_ref()
             .ok_or(PyroscopeError::BackendImpl)?
-            .add_rule(rule)
+            .add_tag(tag)
     }
 
-    /// Remove a report-splitting rule from the backend
-    pub fn remove_rule(&self, rule: Rule) -> Result<()> {
+    pub fn remove_tag(&self, rule: ThreadTag) -> Result<()> {
         self.backend
             .lock()?
             .as_ref()
             .ok_or(PyroscopeError::BackendImpl)?
-            .remove_rule(rule)
+            .remove_tag(rule)
     }
 }
 

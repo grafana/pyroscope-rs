@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    backend::{BackendReady, BackendUninitialized, Report, Rule, Tag},
+    backend::{BackendReady, BackendUninitialized, Report, Tag},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
@@ -18,7 +18,7 @@ use crate::{
     PyroscopeError,
 };
 
-use crate::backend::BackendImpl;
+use crate::backend::{BackendImpl, ThreadTag};
 use crate::pyroscope::Compression::GZIP;
 use crate::pyroscope::ReportEncoding::PPROF;
 
@@ -404,13 +404,9 @@ impl PyroscopeAgentBuilder {
         };
 
         // Set Global Tags
-        for (key, value) in config.tags.iter() {
-            self.backend
-                .add_rule(crate::backend::Rule::GlobalTag(Tag::new(
-                    key.to_owned(),
-                    value.to_owned(),
-                )))?;
-        }
+        // for (key, value) in config.tags.iter() {
+            // todo!("implement")
+        // }
 
         // Initialize the Backend
         let backend_ready = self.backend.initialize()?;
@@ -725,7 +721,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
             move |key, value| {
                 // https://github.com/tikv/pprof-rs/blob/01cff82dbe6fe110a707bf2b38d8ebb1d14a18f8/src/profiler.rs#L405
                 let thread_id = crate::utils::ThreadId::pthread_self();
-                let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
+                let rule = ThreadTag::new(thread_id, Tag::new(key, value));
                 let backend = backend_add.lock()?;
                 backend
                     .as_ref()
@@ -734,14 +730,14 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
                             "PyroscopeAgent - Failed to unwrap backend".to_string(),
                         )
                     })?
-                    .add_rule(rule)?;
+                    .add_tag(rule)?;
 
                 Ok(())
             },
             move |key, value| {
                 // https://github.com/tikv/pprof-rs/blob/01cff82dbe6fe110a707bf2b38d8ebb1d14a18f8/src/profiler.rs#L405
                 let thread_id = crate::utils::ThreadId::pthread_self();
-                let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
+                let rule = ThreadTag::new(thread_id, Tag::new(key, value));
                 let backend = backend_remove.lock()?;
                 backend
                     .as_ref()
@@ -750,7 +746,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
                             "PyroscopeAgent - Failed to unwrap backend".to_string(),
                         )
                     })?
-                    .remove_rule(rule)?;
+                    .remove_tag(rule)?;
 
                 Ok(())
             },
@@ -761,8 +757,8 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Add a thread Tag rule to the backend Ruleset. For tagging, it's
     /// recommended to use the `tag_wrapper` function.
     pub fn add_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
-        let rule = Rule::ThreadTag(thread_id, tag);
-        self.backend.add_rule(rule)?;
+        let rule = ThreadTag::new(thread_id, tag);
+        self.backend.add_tag(rule)?;
 
         Ok(())
     }
@@ -770,8 +766,8 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Remove a thread Tag rule from the backend Ruleset. For tagging, it's
     /// recommended to use the `tag_wrapper` function.
     pub fn remove_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
-        let rule = Rule::ThreadTag(thread_id, tag);
-        self.backend.remove_rule(rule)?;
+        let rule = ThreadTag::new(thread_id, tag);
+        self.backend.remove_tag(rule)?;
 
         Ok(())
     }

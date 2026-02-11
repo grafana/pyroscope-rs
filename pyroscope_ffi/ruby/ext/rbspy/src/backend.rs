@@ -1,6 +1,6 @@
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, Rule, Ruleset,
+        Backend, BackendConfig, BackendUninitialized, Report, ThreadTag, ThreadTagsSet,
         StackBuffer, StackFrame, StackTrace,
     },
     error::{PyroscopeError, Result},
@@ -27,7 +27,7 @@ pub struct Rbspy {
     /// Profiling buffer
     buffer: Arc<Mutex<StackBuffer>>,
     /// Rulset
-    ruleset: Ruleset,
+    ruleset: ThreadTagsSet,
 }
 
 impl std::fmt::Debug for Rbspy {
@@ -45,7 +45,7 @@ impl Rbspy {
             backend_config,
             error_receiver: None,
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
-            ruleset: Ruleset::default(),
+            ruleset: ThreadTagsSet::default(),
         }
     }
 }
@@ -70,16 +70,14 @@ impl Backend for Rbspy {
         Ok(self.sample_rate)
     }
 
-    /// Add a rule to the ruleset
-    fn add_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.add_rule(rule)?;
+    fn add_tag(&self, tag: ThreadTag) -> Result<()> {
+        self.ruleset.add(tag)?;
 
         Ok(())
     }
 
-    /// Remove a rule from the ruleset
-    fn remove_rule(&self, rule: Rule) -> Result<()> {
-        self.ruleset.remove_rule(rule)?;
+    fn remove_tag(&self, tag: ThreadTag) -> Result<()> {
+        self.ruleset.remove(tag)?;
 
         Ok(())
     }
