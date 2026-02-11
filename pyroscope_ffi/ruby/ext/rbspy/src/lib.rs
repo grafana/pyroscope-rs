@@ -284,28 +284,26 @@ pub extern "C" fn drop_agent() -> bool {
 
 #[no_mangle]
 pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
-    let thread_id = backend::self_thread_id();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
         .unwrap()
         .to_owned();
 
-    ffikit::send(ffikit::Signal::AddThreadTag(thread_id, key, value)).is_ok()
+    ffikit::send(ffikit::Signal::AddThreadTag(backend::self_thread_id(), key, value)).is_ok()
 }
 
 #[no_mangle]
 pub extern "C" fn remove_thread_tag(
     key: *const c_char, value: *const c_char,
 ) -> bool {
-    let thread_id = backend::self_thread_id();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
         .unwrap()
         .to_owned();
 
-    ffikit::send(ffikit::Signal::RemoveThreadTag(thread_id, key, value)).is_ok()
+    ffikit::send(ffikit::Signal::RemoveThreadTag(backend::self_thread_id(), key, value)).is_ok()
 }
 
 #[no_mangle]
