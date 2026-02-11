@@ -102,12 +102,12 @@ def http_headers_to_json(headers):
 @contextmanager
 def tag_wrapper(tags):
     for key, value in tags.items():
-        lib.add_thread_tag(threading.get_ident(), key.encode("UTF-8"), value.encode("UTF-8"))
+        lib.add_thread_tag(key.encode("UTF-8"), value.encode("UTF-8"))
     try:
         yield
     finally:
         for key, value in tags.items():
-            lib.remove_thread_tag(threading.get_ident(), key.encode("UTF-8"), value.encode("UTF-8"))
+            lib.remove_thread_tag(key.encode("UTF-8"), value.encode("UTF-8"))
 
 def stop():
     warnings.warn("deprecated, no longer applicable", DeprecationWarning)
