@@ -3,9 +3,9 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use super::BackendConfig;
 use crate::error::Result;
 
-use super::BackendConfig;
 
 /// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
@@ -207,7 +207,7 @@ pub struct StackTrace {
     /// Process ID
     pub pid: Option<u32>,
     /// Thread ID
-    pub thread_id: Option<u64>,
+    pub thread_id: Option<crate::utils::ThreadID>,
     /// Thread Name
     pub thread_name: Option<String>,
     /// Stack Trace
@@ -235,10 +235,9 @@ impl std::fmt::Display for StackTrace {
 impl StackTrace {
     /// Create a new StackTrace
     pub fn new(
-        config: &BackendConfig, pid: Option<u32>, thread_id: Option<u64>,
+        config: &BackendConfig, pid: Option<u32>, thread_id: Option<crate::utils::ThreadID>,
         thread_name: Option<String>, frames: Vec<StackFrame>,
     ) -> Self {
-        // Set StackTrace specific tags
         let mut metadata = Metadata::default();
 
         if config.report_pid {
@@ -248,7 +247,7 @@ impl StackTrace {
         }
 
         if config.report_thread_id {
-            if let Some(thread_id) = thread_id {
+            if let Some(thread_id) = &thread_id {
                 metadata.add_tag(Tag::new("thread_id".to_owned(), thread_id.to_string()));
             }
         }

@@ -77,13 +77,13 @@ def shutdown():
     else:
         LOGGER.warning("Pyroscope Agent shutdown failed")
 
-def add_thread_tag(thread_id, key, value):
-    lib.add_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
+def add_thread_tag(key, value):
+    lib.add_thread_tag(key.encode("UTF-8"), value.encode("UTF-8"))
 
-def remove_thread_tag(thread_id, key, value):
-    lib.remove_thread_tag(thread_id, key.encode("UTF-8"), value.encode("UTF-8"))
+def remove_thread_tag(key, value):
+    lib.remove_thread_tag(key.encode("UTF-8"), value.encode("UTF-8"))
 
-def add_global_tag(thread_id, key, value):
+def add_global_tag(key, value):
     lib.add_global_tag(key.encode("UTF-8"), value.encode("UTF-8"))
 
 def remove_global_tag(key, value):
