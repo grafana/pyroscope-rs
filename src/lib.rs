@@ -52,4 +52,4 @@ pub mod pyroscope;
 pub mod session;
 pub mod timer;
 
-mod utils;
+pub mod utils;

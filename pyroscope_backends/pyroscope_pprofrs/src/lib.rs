@@ -227,10 +227,12 @@ impl From<StackTraceWrapper> for StackTrace {
 impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
     fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
+        // https://github.com/tikv/pprof-rs/blob/01cff82dbe6fe110a707bf2b38d8ebb1d14a18f8/src/profiler.rs#L405
+        let thread_id = frames.thread_id as libc::pthread_t;
         StackTraceWrapper(StackTrace::new(
             config,
             None,
-            Some(frames.thread_id),
+            Some(thread_id.into()),
             Some(frames.thread_name),
             frames
                 .frames

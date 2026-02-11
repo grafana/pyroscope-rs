@@ -284,7 +284,7 @@ pub extern "C" fn drop_agent() -> bool {
 
 #[no_mangle]
 pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
-    let thread_id = current_thread_id();
+    let thread_id = backend::thread_id();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -298,7 +298,7 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
 pub extern "C" fn remove_thread_tag(
     key: *const c_char, value: *const c_char,
 ) -> bool {
-    let thread_id = current_thread_id();
+    let thread_id = backend::thread_id();
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -351,7 +351,3 @@ fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
 
     tags_vec
 }
-fn current_thread_id() -> u64 {
-    unsafe { libc::pthread_self() as u64 }
-}
-
