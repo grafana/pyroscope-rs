@@ -13,7 +13,6 @@ rescue Bundler::BundlerError => e
 	exit e.status_code
 end
 
-load File.expand_path('./ext/thread_id/Rakefile', __dir__)
 load File.expand_path('./ext/rbspy/Rakefile', __dir__)
 
 task default: %w[hello]
@@ -33,7 +32,6 @@ namespace :x86_64_darwin do
   spec = Bundler.load_gemspec('pyroscope.gemspec')
   spec.platform = 'x86_64-darwin'
   spec.files += FileList['lib/rbspy/rbspy.*']
-  spec.files += FileList['lib/thread_id/thread_id.*']
   spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|
@@ -44,7 +42,6 @@ namespace :arm64_darwin do
   spec = Bundler.load_gemspec('pyroscope.gemspec')
   spec.platform = 'arm64-darwin'
   spec.files += FileList['lib/rbspy/rbspy.*']
-  spec.files += FileList['lib/thread_id/thread_id.*']
   spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|
@@ -56,7 +53,6 @@ namespace :x86_64_linux do
   spec.platform = 'x86_64-linux'
   spec.files += FileList['lib/rbspy/rbspy.*']
   spec.files += FileList['lib/rbspy.libs/*']
-  spec.files += FileList['lib/thread_id/thread_id.*']
   spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|
@@ -68,7 +64,6 @@ namespace :aarch64_linux do
   spec.platform = 'aarch64-linux'
   spec.files += FileList['lib/rbspy/rbspy.*']
   spec.files += FileList['lib/rbspy.libs/*']
-  spec.files += FileList['lib/thread_id/thread_id.*']
   spec.extensions = []
 
   Gem::PackageTask.new(spec) do |pkg|

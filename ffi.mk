@@ -7,7 +7,6 @@ BUILD_ARCH_ARM=manylinux2014_aarch64
 .phony: pyroscope_ffi/clean
 pyroscope_ffi/clean:
 	make -C pyroscope_ffi/python/ clean
-	make -C pyroscope_ffi/ruby/ clean
 
 
 .phony: wheel/linux/amd64
