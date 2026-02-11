@@ -52,4 +52,5 @@ pub mod pyroscope;
 pub mod session;
 pub mod timer;
 
-pub mod utils;
+mod utils;
+pub use utils::ThreadID;
