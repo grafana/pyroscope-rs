@@ -207,7 +207,7 @@ pub struct StackTrace {
     /// Process ID
     pub pid: Option<u32>,
     /// Thread ID
-    pub thread_id: Option<crate::utils::ThreadID>,
+    pub thread_id: Option<crate::utils::ThreadId>,
     /// Thread Name
     pub thread_name: Option<String>,
     /// Stack Trace
@@ -235,7 +235,7 @@ impl std::fmt::Display for StackTrace {
 impl StackTrace {
     /// Create a new StackTrace
     pub fn new(
-        config: &BackendConfig, pid: Option<u32>, thread_id: Option<crate::utils::ThreadID>,
+        config: &BackendConfig, pid: Option<u32>, thread_id: Option<crate::utils::ThreadId>,
         thread_name: Option<String>, frames: Vec<StackFrame>,
     ) -> Self {
         let mut metadata = Metadata::default();

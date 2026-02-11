@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub enum Rule {
     GlobalTag(Tag),
-    ThreadTag(crate::utils::ThreadID, Tag),
+    ThreadTag(crate::utils::ThreadId, Tag),
 }
 
 #[derive(Debug, Default, Clone)]

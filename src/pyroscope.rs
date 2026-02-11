@@ -724,7 +724,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         (
             move |key, value| {
                 // https://github.com/tikv/pprof-rs/blob/01cff82dbe6fe110a707bf2b38d8ebb1d14a18f8/src/profiler.rs#L405
-                let thread_id = crate::utils::ThreadID::pthread_self();
+                let thread_id = crate::utils::ThreadId::pthread_self();
                 let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
                 let backend = backend_add.lock()?;
                 backend
@@ -740,7 +740,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
             },
             move |key, value| {
                 // https://github.com/tikv/pprof-rs/blob/01cff82dbe6fe110a707bf2b38d8ebb1d14a18f8/src/profiler.rs#L405
-                let thread_id = crate::utils::ThreadID::pthread_self();
+                let thread_id = crate::utils::ThreadId::pthread_self();
                 let rule = Rule::ThreadTag(thread_id, Tag::new(key, value));
                 let backend = backend_remove.lock()?;
                 backend
@@ -777,7 +777,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 
     /// Add a thread Tag rule to the backend Ruleset. For tagging, it's
     /// recommended to use the `tag_wrapper` function.
-    pub fn add_thread_tag(&self, thread_id: crate::utils::ThreadID, tag: Tag) -> Result<()> {
+    pub fn add_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
         self.backend.add_rule(rule)?;
 
@@ -786,7 +786,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 
     /// Remove a thread Tag rule from the backend Ruleset. For tagging, it's
     /// recommended to use the `tag_wrapper` function.
-    pub fn remove_thread_tag(&self, thread_id: crate::utils::ThreadID, tag: Tag) -> Result<()> {
+    pub fn remove_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
         let rule = Rule::ThreadTag(thread_id, tag);
         self.backend.remove_rule(rule)?;
 

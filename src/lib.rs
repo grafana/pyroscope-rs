@@ -53,4 +53,4 @@ pub mod session;
 pub mod timer;
 
 mod utils;
-pub use utils::ThreadID;
+pub use utils::ThreadId;

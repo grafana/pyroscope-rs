@@ -74,18 +74,18 @@ mod check_err_tests {
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct ThreadID {
+pub struct ThreadId {
     pthread: libc::pthread_t,
 }
 
-impl From<libc::pthread_t> for ThreadID {
+impl From<libc::pthread_t> for ThreadId {
     fn from(value: libc::pthread_t) -> Self {
         Self {
             pthread: value
         }
     }
 }
-impl ThreadID {
+impl ThreadId {
     
     pub fn pthread_self() -> Self {
         Self {

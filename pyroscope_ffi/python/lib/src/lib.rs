@@ -280,7 +280,7 @@ impl Into<py_spy::config::LineNo> for LineNo {
     }
 }
 
-pub fn self_thread_id() -> pyroscope::ThreadID {
+pub fn self_thread_id() -> pyroscope::ThreadId {
     // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
-    pyroscope::ThreadID::pthread_self()
+    pyroscope::ThreadId::pthread_self()
 }

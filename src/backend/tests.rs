@@ -124,7 +124,7 @@ fn test_rule_new() {
     );
 }
 
-fn tid(v: u64) -> crate::utils::ThreadID {
+fn tid(v: u64) -> crate::utils::ThreadId {
     (v as libc::pthread_t).into()
 }
 
