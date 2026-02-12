@@ -14,7 +14,8 @@ use std::{
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
 
 pub fn pprof_backend(
-    config: PprofConfig, backend_config: BackendConfig,
+    config: PprofConfig,
+    backend_config: BackendConfig,
 ) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Pprof::new(config, backend_config)))
 }

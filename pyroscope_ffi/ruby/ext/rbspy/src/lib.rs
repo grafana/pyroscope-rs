@@ -109,10 +109,19 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 
 #[no_mangle]
 pub extern "C" fn initialize_agent(
-    application_name: *const c_char, server_address: *const c_char, basic_auth_user: *const c_char,
-    basic_auth_password: *const c_char, sample_rate: u32, oncpu: bool, report_pid: bool,
-    report_thread_id: bool, tags: *const c_char, compression: *const c_char,
-    _report_encoding: *const c_char, tenant_id: *const c_char, http_headers_json: *const c_char,
+    application_name: *const c_char,
+    server_address: *const c_char,
+    basic_auth_user: *const c_char,
+    basic_auth_password: *const c_char,
+    sample_rate: u32,
+    oncpu: bool,
+    report_pid: bool,
+    report_thread_id: bool,
+    tags: *const c_char,
+    compression: *const c_char,
+    _report_encoding: *const c_char,
+    tenant_id: *const c_char,
+    http_headers_json: *const c_char,
 ) -> bool {
     let recv = ffikit::initialize_ffi();
 

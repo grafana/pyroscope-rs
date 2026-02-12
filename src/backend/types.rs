@@ -191,8 +191,11 @@ impl std::fmt::Display for StackTrace {
 impl StackTrace {
     /// Create a new StackTrace
     pub fn new(
-        config: &BackendConfig, pid: Option<u32>, thread_id: Option<crate::utils::ThreadId>,
-        thread_name: Option<String>, frames: Vec<StackFrame>,
+        config: &BackendConfig,
+        pid: Option<u32>,
+        thread_id: Option<crate::utils::ThreadId>,
+        thread_name: Option<String>,
+        frames: Vec<StackFrame>,
     ) -> Self {
         let mut metadata = Metadata::default();
 
@@ -250,8 +253,12 @@ pub struct StackFrame {
 impl StackFrame {
     /// Create a new StackFrame.
     pub fn new(
-        module: Option<String>, name: Option<String>, filename: Option<String>,
-        relative_path: Option<String>, absolute_path: Option<String>, line: Option<u32>,
+        module: Option<String>,
+        name: Option<String>,
+        filename: Option<String>,
+        relative_path: Option<String>,
+        absolute_path: Option<String>,
+        line: Option<u32>,
     ) -> Self {
         Self {
             module,

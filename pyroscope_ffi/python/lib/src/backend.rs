@@ -210,7 +210,10 @@ mod tests {
     use super::*;
 
     fn create_test_frame(
-        name: &str, filename: &str, module: Option<&str>, line: i32,
+        name: &str,
+        filename: &str,
+        module: Option<&str>,
+        line: i32,
     ) -> py_spy::Frame {
         py_spy::Frame {
             name: name.to_string(),

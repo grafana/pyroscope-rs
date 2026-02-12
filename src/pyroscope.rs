@@ -203,7 +203,8 @@ impl PyroscopeAgentBuilder {
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
     /// ```
     pub fn new(
-        url: impl AsRef<str>, application_name: impl AsRef<str>,
+        url: impl AsRef<str>,
+        application_name: impl AsRef<str>,
         backend: BackendImpl<BackendUninitialized>,
     ) -> Self {
         Self {
