@@ -60,18 +60,6 @@ fn test_report_record() {
 }
 
 #[test]
-fn test_report_clear() {
-    let mut report = Report::new(HashMap::new());
-
-    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![]);
-    report.record(stack_trace);
-
-    report.clear();
-
-    assert_eq!(report.data.len(), 0);
-}
-
-#[test]
 fn test_report_display() {
     // Dummy StackTrace
     let frames = vec![

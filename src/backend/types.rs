@@ -166,10 +166,6 @@ impl Report {
         *self.data.entry(stack_trace).or_insert(0) += count;
     }
 
-    /// Clear the report data buffer.
-    pub fn clear(&mut self) {
-        self.data.clear();
-    }
 }
 
 impl std::fmt::Display for Report {
