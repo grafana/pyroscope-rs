@@ -2,7 +2,7 @@ name: Ruby Package
 
 on:
   push:
-    branches:
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -91,4 +91,3 @@ jobs:
           PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
           PYROSCOPE_ONCPU: ${{ matrix.PYROSCOPE_ONCPU }}
           RUBY_VERSION: ${{ matrix.RUBY_VERSION }}
-
