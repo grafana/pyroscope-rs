@@ -1,10 +1,9 @@
 #[cfg(test)]
 use crate::backend::{
-    BackendConfig, Report, ThreadTagsSet, StackBuffer, StackFrame, StackTrace, Tag,
+    BackendConfig, Report, ThreadTag, ThreadTagsSet, StackBuffer, StackFrame, StackTrace, Tag,
 };
 #[cfg(test)]
 use std::collections::{HashMap, HashSet};
-use crate::backend::ThreadTag;
 
 #[test]
 fn test_stack_frame_display() {

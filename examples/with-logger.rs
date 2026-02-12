@@ -2,7 +2,7 @@ extern crate pyroscope;
 
 use log::info;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::Result;
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::hash::{Hash, Hasher};
 use pyroscope::backend::BackendConfig;

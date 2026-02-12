@@ -1,6 +1,6 @@
 extern crate pyroscope;
 
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::Result;
 use pyroscope::backend::BackendConfig;
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
