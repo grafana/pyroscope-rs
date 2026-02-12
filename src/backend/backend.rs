@@ -155,6 +155,7 @@ impl BackendImpl<BackendReady> {
 
         Ok(())
     }
+
     /// Generate profiling report
     pub fn report(&mut self) -> Result<Vec<Report>> {
         self.backend

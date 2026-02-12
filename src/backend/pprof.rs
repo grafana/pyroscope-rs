@@ -1,12 +1,9 @@
-use pprof::{ProfilerGuard, ProfilerGuardBuilder};
-use pyroscope::backend::ThreadTag;
-use pyroscope::{
-    backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, StackBuffer, StackFrame,
-        StackTrace, ThreadTagsSet,
-    },
-    error::{PyroscopeError, Result},
+use crate::backend::{
+    Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, StackBuffer, StackFrame,
+    StackTrace, ThreadTag, ThreadTagsSet,
 };
+use crate::error::{PyroscopeError, Result};
+use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use std::{
     collections::HashMap,
     ffi::OsStr,
@@ -77,8 +74,6 @@ impl Backend for Pprof<'_> {
 
     fn shutdown(self: Box<Self>) -> Result<()> {
         log::trace!(target: LOG_TAG, "Shutting down sampler thread");
-        //drop(self.guard.take());
-
         Ok(())
     }
 
@@ -136,7 +131,7 @@ impl Backend for Pprof<'_> {
 }
 
 impl Pprof<'_> {
-    /// Workaround for pprof-rs to interupt the profiler
+    /// Workaround for pprof-rs to interrupt the profiler.
     pub fn dump_report(&self) -> Result<()> {
         let report = self
             .guard
@@ -152,7 +147,6 @@ impl Pprof<'_> {
             &self.backend_config,
         )));
 
-        // apply ruleset to stack_buffer
         let data: HashMap<StackTrace, usize> = stack_buffer
             .data
             .iter()
@@ -201,7 +195,6 @@ impl From<StackBufferWrapper> for StackBuffer {
 impl From<(pprof::Report, &BackendConfig)> for StackBufferWrapper {
     fn from(arg: (pprof::Report, &BackendConfig)) -> Self {
         let (report, config) = arg;
-        //convert report to stackbuffer
         let buffer_data: HashMap<StackTrace, usize> = report
             .data
             .iter()
@@ -227,7 +220,6 @@ impl From<StackTraceWrapper> for StackTrace {
 impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
     fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
-        // https://github.com/tikv/pprof-rs/blob/01cff82dbe6fe110a707bf2b38d8ebb1d14a18f8/src/profiler.rs#L405
         let thread_id = frames.thread_id as libc::pthread_t;
         StackTraceWrapper(StackTrace::new(
             config,

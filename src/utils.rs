@@ -97,32 +97,23 @@ mod get_time_range_tests {
 
     #[test]
     fn get_time_range_verify() {
-        assert_eq!(
-            get_time_range(1644194479).unwrap(),
-            TimeRange {
-                from: 1644194470,
-                until: 1644194480,
-                current: 1644194479,
-                rem: 1,
-            }
-        );
-        assert_eq!(
-            get_time_range(1644194470).unwrap(),
-            TimeRange {
-                from: 1644194470,
-                until: 1644194480,
-                current: 1644194470,
-                rem: 10,
-            }
-        );
-        assert_eq!(
-            get_time_range(1644194476).unwrap(),
-            TimeRange {
-                from: 1644194470,
-                until: 1644194480,
-                current: 1644194476,
-                rem: 4,
-            }
-        );
+        assert_eq!(get_time_range(1644194479).unwrap(), TimeRange {
+            from: 1644194470,
+            until: 1644194480,
+            current: 1644194479,
+            rem: 1,
+        });
+        assert_eq!(get_time_range(1644194470).unwrap(), TimeRange {
+            from: 1644194470,
+            until: 1644194480,
+            current: 1644194470,
+            rem: 10,
+        });
+        assert_eq!(get_time_range(1644194476).unwrap(), TimeRange {
+            from: 1644194470,
+            until: 1644194480,
+            current: 1644194476,
+            rem: 4,
+        });
     }
 }

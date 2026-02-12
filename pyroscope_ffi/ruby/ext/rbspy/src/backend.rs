@@ -98,7 +98,7 @@ impl Backend for Rbspy {
         ) = sync_channel(queue_size);
 
         // Set Error and Stack Receivers
-        //self.stack_receiver = Some(stack_receiver);
+        // self.stack_receiver = Some(stack_receiver);
         self.error_receiver = Some(error_receiver);
 
         self.sampler

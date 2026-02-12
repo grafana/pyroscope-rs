@@ -24,22 +24,6 @@ jobs:
         run: |
           cargo login ${{ secrets.CARGO_TOKEN }}
           cargo publish
-  publish-pprofrs:
-    name: "Backend: pprofrs"
-    runs-on: ubuntu-x64-small
-    if: "startsWith(github.event.release.tag_name, 'pprofrs-')"
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
-        with:
-          toolchain: 1.85.0
-      - name: publish pprofrs crate
-        run: |
-          set -ex
-          cargo login ${{ secrets.CARGO_TOKEN }}
-          cargo publish --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
   publish-python:
     permissions:
       id-token: write

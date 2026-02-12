@@ -32,15 +32,14 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pyroscope = "0.5.4"
-pyroscope_pprofrs = "0.2"
+pyroscope = { version = "0.5", features = ["backend-pprof-rs"] }
 ```
 
 Include Pyroscope and pprof-rs dependencies:
 
 ```rust
 use pyroscope::PyroscopeAgent;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+use pyroscope::backend::{pprof_backend, BackendConfig, PprofConfig};
 ```
 
 Configure the Pyroscope agent:
@@ -48,7 +47,7 @@ Configure the Pyroscope agent:
 ```rust
  let agent =
      PyroscopeAgent::builder("http://localhost:4040", "myapp-profile")
-     .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
+     .backend(pprof_backend(PprofConfig { sample_rate: 100 }, BackendConfig::default()))
      .build()?;
 ```
 
@@ -69,13 +68,13 @@ The Pyroscope Agent sends the profiling data to a [Pyroscope Server](https://pyr
 
 ### Multi-Threading
 
-The Pyroscope Agent and the [pprof-rs backend](pyroscope_backends/pyroscope_pprofrs) can profile and report data from a multi-threaded program. [pprof-rs](https://github.com/tikv/pprof-rs), however, does not track child-processes, and thus profiling is limited to a single process.
+The Pyroscope Agent and the pprof-rs backend (built into `pyroscope` via the `backend-pprof-rs` feature) can profile and report data from a multi-threaded program. [pprof-rs](https://github.com/tikv/pprof-rs), however, does not track child-processes, and thus profiling is limited to a single process.
 
 ### Profiling Backends
 
 The Pyroscope Agent doesn't do any profiling. The agent role is to orchestrate a profiling backend, and report the profiling data to the Pyroscope Server. The Agent can support external backends (in fact, all current backends are independent crates), and you can make your own. Backends can also be used separately. The currently available backends are:
 
-- [pprof-rs](pyroscope_backends/pyroscope_pprofrs): Rust profiler. A wrapper around [pprof-rs](https://github.com/tikv/pprof-rs).
+- pprof-rs: Rust profiler backend included in this crate behind the `backend-pprof-rs` feature flag. Powered by [pprof-rs](https://github.com/tikv/pprof-rs).
 
 ### Native Integration
 
@@ -88,13 +87,13 @@ Pyroscope can be used directly in your projects with native integration. No agen
 ### Limitations
 
 - **Backend**: The Pyroscope Agent uses [pprof-rs](https://github.com/tikv/pprof-rs) as a backend. As a result, the [limitations](https://github.com/tikv/pprof-rs#why-not-) for pprof-rs also applies.
-- **Tagging**: As of 0.5.0, the Pyroscope Agent support tagging within threads. Check the [Tags](examples/tags.rs) and [Multi-Thread](examples/multi-thread.rs) examples for usage.
+- **Tagging**: As of 0.5.0, the Pyroscope Agent support tagging within threads.
 - **Timer**: epoll (for Linux) and kqueue (for macOS) are required for a more precise timer.
 - **Shutdown**: The Pyroscope Agent might take some time (usually less than 10 seconds) to shutdown properly and drop its threads. For a proper shutdown, it's recommended that you run the `shutdown` function before dropping the Agent.
 
 ### Getting help
 
-You can read the [Docs](https://docs.rs/pyroscope/) or check the [examples](examples) for detailed usage of the library. You can also join the [Slack channel](https://pyroscope.slack.com/archives/C02Q47F8LJH) if you have questions.
+You can read the [Docs](https://docs.rs/pyroscope/) for detailed usage of the library. You can also join the [Slack channel](https://pyroscope.slack.com/archives/C02Q47F8LJH) if you have questions.
 
 ### Major Contributors
 
