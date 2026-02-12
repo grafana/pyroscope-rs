@@ -23,7 +23,6 @@ def configure(
         basic_auth_password="",
         enable_logging=False,
         sample_rate=100,
-        detect_subprocesses=False,
         oncpu=True,
         native=None,
         gil_only=True,
@@ -42,9 +41,6 @@ def configure(
 
     if native is not None:
         warnings.warn("native is deprecated and not supported", DeprecationWarning)
-
-    if detect_subprocesses:
-        warnings.warn("detect_subprocesses is deprecated and not supported", DeprecationWarning)
 
     LOGGER.disabled = not enable_logging
     if enable_logging:
