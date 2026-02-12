@@ -1,10 +1,9 @@
+use super::BackendConfig;
+use crate::error::Result;
 use std::{
     collections::{hash_map::DefaultHasher, BTreeSet, HashMap},
     hash::{Hash, Hasher},
 };
-
-use super::BackendConfig;
-use crate::error::Result;
 
 
 /// Pyroscope Tag
@@ -62,37 +61,27 @@ impl StackBuffer {
     }
 }
 
-/// Split a Stack Buffer into Reports
 impl From<StackBuffer> for Vec<Report> {
     fn from(stack_buffer: StackBuffer) -> Self {
         stack_buffer
             .data
             .into_iter()
             .fold(
-                Ok(HashMap::new()),
-                |acc: Result<HashMap<usize, Report>>, (stacktrace, count): (StackTrace, usize)| {
-                    let mut acc = acc?;
-                    // if a report exists for this stacktrace, add the count to it
+               HashMap::new(),
+                |acc: HashMap<usize, Report>, (stacktrace, count): (StackTrace, usize)| {
+                    let mut acc = acc;
                     if let Some(report) = acc.get_mut(&stacktrace.metadata.get_id()) {
-                        // record the count
-                        report.record_with_count(stacktrace, count)?;
-                    // if no report exists,
+                        report.record_with_count(stacktrace, count);
                     } else {
-                        // create a new report
                         let report = Report::new(HashMap::new());
                         let report_id = stacktrace.metadata.get_id();
-                        // set the metadata of the report, from the stacktrace own metadata.
                         let mut report = report.metadata(stacktrace.metadata.clone());
-                        // record the stacktrace. The count should be 1.
-                        report.record_with_count(stacktrace, count)?;
-                        // add the report to the accumulator.
+                        report.record_with_count(stacktrace, count);
                         acc.insert(report_id, report);
                     }
-                    // return the accumulator
-                    Ok(acc)
+                    acc
                 },
             )
-            .unwrap_or_default()
             .into_values()
             .collect()
     }
@@ -168,23 +157,12 @@ impl Report {
         }
     }
 
-    /// Record a new stack trace.
-    pub fn record(&mut self, stack_trace: StackTrace) -> Result<()> {
+    pub fn record(&mut self, stack_trace: StackTrace) {
         *self.data.entry(stack_trace).or_insert(0) += 1;
-
-        Ok(())
     }
 
-    /// Record a new stack trace with count.
-    pub fn record_with_count(&mut self, stack_trace: StackTrace, count: usize) -> Result<()> {
+    pub fn record_with_count(&mut self, stack_trace: StackTrace, count: usize) {
         *self.data.entry(stack_trace).or_insert(0) += count;
-
-        Ok(())
-    }
-
-    /// Clear the report data buffer.
-    pub fn clear(&mut self) {
-        self.data.clear();
     }
 }
 

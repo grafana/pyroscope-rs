@@ -55,21 +55,8 @@ fn test_report_record() {
 
     let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![]);
 
-    assert!(report.record(stack_trace).is_ok());
+    report.record(stack_trace);
     assert_eq!(report.data.len(), 1);
-}
-
-#[test]
-fn test_report_clear() {
-    let mut report = Report::new(HashMap::new());
-
-    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![]);
-
-    assert!(report.record(stack_trace).is_ok());
-
-    report.clear();
-
-    assert_eq!(report.data.len(), 0);
 }
 
 #[test]
