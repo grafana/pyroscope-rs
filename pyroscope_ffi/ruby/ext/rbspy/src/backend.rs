@@ -55,9 +55,6 @@ type ErrorReceiver = Receiver<std::result::Result<(), anyhow::Error>>;
 
 impl Backend for Rbspy {
     /// Return the backend name
-    fn spy_name(&self) -> Result<String> {
-        Ok("rbspy".to_string())
-    }
 
     /// Return the backend extension
     fn spy_extension(&self) -> Result<Option<String>> {

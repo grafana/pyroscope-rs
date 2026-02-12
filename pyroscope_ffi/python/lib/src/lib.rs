@@ -8,6 +8,8 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 
 const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
+const PYSPY_NAME: &str = "pyspy";
+const PYSPY_VERSION: &str = "0.8.16";
 
 #[no_mangle]
 pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
@@ -129,8 +131,15 @@ pub extern "C" fn initialize_agent(
 
     let pyspy = BackendImpl::new(Box::new(Pyspy::new(config, backend_config)));
 
-    let mut agent_builder =
-        PyroscopeAgentBuilder::new(server_address, application_name, pyspy).tags(tags);
+    let mut agent_builder = PyroscopeAgentBuilder::new(
+        server_address,
+        application_name,
+        sample_rate,
+        PYSPY_NAME,
+        PYSPY_VERSION,
+        pyspy,
+    )
+    .tags(tags);
 
     if basic_auth_username != "" && basic_auth_password != "" {
         agent_builder = agent_builder.basic_auth(basic_auth_username, basic_auth_password);

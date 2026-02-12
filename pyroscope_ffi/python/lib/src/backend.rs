@@ -47,10 +47,6 @@ impl Pyspy {
 }
 
 impl Backend for Pyspy {
-    fn spy_name(&self) -> Result<String> {
-        Ok("pyspy".to_string())
-    }
-
     fn spy_extension(&self) -> Result<Option<String>> {
         Ok(Some("cpu".to_string()))
     }

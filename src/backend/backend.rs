@@ -18,8 +18,6 @@ pub struct BackendConfig {
 
 /// Backend Trait
 pub trait Backend: Send {
-    /// Backend Spy Name
-    fn spy_name(&self) -> Result<String>;
     /// Backend name extension
     fn spy_extension(&self) -> Result<Option<String>>;
     /// Get backend configuration.
@@ -100,15 +98,6 @@ impl BackendImpl<BackendUninitialized> {
 }
 
 impl<S: BackendAccessible> BackendImpl<S> {
-    /// Return the backend name
-    pub fn spy_name(&self) -> Result<String> {
-        self.backend
-            .lock()?
-            .as_ref()
-            .ok_or(PyroscopeError::BackendImpl)?
-            .spy_name()
-    }
-
     /// Return the backend extension
     pub fn spy_extension(&self) -> Result<Option<String>> {
         self.backend
