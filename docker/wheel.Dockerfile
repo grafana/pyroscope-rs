@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
 
@@ -10,6 +11,9 @@ RUN yum -y install gcc libffi-devel openssl-devel wget gcc-c++ glibc-devel make
 
 WORKDIR /pyroscope-rs
 
+ADD pyroscope_ffi/python/requirements.txt /pyroscope-rs/pyroscope_ffi/python/
+RUN /opt/python/cp39-cp39/bin/python -m pip install -r /pyroscope-rs/pyroscope_ffi/python/requirements.txt
+
 ADD rustfmt.toml \
     Cargo.toml \
     Cargo.lock \
@@ -18,7 +22,9 @@ ADD rustfmt.toml \
 ADD src src
 ADD pyroscope_ffi/ pyroscope_ffi/
 
-RUN cd /pyroscope-rs/pyroscope_ffi/python && ./manylinux.sh
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
+    cd /pyroscope-rs/pyroscope_ffi/python && ./manylinux.sh
 
 FROM scratch
 COPY --from=builder /pyroscope-rs/pyroscope_ffi/python/dist dist/
