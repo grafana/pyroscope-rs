@@ -34,7 +34,6 @@ module Pyroscope
     :basic_auth_password,
     :log_level,
     :sample_rate,
-    :detect_subprocesses,
     :oncpu,
     :report_pid,
     :report_thread_id,
@@ -54,7 +53,6 @@ module Pyroscope
       self.basic_auth_username = ''
       self.basic_auth_password = ''
       self.sample_rate = 100
-      self.detect_subprocesses = false
       self.oncpu = true
       self.report_pid = false
       self.report_thread_id = false
