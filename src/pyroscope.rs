@@ -40,8 +40,6 @@ pub struct PyroscopeConfig {
     pub sample_rate: u32,
     /// Spy Name
     pub spy_name: String,
-    /// Authentication Token
-    pub auth_token: Option<String>,
     pub basic_auth: Option<BasicAuth>,
     /// Function to apply
     pub func: Option<fn(Report) -> Report>,
@@ -66,7 +64,6 @@ impl Default for PyroscopeConfig {
             tags: HashMap::new(),
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
-            auth_token: None,
             basic_auth: None,
             func: None,
             tenant_id: None,
@@ -90,7 +87,6 @@ impl PyroscopeConfig {
             tags: HashMap::new(),         // Empty tags
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
-            auth_token: None,             // No authentication token
             basic_auth: None,
             func: None, // No function
             tenant_id: None,
@@ -125,13 +121,6 @@ impl PyroscopeConfig {
     /// Set the Spy Name.
     pub fn spy_name(self, spy_name: String) -> Self {
         Self { spy_name, ..self }
-    }
-
-    pub fn auth_token(self, auth_token: String) -> Self {
-        Self {
-            auth_token: Some(auth_token),
-            ..self
-        }
     }
 
     pub fn basic_auth(self, username: String, password: String) -> Self {
@@ -253,23 +242,6 @@ impl PyroscopeAgentBuilder {
         }
     }
     
-
-    /// Set JWT authentication token.
-    /// This is optional. If not set, the agent will not send any authentication token.
-    ///
-    /// #Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .auth_token("my-token")
-    /// .build()
-    /// ?;
-    /// ```
-    pub fn auth_token(self, auth_token: impl AsRef<str>) -> Self {
-        Self {
-            config: self.config.auth_token(auth_token.as_ref().to_owned()),
-            ..self
-        }
-    }
 
     pub fn basic_auth(self, username: impl AsRef<str>, password: impl AsRef<str>) -> Self {
         Self {
