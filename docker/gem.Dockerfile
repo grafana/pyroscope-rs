@@ -10,8 +10,7 @@ RUN yum -y install gcc libffi-devel openssl-devel wget gcc-c++ glibc-devel make
 
 WORKDIR /pyroscope-rs
 
-ADD Cross.toml \
-    rustfmt.toml \
+ADD rustfmt.toml \
     Cargo.toml \
     Cargo.lock \
     ./
