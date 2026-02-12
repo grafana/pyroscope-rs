@@ -24,12 +24,10 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
-          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+          draft: true
+          files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release-linux-arm:
     permissions:
@@ -48,12 +46,10 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
-          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+          draft: true
+          files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release-macos:
     permissions:
@@ -93,12 +89,10 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
-          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+          draft: true
+          files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release-source:
     permissions:
@@ -130,20 +124,16 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: korniltsev/actions-upload-release-asset@a7f1a48a96ff80f206fd26bdbfcf81539d44fa5e # TODO(korniltsev): get rid of this fork
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
-          upload_url: ${{ needs.ruby-release.outputs.upload_url }}
-          asset_path: "pyroscope_ffi/ruby/pkg/*.gem"
+          draft: true
+          files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release:
     permissions:
       contents: write
     name: Ruby Gem
     runs-on: ubuntu-x64-small
-    outputs:
-      upload_url: ${{ steps.auto-release.outputs.upload_url }}
     steps:
       - id: auto-release
         uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
