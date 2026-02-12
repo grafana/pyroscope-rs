@@ -6,8 +6,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! pyroscope = "0.5"
-//! pyroscope_pprofrs = "0.2"
+//! pyroscope = { version = "0.5", features = ["backend-pprof-rs"] }
 //! ```
 //!
 //! ## Configure a Pyroscope Agent
@@ -15,7 +14,7 @@
 //! ```ignore
 //! let agent =
 //!     PyroscopeAgent::builder("http://localhost:4040", "myapp")
-//!     .backend(Pprof::new(PprofConfig::new().sample_rate(100)))
+//!     .backend(pprof_backend(PprofConfig { sample_rate: 100 }, BackendConfig::default()))
 //!     .build()?;
 //! ```
 //!

@@ -1,22 +1,21 @@
-use pprof::{ProfilerGuard, ProfilerGuardBuilder};
-use pyroscope::{
-    backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ThreadTagsSet,
-        StackBuffer, StackFrame, StackTrace,
-    },
-    error::{PyroscopeError, Result},
+use crate::backend::{
+    Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, StackBuffer, StackFrame,
+    StackTrace, ThreadTag, ThreadTagsSet,
 };
+use crate::error::{PyroscopeError, Result};
+use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use std::{
     collections::HashMap,
     ffi::OsStr,
     ops::Deref,
     sync::{Arc, Mutex},
 };
-use pyroscope::backend::ThreadTag;
 
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
 
-pub fn pprof_backend(config: PprofConfig, backend_config: BackendConfig) -> BackendImpl<BackendUninitialized> {
+pub fn pprof_backend(
+    config: PprofConfig, backend_config: BackendConfig,
+) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Pprof::new(config, backend_config)))
 }
 
@@ -27,9 +26,7 @@ pub struct PprofConfig {
 
 impl Default for PprofConfig {
     fn default() -> Self {
-        PprofConfig {
-            sample_rate: 100,
-        }
+        PprofConfig { sample_rate: 100 }
     }
 }
 
@@ -77,14 +74,11 @@ impl Backend for Pprof<'_> {
 
     fn shutdown(self: Box<Self>) -> Result<()> {
         log::trace!(target: LOG_TAG, "Shutting down sampler thread");
-        //drop(self.guard.take());
-
         Ok(())
     }
 
     fn initialize(&mut self) -> Result<()> {
-        let profiler = ProfilerGuardBuilder::default()
-            .frequency(self.config.sample_rate as i32);
+        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
 
         *self.inner_builder.lock()? = Some(profiler);
 
@@ -137,7 +131,7 @@ impl Backend for Pprof<'_> {
 }
 
 impl Pprof<'_> {
-    /// Workaround for pprof-rs to interupt the profiler
+    /// Workaround for pprof-rs to interrupt the profiler.
     pub fn dump_report(&self) -> Result<()> {
         let report = self
             .guard
@@ -153,7 +147,6 @@ impl Pprof<'_> {
             &self.backend_config,
         )));
 
-        // apply ruleset to stack_buffer
         let data: HashMap<StackTrace, usize> = stack_buffer
             .data
             .iter()
@@ -202,7 +195,6 @@ impl From<StackBufferWrapper> for StackBuffer {
 impl From<(pprof::Report, &BackendConfig)> for StackBufferWrapper {
     fn from(arg: (pprof::Report, &BackendConfig)) -> Self {
         let (report, config) = arg;
-        //convert report to stackbuffer
         let buffer_data: HashMap<StackTrace, usize> = report
             .data
             .iter()
@@ -228,7 +220,6 @@ impl From<StackTraceWrapper> for StackTrace {
 impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
     fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
-        // https://github.com/tikv/pprof-rs/blob/01cff82dbe6fe110a707bf2b38d8ebb1d14a18f8/src/profiler.rs#L405
         let thread_id = frames.thread_id as libc::pthread_t;
         StackTraceWrapper(StackTrace::new(
             config,
