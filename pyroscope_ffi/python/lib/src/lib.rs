@@ -1,7 +1,6 @@
 mod backend;
 
 use crate::backend::Pyspy;
-use ffikit::Signal;
 use pyroscope::backend::{BackendConfig, BackendImpl, Tag};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use std::ffi::CStr;
@@ -57,24 +56,15 @@ pub extern "C" fn initialize_agent(
     http_headers_json: *const c_char,
     line_no: LineNo,
 ) -> bool {
-    let recv = ffikit::initialize_ffi();
-
-    // application_name
     let application_name = unsafe { CStr::from_ptr(application_name) }
         .to_str()
         .unwrap()
         .to_string();
 
-    // server_address
-    let mut server_address = unsafe { CStr::from_ptr(server_address) }
+    let server_address = unsafe { CStr::from_ptr(server_address) }
         .to_str()
         .unwrap()
         .to_string();
-
-    let adhoc_server_address = std::env::var("PYROSCOPE_ADHOC_SERVER_ADDRESS");
-    if let Ok(adhoc_server_address) = adhoc_server_address {
-        server_address = adhoc_server_address
-    }
 
     let basic_auth_username = unsafe { CStr::from_ptr(basic_auth_username) }
         .to_str()
@@ -164,38 +154,12 @@ pub extern "C" fn initialize_agent(
         },
     }
 
-    // Build the agent.
-    let agent = agent_builder.build().unwrap();
-
-    // Start the agent.
-    let agent_running = agent.start().unwrap();
-
-    // Spawn a thread to receive signals from the FFIKit merge channel.
-    std::thread::spawn(move || {
-        while let Ok(signal) = recv.recv() {
-            match signal {
-                Signal::Kill => {
-                    agent_running.stop().unwrap();
-                    break;
-                }
-                Signal::AddThreadTag(thread_id, key, value) => {
-                    let tag = Tag::new(key, value);
-                    agent_running.add_thread_tag(thread_id, tag).unwrap();
-                }
-                Signal::RemoveThreadTag(thread_id, key, value) => {
-                    let tag = Tag::new(key, value);
-                    agent_running.remove_thread_tag(thread_id, tag).unwrap();
-                }
-            }
-        }
-    });
-
-    true
+    pyroscope::ffikit::run(agent_builder).is_ok()
 }
 
 #[no_mangle]
 pub extern "C" fn drop_agent() -> bool {
-    return ffikit::send(ffikit::Signal::Kill).is_ok();
+    pyroscope::ffikit::send(pyroscope::ffikit::Signal::Kill).is_ok()
 }
 
 #[no_mangle]
@@ -206,7 +170,11 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
         .unwrap()
         .to_owned();
 
-    return ffikit::send(ffikit::Signal::AddThreadTag(self_thread_id(), key, value)).is_ok();
+    pyroscope::ffikit::send(pyroscope::ffikit::Signal::AddThreadTag(
+        self_thread_id(),
+        Tag { key, value },
+    ))
+    .is_ok()
 }
 
 #[no_mangle]
@@ -217,15 +185,13 @@ pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) ->
         .unwrap()
         .to_owned();
 
-    return ffikit::send(ffikit::Signal::RemoveThreadTag(
+    pyroscope::ffikit::send(pyroscope::ffikit::Signal::RemoveThreadTag(
         self_thread_id(),
-        key,
-        value,
+        Tag { key, value },
     ))
-    .is_ok();
+    .is_ok()
 }
 
-// Convert a string of tags to a Vec<(&str, &str)>
 fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     let mut tags_vec = Vec::new();
 

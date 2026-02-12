@@ -9,7 +9,7 @@ module Pyroscope
     extend FFI::Library
     ffi_lib File.expand_path(File.dirname(__FILE__)) + "/rbspy/rbspy.#{RbConfig::CONFIG["DLEXT"]}"
     attach_function :initialize_logging, [:int], :bool
-    attach_function :initialize_agent, [:string, :string, :string, :string, :int, :bool, :bool, :bool, :string, :string, :string, :string, :string], :bool
+    attach_function :initialize_agent, [:string, :string, :string, :string, :int, :bool, :bool, :bool, :string, :string, :string], :bool
     attach_function :add_thread_tag, [:string, :string], :bool
     attach_function :remove_thread_tag, [:string, :string], :bool
     attach_function :drop_agent, [], :bool
@@ -104,8 +104,6 @@ module Pyroscope
         @config.report_pid || false,
         @config.report_thread_id || false,
         tags_to_string(@config.tags || {}),
-        @config.compression || "",
-        @config.report_encoding || "pprof",
         @config.tenant_id || "",
         http_headers_to_json(@config.http_headers || {})
       )

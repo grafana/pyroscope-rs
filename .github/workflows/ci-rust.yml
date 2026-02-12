@@ -34,7 +34,6 @@ jobs:
       matrix:
         package:
           - pyroscope
-          - ffikit
           - pyroscope_ffi
           - ffiruby
     steps:
