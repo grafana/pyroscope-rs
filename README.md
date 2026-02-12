@@ -87,13 +87,13 @@ Pyroscope can be used directly in your projects with native integration. No agen
 ### Limitations
 
 - **Backend**: The Pyroscope Agent uses [pprof-rs](https://github.com/tikv/pprof-rs) as a backend. As a result, the [limitations](https://github.com/tikv/pprof-rs#why-not-) for pprof-rs also applies.
-- **Tagging**: As of 0.5.0, the Pyroscope Agent support tagging within threads. Check the [Tags](examples/tags.rs) and [Multi-Thread](examples/multi-thread.rs) examples for usage.
+- **Tagging**: As of 0.5.0, the Pyroscope Agent support tagging within threads.
 - **Timer**: epoll (for Linux) and kqueue (for macOS) are required for a more precise timer.
 - **Shutdown**: The Pyroscope Agent might take some time (usually less than 10 seconds) to shutdown properly and drop its threads. For a proper shutdown, it's recommended that you run the `shutdown` function before dropping the Agent.
 
 ### Getting help
 
-You can read the [Docs](https://docs.rs/pyroscope/) or check the [examples](examples) for detailed usage of the library. You can also join the [Slack channel](https://pyroscope.slack.com/archives/C02Q47F8LJH) if you have questions.
+You can read the [Docs](https://docs.rs/pyroscope/) for detailed usage of the library. You can also join the [Slack channel](https://pyroscope.slack.com/archives/C02Q47F8LJH) if you have questions.
 
 ### Major Contributors
 

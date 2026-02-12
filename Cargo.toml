@@ -26,14 +26,6 @@ members = [
 ]
 
 
-[[example]]
-name = "internal-backend-pprof"
-path = "examples/internal/backend-pprof.rs"
-
-[[example]]
-name = "internal-timer"
-path = "examples/internal/timer.rs"
-
 
 
 [dependencies]
