@@ -10,10 +10,11 @@ def start_local_pyroscope
   container_name = "pyroscope-ruby-test-#{Process.pid}"
 
   system(
-    "docker", "run", "--rm", "-d",
+    "docker", "run", "-d",
     "--name", container_name,
     "-p", "4040:4040",
     "grafana/pyroscope:latest",
+    "server",
     "-ingester.ring.min-ready-duration=0s"
   )
 
@@ -29,6 +30,9 @@ def start_local_pyroscope
   end
 
   warn "pyroscope container did not become ready"
+  warn "==== pyroscope container status ===="
+  system("docker", "ps", "-a", "--filter", "name=#{container_name}")
+  warn "==== pyroscope container logs ===="
   system("docker", "logs", container_name)
   system("docker", "rm", "-f", container_name)
   exit 1
