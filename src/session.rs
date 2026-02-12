@@ -9,8 +9,7 @@ use crate::encode::gen::google::Profile;
 use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::{
-    backend::Report, encode::pprof, pyroscope::PyroscopeConfig, utils::get_time_range,
-    PyroscopeError, Result,
+    backend::Report, encode::pprof, pyroscope::PyroscopeConfig, utils::get_time_range, Result,
 };
 use libflate::gzip::Encoder;
 use prost::Message;
@@ -100,7 +99,7 @@ impl Session {
     /// Create a new Session
     /// # Example
     /// ```ignore
-    /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app");
+    /// let config = PyroscopeConfig::new("https://localhost:8080", "my-app", 100, "pyspy", "0.8.16");
     /// let report = vec![1, 2, 3];
     /// let until = 154065120;
     /// let session = Session::new(until, config, report)?;
@@ -174,8 +173,11 @@ impl Session {
             .post(url.as_str())
             .header(
                 "User-Agent",
-                format!("pyroscope-rs/{} reqwest", self.config.spy_name),
-            ) // todo version
+                format!(
+                    "pyroscope-rs/{}/{} reqwest",
+                    self.config.spy_name, self.config.spy_version
+                ),
+            )
             .header("Content-Type", "application/proto")
             .header("Content-Encoding", "gzip");
 

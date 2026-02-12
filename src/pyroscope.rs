@@ -26,7 +26,7 @@ const LOG_TAG: &str = "Pyroscope::Agent";
 /// # Example
 /// ```
 /// use pyroscope::pyroscope::PyroscopeConfig;
-/// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
+/// let config = PyroscopeConfig::new("http://localhost:8080", "my-app", 100, "pyspy", "0.8.16");
 /// ```
 #[derive(Clone, Debug)]
 pub struct PyroscopeConfig {
@@ -40,6 +40,8 @@ pub struct PyroscopeConfig {
     pub sample_rate: u32,
     /// Spy Name
     pub spy_name: String,
+    /// Spy Version
+    pub spy_version: String,
     pub basic_auth: Option<BasicAuth>,
     /// Function to apply
     pub func: Option<fn(Report) -> Report>,
@@ -64,6 +66,7 @@ impl Default for PyroscopeConfig {
             tags: HashMap::new(),
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
+            spy_version: "unknown".to_string(),
             basic_auth: None,
             func: None,
             tenant_id: None,
@@ -73,22 +76,28 @@ impl Default for PyroscopeConfig {
 }
 
 impl PyroscopeConfig {
-    /// Create a new PyroscopeConfig object. url and application_name are required.
-    /// tags and sample_rate are optional. If sample_rate is not specified, it will default to 100.
+    /// Create a new PyroscopeConfig object.
     ///
     /// # Example
     /// ```ignore
-    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app");
+    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app", 100, "pyspy", "0.8.16");
     /// ```
-    pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>) -> Self {
+    pub fn new(
+        url: impl AsRef<str>,
+        application_name: impl AsRef<str>,
+        sample_rate: u32,
+        spy_name: impl AsRef<str>,
+        spy_version: impl AsRef<str>,
+    ) -> Self {
         Self {
-            url: url.as_ref().to_owned(), // Pyroscope Server URL
-            application_name: application_name.as_ref().to_owned(), // Application Name
-            tags: HashMap::new(),         // Empty tags
-            sample_rate: 100u32,          // Default sample rate
-            spy_name: String::from("undefined"), // Spy Name should be set by the backend
+            url: url.as_ref().to_owned(),
+            application_name: application_name.as_ref().to_owned(),
+            tags: HashMap::new(),
+            sample_rate,
+            spy_name: spy_name.as_ref().to_owned(),
+            spy_version: spy_version.as_ref().to_owned(),
             basic_auth: None,
-            func: None, // No function
+            func: None,
             tenant_id: None,
             http_headers: HashMap::new(),
         }
@@ -100,27 +109,6 @@ impl PyroscopeConfig {
             url: url.as_ref().to_owned(),
             ..self
         }
-    }
-
-    // Set the Application Name
-    pub fn application_name(self, application_name: impl AsRef<str>) -> Self {
-        Self {
-            application_name: application_name.as_ref().to_owned(),
-            ..self
-        }
-    }
-
-    /// Set the Sample rate.
-    pub fn sample_rate(self, sample_rate: u32) -> Self {
-        Self {
-            sample_rate,
-            ..self
-        }
-    }
-
-    /// Set the Spy Name.
-    pub fn spy_name(self, spy_name: String) -> Self {
-        Self { spy_name, ..self }
     }
 
     pub fn basic_auth(self, username: String, password: String) -> Self {
@@ -184,7 +172,7 @@ impl PyroscopeConfig {
 /// # Example
 /// ```ignore
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
-/// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
+/// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app", 100, "pyspy", "0.8.16", backend);
 /// let agent = builder.build()?;
 /// ```
 pub struct PyroscopeAgentBuilder {
@@ -195,21 +183,23 @@ pub struct PyroscopeAgentBuilder {
 }
 
 impl PyroscopeAgentBuilder {
-    /// Create a new PyroscopeAgentBuilder object. url and application_name are required.
-    /// tags and sample_rate are optional.
+    /// Create a new PyroscopeAgentBuilder object.
     ///
     /// # Example
     /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
+    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app", 100, "pyspy", "0.8.16", backend);
     /// ```
     pub fn new(
         url: impl AsRef<str>,
         application_name: impl AsRef<str>,
+        sample_rate: u32,
+        spy_name: impl AsRef<str>,
+        spy_version: impl AsRef<str>,
         backend: BackendImpl<BackendUninitialized>,
     ) -> Self {
         Self {
             backend,
-            config: PyroscopeConfig::new(url, application_name),
+            config: PyroscopeConfig::new(url, application_name, sample_rate, spy_name, spy_version),
         }
     }
 
@@ -225,22 +215,6 @@ impl PyroscopeAgentBuilder {
     pub fn url(self, url: impl AsRef<str>) -> Self {
         Self {
             config: self.config.url(url),
-            ..self
-        }
-    }
-
-    /// Set the Application Name. This can be used if the Builder was initialized with the default
-    /// trait. Default is a randomly generated name.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::default()
-    /// .application_name("my-app")
-    /// .build()?;
-    /// ```
-    pub fn application_name(self, application_name: impl AsRef<str>) -> Self {
-        Self {
-            config: self.config.application_name(application_name),
             ..self
         }
     }
@@ -305,9 +279,7 @@ impl PyroscopeAgentBuilder {
     /// state. While you can call this method, you should call it through the
     /// `PyroscopeAgent.build()` method.
     pub fn build(self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
-        // Set Spy Name, Spy Extension and Sample Rate from the Backend
-        let config = self.config.sample_rate(self.backend.sample_rate()?);
-        let config = config.spy_name(self.backend.spy_name()?);
+        let config = self.config;
 
         // Set Global Tags
         // for (key, value) in config.tags.iter() {

@@ -47,18 +47,6 @@ impl Pyspy {
 }
 
 impl Backend for Pyspy {
-    fn spy_name(&self) -> Result<String> {
-        Ok("pyspy".to_string())
-    }
-
-    fn spy_extension(&self) -> Result<Option<String>> {
-        Ok(Some("cpu".to_string()))
-    }
-
-    fn sample_rate(&self) -> Result<u32> {
-        Ok(self.config.sampling_rate as u32)
-    }
-
     fn add_tag(&self, rule: ThreadTag) -> Result<()> {
         self.ruleset.lock()?.add(rule)?;
 

@@ -14,6 +14,8 @@ use pyroscope::backend::{BackendConfig, BackendImpl, Report, StackFrame, Tag};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 
 const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
+const RBSPY_NAME: &str = "rbspy";
+const RBSPY_VERSION: &str = "0.6.7";
 
 pub fn transform_report(report: Report) -> Report {
     let cwd = env::current_dir().unwrap();
@@ -184,9 +186,16 @@ pub extern "C" fn initialize_agent(
     let tags = string_to_tags(tags_ref);
     let rbspy = BackendImpl::new(Box::new(Rbspy::new(sampler, sample_rate, backend_config)));
 
-    let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, rbspy)
-        .func(transform_report)
-        .tags(tags);
+    let mut agent_builder = PyroscopeAgentBuilder::new(
+        server_address,
+        application_name,
+        sample_rate,
+        RBSPY_NAME,
+        RBSPY_VERSION,
+        rbspy,
+    )
+    .func(transform_report)
+    .tags(tags);
 
     if basic_auth_user != "" && basic_auth_password != "" {
         agent_builder = agent_builder.basic_auth(basic_auth_user, basic_auth_password);

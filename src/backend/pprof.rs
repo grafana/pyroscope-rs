@@ -61,18 +61,6 @@ impl<'a> Pprof<'a> {
 }
 
 impl Backend for Pprof<'_> {
-    fn spy_name(&self) -> std::result::Result<String, PyroscopeError> {
-        Ok("pyroscope-rs".to_string())
-    }
-
-    fn spy_extension(&self) -> std::result::Result<Option<String>, PyroscopeError> {
-        Ok(Some("cpu".to_string()))
-    }
-
-    fn sample_rate(&self) -> Result<u32> {
-        Ok(self.config.sample_rate)
-    }
-
     fn shutdown(self: Box<Self>) -> Result<()> {
         log::trace!(target: LOG_TAG, "Shutting down sampler thread");
         Ok(())
