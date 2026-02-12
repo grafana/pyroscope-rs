@@ -166,18 +166,6 @@ impl Report {
     }
 }
 
-impl std::fmt::Display for Report {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let collpased = self
-            .data
-            .iter()
-            .map(|(k, v)| format!("{} {}", k, v))
-            .collect::<Vec<String>>();
-
-        write!(f, "{}", collpased.join("\n"))
-    }
-}
-
 /// StackTrace
 /// A representation of a stack trace.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]

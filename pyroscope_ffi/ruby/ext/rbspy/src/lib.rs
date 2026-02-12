@@ -12,7 +12,7 @@ use crate::backend::Rbspy;
 use pyroscope;
 use pyroscope::backend::{BackendConfig, BackendImpl, Report, StackFrame, Tag};
 use pyroscope::pyroscope::Compression;
-use pyroscope::pyroscope::{PyroscopeAgentBuilder, ReportEncoding};
+use pyroscope::pyroscope::{PyroscopeAgentBuilder};
 
 const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
 
@@ -205,8 +205,7 @@ pub extern "C" fn initialize_agent(
 
     let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, rbspy)
         .func(transform_report)
-        .tags(tags)
-        .report_encoding(ReportEncoding::PPROF);
+        .tags(tags);
 
     if auth_token != "" {
         agent_builder = agent_builder.auth_token(auth_token);
