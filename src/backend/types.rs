@@ -118,14 +118,6 @@ pub struct Report {
     pub metadata: Metadata,
 }
 
-#[derive(Debug)]
-pub struct EncodedReport {
-    pub format: String,
-    pub content_type: String,
-    pub content_encoding: String,
-    pub data: Vec<u8>,
-    pub metadata: Metadata,
-}
 
 /// Custom implementation of the Hash trait for Report.
 /// Only the metadata is hashed.

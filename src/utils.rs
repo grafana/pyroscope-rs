@@ -1,54 +1,6 @@
 use crate::backend::Tag;
 use crate::{error::Result, PyroscopeError};
 
-/// Format application_name with tags.
-pub fn merge_tags_with_app_name(application_name: String, tags: Vec<Tag>) -> Result<String> {
-    // tags empty, return application_name
-    if tags.is_empty() {
-        return Ok(application_name);
-    }
-
-    let tags_vec = tags
-        .iter()
-        // filter tags for reserved keywords
-        .filter(|tag| tag.key != "__name__")
-        // format tags
-        .map(|tag| format!("{}", tag))
-        .collect::<Vec<String>>();
-
-    // join tags string by comma
-    let tags_str = tags_vec.join(",");
-
-    // return formatted application_name with tags
-    Ok(format!("{}{{{}}}", application_name, tags_str))
-}
-
-#[cfg(test)]
-mod merge_tags_with_app_name_tests {
-    use crate::{backend::Tag, utils::merge_tags_with_app_name};
-
-    #[test]
-    fn merge_tags_with_app_name_with_tags() {
-        let mut tags = Vec::new();
-        tags.push(Tag::new("env".to_string(), "staging".to_string()));
-        tags.push(Tag::new("region".to_string(), "us-west-1".to_string()));
-        tags.push(Tag::new("__name__".to_string(), "reserved".to_string()));
-
-        assert_eq!(
-            merge_tags_with_app_name("my.awesome.app.cpu".to_string(), tags.into_iter().collect())
-                .unwrap(),
-            "my.awesome.app.cpu{env=staging,region=us-west-1}".to_string()
-        )
-    }
-
-    #[test]
-    fn merge_tags_with_app_name_without_tags() {
-        assert_eq!(
-            merge_tags_with_app_name("my.awesome.app.cpu".to_string(), Vec::new()).unwrap(),
-            "my.awesome.app.cpu".to_string()
-        )
-    }
-}
 
 /// Error Wrapper for libc return. Only check for errors.
 pub fn check_err<T: Ord + Default>(num: T) -> Result<T> {
