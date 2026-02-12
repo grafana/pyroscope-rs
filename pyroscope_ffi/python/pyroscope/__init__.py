@@ -18,7 +18,6 @@ def configure(
         app_name=None,
         application_name=None,
         server_address="http://localhost:4040",
-        auth_token="",
         basic_auth_username="",
         basic_auth_password="",
         enable_logging=False,
@@ -54,7 +53,6 @@ def configure(
     lib.initialize_agent(
         application_name.encode("UTF-8"),
         server_address.encode("UTF-8"),
-        auth_token.encode("UTF-8"),
         basic_auth_username.encode("UTF-8"),
         basic_auth_password.encode("UTF-8"),
         sample_rate,

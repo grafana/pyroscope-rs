@@ -209,9 +209,7 @@ impl Session {
             .post(url.as_str())
             .header("Content-Type", report.content_type.as_str());
 
-        if let Some(auth_token) = &self.config.auth_token {
-            req_builder = req_builder.bearer_auth(auth_token);
-        } else if let Some(basic_auth) = &self.config.basic_auth {
+        if let Some(basic_auth) = &self.config.basic_auth {
             req_builder = req_builder.basic_auth(
                 basic_auth.username.clone(),
                 Some(basic_auth.password.clone()),

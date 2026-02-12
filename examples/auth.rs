@@ -21,12 +21,8 @@ fn hash_rounds(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    // TODO: Change this token to your own.
-    let token = String::from("<your-token>");
-
     let backend = pprof_backend(PprofConfig{sample_rate: 100}, BackendConfig::default());
     let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "example.basic", backend)
-        .auth_token(token)
         .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())
         .build()?;
 

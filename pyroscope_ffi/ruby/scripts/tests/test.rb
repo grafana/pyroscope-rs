@@ -10,7 +10,6 @@ Pyroscope.configure do |config|
   config.application_name = "#{ENV["PYROSCOPE_RUN_ID"]}"
   # TODO please no og cloud
   config.server_address = "https://ingest.pyroscope.cloud"
-  config.auth_token = ENV["PYROSCOPE_API_TOKEN"]
   config.oncpu = ENV["PYROSCOPE_ONCPU"] == "1"
   config.log_level = "trace"
   config.report_pid = true

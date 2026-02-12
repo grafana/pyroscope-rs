@@ -40,7 +40,7 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 
 #[no_mangle]
 pub extern "C" fn initialize_agent(
-    application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
+    application_name: *const c_char, server_address: *const c_char,
     basic_auth_username: *const c_char, basic_auth_password: *const c_char, sample_rate: u32,
     oncpu: bool, gil_only: bool, report_pid: bool,
     report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
@@ -65,10 +65,6 @@ pub extern "C" fn initialize_agent(
         server_address = adhoc_server_address
     }
 
-    let auth_token = unsafe { CStr::from_ptr(auth_token) }
-        .to_str()
-        .unwrap()
-        .to_string();
 
     let basic_auth_username = unsafe { CStr::from_ptr(basic_auth_username) }
         .to_str()
@@ -128,9 +124,7 @@ pub extern "C" fn initialize_agent(
     let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, pyspy)
         .tags(tags);
 
-    if auth_token != "" {
-        agent_builder = agent_builder.auth_token(auth_token);
-    } else if basic_auth_username != "" && basic_auth_password != "" {
+    if basic_auth_username != "" && basic_auth_password != "" {
         agent_builder = agent_builder.basic_auth(basic_auth_username, basic_auth_password);
     }
     if tenant_id != "" {
