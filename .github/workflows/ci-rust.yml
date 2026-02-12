@@ -27,8 +27,16 @@ jobs:
         run: make rust/fmt/check
 
   test:
-    name: cargo test
+    name: cargo test (${{ matrix.package }})
     runs-on: ubuntu-x64-small
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - pyroscope
+          - ffikit
+          - pyroscope_ffi
+          - ffiruby
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -39,4 +47,4 @@ jobs:
           toolchain: stable
 
       - name: Run tests
-        run: cargo test --workspace
+        run: cargo test -p ${{ matrix.package }}
