@@ -13,7 +13,8 @@ def start_local_pyroscope
     "docker", "run", "--rm", "-d",
     "--name", container_name,
     "-p", "4040:4040",
-    "grafana/pyroscope:latest"
+    "grafana/pyroscope:latest",
+    "-ingester.ring.min-ready-duration=0s"
   )
 
   unless $?.success?
