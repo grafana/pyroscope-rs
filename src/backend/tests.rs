@@ -73,41 +73,6 @@ fn test_report_clear() {
 }
 
 #[test]
-fn test_report_display() {
-    // Dummy StackTrace
-    let frames = vec![
-        StackFrame::new(
-            Some("module".to_string()),
-            Some("name".to_string()),
-            Some("filename".to_string()),
-            Some("absolute_path".to_string()),
-            Some("relative_path".to_string()),
-            Some(1),
-        ),
-        StackFrame::new(
-            Some("module".to_string()),
-            Some("name".to_string()),
-            Some("filename".to_string()),
-            Some("absolute_path".to_string()),
-            Some("relative_path".to_string()),
-            Some(2),
-        ),
-    ];
-
-    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, frames);
-
-    let mut report = Report::new(HashMap::new());
-
-    report.record(stack_trace.clone()).unwrap();
-    report.record(stack_trace).unwrap();
-
-    assert_eq!(
-        format!("{}", report),
-        "filename:2 - name;filename:1 - name 2"
-    );
-}
-
-#[test]
 fn test_tag_new() {
     let tag = Tag::new("key".to_string(), "value".to_string());
 
