@@ -24,3 +24,6 @@ jobs:
 
       - name: Run tests
         run: cargo test --workspace
+
+      - name: Verify spy versions are in sync
+        run: ./scripts/check_spy_versions.sh

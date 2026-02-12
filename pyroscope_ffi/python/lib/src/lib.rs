@@ -1,13 +1,15 @@
 mod backend;
 
+use crate::backend::Pyspy;
 use ffikit::Signal;
 use pyroscope::backend::{BackendConfig, BackendImpl, Tag};
-use pyroscope::pyroscope::{PyroscopeAgentBuilder};
+use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use crate::backend::Pyspy;
 
 const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
+const PYTHON_SPY_NAME: &str = "pyspy";
+const PYTHON_SPY_VERSION: &str = "0.8.16";
 
 #[no_mangle]
 pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
@@ -42,9 +44,9 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 pub extern "C" fn initialize_agent(
     application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
     basic_auth_username: *const c_char, basic_auth_password: *const c_char, sample_rate: u32,
-    oncpu: bool, gil_only: bool, report_pid: bool,
-    report_thread_id: bool, report_thread_name: bool, tags: *const c_char,
-    tenant_id: *const c_char, http_headers_json: *const c_char, line_no: LineNo,
+    oncpu: bool, gil_only: bool, report_pid: bool, report_thread_id: bool,
+    report_thread_name: bool, tags: *const c_char, tenant_id: *const c_char,
+    http_headers_json: *const c_char, line_no: LineNo,
 ) -> bool {
     let recv = ffikit::initialize_ffi();
 
@@ -126,6 +128,8 @@ pub extern "C" fn initialize_agent(
     let pyspy = BackendImpl::new(Box::new(Pyspy::new(config, backend_config)));
 
     let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, pyspy)
+        .spy_name(PYTHON_SPY_NAME.to_string())
+        .spy_version(PYTHON_SPY_VERSION.to_string())
         .tags(tags);
 
     if auth_token != "" {
@@ -199,17 +203,19 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
 }
 
 #[no_mangle]
-pub extern "C" fn remove_thread_tag(
-    key: *const c_char, value: *const c_char,
-) -> bool {
-
+pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
         .unwrap()
         .to_owned();
 
-    return ffikit::send(ffikit::Signal::RemoveThreadTag(self_thread_id(), key, value)).is_ok();
+    return ffikit::send(ffikit::Signal::RemoveThreadTag(
+        self_thread_id(),
+        key,
+        value,
+    ))
+    .is_ok();
 }
 
 // Convert a string of tags to a Vec<(&str, &str)>

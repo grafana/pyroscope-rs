@@ -97,8 +97,6 @@ pub struct Session {
 }
 
 impl Session {
-
-
     /// Create a new Session
     /// # Example
     /// ```ignore
@@ -166,17 +164,18 @@ impl Session {
 
         let req = Self::gzip(&req.encode_to_vec())?;
 
-
         let mut url = Url::parse(&self.config.url)?;
-        url.path_segments_mut().unwrap().push("push.v1.PusherService")
+        url.path_segments_mut()
+            .unwrap()
+            .push("push.v1.PusherService")
             .push("Push");
 
         let mut req_builder = client
             .post(url.as_str())
             .header(
                 "User-Agent",
-                format!("pyroscope-rs/{} reqwest", self.config.spy_name),
-            ) // todo version
+                format!("{}/{} reqwest", self.config.spy_name, self.config.spy_version),
+            )
             .header("Content-Type", "application/proto")
             .header("Content-Encoding", "gzip");
 

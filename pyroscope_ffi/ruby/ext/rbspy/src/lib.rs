@@ -11,10 +11,11 @@ use std::str::FromStr;
 use crate::backend::Rbspy;
 use pyroscope;
 use pyroscope::backend::{BackendConfig, BackendImpl, Report, StackFrame, Tag};
-use pyroscope::pyroscope::{PyroscopeAgentBuilder};
+use pyroscope::pyroscope::PyroscopeAgentBuilder;
 
 const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
-
+const RUBY_SPY_NAME: &str = "rbspy";
+const RUBY_SPY_VERSION: &str = "0.6.7";
 
 pub fn transform_report(report: Report) -> Report {
     let cwd = env::current_dir().unwrap();
@@ -110,19 +111,10 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 
 #[no_mangle]
 pub extern "C" fn initialize_agent(
-    application_name: *const c_char,
-    server_address: *const c_char,
-    auth_token: *const c_char,
-    basic_auth_user: *const c_char,
-    basic_auth_password: *const c_char,
-    sample_rate: u32,
-    oncpu: bool,
-    report_pid: bool,
-    report_thread_id: bool,
-    tags: *const c_char,
-    compression: *const c_char,
-    _report_encoding: *const c_char,
-    tenant_id: *const c_char,
+    application_name: *const c_char, server_address: *const c_char, auth_token: *const c_char,
+    basic_auth_user: *const c_char, basic_auth_password: *const c_char, sample_rate: u32,
+    oncpu: bool, report_pid: bool, report_thread_id: bool, tags: *const c_char,
+    compression: *const c_char, _report_encoding: *const c_char, tenant_id: *const c_char,
     http_headers_json: *const c_char,
 ) -> bool {
     let recv = ffikit::initialize_ffi();
@@ -177,31 +169,23 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
-
     let pid = std::process::id();
 
-    let backend_config = BackendConfig{
+    let backend_config = BackendConfig {
         report_thread_id,
         report_thread_name: false,
         report_pid,
     };
 
-    let sampler = Sampler::new(
-        pid as Pid,
-        sample_rate,
-        false,
-        None,
-        false,
-        None,
-        oncpu
-    );
-
+    let sampler = Sampler::new(pid as Pid, sample_rate, false, None, false, None, oncpu);
 
     let tags_ref = tags_string.as_str();
     let tags = string_to_tags(tags_ref);
     let rbspy = BackendImpl::new(Box::new(Rbspy::new(sampler, sample_rate, backend_config)));
 
     let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, rbspy)
+        .spy_name(RUBY_SPY_NAME.to_string())
+        .spy_version(RUBY_SPY_VERSION.to_string())
         .func(transform_report)
         .tags(tags);
 
@@ -220,17 +204,15 @@ pub extern "C" fn initialize_agent(
         Ok(http_headers) => {
             agent_builder = agent_builder.http_headers(http_headers);
         }
-        Err(e) => {
-            match e {
-                pyroscope::PyroscopeError::Json(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
-                }
-                pyroscope::PyroscopeError::AdHoc(e) => {
-                    log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
-                }
-                _ => {}
+        Err(e) => match e {
+            pyroscope::PyroscopeError::Json(e) => {
+                log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
             }
-        }
+            pyroscope::PyroscopeError::AdHoc(e) => {
+                log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
+            }
+            _ => {}
+        },
     }
 
     let agent = agent_builder.build().unwrap();
@@ -275,20 +257,28 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
         .unwrap()
         .to_owned();
 
-    ffikit::send(ffikit::Signal::AddThreadTag(backend::self_thread_id(), key, value)).is_ok()
+    ffikit::send(ffikit::Signal::AddThreadTag(
+        backend::self_thread_id(),
+        key,
+        value,
+    ))
+    .is_ok()
 }
 
 #[no_mangle]
-pub extern "C" fn remove_thread_tag(
-    key: *const c_char, value: *const c_char,
-) -> bool {
+pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
         .unwrap()
         .to_owned();
 
-    ffikit::send(ffikit::Signal::RemoveThreadTag(backend::self_thread_id(), key, value)).is_ok()
+    ffikit::send(ffikit::Signal::RemoveThreadTag(
+        backend::self_thread_id(),
+        key,
+        value,
+    ))
+    .is_ok()
 }
 
 // Convert a string of tags to a Vec<(&str, &str)>

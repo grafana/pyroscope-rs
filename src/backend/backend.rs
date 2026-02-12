@@ -1,8 +1,6 @@
 #![allow(clippy::module_inception)]
 
-use crate::{
-    error::{PyroscopeError, Result},
-};
+use crate::error::{PyroscopeError, Result};
 use std::{
     fmt::Debug,
     sync::{Arc, Mutex},
@@ -20,10 +18,6 @@ pub struct BackendConfig {
 
 /// Backend Trait
 pub trait Backend: Send {
-    /// Backend Spy Name
-    fn spy_name(&self) -> Result<String>;
-    /// Backend name extension
-    fn spy_extension(&self) -> Result<Option<String>>;
     /// Get backend configuration.
     fn sample_rate(&self) -> Result<u32>;
     /// Initialize the backend.
@@ -73,9 +67,7 @@ pub struct BackendImpl<S: BackendState + ?Sized> {
 
 impl BackendImpl<BackendBare> {
     /// Create a new BackendImpl instance
-    pub fn new(
-        backend_box: Box<dyn Backend>,
-    ) -> BackendImpl<BackendUninitialized> {
+    pub fn new(backend_box: Box<dyn Backend>) -> BackendImpl<BackendUninitialized> {
         BackendImpl {
             backend: Arc::new(Mutex::new(Some(backend_box))),
             _state: std::marker::PhantomData,
@@ -104,24 +96,6 @@ impl BackendImpl<BackendUninitialized> {
 }
 
 impl<S: BackendAccessible> BackendImpl<S> {
-    /// Return the backend name
-    pub fn spy_name(&self) -> Result<String> {
-        self.backend
-            .lock()?
-            .as_ref()
-            .ok_or(PyroscopeError::BackendImpl)?
-            .spy_name()
-    }
-
-    /// Return the backend extension
-    pub fn spy_extension(&self) -> Result<Option<String>> {
-        self.backend
-            .lock()?
-            .as_ref()
-            .ok_or(PyroscopeError::BackendImpl)?
-            .spy_extension()
-    }
-
     /// Return the backend sample rate
     pub fn sample_rate(&self) -> Result<u32> {
         self.backend
@@ -130,7 +104,6 @@ impl<S: BackendAccessible> BackendImpl<S> {
             .ok_or(PyroscopeError::BackendImpl)?
             .sample_rate()
     }
-
 
     pub fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         self.backend

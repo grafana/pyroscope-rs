@@ -40,6 +40,8 @@ pub struct PyroscopeConfig {
     pub sample_rate: u32,
     /// Spy Name
     pub spy_name: String,
+    /// Spy Version
+    pub spy_version: String,
     /// Authentication Token
     pub auth_token: Option<String>,
     pub basic_auth: Option<BasicAuth>,
@@ -66,6 +68,7 @@ impl Default for PyroscopeConfig {
             tags: HashMap::new(),
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
+            spy_version: "undefined".to_string(),
             auth_token: None,
             basic_auth: None,
             func: None,
@@ -90,6 +93,7 @@ impl PyroscopeConfig {
             tags: HashMap::new(),         // Empty tags
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
+            spy_version: String::from("undefined"), // Spy Version should be set by the backend
             auth_token: None,             // No authentication token
             basic_auth: None,
             func: None, // No function
@@ -125,6 +129,14 @@ impl PyroscopeConfig {
     /// Set the Spy Name.
     pub fn spy_name(self, spy_name: String) -> Self {
         Self { spy_name, ..self }
+    }
+
+    /// Set the Spy Version.
+    pub fn spy_version(self, spy_version: String) -> Self {
+        Self {
+            spy_version,
+            ..self
+        }
     }
 
     pub fn auth_token(self, auth_token: String) -> Self {
@@ -205,7 +217,6 @@ pub struct PyroscopeAgentBuilder {
     config: PyroscopeConfig,
 }
 
-
 impl PyroscopeAgentBuilder {
     /// Create a new PyroscopeAgentBuilder object. url and application_name are required.
     /// tags and sample_rate are optional.
@@ -214,7 +225,10 @@ impl PyroscopeAgentBuilder {
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
     /// ```
-    pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>, backend: BackendImpl<BackendUninitialized>) -> Self {
+    pub fn new(
+        url: impl AsRef<str>, application_name: impl AsRef<str>,
+        backend: BackendImpl<BackendUninitialized>,
+    ) -> Self {
         Self {
             backend,
             config: PyroscopeConfig::new(url, application_name),
@@ -252,7 +266,6 @@ impl PyroscopeAgentBuilder {
             ..self
         }
     }
-    
 
     /// Set JWT authentication token.
     /// This is optional. If not set, the agent will not send any authentication token.
@@ -276,6 +289,22 @@ impl PyroscopeAgentBuilder {
             config: self
                 .config
                 .basic_auth(username.as_ref().to_owned(), password.as_ref().to_owned()),
+            ..self
+        }
+    }
+
+    /// Set the Spy Name.
+    pub fn spy_name(self, spy_name: String) -> Self {
+        Self {
+            config: self.config.spy_name(spy_name),
+            ..self
+        }
+    }
+
+    /// Set the Spy Version.
+    pub fn spy_version(self, spy_version: String) -> Self {
+        Self {
+            config: self.config.spy_version(spy_version),
             ..self
         }
     }
@@ -313,7 +342,6 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-
     pub fn tenant_id(self, tenant_id: String) -> Self {
         Self {
             config: self.config.tenant_id(tenant_id),
@@ -332,13 +360,12 @@ impl PyroscopeAgentBuilder {
     /// state. While you can call this method, you should call it through the
     /// `PyroscopeAgent.build()` method.
     pub fn build(self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
-        // Set Spy Name, Spy Extension and Sample Rate from the Backend
+        // Set Sample Rate from the Backend
         let config = self.config.sample_rate(self.backend.sample_rate()?);
-        let config = config.spy_name(self.backend.spy_name()?);
 
         // Set Global Tags
         // for (key, value) in config.tags.iter() {
-            // todo!("implement")
+        // todo!("implement")
         // }
 
         // Initialize the Backend
@@ -653,7 +680,6 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         )
     }
 
-
     /// Add a thread Tag rule to the backend Ruleset. For tagging, it's
     /// recommended to use the `tag_wrapper` function.
     pub fn add_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
@@ -676,9 +702,9 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>> {
     let mut http_headers = HashMap::new();
     let parsed: serde_json::Value = serde_json::from_str(&http_headers_json)?;
-    let parsed = parsed.as_object().ok_or_else(||
-        PyroscopeError::AdHoc(format!("expected object, got {}", parsed))
-    )?;
+    let parsed = parsed
+        .as_object()
+        .ok_or_else(|| PyroscopeError::AdHoc(format!("expected object, got {}", parsed)))?;
     for (k, v) in parsed {
         if let Some(value) = v.as_str() {
             http_headers.insert(k.to_string(), value.to_string());
@@ -694,9 +720,9 @@ pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<Stri
 
 pub fn parse_vec_string_json(s: String) -> Result<Vec<String>> {
     let parsed: serde_json::Value = serde_json::from_str(&s)?;
-    let parsed = parsed.as_array().ok_or_else(||
-        PyroscopeError::AdHoc(format!("expected array, got {}", parsed))
-    )?;
+    let parsed = parsed
+        .as_array()
+        .ok_or_else(|| PyroscopeError::AdHoc(format!("expected array, got {}", parsed)))?;
     let mut res = Vec::with_capacity(parsed.len());
     for v in parsed {
         if let Some(s) = v.as_str() {

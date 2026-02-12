@@ -1,7 +1,7 @@
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendUninitialized, Report, ThreadTag, ThreadTagsSet,
-        StackBuffer, StackFrame, StackTrace,
+        Backend, BackendConfig, BackendUninitialized, Report, StackBuffer, StackFrame, StackTrace,
+        ThreadTag, ThreadTagsSet,
     },
     error::{PyroscopeError, Result},
 };
@@ -16,7 +16,6 @@ use std::{
 };
 
 const LOG_TAG: &str = "Pyroscope::Rbspy";
-
 
 pub struct Rbspy {
     sample_rate: u32,
@@ -55,16 +54,6 @@ type ErrorSender = Sender<std::result::Result<(), anyhow::Error>>;
 type ErrorReceiver = Receiver<std::result::Result<(), anyhow::Error>>;
 
 impl Backend for Rbspy {
-    /// Return the backend name
-    fn spy_name(&self) -> Result<String> {
-        Ok("rbspy".to_string())
-    }
-
-    /// Return the backend extension
-    fn spy_extension(&self) -> Result<Option<String>> {
-        Ok(Some("cpu".to_string()))
-    }
-
     /// Return the sample rate
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.sample_rate)
@@ -101,7 +90,6 @@ impl Backend for Rbspy {
         // Set Error and Stack Receivers
         //self.stack_receiver = Some(stack_receiver);
         self.error_receiver = Some(error_receiver);
-
 
         self.sampler
             .start(stack_sender, error_sender)
@@ -206,7 +194,6 @@ impl From<(rbspy::StackTrace, &BackendConfig)> for StackTraceWrapper {
         ))
     }
 }
-
 
 pub fn self_thread_id() -> pyroscope::ThreadId {
     // for rbspy we use pthread_t as thread id
