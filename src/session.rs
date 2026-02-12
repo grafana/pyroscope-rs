@@ -5,20 +5,17 @@ use std::{
     time::Duration,
 };
 
+use crate::encode::gen::google::Profile;
+use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
+use crate::encode::gen::types::LabelPair;
+use crate::{
+    backend::Report, encode::pprof, pyroscope::PyroscopeConfig, utils::get_time_range,
+    PyroscopeError, Result,
+};
 use libflate::gzip::Encoder;
 use prost::Message;
 use reqwest::Url;
 use uuid::Uuid;
-use crate::encode::gen::google::Profile;
-use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
-use crate::{
-    backend::Report,
-    encode::pprof,
-    pyroscope::PyroscopeConfig,
-    utils::get_time_range,
-    PyroscopeError, Result,
-};
-use crate::encode::gen::types::LabelPair;
 
 const LOG_TAG: &str = "Pyroscope::Session";
 
@@ -60,7 +57,7 @@ impl SessionManager {
                         // Send the session
                         // Matching is done here (instead of ?) to avoid breaking
                         // the SessionManager thread if the server is not available.
-                        match session.send_with_client(&client) {
+                        match session.push(&client) {
                             Ok(_) => log::trace!("SessionManager - Session sent"),
                             Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
                         }
@@ -125,23 +122,6 @@ impl Session {
         })
     }
 
-
-    pub fn send_with_client(self, client: &reqwest::blocking::Client) -> Result<()> {
-        if self.reports.is_empty() {
-            return Ok(());
-        }
-        match self.config.func {
-            None => {}
-            Some(f) => {
-
-            }
-        }
-
-        let profile = self.encode_reports(&self.reports);
-
-        self.push(profile, client)
-    }
-
     fn encode_reports(&self, reports: &Vec<Report>) -> Profile {
         pprof::encode(
             reports,
@@ -151,16 +131,21 @@ impl Session {
         )
     }
 
-    fn push(self, profile: Profile, client: &reqwest::blocking::Client) -> Result<()> {
+    fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
-        let mut labels :Vec<LabelPair> = Vec::with_capacity(1 + self.config.tags.iter().len());
+        let profile = match self.config.func {
+            None => self.encode_reports(&self.reports),
+            Some(f) => self.encode_reports(&self.reports.iter().map(|r| f(r.to_owned())).collect()),
+        };
+
+        let mut labels: Vec<LabelPair> = Vec::with_capacity(1 + self.config.tags.iter().len());
         labels.push(LabelPair {
             name: "service_name".to_string(),
             value: self.config.application_name.clone(),
         });
         for tag in self.config.tags {
-            labels.push(LabelPair{
+            labels.push(LabelPair {
                 name: tag.0,
                 value: tag.1,
             })
@@ -185,7 +170,10 @@ impl Session {
 
         let mut req_builder = client
             .post(url.as_str())
-            .header("User-Agent", format!("pyroscope-rs/{} reqwest", self.config.spy_name))//todo version
+            .header(
+                "User-Agent",
+                format!("pyroscope-rs/{} reqwest", self.config.spy_name),
+            ) // todo version
             .header("Content-Type", "application/proto")
             .header("Content-Encoding", "gzip");
 
@@ -206,7 +194,7 @@ impl Session {
 
         let mut response = req_builder
             .body(req)
-            .timeout(Duration::from_secs(10)) //todo allow configuration
+            .timeout(Duration::from_secs(10)) // todo allow configuration
             .send()?;
 
         let status = response.status();
