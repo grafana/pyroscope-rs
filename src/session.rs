@@ -196,7 +196,7 @@ impl Session {
 
         let mut response = req_builder
             .body(req)
-            .timeout(Duration::from_secs(10)) // todo allow configuration
+            .timeout(Duration::from_secs(10))
             .send()?;
 
         let status = response.status();
