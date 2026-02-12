@@ -14,7 +14,6 @@ bool initialize_logging(uint32_t logging_level);
 
 bool initialize_agent(const char *application_name,
                       const char *server_address,
-                      const char *auth_token,
                       const char *basic_auth_user,
                       const char *basic_auth_password,
                       uint32_t sample_rate,

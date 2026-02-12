@@ -1,4 +1,3 @@
-/// Result Alias with PyroscopeError
 pub type Result<T> = std::result::Result<T, PyroscopeError>;
 
 /// Error type of Pyroscope

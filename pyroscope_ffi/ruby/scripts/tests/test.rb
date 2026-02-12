@@ -6,11 +6,45 @@ require "pyroscope/version"
 puts Pyroscope::VERSION
 puts RUBY_VERSION
 
+def start_local_pyroscope
+  container_name = "pyroscope-ruby-test-#{Process.pid}"
+
+  system(
+    "docker", "run", "--rm", "-d",
+    "--name", container_name,
+    "-p", "4040:4040",
+    "grafana/pyroscope:latest"
+  )
+
+  unless $?.success?
+    warn "failed to start local grafana/pyroscope container"
+    exit 1
+  end
+
+  20.times do
+    ready = system("curl", "-fsS", "http://localhost:4040/ready")
+    return container_name if ready
+    sleep 1
+  end
+
+  warn "pyroscope container did not become ready"
+  system("docker", "logs", container_name)
+  system("docker", "rm", "-f", container_name)
+  exit 1
+end
+
+def stop_local_pyroscope(container_name)
+  return if container_name.nil? || container_name.empty?
+
+  system("docker", "rm", "-f", container_name)
+end
+
+pyroscope_container = start_local_pyroscope
+at_exit { stop_local_pyroscope(pyroscope_container) }
+
 Pyroscope.configure do |config|
   config.application_name = "#{ENV["PYROSCOPE_RUN_ID"]}"
-  # TODO please no og cloud
-  config.server_address = "https://ingest.pyroscope.cloud"
-  config.auth_token = ENV["PYROSCOPE_API_TOKEN"]
+  config.server_address = "http://localhost:4040"
   config.oncpu = ENV["PYROSCOPE_ONCPU"] == "1"
   config.log_level = "trace"
   config.report_pid = true

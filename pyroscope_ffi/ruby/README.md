@@ -37,7 +37,6 @@ require 'pyroscope'
 Pyroscope.configure do |config|
   config.application_name = "my.ruby.app" # replace this with some name for your application
   config.server_address   = "http://my-pyroscope-server:4040" # replace this with the address of your pyroscope server
-  # config.auth_token     = "{YOUR_API_KEY}" # optionally, if authentication is enabled, specify the API key
 end
 ```
 

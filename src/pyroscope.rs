@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
     marker::PhantomData,
-    str::FromStr,
     sync::{
         mpsc::{self, Sender},
         Arc, Condvar, Mutex,
@@ -19,7 +18,6 @@ use crate::{
 };
 
 use crate::backend::{BackendImpl, ThreadTag};
-use crate::pyroscope::Compression::GZIP;
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -42,13 +40,9 @@ pub struct PyroscopeConfig {
     pub sample_rate: u32,
     /// Spy Name
     pub spy_name: String,
-    /// Authentication Token
-    pub auth_token: Option<String>,
     pub basic_auth: Option<BasicAuth>,
     /// Function to apply
     pub func: Option<fn(Report) -> Report>,
-    /// Pyroscope http request body compression
-    pub compression: Option<Compression>,
     pub tenant_id: Option<String>,
     pub http_headers: HashMap<String, String>,
 }
@@ -70,10 +64,8 @@ impl Default for PyroscopeConfig {
             tags: HashMap::new(),
             sample_rate: 100u32,
             spy_name: "undefined".to_string(),
-            auth_token: None,
             basic_auth: None,
             func: None,
-            compression: Some(GZIP),
             tenant_id: None,
             http_headers: HashMap::new(),
         }
@@ -95,10 +87,8 @@ impl PyroscopeConfig {
             tags: HashMap::new(),         // Empty tags
             sample_rate: 100u32,          // Default sample rate
             spy_name: String::from("undefined"), // Spy Name should be set by the backend
-            auth_token: None,             // No authentication token
             basic_auth: None,
             func: None, // No function
-            compression: Some(GZIP),
             tenant_id: None,
             http_headers: HashMap::new(),
         }
@@ -131,13 +121,6 @@ impl PyroscopeConfig {
     /// Set the Spy Name.
     pub fn spy_name(self, spy_name: String) -> Self {
         Self { spy_name, ..self }
-    }
-
-    pub fn auth_token(self, auth_token: String) -> Self {
-        Self {
-            auth_token: Some(auth_token),
-            ..self
-        }
     }
 
     pub fn basic_auth(self, username: String, password: String) -> Self {
@@ -174,21 +157,6 @@ impl PyroscopeConfig {
 
         Self {
             tags: tags_hashmap,
-            ..self
-        }
-    }
-
-    /// Set the http request body compression.
-    ///
-    /// # Example
-    /// ```ignore
-    /// use pyroscope::pyroscope::PyroscopeConfig;
-    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
-    ///     .compression(GZIP);
-    /// ```
-    pub fn compression(self, compression: Compression) -> Self {
-        Self {
-            compression: Some(compression),
             ..self
         }
     }
@@ -275,23 +243,6 @@ impl PyroscopeAgentBuilder {
     }
     
 
-    /// Set JWT authentication token.
-    /// This is optional. If not set, the agent will not send any authentication token.
-    ///
-    /// #Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .auth_token("my-token")
-    /// .build()
-    /// ?;
-    /// ```
-    pub fn auth_token(self, auth_token: impl AsRef<str>) -> Self {
-        Self {
-            config: self.config.auth_token(auth_token.as_ref().to_owned()),
-            ..self
-        }
-    }
-
     pub fn basic_auth(self, username: impl AsRef<str>, password: impl AsRef<str>) -> Self {
         Self {
             config: self
@@ -334,21 +285,6 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// Set the http request body compression.
-    ///
-    /// # Example
-    /// ```ignore
-    /// use pyroscope::pyroscope::PyroscopeConfig;
-    /// let agent = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    ///     .compression(GZIP)
-    ///     .build();
-    /// ```
-    pub fn compression(self, compression: Compression) -> Self {
-        Self {
-            config: self.config.compression(compression),
-            ..self
-        }
-    }
 
     pub fn tenant_id(self, tenant_id: String) -> Self {
         Self {
@@ -404,21 +340,6 @@ impl PyroscopeAgentBuilder {
             )),
             _state: PhantomData,
         })
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum Compression {
-    GZIP,
-}
-
-impl FromStr for Compression {
-    type Err = ();
-    fn from_str(input: &str) -> std::result::Result<Compression, Self::Err> {
-        match input {
-            "gzip" => Ok(GZIP),
-            _ => Err(()),
-        }
     }
 }
 
