@@ -104,8 +104,6 @@ module Pyroscope
         @config.report_pid || false,
         @config.report_thread_id || false,
         tags_to_string(@config.tags || {}),
-        @config.compression || "",
-        @config.report_encoding || "pprof",
         @config.tenant_id || "",
         http_headers_to_json(@config.http_headers || {})
       )

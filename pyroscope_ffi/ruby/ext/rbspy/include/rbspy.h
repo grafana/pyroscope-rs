@@ -21,8 +21,6 @@ bool initialize_agent(const char *application_name,
                       bool report_pid,
                       bool report_thread_id,
                       const char *tags,
-                      const char *compression,
-                      const char *_report_encoding,
                       const char *tenant_id,
                       const char *http_headers_json);
 

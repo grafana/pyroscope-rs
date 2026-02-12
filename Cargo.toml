@@ -22,7 +22,6 @@ rust-version = "1.64"
 members = [
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/python/lib",
-    "pyroscope_ffi/ffikit",
 ]
 
 
@@ -40,6 +39,7 @@ libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
 pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"], optional = true }
+lazy_static = "1.5.0"
 
 [dev-dependencies]
 tokio = { version = "=1.49.0", features = ["full"] }
