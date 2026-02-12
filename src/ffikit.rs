@@ -8,8 +8,6 @@ use std::sync::{
     Mutex,
 };
 
-
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Signal {
     Kill,
@@ -46,7 +44,7 @@ pub fn run(agent: PyroscopeAgentBuilder) -> Result<()> {
                     break;
                 }
                 Signal::AddThreadTag(thread_id, tag) => {
-                    if let Err(err)  =  agent.add_thread_tag(thread_id, tag) {
+                    if let Err(err) = agent.add_thread_tag(thread_id, tag) {
                         log::error!(target: TAG, "failed to add tag {}", err);
                     }
                 }
