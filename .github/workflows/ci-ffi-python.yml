@@ -26,7 +26,7 @@ jobs:
       - name: Build in Docker
         run: make wheel/linux/amd64
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "linux.whl"
           path: pyroscope_ffi/python/dist/*
@@ -50,7 +50,7 @@ jobs:
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
           architecture: x64
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # 4.3.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # 7.0.0
         with:
           name: "linux.whl"
           path: "${{github.workspace}}/python"
@@ -78,7 +78,7 @@ jobs:
       - name: Build in Docker
         run: make wheel/linux/arm64
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "linux-arm.whl"
           path: pyroscope_ffi/python/dist/*
@@ -101,7 +101,7 @@ jobs:
         run: python setup.py sdist
         working-directory: pyroscope_ffi/python
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "sdist.whl"
           path: pyroscope_ffi/python/dist/*
@@ -135,7 +135,7 @@ jobs:
           python-version: 3.11
 
       - run: make wheel/mac/${{ matrix.mk-arch }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-${{ matrix.target }}
           path: pyroscope_ffi/python/dist/*
