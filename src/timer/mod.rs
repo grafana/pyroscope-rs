@@ -20,13 +20,19 @@ impl std::fmt::Display for TimerSignal {
 }
 
 // Possibly: ios, netbsd, openbsd, freebsd
-#[cfg(target_os = "macos")] pub mod kqueue;
+#[cfg(target_os = "macos")]
+pub mod kqueue;
 
-#[cfg(target_os = "macos")] pub use kqueue::Timer;
+#[cfg(target_os = "macos")]
+pub use kqueue::Timer;
 
 // Possibly: android
-#[cfg(target_os = "linux")] pub mod epoll;
-#[cfg(target_os = "linux")] pub use epoll::Timer;
+#[cfg(target_os = "linux")]
+pub mod epoll;
+#[cfg(target_os = "linux")]
+pub use epoll::Timer;
 
-#[cfg(not(any(target_os = "linux", target_os = "macos")))] pub mod sleep;
-#[cfg(not(any(target_os = "linux", target_os = "macos")))] pub use sleep::Timer;
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+pub mod sleep;
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+pub use sleep::Timer;

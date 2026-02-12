@@ -2,7 +2,8 @@
 use crate::backend::{
     BackendConfig, Report, StackBuffer, StackFrame, StackTrace, Tag, ThreadTag, ThreadTagsSet,
 };
-#[cfg(test)] use std::collections::{HashMap, HashSet};
+#[cfg(test)]
+use std::collections::{HashMap, HashSet};
 
 #[test]
 fn test_stack_frame_display() {
@@ -192,10 +193,10 @@ fn test_ruleset_duplicates() {
         ))
         .unwrap();
 
-    assert_eq!(ruleset.thread_tags(tid), vec![Tag::new(
-        "key1".to_string(),
-        "value".to_string()
-    )]);
+    assert_eq!(
+        ruleset.thread_tags(tid),
+        vec![Tag::new("key1".to_string(), "value".to_string())]
+    );
 }
 
 #[test]
@@ -217,10 +218,10 @@ fn test_ruleset_remove_nonexistent() {
         ))
         .unwrap();
 
-    assert_eq!(ruleset.thread_tags(tid), vec![Tag::new(
-        "key1".to_string(),
-        "value".to_string()
-    )]);
+    assert_eq!(
+        ruleset.thread_tags(tid),
+        vec![Tag::new("key1".to_string(), "value".to_string())]
+    );
 }
 
 #[test]
@@ -290,16 +291,20 @@ fn test_stacktrace_add() {
 #[test]
 fn test_stackbuffer_record() {
     let mut buffer = StackBuffer::new(HashMap::new());
-    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![
-        StackFrame::new(
+    let stack_trace = StackTrace::new(
+        &BackendConfig::default(),
+        None,
+        None,
+        None,
+        vec![StackFrame::new(
             None,
             Some("test_record".to_string()),
             None,
             None,
             None,
             None,
-        ),
-    ]);
+        )],
+    );
     // First record
     buffer.record(stack_trace.clone()).unwrap();
     assert_eq!(buffer.data.len(), 1);
@@ -314,16 +319,20 @@ fn test_stackbuffer_record() {
 #[test]
 fn test_stackbuffer_record_with_count() {
     let mut buffer = StackBuffer::new(HashMap::new());
-    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![
-        StackFrame::new(
+    let stack_trace = StackTrace::new(
+        &BackendConfig::default(),
+        None,
+        None,
+        None,
+        vec![StackFrame::new(
             None,
             Some("test_record".to_string()),
             None,
             None,
             None,
             None,
-        ),
-    ]);
+        )],
+    );
     // First record
     buffer.record_with_count(stack_trace.clone(), 1).unwrap();
     assert_eq!(buffer.data.len(), 1);
@@ -338,16 +347,20 @@ fn test_stackbuffer_record_with_count() {
 #[test]
 fn test_stackbuffer_clear() {
     let mut buffer = StackBuffer::new(HashMap::new());
-    let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![
-        StackFrame::new(
+    let stack_trace = StackTrace::new(
+        &BackendConfig::default(),
+        None,
+        None,
+        None,
+        vec![StackFrame::new(
             None,
             Some("test_record".to_string()),
             None,
             None,
             None,
             None,
-        ),
-    ]);
+        )],
+    );
     // First record
     buffer.record(stack_trace.clone()).unwrap();
     assert_eq!(buffer.data.len(), 1);
