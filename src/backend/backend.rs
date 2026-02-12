@@ -18,8 +18,6 @@ pub struct BackendConfig {
 
 /// Backend Trait
 pub trait Backend: Send {
-    /// Get backend configuration.
-    fn sample_rate(&self) -> Result<u32>;
     /// Initialize the backend.
     fn initialize(&mut self) -> Result<()>;
     /// Drop the backend.
@@ -96,15 +94,6 @@ impl BackendImpl<BackendUninitialized> {
 }
 
 impl<S: BackendAccessible> BackendImpl<S> {
-    /// Return the backend sample rate
-    pub fn sample_rate(&self) -> Result<u32> {
-        self.backend
-            .lock()?
-            .as_ref()
-            .ok_or(PyroscopeError::BackendImpl)?
-            .sample_rate()
-    }
-
     pub fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         self.backend
             .lock()?

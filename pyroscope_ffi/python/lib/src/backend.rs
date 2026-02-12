@@ -47,10 +47,6 @@ impl Pyspy {
 }
 
 impl Backend for Pyspy {
-    fn sample_rate(&self) -> Result<u32> {
-        Ok(self.config.sampling_rate as u32)
-    }
-
     fn add_tag(&self, rule: ThreadTag) -> Result<()> {
         self.ruleset.lock()?.add(rule)?;
 

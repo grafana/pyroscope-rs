@@ -61,10 +61,6 @@ impl<'a> Pprof<'a> {
 }
 
 impl Backend for Pprof<'_> {
-    fn sample_rate(&self) -> Result<u32> {
-        Ok(self.config.sample_rate)
-    }
-
     fn shutdown(self: Box<Self>) -> Result<()> {
         log::trace!(target: LOG_TAG, "Shutting down sampler thread");
         Ok(())

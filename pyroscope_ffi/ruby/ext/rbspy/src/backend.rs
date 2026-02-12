@@ -54,15 +54,6 @@ type ErrorSender = Sender<std::result::Result<(), anyhow::Error>>;
 type ErrorReceiver = Receiver<std::result::Result<(), anyhow::Error>>;
 
 impl Backend for Rbspy {
-    /// Return the backend name
-
-    /// Return the backend extension
-
-    /// Return the sample rate
-    fn sample_rate(&self) -> Result<u32> {
-        Ok(self.sample_rate)
-    }
-
     fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         self.ruleset.add(tag)?;
 
