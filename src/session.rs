@@ -5,17 +5,17 @@ use std::{
     time::Duration,
 };
 
-use libflate::gzip::Encoder;
-use reqwest::Url;
-
-use crate::backend::EncodedReport;
+use crate::encode::gen::google::Profile;
+use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
+use crate::encode::gen::types::LabelPair;
 use crate::{
-    backend::Report,
-    encode::pprof,
-    pyroscope::{Compression, PyroscopeConfig},
-    utils::{get_time_range, merge_tags_with_app_name},
+    backend::Report, encode::pprof, pyroscope::PyroscopeConfig, utils::get_time_range,
     PyroscopeError, Result,
 };
+use libflate::gzip::Encoder;
+use prost::Message;
+use reqwest::Url;
+use uuid::Uuid;
 
 const LOG_TAG: &str = "Pyroscope::Session";
 
@@ -57,7 +57,7 @@ impl SessionManager {
                         // Send the session
                         // Matching is done here (instead of ?) to avoid breaking
                         // the SessionManager thread if the server is not available.
-                        match session.send_with_client(&client) {
+                        match session.push(&client) {
                             Ok(_) => log::trace!("SessionManager - Session sent"),
                             Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
                         }
@@ -86,22 +86,19 @@ impl SessionManager {
     }
 }
 
-/// Pyroscope Session
-///
-/// Used to contain the session data, and send it to the server.
 #[derive(Clone, Debug)]
 pub struct Session {
-    // Pyroscope instance configuration
     pub config: PyroscopeConfig,
-    // Session data
     pub reports: Vec<Report>,
-    // unix time
+    // unix time todo remove comment, use types
     pub from: u64,
-    // unix time
+    // unix time todo remove comment, use types
     pub until: u64,
 }
 
 impl Session {
+
+
     /// Create a new Session
     /// # Example
     /// ```ignore
@@ -125,89 +122,63 @@ impl Session {
         })
     }
 
-    /// deprecated
-    pub fn send(self) -> Result<()> {
-        let client = reqwest::blocking::Client::new();
-        self.send_with_client(&client)
-    }
-
-    pub fn send_with_client(self, client: &reqwest::blocking::Client) -> Result<()> {
-        // Check if the report is empty
-        if self.reports.is_empty() {
-            return Ok(());
-        }
-
-        let reports = self.process_reports(&self.reports);
-        let reports = self.encode_reports(reports);
-        let reports = self.compress_reports(reports);
-
-        for report in reports {
-            self.upload(report, client)?;
-        }
-
-        Ok(())
-    }
-
-    fn process_reports(&self, reports: &Vec<Report>) -> Vec<Report> {
-        if let Some(func) = self.config.func {
-            reports.iter().map(|r| func(r.to_owned())).collect()
-        } else {
-            reports.to_owned()
-        }
-    }
-
-    fn encode_reports(&self, reports: Vec<Report>) -> Vec<EncodedReport> {
-        log::debug!(target: LOG_TAG, "Encoding {} reports to pprof", reports.len());
+    fn encode_reports(&self, reports: &Vec<Report>) -> Profile {
         pprof::encode(
-            &reports,
+            reports,
             self.config.sample_rate,
             self.from * 1_000_000_000,
             (self.until - self.from) * 1_000_000_000,
         )
     }
 
-    fn compress_reports(&self, reports: Vec<EncodedReport>) -> Vec<EncodedReport> {
-        log::debug!(target: LOG_TAG, "Compressing {} reports to {:?}", reports.len(), self.config.compression);
-        reports
-            .into_iter()
-            .map(|r| match &self.config.compression {
-                None => r,
-                Some(Compression::GZIP) => {
-                    let mut encoder = Encoder::new(Vec::new()).unwrap();
-                    encoder.write_all(&r.data).unwrap();
-                    let compressed_data = encoder.finish().into_result().unwrap();
-                    EncodedReport {
-                        format: r.format,
-                        content_type: r.content_type,
-                        metadata: r.metadata,
-                        content_encoding: "gzip".to_string(),
-                        data: compressed_data,
-                    }
-                }
-            })
-            .collect()
-    }
-
-    fn upload(&self, report: EncodedReport, client: &reqwest::blocking::Client) -> Result<()> {
+    fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
-        if report.data.is_empty() {
-            return Ok(());
-        }
+        let profile = match self.config.func {
+            None => self.encode_reports(&self.reports),
+            Some(f) => self.encode_reports(&self.reports.iter().map(|r| f(r.to_owned())).collect()),
+        };
 
-        let application_name = merge_tags_with_app_name(
-            self.config.application_name.clone(),
-            report.metadata.tags.clone().into_iter().collect(),
-        )?;
+        let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.iter().len());
+        labels.push(LabelPair {
+            name: "service_name".to_string(),
+            value: self.config.application_name.clone(),
+        });
+        labels.push(LabelPair {
+            name: "__name__".to_string(),
+            value: "process_cpu".to_string(),
+        });
+        for tag in self.config.tags {
+            labels.push(LabelPair {
+                name: tag.0,
+                value: tag.1,
+            })
+        }
+        let req = PushRequest {
+            series: vec![RawProfileSeries {
+                labels,
+                samples: vec![RawSample {
+                    raw_profile: profile.encode_to_vec(),
+                    id: Uuid::new_v4().to_string(),
+                }],
+            }],
+        };
+
+        let req = Self::gzip(&req.encode_to_vec())?;
+
 
         let mut url = Url::parse(&self.config.url)?;
-        url.path_segments_mut()
-            .map_err(|_e| PyroscopeError::new("url construction failure - cannot_be_a_base"))?
-            .push("ingest");
+        url.path_segments_mut().unwrap().push("push.v1.PusherService")
+            .push("Push");
 
         let mut req_builder = client
             .post(url.as_str())
-            .header("Content-Type", report.content_type.as_str());
+            .header(
+                "User-Agent",
+                format!("pyroscope-rs/{} reqwest", self.config.spy_name),
+            ) // todo version
+            .header("Content-Type", "application/proto")
+            .header("Content-Encoding", "gzip");
 
         if let Some(auth_token) = &self.config.auth_token {
             req_builder = req_builder.bearer_auth(auth_token);
@@ -217,9 +188,6 @@ impl Session {
                 Some(basic_auth.password.clone()),
             );
         }
-        if !report.content_encoding.is_empty() {
-            req_builder = req_builder.header("Content-Encoding", report.content_encoding.as_str());
-        }
         if let Some(tenant_id) = &self.config.tenant_id {
             req_builder = req_builder.header("X-Scope-OrgID", tenant_id);
         }
@@ -228,15 +196,7 @@ impl Session {
         }
 
         let mut response = req_builder
-            .query(&[
-                ("name", application_name.as_str()),
-                ("from", &format!("{}", self.from)),
-                ("until", &format!("{}", self.until)),
-                ("format", report.format.as_str()),
-                ("sampleRate", &format!("{}", self.config.sample_rate)),
-                ("spyName", self.config.spy_name.as_str()),
-            ])
-            .body(report.data)
+            .body(req)
             .timeout(Duration::from_secs(10))
             .send()?;
 
@@ -254,5 +214,12 @@ impl Session {
             log::error!(target: LOG_TAG, "Sending Session failed {} {}", status.as_u16(), resp);
         }
         Ok(())
+    }
+
+    fn gzip(report: &[u8]) -> Result<Vec<u8>> {
+        let mut encoder = Encoder::new(Vec::new())?;
+        encoder.write_all(report)?;
+        let compressed_data = encoder.finish().into_result()?;
+        Ok(compressed_data)
     }
 }

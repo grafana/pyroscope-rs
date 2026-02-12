@@ -11,7 +11,6 @@ use std::str::FromStr;
 use crate::backend::Rbspy;
 use pyroscope;
 use pyroscope::backend::{BackendConfig, BackendImpl, Report, StackFrame, Tag};
-use pyroscope::pyroscope::Compression;
 use pyroscope::pyroscope::{PyroscopeAgentBuilder};
 
 const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
@@ -178,7 +177,6 @@ pub extern "C" fn initialize_agent(
         .unwrap()
         .to_string();
 
-    let compression = Compression::from_str(&compression_string);
 
     let pid = std::process::id();
 
@@ -233,10 +231,6 @@ pub extern "C" fn initialize_agent(
                 _ => {}
             }
         }
-    }
-
-    if let Ok(compression) = compression {
-        agent_builder = agent_builder.compression(compression);
     }
 
     let agent = agent_builder.build().unwrap();
