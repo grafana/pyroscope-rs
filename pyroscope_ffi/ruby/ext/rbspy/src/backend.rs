@@ -57,9 +57,6 @@ impl Backend for Rbspy {
     /// Return the backend name
 
     /// Return the backend extension
-    fn spy_extension(&self) -> Result<Option<String>> {
-        Ok(Some("cpu".to_string()))
-    }
 
     /// Return the sample rate
     fn sample_rate(&self) -> Result<u32> {

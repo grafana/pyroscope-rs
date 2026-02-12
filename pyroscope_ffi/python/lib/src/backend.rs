@@ -47,10 +47,6 @@ impl Pyspy {
 }
 
 impl Backend for Pyspy {
-    fn spy_extension(&self) -> Result<Option<String>> {
-        Ok(Some("cpu".to_string()))
-    }
-
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sampling_rate as u32)
     }

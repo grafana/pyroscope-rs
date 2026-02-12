@@ -61,10 +61,6 @@ impl<'a> Pprof<'a> {
 }
 
 impl Backend for Pprof<'_> {
-    fn spy_extension(&self) -> std::result::Result<Option<String>, PyroscopeError> {
-        Ok(Some("cpu".to_string()))
-    }
-
     fn sample_rate(&self) -> Result<u32> {
         Ok(self.config.sample_rate)
     }
