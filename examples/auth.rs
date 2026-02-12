@@ -1,10 +1,10 @@
 extern crate pyroscope;
 
-use pyroscope::Result;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
-use std::hash::{Hash, Hasher};
 use pyroscope::backend::BackendConfig;
+use pyroscope::backend::{pprof_backend, PprofConfig};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
+use pyroscope::Result;
+use std::hash::{Hash, Hasher};
 
 fn hash_rounds(n: u64) -> u64 {
     let hash_str = "Some string to hash";
@@ -24,7 +24,7 @@ fn main() -> Result<()> {
     // TODO: Change this token to your own.
     let token = String::from("<your-token>");
 
-    let backend = pprof_backend(PprofConfig{sample_rate: 100}, BackendConfig::default());
+    let backend = pprof_backend(PprofConfig { sample_rate: 100 }, BackendConfig::default());
     let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "example.basic", backend)
         .auth_token(token)
         .tags([("TagA", "ValueA"), ("TagB", "ValueB")].to_vec())

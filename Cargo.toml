@@ -20,7 +20,6 @@ rust-version = "1.64"
 
 [workspace]
 members = [
-    "pyroscope_backends/pyroscope_pprofrs",
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/python/lib",
     "pyroscope_ffi/ffikit",
@@ -48,19 +47,20 @@ libc = "^0.2.124"
 prost = "0.14"
 winapi = "0.3.9"
 serde_json = "1.0.115"
+pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "=1.49.0", features = ["full"] }
 pretty_env_logger = "=0.5.0"
 assert_matches = "=1.5.0"
 claims = "=0.8.0"
-pyroscope_pprofrs = { path = "pyroscope_backends/pyroscope_pprofrs" }
 
 [features]
 default = ["rustls-tls"]
 rustls-tls = ["reqwest/rustls"]
 native-tls = ["reqwest/native-tls"]
 rustls-no-provider = ["reqwest/rustls-no-provider"]
+backend-pprof-rs = ["dep:pprof"]
 
 [profile.dev]
 opt-level=0

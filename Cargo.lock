@@ -2246,9 +2246,9 @@ dependencies = [
  "libflate",
  "log",
  "names",
+ "pprof",
  "pretty_env_logger",
  "prost",
- "pyroscope_pprofrs",
  "reqwest",
  "serde_json",
  "thiserror 2.0.18",
@@ -2267,16 +2267,6 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "py-spy",
- "pyroscope",
-]
-
-[[package]]
-name = "pyroscope_pprofrs"
-version = "0.2.10"
-dependencies = [
- "libc",
- "log",
- "pprof",
  "pyroscope",
 ]
 

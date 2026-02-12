@@ -1,9 +1,9 @@
 extern crate pyroscope;
 
 use pyroscope::backend::BackendConfig;
+use pyroscope::backend::{pprof_backend, PprofConfig};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use pyroscope::Result;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
@@ -76,9 +76,13 @@ fn main() -> Result<()> {
         },
     );
 
-    let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "example.multithread.report", backend)
-        .tags([("Host", "Rust")].to_vec())
-        .build()?;
+    let agent = PyroscopeAgentBuilder::new(
+        "http://localhost:4040",
+        "example.multithread.report",
+        backend,
+    )
+    .tags([("Host", "Rust")].to_vec())
+    .build()?;
 
     // Show start time
     let start = std::time::SystemTime::now()

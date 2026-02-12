@@ -1,8 +1,8 @@
 extern crate pyroscope;
 
 use pyroscope::backend::{Backend, BackendConfig};
+use pyroscope::backend::{Pprof, PprofConfig};
 use pyroscope::Result;
-use pyroscope_pprofrs::{Pprof, PprofConfig};
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -12,10 +12,8 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 fn main() -> Result<()> {
-    let config = PprofConfig{
-        sample_rate: 100,
-    };
-    let backend_config = BackendConfig{
+    let config = PprofConfig { sample_rate: 100 };
+    let backend_config = BackendConfig {
         report_thread_id: false,
         report_thread_name: false,
         report_pid: false,

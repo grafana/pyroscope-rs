@@ -1,9 +1,9 @@
 extern crate pyroscope;
 
-use pyroscope::Result;
 use pyroscope::backend::BackendConfig;
+use pyroscope::backend::{pprof_backend, PprofConfig};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+use pyroscope::Result;
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -18,7 +18,7 @@ fn main() -> Result<()> {
 
     // Initialize the logger.
     pretty_env_logger::init_timed();
-    let backend = pprof_backend(PprofConfig{sample_rate: 100}, BackendConfig::default());
+    let backend = pprof_backend(PprofConfig { sample_rate: 100 }, BackendConfig::default());
     let agent = PyroscopeAgentBuilder::new("http://invalid_url", "example.error", backend)
         .build()
         .unwrap();

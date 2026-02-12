@@ -2,11 +2,11 @@ extern crate pyroscope;
 
 use log::info;
 
-use pyroscope::Result;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
-use std::hash::{Hash, Hasher};
 use pyroscope::backend::BackendConfig;
+use pyroscope::backend::{pprof_backend, PprofConfig};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
+use pyroscope::Result;
+use std::hash::{Hash, Hasher};
 
 fn hash_rounds(n: u64) -> u64 {
     let hash_str = "Some string to hash";
@@ -31,10 +31,10 @@ fn main() -> Result<()> {
 
     info!("With Logger example");
 
-    let backend = pprof_backend(PprofConfig{sample_rate: 100}, BackendConfig::default());
-    
-    let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "example.logger", backend)
-        .build()?;
+    let backend = pprof_backend(PprofConfig { sample_rate: 100 }, BackendConfig::default());
+
+    let agent =
+        PyroscopeAgentBuilder::new("http://localhost:4040", "example.logger", backend).build()?;
 
     // Show start time
     let start = std::time::SystemTime::now()

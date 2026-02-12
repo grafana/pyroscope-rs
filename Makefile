@@ -11,7 +11,7 @@ lib/test:
 
 .PHONY: pprofrs/test
 pprofrs/test:
-	cargo  test --manifest-path pyroscope_backends/pyroscope_pprofrs/Cargo.toml
+	cargo  test --manifest-path Cargo.toml --features backend-pprof-rs
 
 
 .PHONY: ffikit/test
