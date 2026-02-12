@@ -45,7 +45,6 @@ pub fn initialize_ffi() -> Receiver<Signal> {
             while let Ok(signal) = receiver.recv() {
                 match signal {
                     Signal::Kill => {
-
                         // Send the signal to the merge channel.
                         fn_sender.send(signal)?;
 

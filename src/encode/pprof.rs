@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::backend::types::{ Report};
+use crate::backend::types::Report;
 use crate::encode::gen::google::{Function, Label, Line, Location, Profile, Sample, ValueType};
 
 struct PProfBuilder {
@@ -78,7 +78,10 @@ impl PProfBuilder {
 }
 
 pub fn encode(
-    reports: &Vec<Report>, sample_rate: u32, start_time_nanos: u64, duration_nanos: u64,
+    reports: &Vec<Report>,
+    sample_rate: u32,
+    start_time_nanos: u64,
+    duration_nanos: u64,
 ) -> Profile {
     let mut b = PProfBuilder {
         strings: HashMap::new(),

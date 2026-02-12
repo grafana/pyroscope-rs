@@ -1,6 +1,6 @@
 #[cfg(test)]
 use crate::backend::{
-    BackendConfig, Report, ThreadTag, ThreadTagsSet, StackBuffer, StackFrame, StackTrace, Tag,
+    BackendConfig, Report, StackBuffer, StackFrame, StackTrace, Tag, ThreadTag, ThreadTagsSet,
 };
 #[cfg(test)]
 use std::collections::{HashMap, HashSet};
@@ -69,7 +69,10 @@ fn test_tag_new() {
 #[test]
 fn test_rule_new() {
     let tid = crate::ThreadId::pthread_self();
-    let rule = ThreadTag::new(tid.clone(), Tag::new("key".to_string(), "value".to_string()));
+    let rule = ThreadTag::new(
+        tid.clone(),
+        Tag::new("key".to_string(), "value".to_string()),
+    );
 
     assert_eq!(
         rule,
@@ -106,7 +109,10 @@ fn test_ruleset_remove_rule() {
     let tid = crate::ThreadId::pthread_self();
     let ruleset = ThreadTagsSet::new();
 
-    let add_rule = ThreadTag::new(tid.clone(), Tag::new("key".to_string(), "value".to_string()));
+    let add_rule = ThreadTag::new(
+        tid.clone(),
+        Tag::new("key".to_string(), "value".to_string()),
+    );
 
     ruleset.add(add_rule).unwrap();
 
@@ -156,8 +162,14 @@ fn test_ruleset() {
     assert_eq!(
         ruleset.rules.lock().unwrap().clone(),
         HashSet::from([
-            ThreadTag::new(test_thread_id(1), Tag::new("key1".to_string(), "value".to_string(),)),
-            ThreadTag::new(test_thread_id(3), Tag::new("key1".to_string(), "value".to_string(),))
+            ThreadTag::new(
+                test_thread_id(1),
+                Tag::new("key1".to_string(), "value".to_string(),)
+            ),
+            ThreadTag::new(
+                test_thread_id(3),
+                Tag::new("key1".to_string(), "value".to_string(),)
+            )
         ])
     );
 }
@@ -168,17 +180,17 @@ fn test_ruleset_duplicates() {
 
     let tid = crate::ThreadId::pthread_self();
     ruleset
-        .add(ThreadTag::new(tid.clone(), Tag::new(
-            "key1".to_string(),
-            "value".to_string(),
-        )))
+        .add(ThreadTag::new(
+            tid.clone(),
+            Tag::new("key1".to_string(), "value".to_string()),
+        ))
         .unwrap();
 
     ruleset
-        .add(ThreadTag::new(tid.clone(), Tag::new(
-            "key1".to_string(),
-            "value".to_string(),
-        )))
+        .add(ThreadTag::new(
+            tid.clone(),
+            Tag::new("key1".to_string(), "value".to_string()),
+        ))
         .unwrap();
 
     assert_eq!(
@@ -193,17 +205,17 @@ fn test_ruleset_remove_nonexistent() {
 
     let tid = crate::ThreadId::pthread_self();
     ruleset
-        .add(ThreadTag::new(tid.clone(), Tag::new(
-            "key1".to_string(),
-            "value".to_string(),
-        )))
+        .add(ThreadTag::new(
+            tid.clone(),
+            Tag::new("key1".to_string(), "value".to_string()),
+        ))
         .unwrap();
 
     ruleset
-        .remove(ThreadTag::new(tid.clone(), Tag::new(
-            "key2".to_string(),
-            "value".to_string(),
-        )))
+        .remove(ThreadTag::new(
+            tid.clone(),
+            Tag::new("key2".to_string(), "value".to_string()),
+        ))
         .unwrap();
 
     assert_eq!(

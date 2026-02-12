@@ -1,7 +1,6 @@
 use crate::backend::Tag;
 use crate::{error::Result, PyroscopeError};
 
-
 /// Error Wrapper for libc return. Only check for errors.
 pub fn check_err<T: Ord + Default>(num: T) -> Result<T> {
     if num < T::default() {
@@ -32,13 +31,10 @@ pub struct ThreadId {
 
 impl From<libc::pthread_t> for ThreadId {
     fn from(value: libc::pthread_t) -> Self {
-        Self {
-            pthread: value
-        }
+        Self { pthread: value }
     }
 }
 impl ThreadId {
-    
     pub fn pthread_self() -> Self {
         Self {
             pthread: unsafe { libc::pthread_self() },
@@ -49,8 +45,6 @@ impl ThreadId {
         self.pthread.to_string()
     }
 }
-
-
 
 /// Return the current time in seconds.
 pub fn get_current_time_secs() -> Result<u64> {
@@ -103,23 +97,32 @@ mod get_time_range_tests {
 
     #[test]
     fn get_time_range_verify() {
-        assert_eq!(get_time_range(1644194479).unwrap(), TimeRange {
-            from: 1644194470,
-            until: 1644194480,
-            current: 1644194479,
-            rem: 1,
-        });
-        assert_eq!(get_time_range(1644194470).unwrap(), TimeRange {
-            from: 1644194470,
-            until: 1644194480,
-            current: 1644194470,
-            rem: 10,
-        });
-        assert_eq!(get_time_range(1644194476).unwrap(), TimeRange {
-            from: 1644194470,
-            until: 1644194480,
-            current: 1644194476,
-            rem: 4,
-        });
+        assert_eq!(
+            get_time_range(1644194479).unwrap(),
+            TimeRange {
+                from: 1644194470,
+                until: 1644194480,
+                current: 1644194479,
+                rem: 1,
+            }
+        );
+        assert_eq!(
+            get_time_range(1644194470).unwrap(),
+            TimeRange {
+                from: 1644194470,
+                until: 1644194480,
+                current: 1644194470,
+                rem: 10,
+            }
+        );
+        assert_eq!(
+            get_time_range(1644194476).unwrap(),
+            TimeRange {
+                from: 1644194470,
+                until: 1644194480,
+                current: 1644194476,
+                rem: 4,
+            }
+        );
     }
 }

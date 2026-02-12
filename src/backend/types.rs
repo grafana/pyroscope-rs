@@ -5,7 +5,6 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-
 /// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
 pub struct Tag {
@@ -67,7 +66,7 @@ impl From<StackBuffer> for Vec<Report> {
             .data
             .into_iter()
             .fold(
-               HashMap::new(),
+                HashMap::new(),
                 |acc: HashMap<usize, Report>, (stacktrace, count): (StackTrace, usize)| {
                     let mut acc = acc;
                     if let Some(report) = acc.get_mut(&stacktrace.metadata.get_id()) {
@@ -117,7 +116,6 @@ pub struct Report {
     /// Metadata
     pub metadata: Metadata,
 }
-
 
 /// Custom implementation of the Hash trait for Report.
 /// Only the metadata is hashed.
@@ -193,8 +191,11 @@ impl std::fmt::Display for StackTrace {
 impl StackTrace {
     /// Create a new StackTrace
     pub fn new(
-        config: &BackendConfig, pid: Option<u32>, thread_id: Option<crate::utils::ThreadId>,
-        thread_name: Option<String>, frames: Vec<StackFrame>,
+        config: &BackendConfig,
+        pid: Option<u32>,
+        thread_id: Option<crate::utils::ThreadId>,
+        thread_name: Option<String>,
+        frames: Vec<StackFrame>,
     ) -> Self {
         let mut metadata = Metadata::default();
 
@@ -252,8 +253,12 @@ pub struct StackFrame {
 impl StackFrame {
     /// Create a new StackFrame.
     pub fn new(
-        module: Option<String>, name: Option<String>, filename: Option<String>,
-        relative_path: Option<String>, absolute_path: Option<String>, line: Option<u32>,
+        module: Option<String>,
+        name: Option<String>,
+        filename: Option<String>,
+        relative_path: Option<String>,
+        absolute_path: Option<String>,
+        line: Option<u32>,
     ) -> Self {
         Self {
             module,

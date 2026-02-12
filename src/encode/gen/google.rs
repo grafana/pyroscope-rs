@@ -43,7 +43,6 @@ pub struct Profile {
     pub keep_frames: i64,
     // The following fields are informational, do not affect
     // interpretation of results.
-
     /// Time of collection (UTC) represented as nanoseconds past the epoch.
     #[prost(int64, tag = "9")]
     pub time_nanos: i64,

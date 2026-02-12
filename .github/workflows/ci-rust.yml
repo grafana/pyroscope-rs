@@ -10,6 +10,22 @@ permissions:
   contents: read
 
 jobs:
+  format:
+    name: cargo fmt --check
+    runs-on: ubuntu-x64-small
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+          components: rustfmt
+
+      - name: Run formatting check
+        run: make rust/fmt/check
+
   test:
     name: cargo test
     runs-on: ubuntu-x64-small

@@ -1,2 +1,2 @@
-pub mod pprof;
 pub mod gen;
+pub mod pprof;

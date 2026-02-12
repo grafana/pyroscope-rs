@@ -22,4 +22,14 @@ ffikit/test:
 test: pprofrs/test  lib/test ffikit/test
 
 
+.PHONY: rust/fmt
+rust/fmt:
+	cargo fmt --all
+
+
+.PHONY: rust/fmt/check
+rust/fmt/check:
+	cargo fmt --all --check
+
+
 include ffi.mk

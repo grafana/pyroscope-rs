@@ -1,8 +1,6 @@
 #![allow(clippy::module_inception)]
 
-use crate::{
-    error::{PyroscopeError, Result},
-};
+use crate::error::{PyroscopeError, Result};
 use std::{
     fmt::Debug,
     sync::{Arc, Mutex},
@@ -73,9 +71,7 @@ pub struct BackendImpl<S: BackendState + ?Sized> {
 
 impl BackendImpl<BackendBare> {
     /// Create a new BackendImpl instance
-    pub fn new(
-        backend_box: Box<dyn Backend>,
-    ) -> BackendImpl<BackendUninitialized> {
+    pub fn new(backend_box: Box<dyn Backend>) -> BackendImpl<BackendUninitialized> {
         BackendImpl {
             backend: Arc::new(Mutex::new(Some(backend_box))),
             _state: std::marker::PhantomData,
@@ -131,7 +127,6 @@ impl<S: BackendAccessible> BackendImpl<S> {
             .sample_rate()
     }
 
-
     pub fn add_tag(&self, tag: ThreadTag) -> Result<()> {
         self.backend
             .lock()?
@@ -160,6 +155,7 @@ impl BackendImpl<BackendReady> {
 
         Ok(())
     }
+
     /// Generate profiling report
     pub fn report(&mut self) -> Result<Vec<Report>> {
         self.backend

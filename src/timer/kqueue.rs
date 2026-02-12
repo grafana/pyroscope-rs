@@ -179,8 +179,12 @@ fn kqueue() -> Result<i32> {
 
 /// libc::kevent wrapper
 fn kevent(
-    kqueue: i32, change: *const libc::kevent, c_count: libc::c_int, events: *mut libc::kevent,
-    e_count: libc::c_int, timeout: *const libc::timespec,
+    kqueue: i32,
+    change: *const libc::kevent,
+    c_count: libc::c_int,
+    events: *mut libc::kevent,
+    e_count: libc::c_int,
+    timeout: *const libc::timespec,
 ) -> Result<()> {
     check_err(unsafe { libc::kevent(kqueue, change, c_count, events, e_count, timeout) })?;
     Ok(())
