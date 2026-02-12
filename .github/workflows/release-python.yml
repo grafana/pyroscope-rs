@@ -25,6 +25,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/python/dist/pyroscope*.whl
   python-release-linux-arm:
     permissions:
@@ -45,6 +46,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/python/dist/pyroscope*.whl
   python-release-macos:
     permissions:
@@ -88,6 +90,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/python/dist/pyroscope*.whl
   python-release-sdist:
     permissions:
@@ -119,6 +122,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/python/dist/pyroscope-io-*.tar.gz
   python-release:
     permissions:

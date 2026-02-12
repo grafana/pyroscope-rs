@@ -26,6 +26,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release-linux-arm:
@@ -47,6 +48,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release-macos:
@@ -89,6 +91,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release-source:
@@ -123,6 +126,7 @@ jobs:
       - name: Upload release artifact
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.3.3
         with:
+          draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
 
   ruby-release:
