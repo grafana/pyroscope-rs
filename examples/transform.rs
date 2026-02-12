@@ -2,7 +2,7 @@ extern crate pyroscope;
 
 use pyroscope::{
     backend::{Report, StackFrame},
-    PyroscopeAgent, Result,
+    Result,
 };
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::hash::{Hash, Hasher};

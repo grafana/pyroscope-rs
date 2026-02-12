@@ -2,7 +2,7 @@ extern crate pyroscope;
 
 use pyroscope::backend::BackendConfig;
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
-use pyroscope::{PyroscopeAgent, Result};
+use pyroscope::Result;
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use std::{
     collections::hash_map::DefaultHasher,
