@@ -17,7 +17,6 @@ ADD Cross.toml \
     ./
 
 ADD src src
-ADD pyroscope_backends pyroscope_backends
 ADD pyroscope_ffi/ pyroscope_ffi/
 
 RUN cd /pyroscope-rs/pyroscope_ffi/python && ./manylinux.sh
