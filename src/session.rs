@@ -215,7 +215,7 @@ impl Session {
         Ok(())
     }
 
-    fn gzip(report: &Vec<u8>) -> Result<Vec<u8>> {
+    fn gzip(report: &[u8]) -> Result<Vec<u8>> {
         let mut encoder = Encoder::new(Vec::new())?;
         encoder.write_all(report)?;
         let compressed_data = encoder.finish().into_result()?;
