@@ -139,10 +139,14 @@ impl Session {
             Some(f) => self.encode_reports(&self.reports.iter().map(|r| f(r.to_owned())).collect()),
         };
 
-        let mut labels: Vec<LabelPair> = Vec::with_capacity(1 + self.config.tags.iter().len());
+        let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.iter().len());
         labels.push(LabelPair {
             name: "service_name".to_string(),
             value: self.config.application_name.clone(),
+        });
+        labels.push(LabelPair {
+            name: "__name__".to_string(),
+            value: "process_cpu".to_string(),
         });
         for tag in self.config.tags {
             labels.push(LabelPair {
