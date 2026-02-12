@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use prost::Message;
 
 use crate::backend::types::{EncodedReport, Report};
-use crate::encode::profiles::{Function, Label, Line, Location, Profile, Sample, ValueType};
+use crate::encode::gen::google::{Function, Label, Line, Location, Profile, Sample, ValueType};
 
 struct PProfBuilder {
     profile: Profile,

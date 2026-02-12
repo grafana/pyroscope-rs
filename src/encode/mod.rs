@@ -1,3 +1,4 @@
 pub mod folded;
 pub mod pprof;
-pub mod profiles;
+
+pub mod gen;
