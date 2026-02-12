@@ -97,7 +97,7 @@ pub struct Session {
 }
 
 impl Session {
-    const PUSHER_SERVICE_PUSH: &str = "/push.v1.PusherService/Push";
+
 
     /// Create a new Session
     /// # Example
@@ -168,7 +168,8 @@ impl Session {
 
 
         let mut url = Url::parse(&self.config.url)?;
-        url.set_path(Self::PUSHER_SERVICE_PUSH);
+        url.path_segments_mut().unwrap().push("push.v1.PusherService")
+            .push("Push");
 
         let mut req_builder = client
             .post(url.as_str())
