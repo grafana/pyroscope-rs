@@ -2,7 +2,7 @@ mod backend;
 
 use ffikit::Signal;
 use pyroscope::backend::{BackendConfig, BackendImpl, Tag};
-use pyroscope::pyroscope::{PyroscopeAgentBuilder, ReportEncoding};
+use pyroscope::pyroscope::{PyroscopeAgentBuilder};
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use crate::backend::Pyspy;
@@ -126,7 +126,6 @@ pub extern "C" fn initialize_agent(
     let pyspy = BackendImpl::new(Box::new(Pyspy::new(config, backend_config)));
 
     let mut agent_builder = PyroscopeAgentBuilder::new(server_address, application_name, pyspy)
-        .report_encoding(ReportEncoding::PPROF)
         .tags(tags);
 
     if auth_token != "" {

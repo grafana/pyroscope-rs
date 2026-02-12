@@ -20,7 +20,6 @@ use crate::{
 
 use crate::backend::{BackendImpl, ThreadTag};
 use crate::pyroscope::Compression::GZIP;
-use crate::pyroscope::ReportEncoding::PPROF;
 
 const LOG_TAG: &str = "Pyroscope::Agent";
 
@@ -50,7 +49,6 @@ pub struct PyroscopeConfig {
     pub func: Option<fn(Report) -> Report>,
     /// Pyroscope http request body compression
     pub compression: Option<Compression>,
-    pub report_encoding: ReportEncoding,
     pub tenant_id: Option<String>,
     pub http_headers: HashMap<String, String>,
 }
@@ -76,7 +74,6 @@ impl Default for PyroscopeConfig {
             basic_auth: None,
             func: None,
             compression: Some(GZIP),
-            report_encoding: PPROF,
             tenant_id: None,
             http_headers: HashMap::new(),
         }
@@ -102,7 +99,6 @@ impl PyroscopeConfig {
             basic_auth: None,
             func: None, // No function
             compression: Some(GZIP),
-            report_encoding: ReportEncoding::PPROF,
             tenant_id: None,
             http_headers: HashMap::new(),
         }
@@ -193,13 +189,6 @@ impl PyroscopeConfig {
     pub fn compression(self, compression: Compression) -> Self {
         Self {
             compression: Some(compression),
-            ..self
-        }
-    }
-
-    pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
-        Self {
-            report_encoding,
             ..self
         }
     }
@@ -361,13 +350,6 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    pub fn report_encoding(self, report_encoding: ReportEncoding) -> Self {
-        Self {
-            config: self.config.report_encoding(report_encoding),
-            ..self
-        }
-    }
-
     pub fn tenant_id(self, tenant_id: String) -> Self {
         Self {
             config: self.config.tenant_id(tenant_id),
@@ -389,19 +371,6 @@ impl PyroscopeAgentBuilder {
         // Set Spy Name, Spy Extension and Sample Rate from the Backend
         let config = self.config.sample_rate(self.backend.sample_rate()?);
         let config = config.spy_name(self.backend.spy_name()?);
-
-        // use match instead of if let to avoid the need to borrow
-        let config = match self.backend.spy_extension()? {
-            Some(extension) => {
-                if config.report_encoding == PPROF {
-                    config
-                } else {
-                    let application_name = config.application_name.clone();
-                    config.application_name(format!("{}.{}", application_name, extension))
-                }
-            }
-            None => config,
-        };
 
         // Set Global Tags
         // for (key, value) in config.tags.iter() {
@@ -448,24 +417,6 @@ impl FromStr for Compression {
     fn from_str(input: &str) -> std::result::Result<Compression, Self::Err> {
         match input {
             "gzip" => Ok(GZIP),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub enum ReportEncoding {
-    FOLDED,
-    PPROF,
-}
-
-impl FromStr for ReportEncoding {
-    type Err = ();
-    fn from_str(input: &str) -> std::result::Result<ReportEncoding, Self::Err> {
-        match input {
-            "collapsed" => Ok(ReportEncoding::FOLDED),
-            "folded" => Ok(ReportEncoding::FOLDED),
-            "pprof" => Ok(ReportEncoding::PPROF),
             _ => Err(()),
         }
     }

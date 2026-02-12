@@ -9,10 +9,9 @@ use libflate::gzip::Encoder;
 use reqwest::Url;
 
 use crate::backend::EncodedReport;
-use crate::pyroscope::ReportEncoding;
 use crate::{
     backend::Report,
-    encode::{folded, pprof},
+    encode::pprof,
     pyroscope::{Compression, PyroscopeConfig},
     utils::{get_time_range, merge_tags_with_app_name},
     PyroscopeError, Result,
@@ -158,16 +157,13 @@ impl Session {
     }
 
     fn encode_reports(&self, reports: Vec<Report>) -> Vec<EncodedReport> {
-        log::debug!(target: LOG_TAG, "Encoding {} reports to {:?}", reports.len(), self.config.report_encoding);
-        match &self.config.report_encoding {
-            ReportEncoding::FOLDED => folded::encode(&reports),
-            ReportEncoding::PPROF => pprof::encode(
-                &reports,
-                self.config.sample_rate,
-                self.from * 1_000_000_000,
-                (self.until - self.from) * 1_000_000_000,
-            ),
-        }
+        log::debug!(target: LOG_TAG, "Encoding {} reports to pprof", reports.len());
+        pprof::encode(
+            &reports,
+            self.config.sample_rate,
+            self.from * 1_000_000_000,
+            (self.until - self.from) * 1_000_000_000,
+        )
     }
 
     fn compress_reports(&self, reports: Vec<EncodedReport>) -> Vec<EncodedReport> {
