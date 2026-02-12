@@ -163,10 +163,8 @@ impl Session {
         let req = Self::gzip(&req.encode_to_vec())?;
 
 
-        let mut url = Url::parse(&self.config.url)?; // todo parse url once
-        url.path_segments_mut()
-            .map_err(|_e| PyroscopeError::new("url construction failure - cannot_be_a_base"))?
-            .push(Self::PUSHER_SERVICE_PUSH);
+        let mut url = Url::parse(&self.config.url)?;
+        url.set_path(Self::PUSHER_SERVICE_PUSH);
 
         let mut req_builder = client
             .post(url.as_str())
