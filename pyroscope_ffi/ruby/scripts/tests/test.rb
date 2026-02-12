@@ -8,14 +8,12 @@ puts RUBY_VERSION
 
 def start_local_pyroscope
   container_name = "pyroscope-ruby-test-#{Process.pid}"
-
   system(
     "docker", "run", "-d",
     "--name", container_name,
     "-p", "4040:4040",
     "grafana/pyroscope:latest",
-    "server",
-    "-ingester.ring.min-ready-duration=0s"
+    "-ingester.min-ready-duration=0s"
   )
 
   unless $?.success?
