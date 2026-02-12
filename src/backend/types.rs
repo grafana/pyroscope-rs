@@ -1,10 +1,9 @@
+use super::BackendConfig;
+use crate::error::Result;
 use std::{
     collections::{hash_map::DefaultHasher, BTreeSet, HashMap},
     hash::{Hash, Hasher},
 };
-
-use super::BackendConfig;
-use crate::error::Result;
 
 
 /// Pyroscope Tag
@@ -165,7 +164,6 @@ impl Report {
     pub fn record_with_count(&mut self, stack_trace: StackTrace, count: usize) {
         *self.data.entry(stack_trace).or_insert(0) += count;
     }
-
 }
 
 impl std::fmt::Display for Report {
