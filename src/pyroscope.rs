@@ -194,7 +194,6 @@ pub struct PyroscopeAgentBuilder {
     config: PyroscopeConfig,
 }
 
-
 impl PyroscopeAgentBuilder {
     /// Create a new PyroscopeAgentBuilder object. url and application_name are required.
     /// tags and sample_rate are optional.
@@ -203,7 +202,10 @@ impl PyroscopeAgentBuilder {
     /// ```ignore
     /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app");
     /// ```
-    pub fn new(url: impl AsRef<str>, application_name: impl AsRef<str>, backend: BackendImpl<BackendUninitialized>) -> Self {
+    pub fn new(
+        url: impl AsRef<str>, application_name: impl AsRef<str>,
+        backend: BackendImpl<BackendUninitialized>,
+    ) -> Self {
         Self {
             backend,
             config: PyroscopeConfig::new(url, application_name),
@@ -241,7 +243,6 @@ impl PyroscopeAgentBuilder {
             ..self
         }
     }
-    
 
     pub fn basic_auth(self, username: impl AsRef<str>, password: impl AsRef<str>) -> Self {
         Self {
@@ -285,7 +286,6 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-
     pub fn tenant_id(self, tenant_id: String) -> Self {
         Self {
             config: self.config.tenant_id(tenant_id),
@@ -310,7 +310,7 @@ impl PyroscopeAgentBuilder {
 
         // Set Global Tags
         // for (key, value) in config.tags.iter() {
-            // todo!("implement")
+        // todo!("implement")
         // }
 
         // Initialize the Backend
@@ -625,7 +625,6 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         )
     }
 
-
     /// Add a thread Tag rule to the backend Ruleset. For tagging, it's
     /// recommended to use the `tag_wrapper` function.
     pub fn add_thread_tag(&self, thread_id: crate::utils::ThreadId, tag: Tag) -> Result<()> {
@@ -648,9 +647,9 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
 pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<String, String>> {
     let mut http_headers = HashMap::new();
     let parsed: serde_json::Value = serde_json::from_str(&http_headers_json)?;
-    let parsed = parsed.as_object().ok_or_else(||
-        PyroscopeError::AdHoc(format!("expected object, got {}", parsed))
-    )?;
+    let parsed = parsed
+        .as_object()
+        .ok_or_else(|| PyroscopeError::AdHoc(format!("expected object, got {}", parsed)))?;
     for (k, v) in parsed {
         if let Some(value) = v.as_str() {
             http_headers.insert(k.to_string(), value.to_string());
@@ -666,9 +665,9 @@ pub fn parse_http_headers_json(http_headers_json: String) -> Result<HashMap<Stri
 
 pub fn parse_vec_string_json(s: String) -> Result<Vec<String>> {
     let parsed: serde_json::Value = serde_json::from_str(&s)?;
-    let parsed = parsed.as_array().ok_or_else(||
-        PyroscopeError::AdHoc(format!("expected array, got {}", parsed))
-    )?;
+    let parsed = parsed
+        .as_array()
+        .ok_or_else(|| PyroscopeError::AdHoc(format!("expected array, got {}", parsed)))?;
     let mut res = Vec::with_capacity(parsed.len());
     for v in parsed {
         if let Some(s) = v.as_str() {

@@ -1,8 +1,8 @@
-use py_spy::{sampler::Sampler};
+use py_spy::sampler::Sampler;
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendUninitialized, Report, ThreadTag, ThreadTagsSet,
-        StackBuffer, StackFrame, StackTrace,
+        Backend, BackendConfig, BackendUninitialized, Report, StackBuffer, StackFrame, StackTrace,
+        ThreadTag, ThreadTagsSet,
     },
     error::{PyroscopeError, Result},
 };
@@ -16,8 +16,6 @@ use std::{
 };
 
 const LOG_TAG: &str = "Pyroscope::Pyspy";
-
-
 
 #[derive(Default)]
 pub struct Pyspy {
@@ -61,7 +59,6 @@ impl Backend for Pyspy {
         Ok(self.config.sampling_rate as u32)
     }
 
-
     fn add_tag(&self, rule: ThreadTag) -> Result<()> {
         self.ruleset.lock()?.add(rule)?;
 
@@ -79,14 +76,12 @@ impl Backend for Pyspy {
             return Err(PyroscopeError::new("Pyspy: No Process ID Specified"));
         }
 
-
         let running = Arc::clone(&self.running);
         running.store(true, Ordering::Relaxed);
 
         let buffer = self.buffer.clone();
 
         let config = self.config.clone();
-
 
         let ruleset = self.ruleset.clone();
 
@@ -214,7 +209,9 @@ impl From<(py_spy::StackTrace, &BackendConfig)> for StackTraceWrapper {
 mod tests {
     use super::*;
 
-    fn create_test_frame(name: &str, filename: &str, module: Option<&str>, line: i32) -> py_spy::Frame {
+    fn create_test_frame(
+        name: &str, filename: &str, module: Option<&str>, line: i32,
+    ) -> py_spy::Frame {
         py_spy::Frame {
             name: name.to_string(),
             filename: filename.to_string(),
@@ -245,10 +242,7 @@ mod tests {
             stack_frame.name,
             Some("SequenceMatcher.find_longest_match".to_string())
         );
-        assert_eq!(
-            stack_frame.module,
-            Some("SequenceMatcher".to_string())
-        );
+        assert_eq!(stack_frame.module, Some("SequenceMatcher".to_string()));
         // filename preserves the full absolute path
         assert_eq!(
             stack_frame.filename,
@@ -260,20 +254,12 @@ mod tests {
     #[test]
     fn test_frame_name_without_module() {
         // When module is None, name should just be the function name
-        let frame = create_test_frame(
-            "my_function",
-            "/home/user/app/main.py",
-            None,
-            10,
-        );
+        let frame = create_test_frame("my_function", "/home/user/app/main.py", None, 10);
 
         let wrapper: StackFrameWrapper = frame.into();
         let stack_frame: StackFrame = wrapper.into();
 
-        assert_eq!(
-            stack_frame.name,
-            Some("my_function".to_string())
-        );
+        assert_eq!(stack_frame.name, Some("my_function".to_string()));
         assert_eq!(stack_frame.module, None);
         // filename preserves the full absolute path
         assert_eq!(
@@ -286,12 +272,7 @@ mod tests {
     #[test]
     fn test_frame_absolute_path_preserved() {
         // absolute_path should always contain the full path
-        let frame = create_test_frame(
-            "test_func",
-            "/path/to/file.py",
-            None,
-            1,
-        );
+        let frame = create_test_frame("test_func", "/path/to/file.py", None, 1);
 
         let wrapper: StackFrameWrapper = frame.into();
         let stack_frame: StackFrame = wrapper.into();
@@ -300,10 +281,7 @@ mod tests {
             stack_frame.absolute_path,
             Some("/path/to/file.py".to_string())
         );
-        assert_eq!(
-            stack_frame.filename,
-            Some("/path/to/file.py".to_string())
-        );
+        assert_eq!(stack_frame.filename, Some("/path/to/file.py".to_string()));
         assert_eq!(stack_frame.relative_path, None);
     }
 
@@ -331,4 +309,3 @@ mod tests {
         }
     }
 }
-

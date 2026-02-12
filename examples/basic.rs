@@ -1,10 +1,10 @@
 extern crate pyroscope;
 
-use pyroscope::{Result};
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
-use std::hash::{Hash, Hasher};
 use pyroscope::backend::BackendConfig;
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
+use pyroscope::Result;
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+use std::hash::{Hash, Hasher};
 
 fn hash_rounds(n: u64) -> u64 {
     let hash_str = "Some string to hash";

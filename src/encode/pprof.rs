@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::backend::types::{ Report};
+use crate::backend::types::Report;
 use crate::encode::gen::google::{Function, Label, Line, Location, Profile, Sample, ValueType};
 
 struct PProfBuilder {

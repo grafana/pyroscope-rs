@@ -1,8 +1,9 @@
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
+use pyroscope::backend::ThreadTag;
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ThreadTagsSet,
-        StackBuffer, StackFrame, StackTrace,
+        Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, StackBuffer, StackFrame,
+        StackTrace, ThreadTagsSet,
     },
     error::{PyroscopeError, Result},
 };
@@ -12,11 +13,12 @@ use std::{
     ops::Deref,
     sync::{Arc, Mutex},
 };
-use pyroscope::backend::ThreadTag;
 
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
 
-pub fn pprof_backend(config: PprofConfig, backend_config: BackendConfig) -> BackendImpl<BackendUninitialized> {
+pub fn pprof_backend(
+    config: PprofConfig, backend_config: BackendConfig,
+) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Pprof::new(config, backend_config)))
 }
 
@@ -27,9 +29,7 @@ pub struct PprofConfig {
 
 impl Default for PprofConfig {
     fn default() -> Self {
-        PprofConfig {
-            sample_rate: 100,
-        }
+        PprofConfig { sample_rate: 100 }
     }
 }
 
@@ -83,8 +83,7 @@ impl Backend for Pprof<'_> {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        let profiler = ProfilerGuardBuilder::default()
-            .frequency(self.config.sample_rate as i32);
+        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
 
         *self.inner_builder.lock()? = Some(profiler);
 

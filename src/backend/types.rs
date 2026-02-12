@@ -5,7 +5,6 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-
 /// Pyroscope Tag
 #[derive(Debug, PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
 pub struct Tag {
@@ -67,7 +66,7 @@ impl From<StackBuffer> for Vec<Report> {
             .data
             .into_iter()
             .fold(
-               HashMap::new(),
+                HashMap::new(),
                 |acc: HashMap<usize, Report>, (stacktrace, count): (StackTrace, usize)| {
                     let mut acc = acc;
                     if let Some(report) = acc.get_mut(&stacktrace.metadata.get_id()) {
@@ -117,7 +116,6 @@ pub struct Report {
     /// Metadata
     pub metadata: Metadata,
 }
-
 
 /// Custom implementation of the Hash trait for Report.
 /// Only the metadata is hashed.

@@ -97,8 +97,6 @@ pub struct Session {
 }
 
 impl Session {
-
-
     /// Create a new Session
     /// # Example
     /// ```ignore
@@ -166,9 +164,10 @@ impl Session {
 
         let req = Self::gzip(&req.encode_to_vec())?;
 
-
         let mut url = Url::parse(&self.config.url)?;
-        url.path_segments_mut().unwrap().push("push.v1.PusherService")
+        url.path_segments_mut()
+            .unwrap()
+            .push("push.v1.PusherService")
             .push("Push");
 
         let mut req_builder = client
