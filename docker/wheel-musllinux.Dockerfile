@@ -5,7 +5,7 @@ FROM quay.io/pypa/musllinux_1_2_${PLATFORM} AS builder
 ENV RUST_VERSION=1.87
 RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rustup-init -o ./rustup-init \
     && chmod +x ./rustup-init \
-    && ./rustup-init -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-musl
+    && ./rustup-init -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-gnu
 ENV PATH=/root/.cargo/bin:$PATH
 RUN apk add --no-cache gcc libffi-dev openssl-dev make musl-dev
 
