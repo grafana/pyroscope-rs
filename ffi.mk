@@ -27,6 +27,24 @@ wheel/linux/arm64: pyroscope_ffi/clean
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
+.phony: wheel/musllinux/amd64
+wheel/musllinux/amd64: pyroscope_ffi/clean
+	docker buildx build \
+		--build-arg=PLATFORM=x86_64 \
+	 	--platform=linux/amd64 \
+	 	--output=pyroscope_ffi/python \
+	 	-f docker/wheel-musllinux.Dockerfile \
+	 	.
+
+.phony: wheel/musllinux/arm64
+wheel/musllinux/arm64: pyroscope_ffi/clean
+	docker buildx build \
+		--build-arg=PLATFORM=aarch64 \
+	 	--platform=linux/arm64 \
+	 	--output=pyroscope_ffi/python \
+	 	-f docker/wheel-musllinux.Dockerfile \
+	 	.
+
 .phony: wheel/mac/amd64
 wheel/mac/amd64:
 	cd pyroscope_ffi/python && \

@@ -48,6 +48,48 @@ jobs:
         with:
           draft: true
           files: pyroscope_ffi/python/dist/pyroscope*.whl
+  python-release-musllinux:
+    permissions:
+      contents: write
+    needs: [ 'python-release' ]
+    name: Release python musllinux amd64
+    runs-on: ubuntu-x64-large
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - run: make wheel/musllinux/amd64
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ github.sha }}-python-musllinux-amd64
+          path: pyroscope_ffi/python/dist/*
+
+      - name: Upload release artifact
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          draft: true
+          files: pyroscope_ffi/python/dist/pyroscope*.whl
+  python-release-musllinux-arm:
+    permissions:
+      contents: write
+    needs: [ 'python-release' ]
+    name: Release python musllinux arm64
+    runs-on: ubuntu-arm64-large
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - run: make wheel/musllinux/arm64
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ github.sha }}-python-musllinux-arm64
+          path: pyroscope_ffi/python/dist/*
+
+      - name: Upload release artifact
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          draft: true
+          files: pyroscope_ffi/python/dist/pyroscope*.whl
   python-release-macos:
     permissions:
       contents: write
