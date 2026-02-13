@@ -1,0 +1,34 @@
+[project]
+name = "pyroscope-io"
+version = "1.0.1"
+description = "Pyroscope Python integration"
+authors = [
+    {name = "Tolya Korniltsev",email = "anatoly.korniltsev@grafana.com"}
+]
+license-files = [ "LICENSE" ]
+#license = {text = "Apache 2.0"}
+readme = "README.md"
+#requires-python = "3.10"
+dependencies = [
+#    "cffi",
+]
+
+[tool.setuptools.packages]
+find = { where = ["pyroscope_ffi/python/python/"] }
+
+
+
+[[tool.setuptools-rust.ext-modules]]
+target = "pyroscope2.pyroscope2"
+path = "pyroscope_ffi/python/lib/Cargo.toml"
+binding = "NoBinding"
+
+[build-system]
+requires = [ # TODO should lock them?
+    "setuptools (>=82.0.0,<83.0.0)",
+    "setuptools-rust (>=1.12.0,<2.0.0)",
+    "cffi",# todo version
+]
+
+
+build-backend = "setuptools.build_meta"

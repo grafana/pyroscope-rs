@@ -1,10 +1,10 @@
-import threading
 import warnings
 import logging
 import json
 from enum import Enum
 
 from pyroscope._native import lib
+
 from contextlib import contextmanager
 
 LOGGER = logging.getLogger(__name__)
