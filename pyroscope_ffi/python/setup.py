@@ -9,13 +9,13 @@ setup(
     platforms="any",
     rust_extensions=[
         RustExtension(
-            "pyroscope._native_lib",
+            "pyroscope._native",
             path=str(SCRIPT_DIR / "lib" / "Cargo.toml"),
-            binding=Binding.NoBinding,
+            binding=Binding.PyO3,
             debug=False,
         )
     ],
-    setup_requires=["setuptools-rust>=1.8.0", "cffi>=1.6.0", "pycparser"],
+    setup_requires=["setuptools-rust>=1.8.0"],
     include_package_data=True,
     zip_safe=False,
 )

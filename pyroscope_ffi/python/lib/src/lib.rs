@@ -1,9 +1,12 @@
 mod backend;
 
 use crate::backend::Pyspy;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 use pyroscope::backend::{BackendConfig, BackendImpl, Tag};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use std::ffi::CStr;
+use std::ffi::CString;
 use std::os::raw::c_char;
 
 const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
@@ -231,4 +234,94 @@ impl Into<py_spy::config::LineNo> for LineNo {
 pub fn self_thread_id() -> pyroscope::ThreadId {
     // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
     pyroscope::ThreadId::pthread_self()
+}
+
+#[pyfunction(name = "initialize_logging")]
+fn py_initialize_logging(logging_level: u32) -> bool {
+    initialize_logging(logging_level)
+}
+
+#[pyfunction(name = "initialize_agent")]
+#[allow(clippy::too_many_arguments)]
+fn py_initialize_agent(
+    application_name: &str,
+    server_address: &str,
+    basic_auth_username: &str,
+    basic_auth_password: &str,
+    sample_rate: u32,
+    oncpu: bool,
+    gil_only: bool,
+    report_pid: bool,
+    report_thread_id: bool,
+    report_thread_name: bool,
+    tags: &str,
+    tenant_id: &str,
+    http_headers_json: &str,
+    line_no: u8,
+) -> PyResult<bool> {
+    let line_no = match line_no {
+        0 => LineNo::LastInstruction,
+        1 => LineNo::First,
+        2 => LineNo::NoLine,
+        _ => return Err(PyValueError::new_err("line_no must be 0, 1, or 2")),
+    };
+
+    let application_name =
+        CString::new(application_name).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let server_address =
+        CString::new(server_address).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let basic_auth_username =
+        CString::new(basic_auth_username).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let basic_auth_password =
+        CString::new(basic_auth_password).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let tags = CString::new(tags).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let tenant_id = CString::new(tenant_id).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let http_headers_json =
+        CString::new(http_headers_json).map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    Ok(initialize_agent(
+        application_name.as_ptr(),
+        server_address.as_ptr(),
+        basic_auth_username.as_ptr(),
+        basic_auth_password.as_ptr(),
+        sample_rate,
+        oncpu,
+        gil_only,
+        report_pid,
+        report_thread_id,
+        report_thread_name,
+        tags.as_ptr(),
+        tenant_id.as_ptr(),
+        http_headers_json.as_ptr(),
+        line_no,
+    ))
+}
+
+#[pyfunction(name = "drop_agent")]
+fn py_drop_agent() -> bool {
+    drop_agent()
+}
+
+#[pyfunction(name = "add_thread_tag")]
+fn py_add_thread_tag(key: &str, value: &str) -> PyResult<bool> {
+    let key = CString::new(key).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let value = CString::new(value).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    Ok(add_thread_tag(key.as_ptr(), value.as_ptr()))
+}
+
+#[pyfunction(name = "remove_thread_tag")]
+fn py_remove_thread_tag(key: &str, value: &str) -> PyResult<bool> {
+    let key = CString::new(key).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let value = CString::new(value).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    Ok(remove_thread_tag(key.as_ptr(), value.as_ptr()))
+}
+
+#[pymodule]
+fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(py_initialize_logging, m)?)?;
+    m.add_function(wrap_pyfunction!(py_initialize_agent, m)?)?;
+    m.add_function(wrap_pyfunction!(py_drop_agent, m)?)?;
+    m.add_function(wrap_pyfunction!(py_add_thread_tag, m)?)?;
+    m.add_function(wrap_pyfunction!(py_remove_thread_tag, m)?)?;
+    Ok(())
 }

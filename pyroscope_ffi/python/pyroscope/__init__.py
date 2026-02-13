@@ -4,7 +4,7 @@ import logging
 import json
 from enum import Enum
 
-from pyroscope._native import lib
+from pyroscope import _native as lib
 from contextlib import contextmanager
 
 LOGGER = logging.getLogger(__name__)
