@@ -24,5 +24,4 @@ pip-log.txt
 .pytest_cache
 
 # Rust Library
-lib/target/
 **/*.rs.bk
