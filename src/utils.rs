@@ -29,6 +29,10 @@ pub struct ThreadId {
     pthread: libc::pthread_t,
 }
 
+// pthread_t is a plain thread identifier value that does not own resources
+// and can be moved across threads safely.
+unsafe impl Send for ThreadId {}
+
 impl From<libc::pthread_t> for ThreadId {
     fn from(value: libc::pthread_t) -> Self {
         Self { pthread: value }
@@ -43,6 +47,18 @@ impl ThreadId {
 
     pub fn to_string(&self) -> String {
         self.pthread.to_string()
+    }
+}
+
+#[cfg(test)]
+mod thread_id_tests {
+    use crate::ThreadId;
+
+    fn assert_send<T: Send>() {}
+
+    #[test]
+    fn thread_id_is_send() {
+        assert_send::<ThreadId>();
     }
 }
 
