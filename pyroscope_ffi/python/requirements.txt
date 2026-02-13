@@ -1,1 +1,4 @@
 setuptools==82.0.0
+setuptools-rust>=1.8.0
+cffi>=1.6.0
+pycparser
