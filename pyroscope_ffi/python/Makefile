@@ -14,7 +14,7 @@ build: clean
 
 .PHONY: bdist_wheel
 bdist_wheel: clean
-	python setup.py bdist_wheel
+	python -m build --wheel
 
 .PHONY: install
 install: build
