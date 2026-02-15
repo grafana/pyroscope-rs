@@ -46,4 +46,4 @@ jobs:
           toolchain: stable
 
       - name: Run tests
-        run: cargo test -p ${{ matrix.package }}
+        run: cargo test --locked -p ${{ matrix.package }}

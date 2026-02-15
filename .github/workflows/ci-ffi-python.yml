@@ -10,6 +10,25 @@ permissions:
   contents: read
 
 jobs:
+  check-generated-ffi:
+    name: Check generated FFI files
+    runs-on: ubuntu-x64-small
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # 6.2.0
+        with:
+          python-version: 3.11
+      - run: cargo install cbindgen --locked --version 0.29.2
+      - run: python -m pip install cffi
+      - run: make ffi/python/header ffi/python/cffi
+      - run: git diff --exit-code
+
   linux-build:
     name: Linux - amd64
     runs-on: ubuntu-x64-large

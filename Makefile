@@ -43,4 +43,19 @@ python/version/bump:
 	BUMP=$(BUMP) bash ci/bump_ffi_version.sh python
 
 
+.PHONY: ffi/python/header
+ffi/python/header:
+	cd pyroscope_ffi/python/rust && cbindgen --config cbindgen.toml --output include/pyroscope_ffi.h
+
+
+.PHONY: ffi/python/cffi
+ffi/python/cffi:
+	python pyroscope_ffi/python/scripts/tests/compile_ffi.py
+
+
+.PHONY: ffi/ruby/header
+ffi/ruby/header:
+	cd pyroscope_ffi/ruby/ext/rbspy && cbindgen --config cbindgen.toml --output include/rbspy.h
+
+
 include ffi.mk
