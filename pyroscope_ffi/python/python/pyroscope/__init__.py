@@ -1,18 +1,18 @@
-import threading
 import warnings
 import logging
 import json
 from enum import Enum
 
-from pyroscope._native import lib
+from ._native import lib
+
 from contextlib import contextmanager
 
 LOGGER = logging.getLogger(__name__)
 
 class LineNo(Enum):
-    LastInstruction = 0
-    First = 1
-    NoLine = 2
+    LastInstruction = lib.LastInstruction
+    First = lib.First
+    NoLine = lib.NoLine
 
 def configure(
         app_name=None,

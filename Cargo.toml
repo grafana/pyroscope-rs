@@ -21,7 +21,7 @@ rust-version = "1.64"
 [workspace]
 members = [
     "pyroscope_ffi/ruby/ext/rbspy",
-    "pyroscope_ffi/python/lib",
+    "pyroscope_ffi/python/rust",
 ]
 
 
@@ -42,8 +42,6 @@ pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"], option
 lazy_static = "1.5.0"
 
 [dev-dependencies]
-tokio = { version = "=1.49.0", features = ["full"] }
-pretty_env_logger = "=0.5.0"
 assert_matches = "=1.5.0"
 claims = "=0.8.0"
 

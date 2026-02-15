@@ -19,17 +19,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
-        with:
-          toolchain: stable
 
-      - name: Build in Docker
-        run: make wheel/linux/amd64
+      - run: make wheel/linux/amd64
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "linux.whl"
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
   linux-test:
     strategy:
@@ -71,17 +67,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
-        with:
-          toolchain: stable
-
-      - name: Build in Docker
-        run: make wheel/linux/arm64
+      - run: make wheel/linux/arm64
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "linux-arm.whl"
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
   sdist-build:
     name: sdist
@@ -94,17 +85,18 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # 6.2.0
         with:
           python-version: 3.9
-      - name: Upgrade pip
-        run: |
-          python -m pip install --upgrade pip pipenv wheel
-      - name: Build sdist
-        run: python setup.py sdist
-        working-directory: pyroscope_ffi/python
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: 1.87.0
+      - run: python -m pip install build
+      - run: python -m build --sdist
+      - run: python -m pip install --force-reinstall dist/*.tar.gz
+      - run: python -c "import pyroscope"
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "sdist.whl"
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
   macos-build:
     strategy:
@@ -134,8 +126,9 @@ jobs:
         with:
           python-version: 3.11
 
+      - run: python -m pip install build wheel
       - run: make wheel/mac/${{ matrix.mk-arch }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-${{ matrix.target }}
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
