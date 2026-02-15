@@ -12,6 +12,20 @@ readme = "README.md"
 dependencies = [
     "cffi (>=2.0.0,<3.0.0)",
 ]
+maintainers = [
+    {name = "Tolyan Korniltsev", email = "anatoly.korniltsev@grafana.com"},
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Utilities",
+]
 
 [tool.setuptools.packages]
 find = { where = ["pyroscope_ffi/python/python/"] }
