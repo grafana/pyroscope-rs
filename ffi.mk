@@ -24,16 +24,14 @@ wheel/linux/arm64:
 
 .phony: wheel/mac/amd64
 wheel/mac/amd64:
-	cd pyroscope_ffi/python && \
-		pip install build && \
+	pip install build && \
 		CARGO_BUILD_TARGET=x86_64-apple-darwin \
 			python -m build --wheel && \
 		wheel tags --platform-tag macosx_11_0_x86_64 --remove dist/*.whl
 
 .phony: wheel/mac/arm64
 wheel/mac/arm64:
-	cd pyroscope_ffi/python && \
-		pip install build && \
+	pip install build && \
 		CARGO_BUILD_TARGET=aarch64-apple-darwin \
 			python -m build --wheel && \
 		wheel tags --platform-tag macosx_11_0_arm64 --remove dist/*.whl
