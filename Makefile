@@ -35,12 +35,12 @@ rust/fmt/check:
 
 .PHONY: ruby/version/bump
 ruby/version/bump:
-	BUMP=$(BUMP) bash scripts/bump_ffi_version.sh ruby
+	BUMP=$(BUMP) bash ci/bump_ffi_version.sh ruby
 
 
 .PHONY: python/version/bump
 python/version/bump:
-	BUMP=$(BUMP) bash scripts/bump_ffi_version.sh python
+	BUMP=$(BUMP) bash ci/bump_ffi_version.sh python
 
 
 .PHONY: ffi/python/header

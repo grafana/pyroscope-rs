@@ -3,7 +3,6 @@ name = "pyroscope_python_extension" # This is used as package name for so placem
 # todo figure out how to put this into pyroscope package without renaming the main crate
 version = "0.0.1"
 authors = [
-    "Abid Omar <contact@pyroscope.io>",
     "Tolyan Korniltsev <anatoly.korniltsev@grafana.com>"
 ]
 edition = "2021"

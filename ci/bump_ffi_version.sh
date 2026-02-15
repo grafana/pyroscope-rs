@@ -50,11 +50,11 @@ case "$lang" in
     echo "Ruby Cargo package version pinned to 0.0.1"
     ;;
   python)
-    python_current="$(sed -n "s/^version= *\([0-9]*\.[0-9]*\.[0-9]*\)/\1/p" pyroscope_ffi/python/setup.cfg)"
+    python_current="$(sed -n 's/^version = "\([0-9]*\.[0-9]*\.[0-9]*\)"/\1/p' pyproject.toml)"
     python_new="$(bump_semver "$python_current")"
-    sed -i -E "s/^(version= *)[0-9]+\.[0-9]+\.[0-9]+/\1$python_new/" pyroscope_ffi/python/setup.cfg
-    sed -i -E "s/^(const PYSPY_VERSION: &str = \"?)[0-9]+\.[0-9]+\.[0-9]+(\";)/\1$python_new\2/" pyroscope_ffi/python/lib/src/lib.rs
-    sed -i -E '0,/^version = "[0-9]+\.[0-9]+\.[0-9]+"/s//version = "0.0.1"/' pyroscope_ffi/python/lib/Cargo.toml
+    sed -i -E "s/^(version = \")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$python_new\2/" pyproject.toml
+    sed -i -E "s/^(const PYSPY_VERSION: &str = \"?)[0-9]+\.[0-9]+\.[0-9]+(\";)/\1$python_new\2/" pyroscope_ffi/python/rust/src/lib.rs
+    sed -i -E '0,/^version = "[0-9]+\.[0-9]+\.[0-9]+"/s//version = "0.0.1"/' pyroscope_ffi/python/rust/Cargo.toml
     echo "Python versions bumped: package/rust const $python_current -> $python_new"
     echo "Python Cargo package version pinned to 0.0.1"
     ;;
