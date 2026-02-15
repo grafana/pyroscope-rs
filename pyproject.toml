@@ -6,7 +6,7 @@ authors = [
     {name = "Tolya Korniltsev",email = "anatoly.korniltsev@grafana.com"}
 ]
 license-files = [ "LICENSE" ]
-#license = {text = "Apache 2.0"}
+license = "Apache-2.0"
 readme = "README.md"
 #requires-python = "3.10"
 dependencies = [
@@ -17,7 +17,6 @@ maintainers = [
 ]
 classifiers = [
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: MacOS",
     "Operating System :: POSIX",
     "Operating System :: Unix",
