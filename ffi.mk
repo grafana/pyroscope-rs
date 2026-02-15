@@ -4,13 +4,8 @@ MANYLINUX_VERSION=4
 BUILD_ARCH_AMD=manylinux2014_x86_64
 BUILD_ARCH_ARM=manylinux2014_aarch64
 
-.phony: pyroscope_ffi/clean
-pyroscope_ffi/clean:
-	make -C pyroscope_ffi/python/ clean
-
-
 .phony: wheel/linux/amd64
-wheel/linux/amd64: pyroscope_ffi/clean
+wheel/linux/amd64:
 	docker buildx build \
 		--build-arg=PLATFORM=x86_64 \
 	 	--platform=linux/amd64 \
@@ -19,7 +14,7 @@ wheel/linux/amd64: pyroscope_ffi/clean
 	 	.
 
 .phony: wheel/linux/arm64
-wheel/linux/arm64: pyroscope_ffi/clean
+wheel/linux/arm64:
 	docker buildx build \
 		--build-arg=PLATFORM=aarch64 \
 	 	--platform=linux/arm64 \
@@ -43,7 +38,7 @@ wheel/mac/arm64:
 
 
 .phony: gem/linux/amd64
-gem/linux/amd64: pyroscope_ffi/clean
+gem/linux/amd64:
 	docker buildx build \
 		--build-arg=PLATFORM=x86_64 \
 		--build-arg="TARGET_TASK=x86_64_linux:gem" \
@@ -53,7 +48,7 @@ gem/linux/amd64: pyroscope_ffi/clean
 	 	.
 
 .phony: gem/linux/arm64
-gem/linux/arm64: pyroscope_ffi/clean
+gem/linux/arm64:
 	docker buildx build  \
 		--build-arg=PLATFORM=aarch64 \
 		--build-arg="TARGET_TASK=aarch64_linux:gem" \
@@ -63,14 +58,14 @@ gem/linux/arm64: pyroscope_ffi/clean
 	 	.
 
 .phony: gem/mac/amd64
-gem/mac/amd64: pyroscope_ffi/clean
+gem/mac/amd64:
 	cd pyroscope_ffi/ruby && \
 		bundle && \
 		RUST_TARGET=x86_64-apple-darwin rake rbspy_install && \
 		RUST_TARGET=x86_64-apple-darwin rake x86_64_darwin:gem
 
 .phony: gem/mac/arm64
-gem/mac/arm64: pyroscope_ffi/clean
+gem/mac/arm64:
 	cd pyroscope_ffi/ruby && \
 		bundle && \
 		RUST_TARGET=aarch64-apple-darwin rake rbspy_install && \
