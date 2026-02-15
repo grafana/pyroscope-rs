@@ -2117,6 +2117,7 @@ dependencies = [
 name = "pyroscope_python_extension"
 version = "0.0.1"
 dependencies = [
+ "cbindgen",
  "libc",
  "log",
  "pretty_env_logger",
