@@ -41,7 +41,6 @@ Gem::Specification.new do |s|
 #     "Rakefile",
     "ext/rbspy/Cargo.toml",
     "ext/rbspy/Rakefile",
-    "ext/rbspy/build.rs",
     "ext/rbspy/cbindgen.toml",
     "ext/rbspy/extconf.rb",
     "ext/rbspy/include/rbspy.h",
