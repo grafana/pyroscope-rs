@@ -80,7 +80,6 @@ jobs:
         with:
           python-version: 3.11
 
-      - run: rm -rf data build target
       - run: pip install build wheel
       - run: make wheel/mac/${{ matrix.mk-arch }}
 
