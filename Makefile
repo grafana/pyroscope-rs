@@ -2,6 +2,7 @@
 COMMIT = $(shell git rev-parse --short HEAD)
 DOCKER_EXTRA ?=
 DOCKER_BUILDKIT=1
+BUMP ?= fix
 
 
 
@@ -30,6 +31,16 @@ rust/fmt:
 .PHONY: rust/fmt/check
 rust/fmt/check:
 	cargo fmt --all --check
+
+
+.PHONY: ruby/version/bump
+ruby/version/bump:
+	BUMP=$(BUMP) bash scripts/bump_ffi_version.sh ruby
+
+
+.PHONY: python/version/bump
+python/version/bump:
+	BUMP=$(BUMP) bash scripts/bump_ffi_version.sh python
 
 
 include ffi.mk

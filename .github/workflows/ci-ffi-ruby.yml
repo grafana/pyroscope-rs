@@ -66,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         PYROSCOPE_ONCPU: [1, 0]
-        RUBY_VERSION: ['3.1', '3.2', '3.3', '3.3.8', '3.4.3']
+        RUBY_VERSION: ['3.1', '3.2', '3.3', '3.3.8', '3.4.3', '3.4.6']
     needs: ['linux-build']
     name: Linux Test
     runs-on: ubuntu-x64-large
