@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-py_cfg_version=$(awk -F'=' '/^version[[:space:]]*=/{gsub(/[[:space:]]/, "", $2); print $2; exit}' pyroscope_ffi/python/setup.cfg)
+py_cfg_version=$(awk -F'=' '/^version[[:space:]]*=/{gsub(/[[:space:]"]/, "", $2); print $2; exit}' pyproject.toml)
 rb_version=$(sed -nE "s/.*VERSION = '([^']+)'.*/\1/p" pyroscope_ffi/ruby/lib/pyroscope/version.rb)
 
 py_rust_version=$(sed -nE 's/^const PYSPY_VERSION: &str = "([^"]+)";/\1/p' pyroscope_ffi/python/lib/src/lib.rs)
