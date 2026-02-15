@@ -20,13 +20,13 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-amd64
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           draft: true
-          files: pyroscope_ffi/python/dist/pyroscope*.whl
+          files: dist/pyroscope*.whl
   python-release-linux-arm:
     permissions:
       contents: write
@@ -41,13 +41,13 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-arm64
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           draft: true
-          files: pyroscope_ffi/python/dist/pyroscope*.whl
+          files: dist/pyroscope*.whl
   python-release-macos:
     permissions:
       contents: write
@@ -87,13 +87,13 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-macos-${{ matrix.target }}
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           draft: true
-          files: pyroscope_ffi/python/dist/pyroscope*.whl
+          files: dist/pyroscope*.whl
   python-release-sdist:
     permissions:
       contents: write
@@ -114,13 +114,13 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-sdist
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           draft: true
-          files: pyroscope_ffi/python/dist/pyroscope-io-*.tar.gz
+          files: dist/pyroscope-io-*.tar.gz
   python-release:
     permissions:
       contents: write

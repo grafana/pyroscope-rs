@@ -29,7 +29,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "linux.whl"
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
   linux-test:
     strategy:
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "linux-arm.whl"
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
   sdist-build:
     name: sdist
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "sdist.whl"
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*
 
   macos-build:
     strategy:
@@ -134,4 +134,4 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-${{ matrix.target }}
-          path: pyroscope_ffi/python/dist/*
+          path: dist/*

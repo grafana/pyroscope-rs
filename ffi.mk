@@ -9,7 +9,7 @@ wheel/linux/amd64:
 	docker buildx build \
 		--build-arg=PLATFORM=x86_64 \
 	 	--platform=linux/amd64 \
-	 	--output=pyroscope_ffi/python \
+	 	--output=. \
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
@@ -18,7 +18,7 @@ wheel/linux/arm64:
 	docker buildx build \
 		--build-arg=PLATFORM=aarch64 \
 	 	--platform=linux/arm64 \
-	 	--output=pyroscope_ffi/python \
+	 	--output=. \
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
