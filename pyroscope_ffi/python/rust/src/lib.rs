@@ -8,7 +8,7 @@ use std::os::raw::c_char;
 
 const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
 const PYSPY_NAME: &str = "pyspy";
-const PYSPY_VERSION: &str = "1.0.1";
+const PYSPY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[no_mangle]
 pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
