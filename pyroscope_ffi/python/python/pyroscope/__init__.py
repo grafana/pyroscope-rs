@@ -9,7 +9,6 @@ from contextlib import contextmanager
 
 LOGGER = logging.getLogger(__name__)
 
-print(lib.LastInstruction)
 class LineNo(Enum):
     LastInstruction = lib.LastInstruction
     First = lib.First
