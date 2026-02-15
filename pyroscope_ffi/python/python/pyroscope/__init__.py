@@ -3,12 +3,13 @@ import logging
 import json
 from enum import Enum
 
-from pyroscope._native import lib
+from ._native import lib
 
 from contextlib import contextmanager
 
 LOGGER = logging.getLogger(__name__)
 
+# TOOD reference values from ffi enum
 class LineNo(Enum):
     LastInstruction = 0
     First = 1

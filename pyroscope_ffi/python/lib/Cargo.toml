@@ -1,5 +1,6 @@
 [package]
-name = "pyroscope2" # This is used as package name in python
+name = "pyroscope_rust_ext" # This is used as package name for so placement
+# todo figure out how to put this into pyroscope package without renaming the main crate
 version = "1.0.2"
 authors = [
     "Abid Omar <contact@pyroscope.io>",
@@ -10,10 +11,10 @@ rust-version = "1.64"
 
 [lib]
 crate-type = ["cdylib"]
-name = "pyroscope2"
+name = "pyroscope" # this is the name of the shared lib, e.g. pyroscope2.abi3.so
 
 [dependencies]
-pyroscope-rs = { path  = "../../../" }
+pyroscope = { path  = "../../../" }
 py-spy = { git = "https://github.com/grafana/py-spy", rev = "3b390dc4230207914164e1dd6888eb3e680b1560" }
 pretty_env_logger = "0.5.0"
 log = "0.4"

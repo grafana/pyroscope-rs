@@ -1,4 +1,4 @@
-use pyroscope_rs::pyroscope::PyroscopeConfig;
+use pyroscope::pyroscope::PyroscopeConfig;
 
 #[test]
 fn test_config_new() {

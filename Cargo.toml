@@ -1,5 +1,5 @@
 [package]
-name = "pyroscope-rs"
+name = "pyroscope"
 description = """
 Pyroscope Profiler Agent for continuous profiling of Rust, Python and Ruby applications.
 """

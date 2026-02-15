@@ -1,5 +1,5 @@
 use py_spy::sampler::Sampler;
-use pyroscope_rs::{
+use pyroscope::{
     backend::{
         Backend, BackendConfig, BackendUninitialized, Report, StackBuffer, StackFrame, StackTrace,
         ThreadTag, ThreadTagsSet,

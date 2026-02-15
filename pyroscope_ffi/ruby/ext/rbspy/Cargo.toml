@@ -9,7 +9,7 @@ name = "rbspy"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyroscope-rs = { path = "../../../../" }
+pyroscope = { path = "../../../../" }
 rbspy = { version="0.42" }
 remoteprocess = "0.5.0"
 anyhow = "1.0"

@@ -753,7 +753,7 @@ dependencies = [
  "libc",
  "log",
  "pretty_env_logger",
- "pyroscope-rs",
+ "pyroscope",
  "rbspy",
  "remoteprocess",
 ]
@@ -2095,17 +2095,6 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "1.0.2"
-dependencies = [
- "libc",
- "log",
- "pretty_env_logger",
- "py-spy",
- "pyroscope-rs",
-]
-
-[[package]]
-name = "pyroscope-rs"
 version = "0.5.9"
 dependencies = [
  "assert_matches",
@@ -2122,6 +2111,17 @@ dependencies = [
  "thiserror 2.0.18",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "pyroscope_rust_ext"
+version = "1.0.2"
+dependencies = [
+ "libc",
+ "log",
+ "pretty_env_logger",
+ "py-spy",
+ "pyroscope",
 ]
 
 [[package]]

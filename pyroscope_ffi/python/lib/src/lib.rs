@@ -1,8 +1,8 @@
 mod backend;
 
 use crate::backend::Pyspy;
-use pyroscope_rs::backend::{BackendConfig, BackendImpl, Tag};
-use pyroscope_rs::pyroscope::PyroscopeAgentBuilder;
+use pyroscope::backend::{BackendConfig, BackendImpl, Tag};
+use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
@@ -138,28 +138,28 @@ pub extern "C" fn initialize_agent(
         agent_builder = agent_builder.tenant_id(tenant_id);
     }
 
-    let http_headers = pyroscope_rs::pyroscope::parse_http_headers_json(http_headers_json);
+    let http_headers = pyroscope::pyroscope::parse_http_headers_json(http_headers_json);
     match http_headers {
         Ok(http_headers) => {
             agent_builder = agent_builder.http_headers(http_headers);
         }
         Err(e) => match e {
-            pyroscope_rs::PyroscopeError::Json(e) => {
+            pyroscope::PyroscopeError::Json(e) => {
                 log::error!(target: LOG_TAG, "parse_http_headers_json error {}", e);
             }
-            pyroscope_rs::PyroscopeError::AdHoc(e) => {
+            pyroscope::PyroscopeError::AdHoc(e) => {
                 log::error!(target: LOG_TAG, "parse_http_headers_json {}", e);
             }
             _ => {}
         },
     }
 
-    pyroscope_rs::ffikit::run(agent_builder).is_ok()
+    pyroscope::ffikit::run(agent_builder).is_ok()
 }
 
 #[no_mangle]
 pub extern "C" fn drop_agent() -> bool {
-    pyroscope_rs::ffikit::send(pyroscope_rs::ffikit::Signal::Kill).is_ok()
+    pyroscope::ffikit::send(pyroscope::ffikit::Signal::Kill).is_ok()
 }
 
 #[no_mangle]
@@ -170,7 +170,7 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
         .unwrap()
         .to_owned();
 
-    pyroscope_rs::ffikit::send(pyroscope_rs::ffikit::Signal::AddThreadTag(
+    pyroscope::ffikit::send(pyroscope::ffikit::Signal::AddThreadTag(
         self_thread_id(),
         Tag { key, value },
     ))
@@ -185,7 +185,7 @@ pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) ->
         .unwrap()
         .to_owned();
 
-    pyroscope_rs::ffikit::send(pyroscope_rs::ffikit::Signal::RemoveThreadTag(
+    pyroscope::ffikit::send(pyroscope::ffikit::Signal::RemoveThreadTag(
         self_thread_id(),
         Tag { key, value },
     ))
@@ -228,7 +228,7 @@ impl Into<py_spy::config::LineNo> for LineNo {
     }
 }
 
-pub fn self_thread_id() -> pyroscope_rs::ThreadId {
+pub fn self_thread_id() -> pyroscope::ThreadId {
     // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
-    pyroscope_rs::ThreadId::pthread_self()
+    pyroscope::ThreadId::pthread_self()
 }

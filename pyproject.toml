@@ -16,18 +16,19 @@ dependencies = [
 [tool.setuptools.packages]
 find = { where = ["pyroscope_ffi/python/python/"] }
 
-
+[tool.distutils.bdist_wheel]
+py_limited_api = "cp39"
 
 [[tool.setuptools-rust.ext-modules]]
-target = "pyroscope2.pyroscope2"
+target = "pyroscope_rust_ext.pyroscope"
 path = "pyroscope_ffi/python/lib/Cargo.toml"
 binding = "NoBinding"
 
 [build-system]
-requires = [ # TODO should lock them?
+requires = [
     "setuptools (>=82.0.0,<83.0.0)",
     "setuptools-rust (>=1.12.0,<2.0.0)",
-    "cffi",# todo version
+    "cffi (>=2.0.0,<3.0.0)",
 ]
 
 
