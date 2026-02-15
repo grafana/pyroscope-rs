@@ -9,6 +9,7 @@ RUN useradd -m builder \
     && chown builder:builder /pyroscope-rs
 
 USER builder
+RUN test "$(id -u)" = "1000" || { echo "ERROR: builder uid is $(id -u), expected 1000"; exit 1; }
 
 ENV RUST_VERSION=1.87
 RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rustup-init -o /tmp/rustup-init \
@@ -32,7 +33,7 @@ ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
-    /pyroscope-rs/pyroscope_ffi/python/manylinux.sh
+    /opt/python/cp39-cp39/bin/python -m build --wheel
 
 FROM scratch
-COPY --from=builder dist2 dist/
+COPY --from=builder  /pyroscope-rs/dist dist/
