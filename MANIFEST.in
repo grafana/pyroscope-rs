@@ -1,8 +1,8 @@
 include Cargo.toml
 include Cargo.lock
 include cffi_module.py
-include pyroscope_ffi/python/lib/Cargo.toml
+include python/rust/Cargo.toml
 include pyroscope_ffi/ruby/ext/rbspy/Cargo.toml
 recursive-include src *.rs
-recursive-include pyroscope_ffi/python/lib/src/ *.rs
+recursive-include python/rust/src/ *.rs
 recursive-include pyroscope_ffi/ruby/ext/rbspy/src/ *.rs

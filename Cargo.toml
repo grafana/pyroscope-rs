@@ -21,7 +21,7 @@ rust-version = "1.64"
 [workspace]
 members = [
     "pyroscope_ffi/ruby/ext/rbspy",
-    "pyroscope_ffi/python/lib",
+    "pyroscope_ffi/python/rust",
 ]
 
 

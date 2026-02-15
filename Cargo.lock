@@ -2114,7 +2114,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pyroscope_rust_ext"
+name = "pyroscope_python_extension"
 version = "1.0.2"
 dependencies = [
  "libc",

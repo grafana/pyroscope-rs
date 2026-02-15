@@ -221,7 +221,7 @@ mod tests {
         // name should be "module.function"
         let frame = create_test_frame(
             "find_longest_match",
-            "/usr/lib/python3.12/difflib.py",
+            "/usr/rust/python3.12/difflib.py",
             Some("SequenceMatcher"),
             42,
         );
@@ -237,7 +237,7 @@ mod tests {
         // filename preserves the full absolute path
         assert_eq!(
             stack_frame.filename,
-            Some("/usr/lib/python3.12/difflib.py".to_string())
+            Some("/usr/rust/python3.12/difflib.py".to_string())
         );
         assert_eq!(stack_frame.line, Some(42));
     }

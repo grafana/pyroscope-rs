@@ -5,8 +5,8 @@ from cffi import recompiler as cffi_recompiler
 
 _directive_re = re.compile(r'(?m)^\s*#.*?$')
 
-src = '/home/korniltsev/pyroscope-rs/pyroscope_ffi/python/lib/include/pyroscope_ffi.h'
-dst = '/home/korniltsev/pyroscope-rs/pyroscope_ffi/python/python/pyroscope/_cffi.py'
+src = '/pyroscope_ffi/python/rust/include/pyroscope_ffi.h'
+dst = '/python/python/pyroscope/_cffi.py'
 src = open(src, 'r').read()
 src = _directive_re.sub('', src)
 
