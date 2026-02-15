@@ -11,7 +11,7 @@ rust-version = "1.64"
 
 [lib]
 crate-type = ["cdylib"]
-name = "pyroscope_python_extension" # this is the name of the shared rust, e.g. pyroscope2.abi3.so
+name = "pyroscope_python_extension" # this is the name of the shared rust, e.g. pyroscope_python_extension.abi3.so
 
 [dependencies]
 pyroscope = { path  = "../../../" }
