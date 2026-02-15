@@ -1,6 +1,6 @@
 [package]
 name = "ffiruby"
-version = "0.0.1"
+version = "0.6.9"
 edition = "2021"
 rust-version = "1.64"
 
@@ -20,4 +20,3 @@ libc = "0.2.180"
 
 [build-dependencies]
 cbindgen = "0.29"
-
