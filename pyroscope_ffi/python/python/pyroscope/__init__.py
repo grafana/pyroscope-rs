@@ -9,11 +9,11 @@ from contextlib import contextmanager
 
 LOGGER = logging.getLogger(__name__)
 
-# TOOD reference values from ffi enum
+print(lib.LastInstruction)
 class LineNo(Enum):
-    LastInstruction = 0
-    First = 1
-    NoLine = 2
+    LastInstruction = lib.LastInstruction
+    First = lib.First
+    NoLine = lib.NoLine
 
 def configure(
         app_name=None,
