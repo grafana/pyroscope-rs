@@ -1,14 +1,15 @@
 PATH
   remote: .
   specs:
-    pyroscope (0.6.1)
+    pyroscope (1.0.1)
       ffi
 
 GEM
   remote: https://rubygems.org/
   specs:
-    ffi (1.16.3)
-    rake (13.2.0)
+    ffi (1.17.3)
+    ffi (1.17.3-x86_64-linux-gnu)
+    rake (13.3.1)
 
 PLATFORMS
   ruby
