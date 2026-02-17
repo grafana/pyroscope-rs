@@ -24,6 +24,8 @@ WORKDIR /pyroscope-rs
 RUN /opt/python/cp39-cp39/bin/python -m pip install --user build
 
 ADD --chown=builder:builder pyproject.toml \
+    README.md \
+    LICENSE \
     rustfmt.toml \
     Cargo.toml \
     Cargo.lock \
@@ -35,6 +37,7 @@ ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
     /opt/python/cp39-cp39/bin/python -m build --wheel \
+        -C--build-option=build_ext \
         -C--build-option=--rust-no-default-features \
         -C--build-option=--rust-features=native-tls-vendored
 
