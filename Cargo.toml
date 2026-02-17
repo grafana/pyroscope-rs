@@ -49,6 +49,7 @@ claims = "=0.8.0"
 default = ["rustls-tls"]
 rustls-tls = ["reqwest/rustls"]
 native-tls = ["reqwest/native-tls"]
+native-tls-vendored = ["native-tls", "reqwest/native-tls-vendored"]
 rustls-no-provider = ["reqwest/rustls-no-provider"]
 backend-pprof-rs = ["dep:pprof"]
 

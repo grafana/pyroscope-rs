@@ -2,7 +2,7 @@
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
 
-RUN yum -y install gcc libffi-devel glibc-devel make
+RUN yum -y install gcc libffi-devel glibc-devel make openssl-devel perl-core pkgconfig
 
 RUN useradd -m builder \
     && mkdir -p /pyroscope-rs \
@@ -17,6 +17,7 @@ RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rus
     && /tmp/rustup-init -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-gnu \
     && rm /tmp/rustup-init
 ENV PATH=/home/builder/.cargo/bin:$PATH
+ENV OPENSSL_STATIC=1
 
 WORKDIR /pyroscope-rs
 
@@ -33,7 +34,9 @@ ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
-    /opt/python/cp39-cp39/bin/python -m build --wheel
+    /opt/python/cp39-cp39/bin/python -m build --wheel \
+        -C--build-option=--rust-no-default-features \
+        -C--build-option=--rust-features=native-tls-vendored
 
 FROM scratch
 COPY --from=builder  /pyroscope-rs/dist dist/

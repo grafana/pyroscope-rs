@@ -13,8 +13,14 @@ crate-type = ["cdylib"]
 name = "pyroscope_python_extension" # this is the name of the shared rust, e.g. pyroscope_python_extension.abi3.so
 
 [dependencies]
-pyroscope = { path  = "../../../" }
+pyroscope = { path = "../../../", default-features = false }
 py-spy = { git = "https://github.com/grafana/py-spy", rev = "3b390dc4230207914164e1dd6888eb3e680b1560" }
 pretty_env_logger = "0.5.0"
 log = "0.4"
 libc = "0.2.181"
+
+[features]
+default = ["rustls-tls"]
+rustls-tls = ["pyroscope/rustls-tls"]
+native-tls = ["pyroscope/native-tls"]
+native-tls-vendored = ["pyroscope/native-tls-vendored"]
