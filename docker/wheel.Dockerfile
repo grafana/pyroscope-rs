@@ -18,6 +18,18 @@ RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rus
     && rm /tmp/rustup-init
 ENV PATH=/home/builder/.cargo/bin:$PATH
 ENV OPENSSL_STATIC=1
+RUN cat > /home/builder/.cargo/bin/cargo-wrapper <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+REAL_CARGO=/home/builder/.cargo/bin/cargo
+cmd="${1:-}"
+if [ "$cmd" = "build" ] || [ "$cmd" = "rustc" ] || [ "$cmd" = "check" ]; then
+  exec "$REAL_CARGO" "$@" --no-default-features --features native-tls-vendored
+fi
+exec "$REAL_CARGO" "$@"
+EOF
+RUN chmod +x /home/builder/.cargo/bin/cargo-wrapper
+ENV CARGO=/home/builder/.cargo/bin/cargo-wrapper
 
 WORKDIR /pyroscope-rs
 
@@ -33,8 +45,6 @@ ADD --chown=builder:builder pyproject.toml \
 
 ADD --chown=builder:builder src src
 ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
-
-ENV RUSTFLAGS=--cfg=feature="native-tls-vendored"
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
