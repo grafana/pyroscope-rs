@@ -6,7 +6,7 @@ RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rus
     && chmod +x ./rustup-init \
     && ./rustup-init  -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-gnu
 ENV PATH=/root/.cargo/bin:$PATH
-RUN yum -y install gcc libffi-devel openssl-devel perl-core wget gcc-c++ glibc-devel make
+RUN yum -y install gcc libffi-devel perl-core wget gcc-c++ glibc-devel make
 
 WORKDIR /pyroscope-rs
 
