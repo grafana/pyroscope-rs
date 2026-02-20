@@ -93,6 +93,37 @@ jobs:
           name: "linux-arm.whl"
           path: dist/*
 
+  linux-musllinux-build:
+    name: musllinux - amd64
+    runs-on: ubuntu-x64-large
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - run: make wheel/musllinux/amd64
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: "musllinux.whl"
+          path: dist/*
+
+  linux-musllinux-arm-build:
+    name: musllinux - arm64
+    runs-on: ubuntu-arm64-large
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - run: make wheel/musllinux/arm64
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: "musllinux-arm.whl"
+          path: dist/*
+
   sdist-build:
     name: sdist
     runs-on: ubuntu-x64-small
