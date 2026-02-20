@@ -47,3 +47,19 @@ jobs:
 
       - name: Run tests
         run: cargo test --locked -p ${{ matrix.package }}
+
+  test-alpine:
+    name: cargo test on Alpine (musl)
+    runs-on: ubuntu-x64-small
+    container:
+      image: alpine:3.21
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install build dependencies
+        run: apk add --no-cache cargo rust musl-dev
+
+      - name: Run tests
+        run: cargo test --locked -p pyroscope
