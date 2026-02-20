@@ -2,7 +2,7 @@
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
 
-RUN yum -y install gcc libffi-devel glibc-devel make
+RUN yum -y install gcc libffi-devel perl-core glibc-devel make
 
 RUN useradd -m builder \
     && mkdir -p /pyroscope-rs \
@@ -23,6 +23,7 @@ WORKDIR /pyroscope-rs
 RUN /opt/python/cp39-cp39/bin/python -m pip install --user build
 
 ADD --chown=builder:builder pyproject.toml \
+    setup.py \
     rustfmt.toml \
     Cargo.toml \
     Cargo.lock \
@@ -30,6 +31,11 @@ ADD --chown=builder:builder pyproject.toml \
 
 ADD --chown=builder:builder src src
 ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
+
+ARG PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=1
+ARG PYROSCOPE_CARGO_FEATURES=native-tls-vendored
+ENV PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=${PYROSCOPE_CARGO_NO_DEFAULT_FEATURES}
+ENV PYROSCOPE_CARGO_FEATURES=${PYROSCOPE_CARGO_FEATURES}
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
