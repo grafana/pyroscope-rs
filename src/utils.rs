@@ -29,6 +29,12 @@ pub struct ThreadId {
     pthread: libc::pthread_t,
 }
 
+// On musl libc, pthread_t is *mut c_void, which is not Send/Sync by default.
+// It is safe to implement these traits because pthread_t is an opaque thread
+// handle intended to be passed across threads (e.g. pthread_join/pthread_kill).
+unsafe impl Send for ThreadId {}
+unsafe impl Sync for ThreadId {}
+
 impl From<libc::pthread_t> for ThreadId {
     fn from(value: libc::pthread_t) -> Self {
         Self { pthread: value }
@@ -42,7 +48,9 @@ impl ThreadId {
     }
 
     pub fn to_string(&self) -> String {
-        self.pthread.to_string()
+        // On musl, pthread_t is *mut c_void and does not implement Display.
+        // Cast to usize to get a numeric representation on all platforms.
+        (self.pthread as usize).to_string()
     }
 }
 
