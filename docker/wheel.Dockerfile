@@ -2,7 +2,7 @@
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
 
-RUN yum -y install gcc libffi-devel glibc-devel make
+RUN yum -y install gcc libffi-devel openssl-devel glibc-devel make
 
 RUN useradd -m builder \
     && mkdir -p /pyroscope-rs \
@@ -30,6 +30,16 @@ ADD --chown=builder:builder pyproject.toml \
 
 ADD --chown=builder:builder src src
 ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
+
+RUN /opt/python/cp39-cp39/bin/python3 -c "
+import re
+content = open('pyproject.toml').read()
+content = content.replace(
+    'cargo_manifest_args=[\"--locked\"]',
+    'cargo_manifest_args=[\"--locked\"]\nfeatures = [\"native-tls-vendored\"]\nno_default_features = true'
+)
+open('pyproject.toml', 'w').write(content)
+"
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \

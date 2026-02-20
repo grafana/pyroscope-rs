@@ -18,7 +18,7 @@ ADD rustfmt.toml \
 ADD src src
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
-RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
+RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release --no-default-features --features native-tls-vendored
 
 FROM ruby:3.3@sha256:bff96f25259cd10bd92955bd84f2995230d5144ec0cdd5dc05384b302b3d3270 AS builder-gem
 WORKDIR /gem
