@@ -117,6 +117,38 @@ jobs:
           name: "sdist.whl"
           path: dist/*
 
+  linux-alpine-build:
+    name: Linux Alpine - amd64
+    runs-on: ubuntu-x64-large
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - run: make wheel/linux/alpine/amd64
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: "linux-alpine.whl"
+          path: dist/*
+
+  linux-alpine-arm-build:
+    name: Linux Alpine - arm64
+    runs-on: ubuntu-arm64-large
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - run: make wheel/linux/alpine/arm64
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: "linux-alpine-arm.whl"
+          path: dist/*
+
   macos-build:
     strategy:
       fail-fast: false

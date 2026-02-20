@@ -22,6 +22,22 @@ wheel/linux/arm64:
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
+.phony: wheel/linux/alpine/amd64
+wheel/linux/alpine/amd64:
+	docker buildx build \
+	 	--platform=linux/amd64 \
+	 	--output=. \
+	 	-f docker/wheel.alpine.Dockerfile \
+	 	.
+
+.phony: wheel/linux/alpine/arm64
+wheel/linux/alpine/arm64:
+	docker buildx build \
+	 	--platform=linux/arm64 \
+	 	--output=. \
+	 	-f docker/wheel.alpine.Dockerfile \
+	 	.
+
 .phony: wheel/mac/amd64
 wheel/mac/amd64:
 	MACOSX_DEPLOYMENT_TARGET=11.0 CARGO_BUILD_TARGET=x86_64-apple-darwin python -m build --wheel
