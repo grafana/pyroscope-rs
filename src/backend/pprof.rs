@@ -209,11 +209,10 @@ impl From<StackTraceWrapper> for StackTrace {
 impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
     fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
-        let thread_id = frames.thread_id as libc::pthread_t;
         StackTraceWrapper(StackTrace::new(
             config,
             None,
-            Some(thread_id.into()),
+            Some(crate::ThreadId::from_u64(frames.thread_id)),
             Some(frames.thread_name),
             frames
                 .frames

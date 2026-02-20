@@ -22,6 +22,24 @@ wheel/linux/arm64:
 	 	-f docker/wheel.Dockerfile \
 	 	.
 
+.phony: wheel/musl/linux/amd64
+wheel/musl/linux/amd64:
+	docker buildx build \
+		--build-arg=PLATFORM=x86_64 \
+	 	--platform=linux/amd64 \
+	 	--output=. \
+	 	-f docker/wheel-musllinux.Dockerfile \
+	 	.
+
+.phony: wheel/musl/linux/arm64
+wheel/musl/linux/arm64:
+	docker buildx build \
+		--build-arg=PLATFORM=aarch64 \
+	 	--platform=linux/arm64 \
+	 	--output=. \
+	 	-f docker/wheel-musllinux.Dockerfile \
+	 	.
+
 .phony: wheel/mac/amd64
 wheel/mac/amd64:
 	MACOSX_DEPLOYMENT_TARGET=11.0 CARGO_BUILD_TARGET=x86_64-apple-darwin python -m build --wheel

@@ -177,11 +177,10 @@ impl From<(py_spy::StackTrace, &BackendConfig)> for StackTraceWrapper {
     fn from(arg: (py_spy::StackTrace, &BackendConfig)) -> Self {
         let (stack_trace, config) = arg;
         // https://github.com/python/cpython/blob/main/Python/thread_pthread.h#L304
-        let thread_id = stack_trace.thread_id as libc::pthread_t;
         let stacktrace = StackTrace::new(
             config,
             Some(stack_trace.pid as u32),
-            Some(thread_id.into()),
+            Some(pyroscope::ThreadId::from_u64(stack_trace.thread_id)),
             stack_trace.thread_name.clone(),
             stack_trace
                 .frames

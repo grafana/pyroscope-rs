@@ -1,4 +1,3 @@
-use crate::backend::Tag;
 use crate::{error::Result, PyroscopeError};
 
 /// Error Wrapper for libc return. Only check for errors.
@@ -24,21 +23,39 @@ mod check_err_tests {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub struct ThreadId {
-    pthread: libc::pthread_t,
+    // Store the thread id as a fixed-width value so the type is Send on musl,
+    // where libc::pthread_t is a pointer type.
+    pthread: u64,
 }
 
 impl From<libc::pthread_t> for ThreadId {
     fn from(value: libc::pthread_t) -> Self {
-        Self { pthread: value }
+        #[cfg(target_env = "musl")]
+        {
+            Self {
+                pthread: value as usize as u64,
+            }
+        }
+
+        #[cfg(not(target_env = "musl"))]
+        {
+            Self {
+                pthread: value as u64,
+            }
+        }
     }
 }
+
+
 impl ThreadId {
+    pub fn from_u64(value: u64) -> Self {
+        Self { pthread: value }
+    }
+
     pub fn pthread_self() -> Self {
-        Self {
-            pthread: unsafe { libc::pthread_self() },
-        }
+        Self::from(unsafe { libc::pthread_self() })
     }
 
     pub fn to_string(&self) -> String {
