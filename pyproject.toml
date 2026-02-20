@@ -32,11 +32,6 @@ find = { where = ["pyroscope_ffi/python/python/"] }
 [tool.distutils.bdist_wheel]
 py_limited_api = "cp39"
 
-[[tool.setuptools-rust.ext-modules]]
-target = "pyroscope_python_extension.pyroscope_python_extension"
-path = "pyroscope_ffi/python/rust/Cargo.toml"
-binding = "NoBinding"
-cargo_manifest_args=["--locked"]
 
 [build-system]
 requires = [
