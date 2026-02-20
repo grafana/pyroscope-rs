@@ -173,7 +173,7 @@ impl From<(rbspy::StackTrace, &BackendConfig)> for StackTraceWrapper {
         let thread_id = trace.thread_id.map(|tid| {
             // for rbspy we use pthread_t as thread id
             // https://github.com/ruby/ruby/blob/54a74c42033e42869e69e7dc9e67efa1faf225be/include/ruby/thread_native.h#L41
-            pyroscope::ThreadId::from_u64(tid as u64)
+            (tid as libc::pthread_t).into()
         });
 
         StackTraceWrapper(StackTrace::new(

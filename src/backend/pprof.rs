@@ -212,7 +212,7 @@ impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
         StackTraceWrapper(StackTrace::new(
             config,
             None,
-            Some(crate::ThreadId::from_u64(frames.thread_id)),
+            Some((frames.thread_id as libc::pthread_t).into()),
             Some(frames.thread_name),
             frames
                 .frames

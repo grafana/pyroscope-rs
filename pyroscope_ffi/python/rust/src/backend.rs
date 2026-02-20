@@ -180,7 +180,7 @@ impl From<(py_spy::StackTrace, &BackendConfig)> for StackTraceWrapper {
         let stacktrace = StackTrace::new(
             config,
             Some(stack_trace.pid as u32),
-            Some(pyroscope::ThreadId::from_u64(stack_trace.thread_id)),
+            Some((stack_trace.thread_id as libc::pthread_t).into()),
             stack_trace.thread_name.clone(),
             stack_trace
                 .frames

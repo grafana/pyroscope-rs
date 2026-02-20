@@ -82,7 +82,7 @@ fn test_rule_new() {
 
 #[cfg(test)]
 fn test_thread_id(v: u64) -> crate::utils::ThreadId {
-    crate::ThreadId::from_u64(v)
+    (v as libc::pthread_t).into()
 }
 
 #[test]

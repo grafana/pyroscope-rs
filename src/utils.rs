@@ -50,10 +50,6 @@ impl From<libc::pthread_t> for ThreadId {
 
 
 impl ThreadId {
-    pub fn from_u64(value: u64) -> Self {
-        Self { pthread: value }
-    }
-
     pub fn pthread_self() -> Self {
         Self::from(unsafe { libc::pthread_self() })
     }
