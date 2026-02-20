@@ -29,6 +29,11 @@ pub struct ThreadId {
     pthread: libc::pthread_t,
 }
 
+// SAFETY: pthread_t is an opaque thread identifier used as a handle,
+// never dereferenced. On musl it's *mut c_void, on glibc it's c_ulong.
+unsafe impl Send for ThreadId {}
+unsafe impl Sync for ThreadId {}
+
 impl From<libc::pthread_t> for ThreadId {
     fn from(value: libc::pthread_t) -> Self {
         Self { pthread: value }
@@ -42,7 +47,7 @@ impl ThreadId {
     }
 
     pub fn to_string(&self) -> String {
-        self.pthread.to_string()
+        (self.pthread as usize).to_string()
     }
 }
 
