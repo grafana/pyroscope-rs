@@ -32,8 +32,10 @@ ADD --chown=builder:builder pyproject.toml \
 ADD --chown=builder:builder src src
 ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 
-ENV PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=1
-ENV PYROSCOPE_CARGO_FEATURES=native-tls-vendored
+ARG PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=1
+ARG PYROSCOPE_CARGO_FEATURES=native-tls-vendored
+ENV PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=${PYROSCOPE_CARGO_NO_DEFAULT_FEATURES}
+ENV PYROSCOPE_CARGO_FEATURES=${PYROSCOPE_CARGO_FEATURES}
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
