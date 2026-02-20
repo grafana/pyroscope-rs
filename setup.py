@@ -6,10 +6,10 @@ from setuptools_rust import Binding, RustExtension
 cargo_args = ["--locked"]
 features = []
 
-if os.getenv("CARGO_NO_DEFAULT_FEATURES"):
+if os.getenv("PYROSCOPE_CARGO_NO_DEFAULT_FEATURES"):
     cargo_args.append("--no-default-features")
 
-extra_features = os.getenv("CARGO_FEATURES")
+extra_features = os.getenv("PYROSCOPE_CARGO_FEATURES")
 if extra_features:
     features = extra_features.split(",")
 
