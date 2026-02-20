@@ -29,11 +29,6 @@ pub struct ThreadId {
     pthread: libc::pthread_t,
 }
 
-// SAFETY: pthread_t is either an integer (glibc) or a pointer (musl) that
-// represents a thread handle. We never dereference it as a pointer — it is
-// only passed back to libc functions — so it is safe to send across threads.
-unsafe impl Send for ThreadId {}
-
 impl From<libc::pthread_t> for ThreadId {
     fn from(value: libc::pthread_t) -> Self {
         Self { pthread: value }
