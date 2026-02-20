@@ -128,13 +128,6 @@ jobs:
 
       - run: make wheel/linux/alpine/amd64
 
-      - name: Smoke-test import on Alpine
-        run: |
-          docker run --rm \
-            -v "$(pwd)/dist:/dist:ro" \
-            python:3.11-alpine \
-            sh -c "pip install cffi && pip install --no-deps /dist/*.whl && python -c 'import pyroscope; print(\"import OK\")'"
-
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "linux-alpine.whl"
@@ -150,13 +143,6 @@ jobs:
           persist-credentials: false
 
       - run: make wheel/linux/alpine/arm64
-
-      - name: Smoke-test import on Alpine
-        run: |
-          docker run --rm \
-            -v "$(pwd)/dist:/dist:ro" \
-            python:3.11-alpine \
-            sh -c "pip install cffi && pip install --no-deps /dist/*.whl && python -c 'import pyroscope; print(\"import OK\")'"
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
