@@ -13,7 +13,7 @@ use pyroscope::pyroscope::PyroscopeAgentBuilder;
 
 const LOG_TAG: &str = "Pyroscope::rbspy::ffi";
 const RBSPY_NAME: &str = "rbspy";
-const RBSPY_VERSION: &str = "1.0.1";
+const RBSPY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn transform_report(report: Report) -> Report {
     let cwd = env::current_dir().unwrap();

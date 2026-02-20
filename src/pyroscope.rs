@@ -20,6 +20,8 @@ use crate::{
 use crate::backend::{BackendImpl, ThreadTag};
 
 const LOG_TAG: &str = "Pyroscope::Agent";
+const PPROFRS_SPY_NAME: &str = "pyroscope-rs";
+const PPROFRS_SPY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Pyroscope Agent Configuration. This is the configuration that is passed to the agent.
 ///
@@ -65,8 +67,8 @@ impl Default for PyroscopeConfig {
                 .replace('-', "."),
             tags: HashMap::new(),
             sample_rate: 100u32,
-            spy_name: "undefined".to_string(),
-            spy_version: "unknown".to_string(),
+            spy_name: PPROFRS_SPY_NAME.to_string(),
+            spy_version: PPROFRS_SPY_VERSION.to_string(),
             basic_auth: None,
             func: None,
             tenant_id: None,
