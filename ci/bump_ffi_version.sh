@@ -45,6 +45,7 @@ case "$lang" in
     ruby_new="$(bump_semver "$ruby_current")"
     sed -i -E "s/(VERSION = ')[0-9]+\.[0-9]+\.[0-9]+('\\.freeze)/\1$ruby_new\2/" pyroscope_ffi/ruby/lib/pyroscope/version.rb
     sed -i -E "0,/^version = \"[0-9]+\.[0-9]+\.[0-9]+\"/s//version = \"$ruby_new\"/" pyroscope_ffi/ruby/ext/rbspy/Cargo.toml
+    cargo update --package ffiruby
     echo "Ruby versions bumped: gem/rust cargo $ruby_current -> $ruby_new"
     ;;
   python)
@@ -52,6 +53,7 @@ case "$lang" in
     python_new="$(bump_semver "$python_current")"
     sed -i -E "s/^(version = \")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$python_new\2/" pyproject.toml
     sed -i -E "0,/^version = \"[0-9]+\.[0-9]+\.[0-9]+\"/s//version = \"$python_new\"/" pyroscope_ffi/python/rust/Cargo.toml
+    cargo update --package pyroscope_python_extension
     echo "Python versions bumped: package/rust cargo $python_current -> $python_new"
     ;;
   *)
