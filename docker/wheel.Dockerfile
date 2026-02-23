@@ -41,5 +41,8 @@ RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
     /opt/python/cp310-cp310/bin/python -m build --wheel
 
+USER root
+RUN auditwheel repair dist/*.whl --wheel-dir dist-repaired/
+
 FROM scratch
-COPY --from=builder  /pyroscope-rs/dist dist/
+COPY --from=builder  /pyroscope-rs/dist-repaired dist/
