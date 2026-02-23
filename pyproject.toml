@@ -8,7 +8,7 @@ authors = [
 license-files = [ "LICENSE" ]
 license = "Apache-2.0"
 readme = "README.md"
-#requires-python = "3.10"
+requires-python = ">=3.10"
 dependencies = [
     "cffi (>=2.0.0,<3.0.0)",
 ]
@@ -30,7 +30,7 @@ classifiers = [
 find = { where = ["pyroscope_ffi/python/python/"] }
 
 [tool.distutils.bdist_wheel]
-py_limited_api = "cp39"
+py_limited_api = "cp310"
 
 
 [build-system]
