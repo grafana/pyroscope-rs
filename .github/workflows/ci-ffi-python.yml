@@ -56,6 +56,13 @@ jobs:
 
       - run: make ${{ matrix.make-target }}
 
+      - name: Check wheel tags
+        run: |
+          whl=$(ls dist/*.whl)
+          echo "Wheel: $whl"
+          unzip -p "$whl" '*.dist-info/WHEEL'
+          unzip -p "$whl" '*.dist-info/WHEEL' | grep -qE 'Tag:.*(manylinux|musllinux)' || { echo "ERROR: expected manylinux or musllinux tag not found"; exit 1; }
+
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "${{ matrix.name }}.whl"
