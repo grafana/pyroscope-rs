@@ -65,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        PYTHON_VERSION: ["3.10", "3.11", "3.12", "3.13"]
         variant: ["manylinux-amd64", "manylinux-arm64", "musllinux-amd64", "musllinux-arm64"]
         include:
           - variant: manylinux-amd64
@@ -81,10 +81,8 @@ jobs:
             runs-on: ubuntu-arm64-large
             image-suffix: alpine
         exclude:
-          # python:3.9/3.10/3.11-alpine arm64 tests hang indefinitely
+          # python:3.10/3.11-alpine arm64 tests hang indefinitely
           # tracked in https://github.com/grafana/pyroscope-rs/issues/365
-          - variant: musllinux-arm64
-            PYTHON_VERSION: "3.9"
           - variant: musllinux-arm64
             PYTHON_VERSION: "3.10"
           - variant: musllinux-arm64
@@ -118,7 +116,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # 6.2.0
         with:
-          python-version: 3.9
+          python-version: "3.10"
       - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
         with:
           toolchain: 1.87.0
