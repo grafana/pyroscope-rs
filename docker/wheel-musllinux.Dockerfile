@@ -20,7 +20,7 @@ ENV PATH=/home/builder/.cargo/bin:$PATH
 
 WORKDIR /pyroscope-rs
 
-RUN /opt/python/cp39-cp39/bin/python -m pip install --user build
+RUN /opt/python/cp310-cp310/bin/python -m pip install --user build
 
 ADD --chown=builder:builder pyproject.toml \
     rustfmt.toml \
@@ -33,7 +33,7 @@ ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,target=/home/builder/.cargo/git,uid=1000,gid=1000 \
-    /opt/python/cp39-cp39/bin/python -m build --wheel
+    /opt/python/cp310-cp310/bin/python -m build --wheel
 
 USER root
 RUN auditwheel repair dist/*.whl --wheel-dir dist-repaired/
