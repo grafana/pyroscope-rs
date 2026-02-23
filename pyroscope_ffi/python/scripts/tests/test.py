@@ -78,7 +78,6 @@ def do_one_test(on_cpu, gil_only):
     logging.info("do_one_test on_cpu=%s gil_only=%s", on_cpu, gil_only)
     canary = uuid.uuid4().hex
     logging.info('canary %s', canary)
-    runid = os.getenv("PYROSCOPE_RUN_ID")
     pyroscope.configure(
         application_name=app_name,
         server_address="http://localhost:4040",
@@ -92,10 +91,7 @@ def do_one_test(on_cpu, gil_only):
         tags={
             "oncpu": '{}'.format(on_cpu),
             "gil_only": '{}'.format(gil_only),
-            "version": '{}'.format(os.getenv("PYTHON_VERSION")),
-            "arch": '{}'.format(os.getenv("PYROSCOPE_ARCH")),
             "canary": canary,
-            "run_id": runid,
         }
     )
 

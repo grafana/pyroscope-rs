@@ -30,20 +30,35 @@ jobs:
       - run: git diff --exit-code
 
   linux-build:
-    name: Linux - amd64
-    runs-on: ubuntu-x64-large
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: manylinux-amd64
+            runs-on: ubuntu-x64-large
+            make-target: wheel/linux/amd64
+          - name: manylinux-arm64
+            runs-on: ubuntu-arm64-large
+            make-target: wheel/linux/arm64
+          - name: musllinux-amd64
+            runs-on: ubuntu-x64-large
+            make-target: wheel/musllinux/amd64
+          - name: musllinux-arm64
+            runs-on: ubuntu-arm64-large
+            make-target: wheel/musllinux/arm64
+    name: Linux Build - ${{ matrix.name }}
+    runs-on: ${{ matrix.runs-on }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-
-      - run: make wheel/linux/amd64
+      - run: make ${{ matrix.make-target }}
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: "linux.whl"
+          name: "${{ matrix.name }}.whl"
           path: dist/*
 
   linux-test:
@@ -51,47 +66,47 @@ jobs:
       fail-fast: false
       matrix:
         PYTHON_VERSION: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        variant: ["manylinux-amd64", "manylinux-arm64", "musllinux-amd64", "musllinux-arm64"]
+        include:
+          - variant: manylinux-amd64
+            runs-on: ubuntu-x64-large
+            image-suffix: slim
+          - variant: manylinux-arm64
+            runs-on: ubuntu-arm64-large
+            image-suffix: slim
+          - variant: musllinux-amd64
+            runs-on: ubuntu-x64-large
+            image-suffix: alpine
+          - variant: musllinux-arm64
+            runs-on: ubuntu-arm64-large
+            image-suffix: alpine
+        exclude:
+          # python:3.9/3.10/3.11-alpine arm64 tests hang indefinitely
+          # tracked in https://github.com/grafana/pyroscope-rs/issues/365
+          - variant: musllinux-arm64
+            PYTHON_VERSION: "3.9"
+          - variant: musllinux-arm64
+            PYTHON_VERSION: "3.10"
+          - variant: musllinux-arm64
+            PYTHON_VERSION: "3.11"
     needs: ["linux-build"]
-    name: Linux Test
-    runs-on: ubuntu-x64-large
-    env:
-      PYROSCOPE_RUN_ID: ${{ github.run_id }}
-      PYROSCOPE_ARCH: x86-64-linux
-      PYROSCOPE_API_TOKEN: ${{ secrets.PYROSCOPE_API_TOKEN }}
-      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+    name: Linux Test - ${{ matrix.variant }} - ${{ matrix.PYTHON_VERSION }}
+    runs-on: ${{ matrix.runs-on }}
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # 6.2.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
-          architecture: x64
+          persist-credentials: false
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # 7.0.0
         with:
-          name: "linux.whl"
+          name: "${{ matrix.variant }}.whl"
           path: "${{github.workspace}}/python"
-
-      - run: "cd ${{ github.workspace }}/python && ls -l"
-      - run: "cd ${{ github.workspace }}/python && pip install *.whl"
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
       - run: docker run -d -p4040:4040 grafana/pyroscope
-      - run: python pyroscope_ffi/python/scripts/tests/test.py
-
-  linux-arm-build:
-    name: Linux - arm64
-    runs-on: ubuntu-arm64-large
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - run: make wheel/linux/arm64
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: "linux-arm.whl"
-          path: dist/*
+      - run: |
+          docker run --rm \
+            --network=host \
+            -v ${{ github.workspace }}:/pyroscope-rs \
+            python:${{ matrix.PYTHON_VERSION }}-${{ matrix.image-suffix }} \
+            sh -c "pip install /pyroscope-rs/python/*.whl && python /pyroscope-rs/pyroscope_ffi/python/scripts/tests/test.py"
 
   sdist-build:
     name: sdist
