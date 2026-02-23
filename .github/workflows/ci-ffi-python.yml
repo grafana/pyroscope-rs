@@ -58,7 +58,7 @@ jobs:
 
       - name: Check wheel tags
         run: |
-          whl=$(ls dist/*.whl | head -1)
+          whl=$(ls dist/*.whl)
           echo "Wheel: $whl"
           unzip -p "$whl" '*.dist-info/WHEEL'
           unzip -p "$whl" '*.dist-info/WHEEL' | grep -qE 'Tag:.*(manylinux|musllinux)' || { echo "ERROR: expected manylinux or musllinux tag not found"; exit 1; }
