@@ -70,16 +70,16 @@ jobs:
         include:
           - variant: manylinux-amd64
             runs-on: ubuntu-x64-large
-            arch: x86-64-linux
+            image-suffix: slim
           - variant: manylinux-arm64
             runs-on: ubuntu-arm64-large
-            arch: aarch64-linux
+            image-suffix: slim
           - variant: musllinux-amd64
             runs-on: ubuntu-x64-large
-            arch: x86-64-linux-musl
+            image-suffix: alpine
           - variant: musllinux-arm64
             runs-on: ubuntu-arm64-large
-            arch: aarch64-linux-musl
+            image-suffix: alpine
     needs: ["linux-build"]
     name: Linux Test - ${{ matrix.variant }} - ${{ matrix.PYTHON_VERSION }}
     runs-on: ${{ matrix.runs-on }}
@@ -92,18 +92,11 @@ jobs:
           name: "${{ matrix.variant }}.whl"
           path: "${{github.workspace}}/python"
       - run: docker run -d -p4040:4040 grafana/pyroscope
-      - name: Run tests (manylinux)
-        if: ${{ !contains(matrix.variant, 'musl') }}
-        run: |
-          pip install ${{ github.workspace }}/python/*.whl
-          python pyroscope_ffi/python/scripts/tests/test.py
-      - name: Run tests (musllinux - Alpine container)
-        if: ${{ contains(matrix.variant, 'musl') }}
-        run: |
+      - run: |
           docker run --rm \
             --network=host \
             -v ${{ github.workspace }}:/pyroscope-rs \
-            python:${{ matrix.PYTHON_VERSION }}-alpine \
+            python:${{ matrix.PYTHON_VERSION }}-${{ matrix.image-suffix }} \
             sh -c "pip install /pyroscope-rs/python/*.whl && python /pyroscope-rs/pyroscope_ffi/python/scripts/tests/test.py"
 
   sdist-build:
