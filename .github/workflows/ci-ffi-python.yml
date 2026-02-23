@@ -83,8 +83,6 @@ jobs:
     needs: ["linux-build"]
     name: Linux Test - ${{ matrix.variant }} - ${{ matrix.PYTHON_VERSION }}
     runs-on: ${{ matrix.runs-on }}
-    env:
-      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -104,7 +102,6 @@ jobs:
         run: |
           docker run --rm \
             --network=host \
-            -e PYTHON_VERSION=${{ matrix.PYTHON_VERSION }} \
             -v ${{ github.workspace }}:/pyroscope-rs \
             python:${{ matrix.PYTHON_VERSION }}-alpine \
             sh -c "pip install /pyroscope-rs/python/*.whl && python /pyroscope-rs/pyroscope_ffi/python/scripts/tests/test.py"

@@ -91,7 +91,6 @@ def do_one_test(on_cpu, gil_only):
         tags={
             "oncpu": '{}'.format(on_cpu),
             "gil_only": '{}'.format(gil_only),
-            "version": '{}'.format(os.getenv("PYTHON_VERSION")),
             "canary": canary,
         }
     )
