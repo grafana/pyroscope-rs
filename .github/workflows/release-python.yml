@@ -10,66 +10,32 @@ jobs:
     permissions:
       contents: write
     needs: [ 'python-release' ]
-    name: Release python linux amd64
-    runs-on: ubuntu-x64-large
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - run: make wheel/linux/amd64
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: ${{ github.sha }}-python-amd64
-          path: dist/*
-
-      - name: Upload release artifact
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
-        with:
-          draft: true
-          files: dist/pyroscope*.whl
-  python-release-linux-arm:
-    permissions:
-      contents: write
-    needs: [ 'python-release' ]
-    name: Release python linux arm64
-    runs-on: ubuntu-arm64-large
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - run: make wheel/linux/arm64
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: ${{ github.sha }}-python-arm64
-          path: dist/*
-
-      - name: Upload release artifact
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
-        with:
-          draft: true
-          files: dist/pyroscope*.whl
-  python-release-musllinux:
-    permissions:
-      contents: write
-    needs: [ 'python-release' ]
     strategy:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-x64-large
-            mk-arch: amd64
-          - runs-on: ubuntu-arm64-large
-            mk-arch: arm64
-    name: Release python musllinux ${{ matrix.mk-arch }}
+          - name: manylinux-amd64
+            runs-on: ubuntu-x64-large
+            make-target: wheel/linux/amd64
+          - name: manylinux-arm64
+            runs-on: ubuntu-arm64-large
+            make-target: wheel/linux/arm64
+          - name: musllinux-amd64
+            runs-on: ubuntu-x64-large
+            make-target: wheel/musllinux/amd64
+          - name: musllinux-arm64
+            runs-on: ubuntu-arm64-large
+            make-target: wheel/musllinux/arm64
+    name: Release python linux - ${{ matrix.name }}
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - run: make wheel/musllinux/${{ matrix.mk-arch }}
+      - run: make ${{ matrix.make-target }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: ${{ github.sha }}-python-musllinux-${{ matrix.mk-arch }}
+          name: ${{ github.sha }}-python-${{ matrix.name }}
           path: dist/*
 
       - name: Upload release artifact
