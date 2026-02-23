@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.4@sha256:9ba7531bd80fb0a858632727cf7a112fbfd19b17e94c4e84ced81e24ef1a0dbc
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/musllinux_1_2_${PLATFORM} AS builder
 
