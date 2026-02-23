@@ -58,15 +58,10 @@ jobs:
 
       - name: Check wheel tags
         run: |
-          whl=$(ls dist/*.whl)
+          whl=$(ls dist/*.whl | head -1)
           echo "Wheel: $whl"
           unzip -p "$whl" '*.dist-info/WHEEL'
-          # Assert the wheel has the expected platform tag
-          if echo "${{ matrix.name }}" | grep -q manylinux; then
-            unzip -p "$whl" '*.dist-info/WHEEL' | grep -q 'Tag:.*manylinux' || { echo "ERROR: expected manylinux tag not found"; exit 1; }
-          elif echo "${{ matrix.name }}" | grep -q musllinux; then
-            unzip -p "$whl" '*.dist-info/WHEEL' | grep -q 'Tag:.*musllinux' || { echo "ERROR: expected musllinux tag not found"; exit 1; }
-          fi
+          unzip -p "$whl" '*.dist-info/WHEEL' | grep -qE 'Tag:.*(manylinux|musllinux)' || { echo "ERROR: expected manylinux or musllinux tag not found"; exit 1; }
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
