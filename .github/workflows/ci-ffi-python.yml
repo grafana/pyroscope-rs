@@ -80,6 +80,15 @@ jobs:
           - variant: musllinux-arm64
             runs-on: ubuntu-arm64-large
             image-suffix: alpine
+        exclude:
+          # python:3.9/3.10/3.11-alpine arm64 tests hang indefinitely
+          # tracked in https://github.com/grafana/pyroscope-rs/issues/365
+          - variant: musllinux-arm64
+            PYTHON_VERSION: "3.9"
+          - variant: musllinux-arm64
+            PYTHON_VERSION: "3.10"
+          - variant: musllinux-arm64
+            PYTHON_VERSION: "3.11"
     needs: ["linux-build"]
     name: Linux Test - ${{ matrix.variant }} - ${{ matrix.PYTHON_VERSION }}
     runs-on: ${{ matrix.runs-on }}
