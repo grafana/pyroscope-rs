@@ -136,10 +136,9 @@ jobs:
     runs-on: ubuntu-x64-small
     steps:
       - id: auto-release
-        uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0" # v1.2.1 TODO(korniltsev): get rid of this, this one is unmaintained
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ github.ref_name }}"
-          title: "Ruby Gem: ${{ github.ref_name }}"
+          tag_name: "${{ github.ref_name }}"
+          name: "Ruby Gem: ${{ github.ref_name }}"
           draft: true
           prerelease: false
