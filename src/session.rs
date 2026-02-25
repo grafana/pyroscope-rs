@@ -131,9 +131,34 @@ impl Session {
     fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
-        let profile = match self.config.func {
-            None => self.encode_reports(&self.reports),
-            Some(f) => self.encode_reports(&self.reports.iter().map(|r| f(r.to_owned())).collect()),
+        let has_raw_pprof = self
+            .reports
+            .first()
+            .and_then(|r| r.raw_pprof.as_ref())
+            .is_some();
+
+        let raw_profile = if has_raw_pprof {
+            debug_assert!(
+                self.reports.len() == 1,
+                "raw_pprof path expects exactly one report"
+            );
+            if self.config.func.is_some() {
+                log::warn!(target: LOG_TAG, "report transform function is not supported with raw pprof backends (e.g. jemalloc)");
+            }
+            // Backends like jemalloc produce a complete pprof profile (may be gzipped).
+            // Pass it through directly — Pyroscope accepts both compressed and uncompressed pprof.
+            self.reports
+                .into_iter()
+                .find_map(|r| r.raw_pprof)
+                .unwrap_or_default()
+        } else {
+            let profile = match self.config.func {
+                None => self.encode_reports(&self.reports),
+                Some(f) => {
+                    self.encode_reports(&self.reports.iter().map(|r| f(r.to_owned())).collect())
+                }
+            };
+            profile.encode_to_vec()
         };
 
         let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.iter().len());
@@ -143,7 +168,7 @@ impl Session {
         });
         labels.push(LabelPair {
             name: "__name__".to_string(),
-            value: "process_cpu".to_string(),
+            value: self.config.profile_type.clone(),
         });
         for tag in self.config.tags {
             labels.push(LabelPair {
@@ -155,7 +180,7 @@ impl Session {
             series: vec![RawProfileSeries {
                 labels,
                 samples: vec![RawSample {
-                    raw_profile: profile.encode_to_vec(),
+                    raw_profile,
                     id: Uuid::new_v4().to_string(),
                 }],
             }],

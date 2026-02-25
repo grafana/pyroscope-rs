@@ -49,6 +49,8 @@ pub struct PyroscopeConfig {
     pub func: Option<fn(Report) -> Report>,
     pub tenant_id: Option<String>,
     pub http_headers: HashMap<String, String>,
+    /// Profile type name (e.g. "process_cpu", "memory")
+    pub profile_type: String,
 }
 
 #[derive(Clone, Debug)]
@@ -73,6 +75,7 @@ impl Default for PyroscopeConfig {
             func: None,
             tenant_id: None,
             http_headers: HashMap::new(),
+            profile_type: "process_cpu".to_string(),
         }
     }
 }
@@ -102,6 +105,7 @@ impl PyroscopeConfig {
             func: None,
             tenant_id: None,
             http_headers: HashMap::new(),
+            profile_type: "process_cpu".to_string(),
         }
     }
 
@@ -161,6 +165,13 @@ impl PyroscopeConfig {
     pub fn http_headers(self, http_headers: HashMap<String, String>) -> Self {
         Self {
             http_headers,
+            ..self
+        }
+    }
+
+    pub fn profile_type(self, profile_type: impl AsRef<str>) -> Self {
+        Self {
+            profile_type: profile_type.as_ref().to_owned(),
             ..self
         }
     }
@@ -273,6 +284,13 @@ impl PyroscopeAgentBuilder {
     pub fn http_headers(self, http_headers: HashMap<String, String>) -> Self {
         Self {
             config: self.config.http_headers(http_headers),
+            ..self
+        }
+    }
+
+    pub fn profile_type(self, profile_type: impl AsRef<str>) -> Self {
+        Self {
+            config: self.config.profile_type(profile_type),
             ..self
         }
     }

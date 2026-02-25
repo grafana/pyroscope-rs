@@ -115,6 +115,8 @@ pub struct Report {
     pub data: HashMap<StackTrace, usize>,
     /// Metadata
     pub metadata: Metadata,
+    /// Pre-encoded pprof bytes, may be gzipped (used by backends like jemalloc that produce pprof directly)
+    pub raw_pprof: Option<Vec<u8>>,
 }
 
 /// Custom implementation of the Hash trait for Report.
@@ -131,6 +133,16 @@ impl Report {
         Self {
             data,
             metadata: Metadata::default(),
+            raw_pprof: None,
+        }
+    }
+
+    /// Create a Report from pre-encoded pprof bytes (may be gzipped).
+    pub fn from_raw_pprof(pprof_data: Vec<u8>) -> Self {
+        Self {
+            data: HashMap::new(),
+            metadata: Metadata::default(),
+            raw_pprof: Some(pprof_data),
         }
     }
 
@@ -144,6 +156,7 @@ impl Report {
         Self {
             data: self.data,
             metadata,
+            raw_pprof: self.raw_pprof,
         }
     }
 
