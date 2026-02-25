@@ -138,7 +138,10 @@ impl Session {
             .is_some();
 
         let raw_profile = if has_raw_pprof {
-            debug_assert!(self.reports.len() == 1, "raw_pprof path expects exactly one report");
+            debug_assert!(
+                self.reports.len() == 1,
+                "raw_pprof path expects exactly one report"
+            );
             if self.config.func.is_some() {
                 log::warn!(target: LOG_TAG, "report transform function is not supported with raw pprof backends (e.g. jemalloc)");
             }

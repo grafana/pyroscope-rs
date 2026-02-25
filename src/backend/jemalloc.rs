@@ -34,7 +34,9 @@ impl Backend for Jemalloc {
     fn initialize(&mut self) -> Result<()> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .build()
-            .map_err(|e| PyroscopeError::new(&format!("jemalloc: failed to create tokio runtime: {}", e)))?;
+            .map_err(|e| {
+                PyroscopeError::new(&format!("jemalloc: failed to create tokio runtime: {}", e))
+            })?;
 
         // Verify PROF_CTL is available and activated
         runtime.block_on(async {
