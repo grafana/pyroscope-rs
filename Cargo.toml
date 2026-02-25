@@ -39,6 +39,8 @@ libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
 pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"], optional = true }
+jemalloc_pprof = { version = "0.8", features = ["symbolize"], optional = true }
+tokio = { version = "1", features = ["rt"], optional = true }
 lazy_static = "1.5.0"
 
 [dev-dependencies]
@@ -52,6 +54,7 @@ native-tls = ["reqwest/native-tls"]
 native-tls-vendored = ["reqwest/native-tls-vendored"]
 rustls-no-provider = ["reqwest/rustls-no-provider"]
 backend-pprof-rs = ["dep:pprof"]
+backend-jemalloc = ["dep:jemalloc_pprof", "dep:tokio"]
 
 [profile.dev]
 opt-level=0
