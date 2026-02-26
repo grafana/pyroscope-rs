@@ -20,7 +20,7 @@ ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release --no-default-features --features native-tls-vendored
 
-FROM ruby:4.0@sha256:1daddc4ceb1d2e2ffcd90664032ab501097607afcd620b59f5f2ff18e1ac4d51 AS builder-gem
+FROM ruby:4.0@sha256:3b8c977b1f13501e132a309c903f2f9931e41be4e52785a719490e937953c3de AS builder-gem
 WORKDIR /gem
 ADD pyroscope_ffi/ruby /gem/
 
