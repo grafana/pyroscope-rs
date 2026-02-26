@@ -1,4 +1,4 @@
-# v0.6.0
+# v1.0.0
 ## Breaking Changes
 - Removed `auth_token` from Python and Ruby FFI bindings and related code
 - Removed `detect_subprocesses` from Python and Ruby configs
