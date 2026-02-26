@@ -129,23 +129,19 @@ jobs:
           draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
 
-  check-tag-version:
-    name: Check tag version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - name: Verify tag matches Cargo package version
-        env:
-          TAG: ${{ github.ref_name }}
-        run: ./ci/check-tag-version.sh "$TAG"
-
   ruby-release:
     permissions:
       contents: write
     name: Ruby Gem
-    needs: check-tag-version
     runs-on: ubuntu-x64-small
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Verify tag matches Cargo package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: ./ci/check-tag-version.sh "$TAG"
       - id: auto-release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
