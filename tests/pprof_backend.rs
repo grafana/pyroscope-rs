@@ -1,9 +1,16 @@
 #[cfg(feature = "backend-pprof-rs")]
 mod tests {
     use pyroscope::backend::{pprof_backend, BackendConfig, PprofConfig};
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
+
+    fn next_size(hasher: &mut DefaultHasher) -> usize {
+        Instant::now().hash(hasher);
+        (hasher.finish() as usize) % (256 * 1024) + 1
+    }
 
     #[test]
     fn test_pprof_backend_alloc_loop() {
@@ -12,13 +19,10 @@ mod tests {
 
         // Start the alloc loop slightly before the profiler initializes
         let alloc_thread = std::thread::spawn(move || {
-            let mut seed: u64 = 0xdeadbeef_cafebabe;
+            let mut hasher = DefaultHasher::new();
             while !stop_thread.load(Ordering::Relaxed) {
-                // LCG to vary allocation size between 1 B and 256 KiB
-                seed = seed
-                    .wrapping_mul(6364136223846793005)
-                    .wrapping_add(1442695040888963407);
-                let size = (seed >> 48) as usize % (256 * 1024) + 1;
+                // Vary allocation size between 1 B and 256 KiB
+                let size = next_size(&mut hasher);
                 let v: Vec<u8> = vec![0u8; size];
                 drop(v);
             }
