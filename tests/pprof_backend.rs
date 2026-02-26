@@ -12,6 +12,9 @@ mod tests {
         (hasher.finish() as usize) % (256 * 1024) + 1
     }
 
+    // NOTE: This test is not reliable — it only exercises the initialize/report
+    // lifecycle against a live workload and makes no assertions on the output.
+    // No failures have been observed so far; kept as a smoke test for the future.
     #[test]
     fn test_pprof_backend_alloc_loop() {
         let stop = Arc::new(AtomicBool::new(false));
