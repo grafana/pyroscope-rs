@@ -1,3 +1,26 @@
+# v0.6.0
+## Breaking Changes
+- Removed `auth_token` from Python and Ruby FFI bindings and related code
+- Removed `detect_subprocesses` from Python and Ruby configs
+- Config constructor now requires app/spy identity and sample rate inputs
+- Removed support for collapsed format
+- Removed global tags from ruleset
+
+## New Features
+- Integrated pprof-rs backend into main crate behind optional `backend-pprof-rs` feature
+- Switched to push API (from `/ingest` to `/push`)
+- Generated push API protos
+- Added `ThreadId` type
+- Added `rustls-no-provider` TLS feature
+
+## Bug Fixes / Improvements
+- Unified signal logic
+- Report cleanup functions
+- Optimized ruleset
+- Removed obscure thread id hash check
+- Ruby: inline thread_id crate; remove detect_subprocess
+- Dependency updates (reqwest 0.13, prost 0.14, thiserror 2.0, serde_json 1.0.115, uuid 1.20, libflate 2.1)
+
 # v0.5.4
 ## New Features
 - Add report transfromation function which allows changing the report before
