@@ -40,7 +40,7 @@ jobs:
           components: clippy
 
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- --deny warnings
+        run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
 
   test:
     name: cargo test (${{ matrix.package }})

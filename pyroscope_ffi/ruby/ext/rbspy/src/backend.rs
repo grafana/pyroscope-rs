@@ -1,6 +1,6 @@
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, BackendUninitialized, Report, StackBuffer, StackFrame, StackTrace,
+        Backend, BackendConfig, Report, StackBuffer, StackFrame, StackTrace,
         ThreadTag, ThreadTagsSet,
     },
     error::{PyroscopeError, Result},
