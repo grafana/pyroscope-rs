@@ -13,4 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Verify tag matches Cargo package version
-        run: ./ci/check-tag-version.sh "${{ github.ref_name }}"
+        env:
+          TAG: ${{ github.ref_name }}
+        run: ./ci/check-tag-version.sh "$TAG"
