@@ -242,7 +242,7 @@ impl From<pprof::Symbol> for StackFrameWrapper {
                 symbol
                     .filename
                     .clone()
-                    .unwrap_or_else(std::path::PathBuf::new)
+                    .unwrap_or_default()
                     .file_name()
                     .unwrap_or_else(|| OsStr::new(""))
                     .to_str()
@@ -252,7 +252,7 @@ impl From<pprof::Symbol> for StackFrameWrapper {
             Some(
                 symbol
                     .filename
-                    .unwrap_or_else(std::path::PathBuf::new)
+                    .unwrap_or_default()
                     .to_str()
                     .unwrap_or("")
                     .to_string(),

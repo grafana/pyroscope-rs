@@ -480,11 +480,11 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
                             .report()?;
 
                         // Send new Session to SessionManager
-                        stx.send(SessionSignal::Session(Session::new(
+                        stx.send(SessionSignal::Session(Box::new(Session::new(
                             until,
                             config.clone(),
                             report,
-                        )?))?
+                        )?)))?
                     }
                     TimerSignal::Terminate => {
                         log::trace!(target: LOG_TAG, "Session Killed");
@@ -555,6 +555,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// // some computation
     /// remove_tag("key".to_string(), "value".to_string());
     /// ```
+    #[allow(clippy::type_complexity)]
     pub fn tag_wrapper(
         &self,
     ) -> (

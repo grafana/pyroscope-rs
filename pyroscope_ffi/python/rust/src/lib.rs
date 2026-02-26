@@ -40,7 +40,9 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn initialize_agent(
+/// # Safety
+/// All pointer arguments must be valid, non-null, null-terminated C strings.
+pub unsafe extern "C" fn initialize_agent(
     application_name: *const c_char,
     server_address: *const c_char,
     basic_auth_username: *const c_char,
@@ -131,10 +133,10 @@ pub extern "C" fn initialize_agent(
     )
     .tags(tags);
 
-    if basic_auth_username != "" && basic_auth_password != "" {
+    if !basic_auth_username.is_empty() && !basic_auth_password.is_empty() {
         agent_builder = agent_builder.basic_auth(basic_auth_username, basic_auth_password);
     }
-    if tenant_id != "" {
+    if !tenant_id.is_empty() {
         agent_builder = agent_builder.tenant_id(tenant_id);
     }
 
@@ -163,7 +165,9 @@ pub extern "C" fn drop_agent() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
+/// # Safety
+/// `key` and `value` must be valid, non-null, null-terminated C strings.
+pub unsafe extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -178,7 +182,9 @@ pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bo
 }
 
 #[no_mangle]
-pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
+/// # Safety
+/// `key` and `value` must be valid, non-null, null-terminated C strings.
+pub unsafe extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -192,7 +198,7 @@ pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) ->
     .is_ok()
 }
 
-fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
+fn string_to_tags(tags: &str) -> Vec<(&str, &str)> {
     let mut tags_vec = Vec::new();
 
     // check if string is empty
@@ -218,9 +224,9 @@ pub enum LineNo {
     NoLine = 2,
 }
 
-impl Into<py_spy::config::LineNo> for LineNo {
-    fn into(self) -> py_spy::config::LineNo {
-        match self {
+impl From<LineNo> for py_spy::config::LineNo {
+    fn from(val: LineNo) -> Self {
+        match val {
             LineNo::LastInstruction => py_spy::config::LineNo::LastInstruction,
             LineNo::First => py_spy::config::LineNo::First,
             LineNo::NoLine => py_spy::config::LineNo::NoLine,

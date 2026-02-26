@@ -26,6 +26,22 @@ jobs:
       - name: Run formatting check
         run: make rust/fmt/check
 
+  clippy:
+    name: cargo clippy
+    runs-on: ubuntu-x64-small
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        with:
+          toolchain: stable
+          components: clippy
+
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
+
   test:
     name: cargo test (${{ matrix.package }})
     runs-on: ubuntu-x64-small

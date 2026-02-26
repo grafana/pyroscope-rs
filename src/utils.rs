@@ -1,4 +1,5 @@
-use crate::backend::Tag;
+use std::fmt;
+
 use crate::{error::Result, PyroscopeError};
 
 /// Error Wrapper for libc return. Only check for errors.
@@ -45,9 +46,11 @@ impl ThreadId {
             pthread: unsafe { libc::pthread_self() },
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        (self.pthread as usize).to_string()
+impl fmt::Display for ThreadId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.pthread as usize)
     }
 }
 

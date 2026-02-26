@@ -205,14 +205,14 @@ impl Timer {
     }
 }
 
-/// Wrapper for libc functions.
-///
-/// Error wrapper for some libc functions used by the library. This only does
-/// Error (-1 return) wrapping. Alternatively, the nix crate could be used
-/// instead of expanding this wrappers (if more functions and types are used
-/// from libc)
+// Wrapper for libc functions.
+//
+// Error wrapper for some libc functions used by the library. This only does
+// Error (-1 return) wrapping. Alternatively, the nix crate could be used
+// instead of expanding this wrappers (if more functions and types are used
+// from libc)
 
-/// libc::timerfd wrapper
+// libc::timerfd wrapper
 pub fn timerfd_create(clockid: libc::clockid_t, clock_flags: libc::c_int) -> Result<i32> {
     check_err(unsafe { libc::timerfd_create(clockid, clock_flags) })
 }
