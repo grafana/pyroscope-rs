@@ -1974,10 +1974,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "pprof"
-version = "0.15.0"
+name = "pprof-pyroscope-fork"
+version = "0.1500.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38a01da47675efa7673b032bf8efd8214f1917d89685e07e395ab125ea42b187"
+checksum = "a81f1489b882945ce89a4c93dbb50b1bf31839188d3c83fb5e5eded6bad6ee2d"
 dependencies = [
  "aligned-vec",
  "backtrace",
@@ -2143,7 +2143,7 @@ dependencies = [
  "libflate",
  "log",
  "names",
- "pprof",
+ "pprof-pyroscope-fork",
  "prost",
  "reqwest",
  "serde_json",
