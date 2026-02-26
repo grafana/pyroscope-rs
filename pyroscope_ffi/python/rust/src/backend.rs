@@ -1,8 +1,8 @@
 use py_spy::sampler::Sampler;
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, Report, StackBuffer, StackFrame, StackTrace,
-        ThreadTag, ThreadTagsSet,
+        Backend, BackendConfig, Report, StackBuffer, StackFrame, StackTrace, ThreadTag,
+        ThreadTagsSet,
     },
     error::{PyroscopeError, Result},
 };
