@@ -10,8 +10,12 @@ mod tests {
             .expect("failed to initialize pprof backend");
 
         let deadline = Instant::now() + Duration::from_secs(5);
+        let mut seed: u64 = 0xdeadbeef_cafebabe;
         while Instant::now() < deadline {
-            let v: Vec<u8> = vec![0u8; 1024 * 64];
+            // LCG to vary allocation size between 1 B and 256 KiB
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            let size = (seed >> 48) as usize % (256 * 1024) + 1;
+            let v: Vec<u8> = vec![0u8; size];
             drop(v);
         }
 
