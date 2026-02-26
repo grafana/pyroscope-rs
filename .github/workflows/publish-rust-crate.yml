@@ -23,7 +23,7 @@ jobs:
           toolchain: 1.85.0
       - name: Authenticate with crates.io
         id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@b7e9a28eded4986ec6b1fa40eeee8f8f165559ec # v1.0.3
       - name: publish pyroscope crate
         run: cargo publish
         env:
