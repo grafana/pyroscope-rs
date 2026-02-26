@@ -24,26 +24,47 @@ members = [
     "pyroscope_ffi/python/rust",
 ]
 
-
-
-
-[dependencies]
+[workspace.dependencies]
 thiserror = "2.0.12"
 log = "0.4"
 names = { version = "0.14.0", default-features = false }
 reqwest = { version = "0.13", features = ["blocking", "query"], default-features = false }
-uuid = { version = "1.20.0" , features = ["v4"]}
+uuid = { version = "1.20.0", features = ["v4"] }
 url = "2.2.2"
 libflate = "2.1.0"
 libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
-pprof = { package = "pprof-pyroscope-fork", version = "0.1500.1", features = ["framehop", "framehop-unwinder"], optional = true }
+pprof = { package = "pprof-pyroscope-fork", version = "0.1500.1", features = ["framehop", "framehop-unwinder"] }
 lazy_static = "1.5.0"
-
-[dev-dependencies]
 assert_matches = "=1.5.0"
 claims = "=0.8.0"
+pretty_env_logger = "0.5.0"
+rbspy = { version = "0.42" }
+remoteprocess = "0.5.0"
+anyhow = "1.0"
+py-spy = { git = "https://github.com/grafana/py-spy", rev = "3b390dc4230207914164e1dd6888eb3e680b1560" }
+
+
+
+
+[dependencies]
+thiserror = { workspace = true }
+log = { workspace = true }
+names = { workspace = true }
+reqwest = { workspace = true }
+uuid = { workspace = true }
+url = { workspace = true }
+libflate = { workspace = true }
+libc = { workspace = true }
+prost = { workspace = true }
+serde_json = { workspace = true }
+pprof = { workspace = true, optional = true }
+lazy_static = { workspace = true }
+
+[dev-dependencies]
+assert_matches = { workspace = true }
+claims = { workspace = true }
 
 [features]
 default = ["rustls-tls"]
