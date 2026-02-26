@@ -24,7 +24,7 @@ const LOG_TAG: &str = "Pyroscope::Session";
 #[derive(Debug)]
 pub enum SessionSignal {
     /// Send session data to the session thread.
-    Session(Session),
+    Session(Box<Session>),
     /// Kill the session thread.
     Kill,
 }
@@ -56,7 +56,7 @@ impl SessionManager {
                         // Send the session
                         // Matching is done here (instead of ?) to avoid breaking
                         // the SessionManager thread if the server is not available.
-                        match session.push(&client) {
+                        match (*session).push(&client) {
                             Ok(_) => log::trace!("SessionManager - Session sent"),
                             Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
                         }
