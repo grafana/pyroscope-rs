@@ -115,10 +115,21 @@ jobs:
         with:
           draft: true
           files: dist/pyroscope_io-*.tar.gz
+  check-tag-version:
+    name: Check tag version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Verify tag matches Cargo package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: ./ci/check-tag-version.sh "$TAG"
+
   python-release:
     permissions:
       contents: write
     name: Python Package
+    needs: check-tag-version
     runs-on: ubuntu-x64-small
     steps:
       - id: auto-release

@@ -3,10 +3,22 @@ name: Pre-Release
 on: [ push ]
 
 jobs:
+  check-tag-version:
+    name: Check tag version
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/lib-')"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Verify tag matches Cargo package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: ./ci/check-tag-version.sh "$TAG"
+
   lib-release:
     permissions:
       contents: write
     name: pyroscope-main
+    needs: check-tag-version
     runs-on: ubuntu-x64-small
     if: "startsWith(github.ref, 'refs/tags/lib-')"
     steps:
