@@ -33,7 +33,7 @@ jobs:
         with:
           persist-credentials: false
       - run: make ${{ matrix.make-target }}
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-python-${{ matrix.name }}
           path: dist/*
@@ -78,7 +78,7 @@ jobs:
       - run: pip install build wheel
       - run: make wheel/mac/${{ matrix.mk-arch }}
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-python-macos-${{ matrix.target }}
           path: dist/*
@@ -105,7 +105,7 @@ jobs:
           python-version: "3.10"
       - run: python -m pip install build
       - run: python -m build --sdist
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-python-sdist
           path: dist/*

@@ -18,7 +18,7 @@ jobs:
         with:
           persist-credentials: false
       - run: make gem/linux/amd64
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-amd64
           path: pyroscope_ffi/ruby/pkg/*.gem
@@ -40,7 +40,7 @@ jobs:
         with:
           persist-credentials: false
       - run: make gem/linux/arm64
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-arm64
           path: pyroscope_ffi/ruby/pkg/*.gem
@@ -83,7 +83,7 @@ jobs:
 
       - run: make gem/mac/${{ matrix.mk-arch }}
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-mac-${{ matrix.target }}
           path: pyroscope_ffi/ruby/pkg/*.gem
@@ -118,7 +118,7 @@ jobs:
         run: rake source:gem
         working-directory: pyroscope_ffi/ruby
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-source
           path: pyroscope_ffi/ruby/pkg/*.gem
