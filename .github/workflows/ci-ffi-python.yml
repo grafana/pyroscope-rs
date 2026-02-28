@@ -63,7 +63,7 @@ jobs:
           unzip -p "$whl" '*.dist-info/WHEEL'
           unzip -p "$whl" '*.dist-info/WHEEL' | grep -qE 'Tag:.*(manylinux|musllinux)' || { echo "ERROR: expected manylinux or musllinux tag not found"; exit 1; }
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: "${{ matrix.name }}.whl"
           path: dist/*
@@ -132,7 +132,7 @@ jobs:
       - run: python -m pip install --force-reinstall dist/*.tar.gz
       - run: python -c "import pyroscope"
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: "sdist.whl"
           path: dist/*
@@ -167,7 +167,7 @@ jobs:
 
       - run: python -m pip install build wheel
       - run: make wheel/mac/${{ matrix.mk-arch }}
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-python-${{ matrix.target }}
           path: dist/*
