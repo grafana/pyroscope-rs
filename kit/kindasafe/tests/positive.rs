@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use kindasafe::ReadMemError;
 
 use anyhow::Result;
-use kindasafe::{Ptr, u64, slice};
+use kindasafe::{Ptr, slice, u64};
 
 #[test]
 fn test_init() -> Result<(), anyhow::Error> {
@@ -170,7 +170,6 @@ fn fs_0x10() -> Result<(), anyhow::Error> {
     let res = kindasafe::arch::fs_0x10();
     assert_eq!(0, res.signal);
     assert_ne!(0, res.value);
-
 
     let fs_base = get_fs_base();
     assert_ne!(0, fs_base);

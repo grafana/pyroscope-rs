@@ -1,5 +1,3 @@
-
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum InitError {
     InstallSignalHandlersFailed,
