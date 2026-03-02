@@ -30,6 +30,7 @@ ADD --chown=builder:builder pyproject.toml \
     ./
 
 ADD --chown=builder:builder src src
+ADD --chown=builder:builder kit/ kit/
 ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 
 ARG PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=1

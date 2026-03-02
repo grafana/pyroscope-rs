@@ -16,6 +16,7 @@ ADD rustfmt.toml \
     ./
 
 ADD src src
+ADD kit/ kit/
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release --no-default-features --features native-tls-vendored
