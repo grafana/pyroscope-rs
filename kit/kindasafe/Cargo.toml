@@ -1,0 +1,11 @@
+[package]
+name = "kindasafe"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+libc =  {version = "0.2.182"}
+spin =  {version="0.10.0"}
+[dev-dependencies]
+anyhow = "1.0.100"
+libc = "0.2"
