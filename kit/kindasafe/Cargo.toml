@@ -7,5 +7,5 @@ edition = "2024"
 libc =  {version = "0.2.182"}
 spin =  {version="0.10.0"}
 [dev-dependencies]
-anyhow = "1.0.100"
-libc = "0.2"
+anyhow = "=1.0.100"
+libc = "=0.2.182"
