@@ -18,7 +18,7 @@ fn u64_aligned() -> Result<(), anyhow::Error> {
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef];
     let x_ptr = x.as_ptr() as Ptr;
 
-    let i = u64(x_ptr).or_else(|err| Err(anyhow!("read mem error {err:?}")))?;
+    let i = u64(x_ptr).map_err(|err| anyhow!("read mem error {err:?}"))?;
     assert_eq!(i, 0xefbeaddebebafeca);
     Ok(())
 }
@@ -29,7 +29,7 @@ fn u64_unaligned() -> Result<(), anyhow::Error> {
 
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef, 0x00];
     let x_ptr = x.as_ptr() as Ptr + 1;
-    let i = u64(x_ptr).or_else(|err| Err(anyhow!("read mem error {err:?}")))?;
+    let i = u64(x_ptr).map_err(|err| anyhow!("read mem error {err:?}"))?;
     assert_eq!(i, 0xefbeaddebebafe);
     Ok(())
 }
@@ -90,7 +90,7 @@ fn vec_aligned() -> Result<(), anyhow::Error> {
     kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
     let mut buf = vec![0u8; 8];
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef];
-    slice(&mut buf, x.as_ptr() as Ptr).or_else(|err| Err(anyhow!("read mem error {err:?}")))?;
+    slice(&mut buf, x.as_ptr() as Ptr).map_err(|err| anyhow!("read mem error {err:?}"))?;
     assert_eq!(buf, x.clone());
     Ok(())
 }
@@ -101,7 +101,7 @@ fn vec_unaligned() -> Result<(), anyhow::Error> {
     let mut buf = vec![0u8; 8];
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef, 0xcc];
     let x_ptr = x.as_ptr() as Ptr + 1;
-    slice(&mut buf[0..7], x_ptr).or_else(|err| Err(anyhow!("read mem error {err:?}")))?;
+    slice(&mut buf[0..7], x_ptr).map_err(|err| anyhow!("read mem error {err:?}"))?;
     let expected: Vec<u8> = vec![0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef, 0];
     assert_eq!(buf, expected);
     Ok(())
@@ -163,7 +163,7 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[cfg(all(any(target_arch = "x86_64",), any(target_os = "linux",),))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 #[test]
 fn fs_0x10() -> Result<(), anyhow::Error> {
     kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
@@ -187,7 +187,7 @@ fn fs_0x10() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[cfg(all(any(target_arch = "x86_64",), any(target_os = "linux",),))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 fn trigger_sigsegv_page_boundary<F>(mut cb: F)
 where
     F: FnMut(Ptr),
@@ -214,7 +214,7 @@ where
     }
 }
 
-#[cfg(all(any(target_arch = "x86_64",), any(target_os = "linux",),))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 pub fn trigger_sigbus<F>(mut cb: F)
 where
     F: FnMut(u64),
@@ -222,7 +222,7 @@ where
     unsafe {
         let f = libc::tmpfile();
         let m = libc::mmap(
-            0 as *mut libc::c_void,
+            std::ptr::null_mut::<libc::c_void>(),
             4,
             libc::PROT_WRITE,
             libc::MAP_PRIVATE,
@@ -237,14 +237,14 @@ where
     };
 }
 
-#[cfg(all(any(target_arch = "x86_64",), any(target_os = "linux",),))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 pub fn trigger_sigsegv<F>(mut cb: F)
 where
     F: FnMut(u64),
 {
     unsafe {
         let m = libc::mmap(
-            0 as *mut libc::c_void,
+            std::ptr::null_mut::<libc::c_void>(),
             4,
             libc::PROT_NONE,
             libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
@@ -274,6 +274,6 @@ fn get_fs_base() -> u64 {
         libc::ptrace(libc::PTRACE_CONT, pid, 0, 0);
         libc::waitpid(pid, &mut status, 0);
         println!("ptrace_getregs {:x}", regs.fs_base);
-        regs.fs_base as u64
+        regs.fs_base
     }
 }
