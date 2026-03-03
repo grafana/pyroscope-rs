@@ -1,11 +1,11 @@
-//! Integration tests for `sig_safety::eventfd`.
+//! Integration tests for `notlibc::eventfd`.
 //!
 //! libc is used only in the test harness for draining fds and verifying
 //! counts; production code uses no libc.
 
 #![cfg(all(target_arch = "x86_64", target_os = "linux"))]
 
-use sig_safety::eventfd::{EventFd, EventSet};
+use notlibc::eventfd::{EventFd, EventSet};
 use std::sync::Arc;
 use std::thread;
 

@@ -135,7 +135,7 @@ This document synthesizes the best ideas from three prior design proposals (desi
 │  ├── kindasafe_init/    (SPLIT FROM EXISTING) kindasafe init —      │
 │  │                      sigaction-based SIGSEGV/SIGBUS recovery     │
 │  │                      setup, depends on libc, NOT `#![no_std]`    │
-│  ├── sig_safety/        Async-signal-safe primitives                │
+│  ├── notlibc/        Async-signal-safe primitives                │
 │  │                      raw mmap, eventfd, raw syscall helpers       │
 │  ├── sig_ring/          Lock-free SPSC ring buffer per shard        │
 │  ├── sighandler/        Signal registration, setitimer, timer mgmt  │
@@ -172,10 +172,10 @@ pprof  │  pyroscope  python     kindasafe_init ──→ kindasafe
 _enc   │  _ingest    _unwind                        (#![no_std])
        │                │
        ▼           ┌────┤
-     sig_ring   kindasafe  sig_safety
+     sig_ring   kindasafe  notlibc
        │        (#![no_std])
        ▼
-    sig_safety
+    notlibc
 ```
 
 **Note on kindasafe split**: The existing `kindasafe` crate is a single crate that depends on `libc` and `spin`, mixing signal-handler-safe read primitives (naked asm) with init-time code (`sigaction` installation, fallback handler chaining). It must be split into two crates before other signal-handler-path crates can depend on it:
@@ -191,11 +191,11 @@ Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindas
 |-------|------|-------------|---------|
 | `kit/kindasafe` | lib (`#![no_std]`) | (none) | **Split from existing `kindasafe` crate.** SIGSEGV-safe memory read primitives: `u64()`, `slice()`, `str()`, `fs_0x10()` via naked assembly. Crash-point table and crash handler (manipulates `ucontext_t` via raw pointer offsets to skip faulting instructions). Currently the crash handler uses `libc::ucontext_t` types — these must be replaced with raw pointer arithmetic at fixed offsets for `#![no_std]`. **No libc dependency, no `std`** — uses only `core` and naked asm. Safe for use in signal handler context. |
 | `kit/kindasafe_init` | lib | `kindasafe`, `libc`, `spin` | **Split from existing `kindasafe` crate.** Initialization for kindasafe: installs SIGSEGV/SIGBUS signal handlers via `sigaction` that delegate to `kindasafe::arch::crash_handler` for recovery. Manages fallback handler chaining (`FALLBACK_SIGSEGV`/`FALLBACK_SIGBUS` statics). Provides `init()` and `is_initialized()`. **Not `#![no_std]`** — depends on `libc` for `sigaction` and `ucontext_t` types. Called once at profiler startup, never from signal handler context. |
-| `kit/sig_safety` | lib (`#![no_std]`) | `spin` | Async-signal-safe primitives: raw `mmap`/`munmap` wrappers (via raw `syscall` instruction — no libc), `eventfd` wrapper. Re-exports `spin::Mutex` for shard locking. **No libc dependency.** Uses inline assembly for syscalls. |
-| `kit/sig_ring` | lib (`#![no_std]`) | `sig_safety` | Lock-free SPSC ring buffer with variable-length records. One per shard. Pre-allocated via mmap. Writer is signal handler, reader is background thread. Supports eventfd notification. **No libc dependency.** |
+| `kit/notlibc` | lib (`#![no_std]`) | `spin` | Async-signal-safe primitives: raw `mmap`/`munmap` wrappers (via raw `syscall` instruction — no libc), `eventfd` wrapper. Re-exports `spin::Mutex` for shard locking. **No libc dependency.** Uses inline assembly for syscalls. |
+| `kit/sig_ring` | lib (`#![no_std]`) | `notlibc` | Lock-free SPSC ring buffer with variable-length records. One per shard. Pre-allocated via mmap. Writer is signal handler, reader is background thread. Supports eventfd notification. **No libc dependency.** |
 | `kit/sighandler` | lib | `libc` | Signal handler registration (`sigaction`), `setitimer` wrapper. Generic — not Python-specific. Note: this crate uses `libc` for `sigaction`/`setitimer` calls at **init time only** — it is never called from within the signal handler. |
 | `kit/python_offsets` | lib | `kindasafe_init`, `libc` | CPython version detection, `_Py_DebugOffsets` reading, offset table structures. ELF symbol lookup for `_PyRuntime` and `Py_Version`. `/proc/self/maps` parsing. TLS offset discovery. All done at **init time only** — not in signal handler. Uses `kindasafe` reads (via `kindasafe_init`) for safe memory access during discovery. |
-| `kit/python_unwind` | lib (`#![no_std]`) | `kindasafe`, `sig_safety` | Signal-safe Python frame walking. Reads `PyThreadState.current_frame` → `_PyInterpreterFrame` chain. Outputs `(PyCodeObject*, instr_offset)` tuples. **No libc dependency** — depends on `kindasafe` (the `#![no_std]` read crate), runs in signal handler context. |
+| `kit/python_unwind` | lib (`#![no_std]`) | `kindasafe`, `notlibc` | Signal-safe Python frame walking. Reads `PyThreadState.current_frame` → `_PyInterpreterFrame` chain. Outputs `(PyCodeObject*, instr_offset)` tuples. **No libc dependency** — depends on `kindasafe` (the `#![no_std]` read crate), runs in signal handler context. |
 | `kit/profiler_core` | lib | `sig_ring`, `python_unwind`, `python_offsets`, `pprof_enc`, `pyroscope_ingest`, `sighandler` | Orchestrator: owns the reader thread, periodic flush, stack aggregation, symbolication, pprof building, ingestion. |
 | `kit/pprof_enc` | lib | `prost` | Minimal pprof protobuf encoder. String table, Function, Location, Sample messages. Gzip output via `flate2`. |
 | `kit/pyroscope_ingest` | lib | `ureq` or `minreq` | HTTP POST of gzipped pprof to `{base_url}/ingest` with query parameters. |
@@ -205,12 +205,12 @@ Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindas
 
 - New crates **must not** depend on the existing `pyroscope` crate, `py-spy`, `rbspy`, or any existing workspace member except `kindasafe` and `kindasafe_init`.
 - External dependencies must be minimal:
-  - `spin` — `#![no_std]` spinlock (in `sig_safety`, `kindasafe_init`).
+  - `spin` — `#![no_std]` spinlock (in `notlibc`, `kindasafe_init`).
   - `libc` — **only for init-time crates** (`kindasafe_init`, `sighandler`, `python_offsets`) that call `sigaction`/`setitimer`/file I/O. Never in signal-handler-path crates.
   - `prost` — protobuf encoding (in `pprof_enc` only).
   - `flate2` — gzip compression (in `pprof_enc` only).
   - `ureq` or `minreq` — HTTP client (in `pyroscope_ingest` only).
-- **Signal-handler-path crates** (`kindasafe`, `sig_safety`, `sig_ring`, `python_unwind`) **must be `#![no_std]` and must NOT depend on `libc`**. They use raw `syscall` instructions via inline assembly or naked asm for any OS interaction (e.g., `mmap`, `gettid`, memory reads). This ensures no libc function can ever be called from within the signal handler, regardless of interposition.
+- **Signal-handler-path crates** (`kindasafe`, `notlibc`, `sig_ring`, `python_unwind`) **must be `#![no_std]` and must NOT depend on `libc`**. They use raw `syscall` instructions via inline assembly or naked asm for any OS interaction (e.g., `mmap`, `gettid`, memory reads). This ensures no libc function can ever be called from within the signal handler, regardless of interposition.
 
 ---
 
@@ -265,7 +265,7 @@ Per-thread timers require:
 
 ### 4.4 Memory Allocation — Raw `mmap` Syscall
 
-**Crate:** `kit/sig_safety`
+**Crate:** `kit/notlibc`
 
 All memory used by signal-handler data structures is allocated via **raw `syscall` instruction**, NOT via libc's `mmap` wrapper (which can be interposed by jemalloc, tcmalloc, ASan, etc.):
 
@@ -275,7 +275,7 @@ All memory used by signal-handler data structures is allocated via **raw `syscal
 //                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
 ```
 
-These are wrapped in `sig_safety::safe_mmap(size) -> *mut u8` and `sig_safety::safe_munmap(addr, size)`, which use inline assembly to invoke the `mmap`/`munmap` syscalls directly without any libc dependency.
+These are wrapped in `notlibc::safe_mmap(size) -> *mut u8` and `notlibc::safe_munmap(addr, size)`, which use inline assembly to invoke the `mmap`/`munmap` syscalls directly without any libc dependency.
 
 The signal handler itself **never calls mmap** — all memory is pre-allocated at profiler start.
 
@@ -761,7 +761,7 @@ We store the raw `instr_ptr` in the handler and compute the actual offset during
 
 ## 8. Async-Signal-Safe Primitives
 
-**Crate:** `kit/sig_safety`
+**Crate:** `kit/notlibc`
 
 ### 8.1 Shard Locking via `spin::Mutex`
 
@@ -1314,7 +1314,7 @@ This strict separation ensures that even if the signal interrupts the reader thr
 ### 16.4 No-libc Guarantee in Handler Path
 
 The signal handler path uses **zero libc functions**. This is enforced structurally:
-- All handler-path crates (`kindasafe`, `sig_safety`, `sig_ring`, `python_unwind`) are `#![no_std]` and do not have `libc` in their dependency tree.
+- All handler-path crates (`kindasafe`, `notlibc`, `sig_ring`, `python_unwind`) are `#![no_std]` and do not have `libc` in their dependency tree.
 - `kindasafe` (the read crate) uses naked assembly — no libc. The init-time code (`kindasafe_init`) depends on libc but is never in the handler path.
 - `spin` is `#![no_std]` — no libc.
 - OS interactions (`gettid`, `mmap`) use raw `syscall` instructions via `core::arch::asm!`.
@@ -1375,7 +1375,7 @@ The reader thread never crashes the host process.
 | Multiple Python versions | Add offset tables for 3.12, 3.13 in `python_offsets`; version dispatch at init |
 | Free-threaded Python (3.13t+) | Handle `free_threaded == 1` in debug offsets, adjust TLS access |
 | ARM64 support | Add arch modules in `kindasafe` and `python_offsets` (FS register differs) |
-| Ruby profiler | Reuse `sig_safety`, `sig_ring`, `sighandler`, `pprof_enc`, `pyroscope_ingest`; create `ruby_offsets` + `ruby_unwind` |
+| Ruby profiler | Reuse `notlibc`, `sig_ring`, `sighandler`, `pprof_enc`, `pyroscope_ingest`; create `ruby_offsets` + `ruby_unwind` |
 | .NET profiler | Same reuse pattern |
 | Wall-clock profiling | Use `ITIMER_REAL` + `SIGALRM` or `timer_create(CLOCK_MONOTONIC)` |
 | Labels/tags | Add label fields to sample records, propagate to pprof |

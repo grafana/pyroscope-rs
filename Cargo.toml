@@ -27,7 +27,7 @@ members = [
     "kit/sighandler",
     "kit/pyroscope_ingest",
     "kit/pprof_enc",
-    "kit/sig_safety",
+    "kit/notlibc",
 ]
 
 [workspace.dependencies]

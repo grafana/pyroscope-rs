@@ -1,5 +1,5 @@
 [package]
-name = "sig_safety"
+name = "notlibc"
 version = "0.1.0"
 edition = "2024"
 

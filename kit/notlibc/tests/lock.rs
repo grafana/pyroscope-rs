@@ -1,6 +1,6 @@
 #[test]
 fn mutex_new_lock_mutate_release() {
-    let m = sig_safety::Mutex::new(0u32);
+    let m = notlibc::Mutex::new(0u32);
     {
         let mut guard = m.lock();
         *guard = 42;
@@ -11,7 +11,7 @@ fn mutex_new_lock_mutate_release() {
 
 #[test]
 fn shard_mutex_alias_usable() {
-    let m: sig_safety::ShardMutex<u32> = sig_safety::ShardMutex::new(0u32);
+    let m: notlibc::ShardMutex<u32> = notlibc::ShardMutex::new(0u32);
     {
         let mut guard = m.lock();
         *guard = 7;

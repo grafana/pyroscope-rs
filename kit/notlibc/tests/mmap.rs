@@ -1,6 +1,6 @@
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 mod tests {
-    use sig_safety::mmap::{Mmap, MmapMut, page_size};
+    use notlibc::mmap::{Mmap, MmapMut, page_size};
 
     #[test]
     fn page_size_is_power_of_two() {
