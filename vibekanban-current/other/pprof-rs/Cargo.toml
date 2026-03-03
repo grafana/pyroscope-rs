@@ -1,0 +1,83 @@
+[package]
+name = "pprof"
+version = "0.11.1"
+authors = ["Yang Keao <keao.yang@yahoo.com>"]
+edition = "2021"
+license = "Apache-2.0"
+description = "An internal perf tools for rust programs."
+repository = "https://github.com/tikv/pprof-rs"
+documentation = "https://docs.rs/pprof/"
+readme = "README.md"
+
+[features]
+default = ["cpp"]
+cpp = ["symbolic-demangle/cpp"]
+flamegraph = ["inferno"]
+frame-pointer = []
+
+# A private feature to indicate either prost-codec or protobuf-codec is enabled.
+_protobuf = []
+prost-codec = ["prost", "prost-derive", "prost-build", "sha2", "_protobuf"]
+protobuf-codec = ["protobuf", "protobuf-codegen-pure", "_protobuf"]
+
+[dependencies]
+backtrace = { version = "0.3" }
+once_cell = "1.9"
+libc = "^0.2.66"
+log = "0.4"
+nix = { version = "0.26", default-features = false, features = ["signal", "fs"] }
+parking_lot = "0.12"
+tempfile = "3.1"
+thiserror = "1.0"
+findshlibs = "0.10"
+cfg-if = "1.0"
+smallvec = "1.7"
+
+inferno = { version = "0.11", default-features = false, features = ["nameattr"], optional = true }
+prost = { version = "0.11", optional = true }
+prost-derive = { version = "0.11", optional = true }
+protobuf = { version = "2.0", optional = true }
+criterion = {version = "0.4", optional = true}
+
+[dependencies.symbolic-demangle]
+version = "10.1"
+default-features = false
+features = ["rust"]
+
+[dev-dependencies]
+criterion = "0.4"
+rand = "0.8.0"
+
+[build-dependencies]
+prost-build = { version = "0.11", optional = true }
+sha2 = { version = "0.10", optional = true }
+protobuf-codegen-pure = { version = "2.0", optional = true }
+
+[[example]]
+name = "flamegraph"
+required-features = ["flamegraph"]
+
+[[example]]
+name = "profile_proto"
+required-features = ["protobuf"]
+
+[[example]]
+name = "multithread_flamegraph"
+required-features = ["flamegraph"]
+
+[[example]]
+name = "criterion"
+required-features = ["flamegraph", "criterion"]
+
+[[bench]]
+name = "collector"
+path = "benches/collector.rs"
+harness = false
+
+[[bench]]
+name = "addr_validate"
+path = "benches/addr_validate.rs"
+harness = false
+
+[package.metadata.docs.rs]
+all-features = true
