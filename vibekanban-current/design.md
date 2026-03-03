@@ -342,7 +342,7 @@ Record the base address and path. The base address is needed to compute ASLR-adj
 
 **Crate:** `kit/python_offsets`
 
-From the mapped Python binary, parse ELF headers to find these symbols:
+From the mapped Python binary, resolve these symbols:
 
 | Symbol | Purpose |
 |--------|---------|
@@ -350,12 +350,15 @@ From the mapped Python binary, parse ELF headers to find these symbols:
 | `Py_Version` | Version integer — `(major << 24) | (minor << 16) | (micro << 8) | release` |
 
 Procedure:
-1. Read the ELF header from the base address of the mapped region (the binary is already mapped by the OS loader).
-2. Locate the `.dynsym` and `.dynstr` sections via the dynamic segment (`PT_DYNAMIC`).
-3. Iterate dynamic symbols looking for `_PyRuntime` and `Py_Version`.
-4. Compute absolute addresses: `symbol_value + load_bias` (where `load_bias = mapped_base - first_LOAD_segment_vaddr`).
+1. Open the binary file at the path found in `/proc/self/maps` and mmap it read-only (via `memmap2`).
+2. Parse the ELF using the `object` crate: `object::File::parse(&mmap)`.
+3. Call `file.dynamic_symbols()` to iterate the `.dynsym` table.
+4. Match symbol names `"_PyRuntime"` and `"Py_Version"`.
+5. Compute absolute addresses: `symbol.address() + load_bias`
+   where `load_bias = mapped_base - file.relative_address_base()`.
+   For PIE/shared objects the first LOAD vaddr is 0, so `load_bias = mapped_base`.
 
-We read the ELF from already-mapped memory using `kindasafe::slice()`, avoiding additional file I/O.
+Returns `InitError::SymbolNotFound` (error code 3) if either symbol is absent.
 
 ### 5.4 Version Detection
 

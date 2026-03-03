@@ -1,9 +1,72 @@
 use std::io::BufRead;
 
+use object::{Object, ObjectSymbol};
+
 #[derive(Debug, PartialEq)]
 pub enum InitError {
     KindasafeInitFailed,
     PythonNotFound,
+    /// `_PyRuntime` or `Py_Version` symbol not found in the ELF dynamic symbol table.
+    /// Corresponds to init error code 3.
+    SymbolNotFound,
+    /// The ELF file could not be parsed.
+    ElfParse,
+    /// Failed to open or mmap the binary file.
+    Io,
+}
+
+/// Absolute runtime addresses of two key CPython symbols, after applying ASLR load bias.
+#[derive(Debug, PartialEq)]
+pub struct ElfSymbols {
+    pub py_runtime_addr: u64,
+    pub py_version_addr: u64,
+}
+
+/// Open and mmap `binary.path`, parse the ELF dynamic symbol table, find
+/// `_PyRuntime` and `Py_Version`, apply the ASLR load bias, and return their
+/// absolute runtime addresses.
+///
+/// Returns [`InitError::SymbolNotFound`] (error code 3) if either symbol is absent.
+pub fn resolve_elf_symbols(binary: &PythonBinary) -> Result<ElfSymbols, InitError> {
+    let file = std::fs::File::open(&binary.path).map_err(|_| InitError::Io)?;
+    // SAFETY: the file is a read-only view of an on-disk ELF; no other code
+    // modifies it during parsing.
+    let mmap = unsafe { memmap2::Mmap::map(&file) }.map_err(|_| InitError::Io)?;
+    resolve_elf_symbols_from_bytes(&mmap, binary.base)
+}
+
+/// Parse ELF dynamic symbols from a byte slice and compute absolute addresses.
+///
+/// `mapped_base` is the address at which the first mapping of this binary
+/// appears in `/proc/self/maps` (i.e. the runtime base after ASLR).
+fn resolve_elf_symbols_from_bytes(data: &[u8], mapped_base: u64) -> Result<ElfSymbols, InitError> {
+    let obj = object::File::parse(data).map_err(|_| InitError::ElfParse)?;
+
+    // load_bias = runtime base − ELF-file base (first LOAD segment vaddr).
+    // For PIE/shared objects p_vaddr is 0, so load_bias == mapped_base.
+    let load_bias = mapped_base.wrapping_sub(obj.relative_address_base());
+
+    let mut py_runtime: Option<u64> = None;
+    let mut py_version: Option<u64> = None;
+
+    for sym in obj.dynamic_symbols() {
+        match sym.name() {
+            Ok("_PyRuntime") => py_runtime = Some(sym.address().wrapping_add(load_bias)),
+            Ok("Py_Version") => py_version = Some(sym.address().wrapping_add(load_bias)),
+            _ => {}
+        }
+        if py_runtime.is_some() && py_version.is_some() {
+            break;
+        }
+    }
+
+    match (py_runtime, py_version) {
+        (Some(py_runtime_addr), Some(py_version_addr)) => Ok(ElfSymbols {
+            py_runtime_addr,
+            py_version_addr,
+        }),
+        _ => Err(InitError::SymbolNotFound),
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -326,5 +389,36 @@ mod tests {
 ";
         let bin = run(maps).unwrap();
         assert!(bin.path.contains("libpython3"), "should prefer libpython3");
+    }
+
+    // ── resolve_elf_symbols_from_bytes tests ─────────────────────────────────
+
+    // Real libpython3.14.so.1.0 committed as a test fixture.
+    // Symbol values verified with `nm --dynamic`:
+    //   _PyRuntime  0x71bd00
+    //   Py_Version  0x61c1b0
+    const LIBPYTHON314: &[u8] = include_bytes!("../testdata/libpython3.14.so.1.0");
+
+    #[test]
+    fn resolves_both_symbols() {
+        // mapped_base = 0 → load_bias = 0 (ET_DYN, relative_address_base() = 0)
+        // absolute addr = symbol st_value + 0 = st_value
+        let result = resolve_elf_symbols_from_bytes(LIBPYTHON314, 0).unwrap();
+        assert_eq!(result.py_runtime_addr, 0x71bd00);
+        assert_eq!(result.py_version_addr, 0x61c1b0);
+    }
+
+    #[test]
+    fn applies_load_bias() {
+        let mapped_base: u64 = 0x7f00_0000_0000;
+        let result = resolve_elf_symbols_from_bytes(LIBPYTHON314, mapped_base).unwrap();
+        assert_eq!(result.py_runtime_addr, mapped_base + 0x71bd00);
+        assert_eq!(result.py_version_addr, mapped_base + 0x61c1b0);
+    }
+
+    #[test]
+    fn elf_invalid_bytes_returns_elf_parse_error() {
+        let result = resolve_elf_symbols_from_bytes(b"not an elf file", 0);
+        assert_eq!(result, Err(InitError::ElfParse));
     }
 }
