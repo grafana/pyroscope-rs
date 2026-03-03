@@ -191,7 +191,7 @@ Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindas
 |-------|------|-------------|---------|
 | `kit/kindasafe` | lib (`#![no_std]`) | (none) | **Split from existing `kindasafe` crate.** SIGSEGV-safe memory read primitives: `u64()`, `slice()`, `str()`, `fs_0x10()` via naked assembly. Crash-point table and crash handler (manipulates `ucontext_t` via raw pointer offsets to skip faulting instructions). Currently the crash handler uses `libc::ucontext_t` types — these must be replaced with raw pointer arithmetic at fixed offsets for `#![no_std]`. **No libc dependency, no `std`** — uses only `core` and naked asm. Safe for use in signal handler context. |
 | `kit/kindasafe_init` | lib | `kindasafe`, `libc`, `spin` | **Split from existing `kindasafe` crate.** Initialization for kindasafe: installs SIGSEGV/SIGBUS signal handlers via `sigaction` that delegate to `kindasafe::arch::crash_handler` for recovery. Manages fallback handler chaining (`FALLBACK_SIGSEGV`/`FALLBACK_SIGBUS` statics). Provides `init()` and `is_initialized()`. **Not `#![no_std]`** — depends on `libc` for `sigaction` and `ucontext_t` types. Called once at profiler startup, never from signal handler context. |
-| `kit/sig_safety` | lib (`#![no_std]`) | `spin` | Async-signal-safe primitives: raw `mmap`/`munmap` wrappers (via raw `syscall` instruction — no libc), `eventfd` wrapper, `ErrnoGuard` (debug-only). Re-exports `spin::Mutex` for shard locking. **No libc dependency.** Uses inline assembly for syscalls. |
+| `kit/sig_safety` | lib (`#![no_std]`) | `spin` | Async-signal-safe primitives: raw `mmap`/`munmap` wrappers (via raw `syscall` instruction — no libc), `eventfd` wrapper. Re-exports `spin::Mutex` for shard locking. **No libc dependency.** Uses inline assembly for syscalls. |
 | `kit/sig_ring` | lib (`#![no_std]`) | `sig_safety` | Lock-free SPSC ring buffer with variable-length records. One per shard. Pre-allocated via mmap. Writer is signal handler, reader is background thread. Supports eventfd notification. **No libc dependency.** |
 | `kit/sighandler` | lib | `libc` | Signal handler registration (`sigaction`), `setitimer` wrapper. Generic — not Python-specific. Note: this crate uses `libc` for `sigaction`/`setitimer` calls at **init time only** — it is never called from within the signal handler. |
 | `kit/python_offsets` | lib | `kindasafe_init`, `libc` | CPython version detection, `_Py_DebugOffsets` reading, offset table structures. ELF symbol lookup for `_PyRuntime` and `Py_Version`. `/proc/self/maps` parsing. TLS offset discovery. All done at **init time only** — not in signal handler. Uses `kindasafe` reads (via `kindasafe_init`) for safe memory access during discovery. |
@@ -295,42 +295,7 @@ In the signal handler, we identify the current thread via `gettid()` (raw `sysca
 - Shard selection: `shard_index = tid % NUM_SHARDS`
 - Thread identification in sample records
 
-### 4.7 Errno Integrity
-
-The signal handler must **never modify `errno`**. Since we call no libc functions (our handler is fully `#![no_std]`, using only raw syscalls via inline assembly and `kindasafe`), `errno` is never touched. Raw syscalls (e.g., `syscall(SYS_gettid)`) return errors in the register, not via `errno`.
-
-To verify this invariant, we provide a **debug-only errno guard**:
-
-```
-// Only compiled in debug builds (#[cfg(debug_assertions)])
-struct ErrnoGuard {
-    saved: i32,
-}
-
-impl ErrnoGuard {
-    fn new() -> Self {
-        // Read errno via raw pointer to thread-local (no libc call)
-        Self { saved: read_errno_raw() }
-    }
-}
-
-impl Drop for ErrnoGuard {
-    fn drop(&mut self) {
-        let current = read_errno_raw();
-        if current != self.saved {
-            // errno was modified — a libc function was called in the handler!
-            // This is a bug. Abort immediately to catch it during development.
-            core::intrinsics::abort();
-        }
-    }
-}
-```
-
-This guard catches any accidental libc calls that sneak into the handler path during development. In release builds, it compiles to nothing — zero overhead.
-
-**Why not save/restore?** Saving and restoring `errno` requires calling `__errno_location()`, which is itself a libc function. Our design avoids libc entirely, so `errno` is never modified and doesn't need restoration. The debug guard is a safety net, not a runtime fix.
-
-### 4.8 Syscall Summary
+### 4.7 Syscall Summary
 
 | Syscall | Where Called | Signal-Safe | Purpose |
 |---------|-------------|-------------|---------|
@@ -600,9 +565,7 @@ extern "C" fn signal_handler(
 ```
 signal_handler(sig, info, ucontext):
   │
-  ├─ 1. [debug only] Create ErrnoGuard (saves errno, asserts unchanged on drop)
-  │
-  ├─ 2. Load global profiler state (atomic Acquire load)
+  ├─ 1. Load global profiler state (atomic Acquire load)
   │     If NULL → return
   │
   ├─ 3. Compute shard index: shard = gettid() % NUM_SHARDS
@@ -631,9 +594,7 @@ signal_handler(sig, info, ucontext):
   │     If samples_collected % N == 0:
   │       notify reader via eventfd (raw write(eventfd, &1u64, 8))
   │
-  ├─ 9. Unlock shard (MutexGuard drop)
-  │
-  └─ 10. [debug only] ErrnoGuard drops — asserts errno was not modified
+  └─ 9. Unlock shard (MutexGuard drop)
          return
 ```
 
@@ -651,8 +612,6 @@ Every operation in the handler is async-signal-safe. **No libc functions are cal
 | eventfd notify | Raw `write` syscall via inline asm (8 bytes to fd) — no libc |
 | Atomic counter increment | `fetch_add(Relaxed)` — no libc |
 | `spin::MutexGuard::drop()` | `store(Release)` — no libc |
-| [debug] ErrnoGuard | Raw pointer read of `errno` TLS slot — no libc call |
-
 **What the handler does NOT do:**
 - No **libc function calls at all** — not `memcpy`, not `__errno_location`, not `gettid()` via libc, nothing. Every operation is either a Rust core/atomic intrinsic, inline assembly, or a raw `syscall` instruction.
 - No `malloc` / `free` / `Box` / `Vec` / any Rust allocating type
@@ -865,9 +824,6 @@ fn raw_gettid() -> u32:
   // Inline assembly: syscall instruction with SYS_gettid number
   // Returns Linux thread ID without calling libc
 
-fn read_errno_raw() -> i32:
-  // Inline assembly: read from FS-relative errno offset
-  // Used only by debug ErrnoGuard — no __errno_location() call
 ```
 
 All syscall helpers use `core::arch::asm!` — no libc dependency.
@@ -1362,7 +1318,6 @@ The signal handler path uses **zero libc functions**. This is enforced structura
 - `kindasafe` (the read crate) uses naked assembly — no libc. The init-time code (`kindasafe_init`) depends on libc but is never in the handler path.
 - `spin` is `#![no_std]` — no libc.
 - OS interactions (`gettid`, `mmap`) use raw `syscall` instructions via `core::arch::asm!`.
-- The debug-only `ErrnoGuard` reads `errno` via a raw FS-relative pointer, not via `__errno_location()`.
 
 ---
 
