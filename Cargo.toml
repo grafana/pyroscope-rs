@@ -23,6 +23,7 @@ members = [
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/python/rust",
     "kit/kindasafe",
+    "kit/pprof_enc",
     "kit/sig_safety",
 ]
 
@@ -45,6 +46,7 @@ pretty_env_logger = "0.5.0"
 rbspy = { version = "0.42" }
 remoteprocess = "0.5.0"
 anyhow = "1.0"
+flate2 = "1.1"
 py-spy = { git = "https://github.com/grafana/py-spy", rev = "3b390dc4230207914164e1dd6888eb3e680b1560" }
 
 
