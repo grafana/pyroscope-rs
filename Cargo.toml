@@ -28,6 +28,7 @@ members = [
     "kit/pyroscope_ingest",
     "kit/pprof_enc",
     "kit/notlibc",
+    "kit/python_offsets",
 ]
 
 [workspace.dependencies]
