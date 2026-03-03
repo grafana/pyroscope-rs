@@ -7,4 +7,3 @@ recursive-include pyroscope_ffi/python/rust/src/ *.rs
 recursive-include pyroscope_ffi/ruby/ext/rbspy/src/ *.rs
 recursive-include kit/ *.rs
 recursive-include kit/ Cargo.toml
-
