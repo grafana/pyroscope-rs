@@ -1,7 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
-pub enum InitError {
-    InstallSignalHandlersFailed,
-}
+#![no_std]
 
 #[derive(Debug, PartialEq)]
 pub struct ReadMemError {
@@ -39,7 +36,7 @@ pub fn str(buf: &mut [u8], at: Ptr) -> Result<&str, ReadMemError> {
     for i in 0..buf.len() {
         if buf[i] == 0 {
             let v = &buf[..i];
-            return match str::from_utf8(v) {
+            return match core::str::from_utf8(v) {
                 Ok(v) => Ok(v),
                 Err(_) => Err(ReadMemError { signal: 228 }), //todo
             };
@@ -143,117 +140,4 @@ pub mod arch {
             ],
         }
     }
-
-    /// # Safety
-    /// `data` must be a valid pointer to `libc::ucontext_t`.
-    pub unsafe fn crash_handler(
-        sig: core::ffi::c_int,
-        info: *const core::ffi::c_void,
-        data: *mut core::ffi::c_void,
-    ) {
-        unsafe {
-            let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
-            let pc = (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] as usize;
-            for x in crash_points().crash_points {
-                if x.pc == pc {
-                    (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] =
-                        (pc + x.skip) as libc::greg_t;
-                    (*ctx).uc_mcontext.gregs[x.signal_reg] = sig as u64 as libc::greg_t;
-                    return;
-                }
-            }
-            super::fallback(sig, info, data);
-        }
-    }
-}
-
-// todo think how to have less static mut
-static mut FALLBACK_SIGSEGV: libc::sigaction = unsafe { core::mem::zeroed() };
-static mut FALLBACK_SIGBUS: libc::sigaction = unsafe { core::mem::zeroed() };
-
-static INIT_LOCK: spin::Mutex<Option<Result<(), InitError>>> = spin::Mutex::new(None);
-
-pub fn is_initialized() -> Option<Result<(), InitError>> {
-    let g = INIT_LOCK.lock();
-    g.clone()
-}
-pub fn init() -> Result<(), InitError> {
-    let mut g = INIT_LOCK.lock();
-    if let Some(prev) = g.clone() {
-        return prev;
-    }
-
-    let res = init_locked();
-    *g = Some(res.clone());
-    res
-}
-
-pub fn init_locked() -> Result<(), InitError> {
-    unsafe {
-        FALLBACK_SIGSEGV = new_signal_handler(libc::SIGSEGV, arch::crash_handler)
-            .map_err(|_| InitError::InstallSignalHandlersFailed)?;
-        FALLBACK_SIGBUS = new_signal_handler(libc::SIGBUS, arch::crash_handler)
-            .map_err(|_| InitError::InstallSignalHandlersFailed)?;
-    }
-    Ok(())
-}
-
-fn call_fallback(
-    sig: core::ffi::c_int,
-    info: *const core::ffi::c_void,
-    data: *mut core::ffi::c_void,
-    fallback: libc::sigaction,
-) {
-    if fallback.sa_sigaction == 0 {
-        restore_default_ignal_handler(sig);
-    } else {
-        let handler = unsafe {
-            core::mem::transmute::<
-                usize,
-                extern "C" fn(core::ffi::c_int, *const core::ffi::c_void, *mut core::ffi::c_void),
-            >(fallback.sa_sigaction)
-        };
-        handler(sig, info, data);
-    }
-}
-unsafe fn fallback(
-    sig: core::ffi::c_int,
-    info: *const core::ffi::c_void,
-    data: *mut core::ffi::c_void,
-) {
-    if sig == libc::SIGSEGV {
-        call_fallback(sig, info, data, unsafe { FALLBACK_SIGSEGV });
-        return;
-    }
-    if sig == libc::SIGBUS {
-        call_fallback(sig, info, data, unsafe { FALLBACK_SIGBUS });
-    }
-}
-
-fn new_signal_handler(
-    signal: core::ffi::c_int,
-    handler: unsafe fn(
-        sig: core::ffi::c_int,
-        info: *const core::ffi::c_void,
-        data: *mut core::ffi::c_void,
-    ),
-) -> Result<libc::sigaction, ()> {
-    unsafe {
-        let mut old: libc::sigaction = core::mem::zeroed();
-        if libc::sigaction(signal, core::ptr::null_mut(), &mut old) != 0 {
-            return Err(());
-        }
-        let mut new: libc::sigaction = old;
-        new.sa_sigaction = handler as usize;
-        new.sa_flags |= libc::SA_RESTART | libc::SA_SIGINFO;
-        if libc::sigaction(signal, &new, &mut old) != 0 {
-            return Err(());
-        }
-        Ok(old)
-    }
-}
-
-pub fn restore_default_ignal_handler(sig: core::ffi::c_int) {
-    let action: libc::sigaction = unsafe { core::mem::zeroed() };
-    unsafe { libc::sigaction(sig, &action, core::ptr::null_mut()) };
 }

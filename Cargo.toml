@@ -23,6 +23,7 @@ members = [
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/python/rust",
     "kit/kindasafe",
+    "kit/kindasafe_init",
     "kit/sighandler",
     "kit/pyroscope_ingest",
     "kit/pprof_enc",
