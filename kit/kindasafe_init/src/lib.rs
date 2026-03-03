@@ -47,8 +47,7 @@ pub unsafe fn crash_handler(
         let pc = (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] as usize;
         for x in kindasafe::arch::crash_points().crash_points {
             if x.pc == pc {
-                (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] =
-                    (pc + x.skip) as libc::greg_t;
+                (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] = (pc + x.skip) as libc::greg_t;
                 (*ctx).uc_mcontext.gregs[x.signal_reg] = sig as u64 as libc::greg_t;
                 return;
             }

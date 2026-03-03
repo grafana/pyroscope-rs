@@ -69,8 +69,14 @@ mod tests {
         // Clean up: disarm the timer immediately.
         unsafe {
             let zero = libc::itimerval {
-                it_interval: libc::timeval { tv_sec: 0, tv_usec: 0 },
-                it_value: libc::timeval { tv_sec: 0, tv_usec: 0 },
+                it_interval: libc::timeval {
+                    tv_sec: 0,
+                    tv_usec: 0,
+                },
+                it_value: libc::timeval {
+                    tv_sec: 0,
+                    tv_usec: 0,
+                },
             };
             libc::setitimer(libc::ITIMER_PROF, &zero, core::ptr::null_mut());
         }

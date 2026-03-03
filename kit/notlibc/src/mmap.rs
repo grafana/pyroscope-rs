@@ -12,11 +12,7 @@
 /// Linux targets.
 #[inline]
 pub(crate) fn check(ret: isize) -> Result<isize, i32> {
-    if ret < 0 {
-        Err((-ret) as i32)
-    } else {
-        Ok(ret)
-    }
+    if ret < 0 { Err((-ret) as i32) } else { Ok(ret) }
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
@@ -24,9 +20,9 @@ mod imp {
     use core::ops::{Deref, DerefMut};
     use core::sync::atomic::{AtomicUsize, Ordering};
 
-    use crate::syscall::{syscall2, syscall3, syscall6};
-    use crate::auxv::getauxval;
     use super::check;
+    use crate::auxv::getauxval;
+    use crate::syscall::{syscall2, syscall3, syscall6};
 
     // ── syscall numbers ────────────────────────────────────────────────────────
     const SYS_MMAP: usize = 9;
@@ -188,8 +184,7 @@ mod imp {
     impl MmapMut {
         /// Create a read-write anonymous mapping of `len` bytes.
         pub fn map_anon(len: usize) -> Result<Self, i32> {
-            MmapInner::map_anon(len, PROT_READ | PROT_WRITE)
-                .map(|inner| MmapMut { inner })
+            MmapInner::map_anon(len, PROT_READ | PROT_WRITE).map(|inner| MmapMut { inner })
         }
 
         /// Transition to a read-only mapping via `mprotect(PROT_READ)`.
@@ -226,9 +221,7 @@ mod imp {
     impl DerefMut for MmapMut {
         #[inline]
         fn deref_mut(&mut self) -> &mut [u8] {
-            unsafe {
-                core::slice::from_raw_parts_mut(self.inner.mut_ptr(), self.inner.len())
-            }
+            unsafe { core::slice::from_raw_parts_mut(self.inner.mut_ptr(), self.inner.len()) }
         }
     }
 }

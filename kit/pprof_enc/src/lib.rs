@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::io::Write as _;
 
-use flate2::{write::GzEncoder, Compression};
+use flate2::{Compression, write::GzEncoder};
 use prost::Message;
 
 // ---------------------------------------------------------------------------

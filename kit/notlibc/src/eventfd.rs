@@ -77,8 +77,7 @@ impl EventFd {
     pub fn new() -> Result<Self, Error> {
         #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
         {
-            let ret =
-                unsafe { crate::syscall::syscall2(nr::SYS_EVENTFD2, 0, flags::EFD_FLAGS) };
+            let ret = unsafe { crate::syscall::syscall2(nr::SYS_EVENTFD2, 0, flags::EFD_FLAGS) };
             if ret >= 0 {
                 Ok(Self { fd: ret as i32 })
             } else {

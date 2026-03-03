@@ -14,7 +14,11 @@ mod tests {
         // Verify that our AT_PAGESZ-based reading returns the same value as
         // the libc sysconf(_SC_PAGESIZE) call.
         let libc_ps = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
-        assert_eq!(page_size(), libc_ps, "page_size() differs from libc sysconf");
+        assert_eq!(
+            page_size(),
+            libc_ps,
+            "page_size() differs from libc sysconf"
+        );
     }
 
     #[test]

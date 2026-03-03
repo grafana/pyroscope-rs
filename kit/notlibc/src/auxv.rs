@@ -5,8 +5,8 @@
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 mod imp {
-    use crate::syscall::{syscall1, syscall3, syscall4};
     use crate::mmap::check;
+    use crate::syscall::{syscall1, syscall3, syscall4};
 
     // ── syscall numbers ────────────────────────────────────────────────────────
     const SYS_OPENAT: usize = 257;
@@ -72,7 +72,7 @@ mod imp {
                 a_bytes.copy_from_slice(&available[i..i + WORD]);
                 v_bytes.copy_from_slice(&available[i + WORD..i + 2 * WORD]);
                 let a_type = usize::from_le_bytes(a_bytes);
-                let a_val  = usize::from_le_bytes(v_bytes);
+                let a_val = usize::from_le_bytes(v_bytes);
                 i += ENTRY_SIZE;
 
                 if a_type == AT_NULL {

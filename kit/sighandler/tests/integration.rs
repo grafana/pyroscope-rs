@@ -13,7 +13,9 @@ fn burn_cpu(dur: Duration) {
     let start = Instant::now();
     let mut x: u64 = 1;
     while start.elapsed() < dur {
-        x = x.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        x = x
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
     }
     // Prevent the loop from being optimized away.
     let _ = x;
@@ -31,12 +33,21 @@ fn sigprof_fires_repeatedly() {
     // Disarm the timer before asserting so stray signals don't interfere.
     unsafe {
         let zero = libc::itimerval {
-            it_interval: libc::timeval { tv_sec: 0, tv_usec: 0 },
-            it_value: libc::timeval { tv_sec: 0, tv_usec: 0 },
+            it_interval: libc::timeval {
+                tv_sec: 0,
+                tv_usec: 0,
+            },
+            it_value: libc::timeval {
+                tv_sec: 0,
+                tv_usec: 0,
+            },
         };
         libc::setitimer(libc::ITIMER_PROF, &zero, core::ptr::null_mut());
     }
 
     let count = COUNTER.load(Ordering::Relaxed);
-    assert!(count > 0, "expected SIGPROF to fire at least once, got {count}");
+    assert!(
+        count > 0,
+        "expected SIGPROF to fire at least once, got {count}"
+    );
 }
