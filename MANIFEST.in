@@ -3,7 +3,9 @@ include Cargo.lock
 include pyroscope_ffi/python/rust/Cargo.toml
 include pyroscope_ffi/ruby/ext/rbspy/Cargo.toml
 include kit/kindasafe/Cargo.toml
+include kit/sig_safety/Cargo.toml
 recursive-include src *.rs
 recursive-include pyroscope_ffi/python/rust/src/ *.rs
 recursive-include pyroscope_ffi/ruby/ext/rbspy/src/ *.rs
 recursive-include kit/kindasafe/src/ *.rs
+recursive-include kit/sig_safety/src/ *.rs
