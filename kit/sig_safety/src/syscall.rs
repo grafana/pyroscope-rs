@@ -78,3 +78,33 @@ pub(crate) unsafe fn syscall4(nr: usize, a0: usize, a1: usize, a2: usize, a3: us
     ret
 }
 
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+#[inline(always)]
+pub(crate) unsafe fn syscall6(
+    nr: usize,
+    a0: usize,
+    a1: usize,
+    a2: usize,
+    a3: usize,
+    a4: usize,
+    a5: usize,
+) -> isize {
+    let ret: isize;
+    unsafe {
+        core::arch::asm!(
+            "syscall",
+            inlateout("rax") nr => ret,
+            in("rdi") a0,
+            in("rsi") a1,
+            in("rdx") a2,
+            in("r10") a3,
+            in("r8")  a4,
+            in("r9")  a5,
+            lateout("rcx") _,
+            lateout("r11") _,
+            options(nostack, preserves_flags),
+        );
+    }
+    ret
+}
+

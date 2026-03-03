@@ -1,7 +1,7 @@
 #![no_std]
 
 mod errno_guard;
-mod mmap;
+pub mod mmap;
 mod syscall;
 
 pub use spin::Mutex;
