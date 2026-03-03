@@ -23,10 +23,10 @@ members = [
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/python/rust",
     "kit/kindasafe",
+    "kit/sighandler",
     "kit/pyroscope_ingest",
     "kit/pprof_enc",
     "kit/sig_safety",
-
 ]
 
 [workspace.dependencies]
