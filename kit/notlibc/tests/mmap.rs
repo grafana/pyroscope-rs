@@ -10,6 +10,14 @@ mod tests {
     }
 
     #[test]
+    fn page_size_matches_libc() {
+        // Verify that our AT_PAGESZ-based reading returns the same value as
+        // the libc sysconf(_SC_PAGESIZE) call.
+        let libc_ps = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
+        assert_eq!(page_size(), libc_ps, "page_size() differs from libc sysconf");
+    }
+
+    #[test]
     fn mmap_mut_write_read() {
         let mut map = MmapMut::map_anon(page_size()).expect("MmapMut::map_anon");
         assert_eq!(map.len(), page_size());

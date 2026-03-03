@@ -25,6 +25,7 @@ mod imp {
     use core::sync::atomic::{AtomicUsize, Ordering};
 
     use crate::syscall::{syscall2, syscall3, syscall6};
+    use crate::auxv::getauxval;
     use super::check;
 
     // ── syscall numbers ────────────────────────────────────────────────────────
@@ -39,17 +40,16 @@ mod imp {
     const MAP_PRIVATE: usize = 0x02;
     const MAP_ANONYMOUS: usize = 0x20;
 
+    // ── ELF auxiliary vector entry type for page size ──────────────────────────
+    const AT_PAGESZ: usize = 6;
+
     // ── page size (cached, same pattern as memmap2) ────────────────────────────
 
     pub fn page_size() -> usize {
         static PAGE_SIZE: AtomicUsize = AtomicUsize::new(0);
         match PAGE_SIZE.load(Ordering::Relaxed) {
             0 => {
-                // TODO: read AT_PAGESZ from /proc/self/auxv instead of
-                // hard-coding. On x86_64 Linux the page size is always 4096,
-                // but reading AT_PAGESZ would be correct on any architecture.
-                // Tracked in: https://github.com/korniltsev-grafanista-yolo-vibecoder239/pyroscope-rs/issues
-                let ps = 4096_usize;
+                let ps = getauxval(AT_PAGESZ).unwrap_or(4096);
                 PAGE_SIZE.store(ps, Ordering::Relaxed);
                 ps
             }
