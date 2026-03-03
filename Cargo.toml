@@ -5,7 +5,7 @@ Pyroscope Profiler Agent for continuous profiling of Rust, Python and Ruby appli
 """
 keywords = ["pyroscope", "profiler", "profiling", "pprof"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io/docs/rust"
@@ -36,7 +36,7 @@ libflate = "2.1.0"
 libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
-pprof = { package = "pprof-pyroscope-fork", version = "0.1500.1", features = ["framehop", "framehop-unwinder"] }
+pprof = { package = "pprof-pyroscope-fork", version = "0.1500.2", features = ["framehop", "framehop-unwinder"] }
 lazy_static = "1.5.0"
 assert_matches = "=1.5.0"
 claims = "=0.8.0"
