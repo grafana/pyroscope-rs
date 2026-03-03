@@ -1995,9 +1995,9 @@ dependencies = [
 
 [[package]]
 name = "pprof-pyroscope-fork"
-version = "0.1500.1"
+version = "0.1500.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a81f1489b882945ce89a4c93dbb50b1bf31839188d3c83fb5e5eded6bad6ee2d"
+checksum = "5fa86bc766c4e3e07526f21028ad9cdd112903c2cc646b36724c54978fb42f81"
 dependencies = [
  "aligned-vec",
  "backtrace",
