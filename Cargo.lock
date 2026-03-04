@@ -2319,7 +2319,10 @@ dependencies = [
 name = "python_offsets"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "kindasafe",
  "kindasafe_init",
+ "libc",
  "memmap2 0.9.10",
  "object 0.36.7",
 ]
