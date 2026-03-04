@@ -1,7 +1,7 @@
-/// Read entries from the ELF auxiliary vector via `/proc/self/auxv`.
-///
-/// Uses only inline-assembly syscalls (SYS_openat, SYS_read, SYS_close) so
-/// it is safe to call from a signal handler and requires no libc.
+//! Read entries from the ELF auxiliary vector via `/proc/self/auxv`.
+//!
+//! Uses only inline-assembly syscalls (SYS_openat, SYS_read, SYS_close) so
+//! it is safe to call from a signal handler and requires no libc.
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 mod imp {

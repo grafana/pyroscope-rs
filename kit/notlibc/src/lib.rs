@@ -1,6 +1,7 @@
 #![no_std]
 
 pub mod auxv;
+pub mod debug;
 mod errno_guard;
 pub mod mmap;
 mod syscall;

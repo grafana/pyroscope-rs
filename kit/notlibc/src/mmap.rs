@@ -1,10 +1,10 @@
-/// Anonymous memory mapping via inline assembly syscalls — no libc.
-///
-/// Structural design follows memmap2's unix.rs (MmapInner / Mmap / MmapMut),
-/// with every libc call replaced by a call into `crate::syscall`.
-///
-/// Only anonymous private mappings are supported (the use-case for
-/// signal-handler–safe scratch buffers).  File-backed maps are out of scope.
+//! Anonymous memory mapping via inline assembly syscalls — no libc.
+//!
+//! Structural design follows memmap2's unix.rs (MmapInner / Mmap / MmapMut),
+//! with every libc call replaced by a call into `crate::syscall`.
+//!
+//! Only anonymous private mappings are supported (the use-case for
+//! signal-handler–safe scratch buffers).  File-backed maps are out of scope.
 
 /// Convert a raw kernel `isize` return value into `Result`.
 /// Negative values encode `-errno`; non-negative values are success.

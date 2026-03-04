@@ -1,8 +1,8 @@
-/// Raw inline-assembly Linux syscall helpers for x86-64.
-///
-/// Each function issues the `syscall` instruction with the given arguments and
-/// returns the kernel's raw return value (negative → errno on error).
-/// All are marked `unsafe`; callers are responsible for argument validity.
+//! Raw inline-assembly Linux syscall helpers for x86-64.
+//!
+//! Each function issues the `syscall` instruction with the given arguments and
+//! returns the kernel's raw return value (negative → errno on error).
+//! All are marked `unsafe`; callers are responsible for argument validity.
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 #[inline(always)]
