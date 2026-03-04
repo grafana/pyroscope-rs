@@ -7,11 +7,7 @@
 mod imp {
     use crate::mmap::check;
     use crate::syscall::{syscall1, syscall3, syscall4};
-
-    // ── syscall numbers ────────────────────────────────────────────────────────
-    const SYS_OPENAT: usize = 257;
-    const SYS_READ: usize = 0;
-    const SYS_CLOSE: usize = 3;
+    use crate::syscall_nr::x86_64::{SYS_CLOSE, SYS_OPENAT, SYS_READ};
 
     // ── openat constants ───────────────────────────────────────────────────────
     const AT_FDCWD: usize = (-100_isize) as usize;

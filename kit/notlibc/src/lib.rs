@@ -5,6 +5,7 @@ pub mod debug;
 mod errno_guard;
 pub mod mmap;
 mod syscall;
+pub mod syscall_nr;
 
 pub use spin::Mutex;
 

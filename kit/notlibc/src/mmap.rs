@@ -23,11 +23,7 @@ mod imp {
     use super::check;
     use crate::auxv::getauxval;
     use crate::syscall::{syscall2, syscall3, syscall6};
-
-    // ── syscall numbers ────────────────────────────────────────────────────────
-    const SYS_MMAP: usize = 9;
-    const SYS_MUNMAP: usize = 11;
-    const SYS_MPROTECT: usize = 10;
+    use crate::syscall_nr::x86_64::{SYS_MMAP, SYS_MPROTECT, SYS_MUNMAP};
 
     // ── mmap prot / flags constants (Linux x86_64) ─────────────────────────────
     const PROT_READ: usize = 1;

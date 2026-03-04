@@ -19,14 +19,9 @@ impl core::fmt::Display for Error {
 // ── platform-specific syscall numbers & constants ─────────────────────────────
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
-mod nr {
-    pub const SYS_WRITE: usize = 1;
-    pub const SYS_CLOSE: usize = 3;
-    pub const SYS_EPOLL_CTL: usize = 233;
-    pub const SYS_EPOLL_WAIT: usize = 232;
-    pub const SYS_EVENTFD2: usize = 290;
-    pub const SYS_EPOLL_CREATE1: usize = 291;
-}
+use crate::syscall_nr::x86_64::{
+    SYS_CLOSE, SYS_EPOLL_CREATE1, SYS_EPOLL_CTL, SYS_EPOLL_WAIT, SYS_EVENTFD2, SYS_WRITE,
+};
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 mod flags {
@@ -55,7 +50,7 @@ struct EpollEvent {
 fn close_fd(fd: i32) {
     #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
     unsafe {
-        crate::syscall::syscall1(nr::SYS_CLOSE, fd as usize);
+        crate::syscall::syscall1(SYS_CLOSE, fd as usize);
     }
     #[cfg(not(all(target_arch = "x86_64", target_os = "linux")))]
     let _ = fd;
@@ -77,7 +72,7 @@ impl EventFd {
     pub fn new() -> Result<Self, Error> {
         #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
         {
-            let ret = unsafe { crate::syscall::syscall2(nr::SYS_EVENTFD2, 0, flags::EFD_FLAGS) };
+            let ret = unsafe { crate::syscall::syscall2(SYS_EVENTFD2, 0, flags::EFD_FLAGS) };
             if ret >= 0 {
                 Ok(Self { fd: ret as i32 })
             } else {
@@ -106,7 +101,7 @@ impl EventFd {
             // SAFETY: `val` lives on the stack for the duration of the syscall.
             unsafe {
                 crate::syscall::syscall3(
-                    nr::SYS_WRITE,
+                    SYS_WRITE,
                     self.fd as usize,
                     &val as *const u64 as usize,
                     8,
@@ -147,7 +142,7 @@ impl EventSet {
         #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
         {
             // epoll_create1(0) — no special flags needed
-            let ret = unsafe { crate::syscall::syscall1(nr::SYS_EPOLL_CREATE1, 0) };
+            let ret = unsafe { crate::syscall::syscall1(SYS_EPOLL_CREATE1, 0) };
             if ret >= 0 {
                 Ok(Self {
                     epfd: ret as i32,
@@ -184,7 +179,7 @@ impl EventSet {
             };
             let ret = unsafe {
                 crate::syscall::syscall4(
-                    nr::SYS_EPOLL_CTL,
+                    SYS_EPOLL_CTL,
                     self.epfd as usize,
                     flags::EPOLL_CTL_ADD,
                     efd.fd as usize,
@@ -224,7 +219,7 @@ impl EventSet {
             loop {
                 let ret = unsafe {
                     crate::syscall::syscall4(
-                        nr::SYS_EPOLL_WAIT,
+                        SYS_EPOLL_WAIT,
                         self.epfd as usize,
                         &mut ev as *mut EpollEvent as usize,
                         1, // max_events = 1

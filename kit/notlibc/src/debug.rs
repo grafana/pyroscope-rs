@@ -4,7 +4,7 @@
 //! (i.e. in `--release` or any profile with `debug-assertions = false`).
 
 #[cfg(all(debug_assertions, target_arch = "x86_64", target_os = "linux"))]
-const SYS_WRITE: usize = 1;
+use crate::syscall_nr::x86_64::SYS_WRITE;
 #[cfg(all(debug_assertions, target_arch = "x86_64", target_os = "linux"))]
 const STDOUT: usize = 1;
 
