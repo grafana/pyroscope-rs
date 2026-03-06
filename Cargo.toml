@@ -29,6 +29,7 @@ members = [
     "kit/pprof_enc",
     "kit/notlibc",
     "kit/python_offsets",
+    "kit/coredump",
 ]
 
 [workspace.dependencies]

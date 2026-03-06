@@ -528,6 +528,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "coredump"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "libc",
+ "memmap2 0.9.10",
+ "object 0.36.7",
+]
+
+[[package]]
 name = "cpp_demangle"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
