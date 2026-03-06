@@ -466,13 +466,11 @@ PythonOffsets {
     unicode_asciiobject_size: u64,       // data starts at this offset from object
 
     // TLS access
-    tls_offset: u64,                     // FS-relative offset for _Py_tss_tstate
     tls_method: TlsMethod,              // which method we're using
 }
 
 enum TlsMethod {
-    StaticTls { fs_offset: u64 },        // Direct FS-relative access (preferred)
-    ThreadListWalk,                      // Walk interpreter thread list (fallback)
+    StaticTls { fs_offset: u64 },        // Direct FS-relative access
 }
 ```
 
@@ -484,41 +482,24 @@ This struct is populated once at init time and then shared (read-only) with the 
 
 The signal handler needs O(1) access to the current thread's `PyThreadState`. We use TLS-based access.
 
-#### Primary Approach: Disassemble `_PyThreadState_GetCurrent`
+#### Approach: Disassemble `_PyThreadState_GetCurrent`
 
-CPython 3.14 stores the current thread state in a compiler-level `__thread` variable (`_Py_tss_tstate`). The function `_PyThreadState_GetCurrent` reads it:
+CPython stores the current thread state in a compiler-level `__thread` variable (`_Py_tss_tstate`). The function `_PyThreadState_GetCurrent` reads it via an FS-relative load (static TLS model):
 
 1. Find the address of `_PyThreadState_GetCurrent` from ELF `.dynsym`.
-2. Read the first N bytes of the function (typically 5-10 bytes).
-3. Decode x86_64 instructions to find an FS-relative load:
+2. Read the first 128 bytes of the function from the file image.
+3. Use the `zydis` disassembler to decode instructions and find the first instruction with an FS segment prefix on a memory operand:
    - Pattern: `64 48 8b 04 25 XX XX XX XX` (mov rax, fs:disp32)
    - Or: `64 48 8b 05 XX XX XX XX` (mov rax, fs:[rip+disp32])
    - Extract the displacement value — this is the static TLS offset.
-4. At runtime in the signal handler:
+4. Populate `TlsMethod::StaticTls { fs_offset }`.
+5. At runtime in the signal handler:
    ```
-   tstate = kindasafe::u64(fs_base + tls_offset)
+   tstate = kindasafe::u64(fs_base + fs_offset)
    ```
-   where `fs_base` = the thread's TLS base (obtained via `arch_prctl(ARCH_GET_FS)` or reading `fs:0x0` at init for validation).
+   where `fs_base` = the thread's TLS base (obtained via `arch_prctl(ARCH_GET_FS)` at init).
 
-This approach is robust because it doesn't depend on pthread implementation details or autoTSSkey.
-
-#### Fallback Approach: Walk the Thread List
-
-If disassembly fails, fall back to walking the interpreter's thread list:
-
-```
-interp = read_u64(py_runtime_addr + offsets.runtime_interpreters_head)
-tstate = read_u64(interp + offsets.interp_threads_head)
-my_tid = gettid()
-while tstate != 0 {
-    tid = read_u64(tstate + offsets.tstate_native_thread_id)
-    if tid == my_tid { return tstate }
-    tstate = read_u64(tstate + offsets.tstate_next)
-}
-return None
-```
-
-This is O(n) in the number of threads but uses `kindasafe::u64()` for safety.
+Returns `InitError::TlsDiscoveryFailed` (error code 6) if `_PyThreadState_GetCurrent` is absent or no FS-relative load is found (e.g. when Python uses the General Dynamic TLS model via `__tls_get_addr`).
 
 #### Validation
 
@@ -578,8 +559,7 @@ signal_handler(sig, info, ucontext):
   │     If all 3 fail → increment drop counter, return
   │
   ├─ 5. Find PyThreadState via TLS:
-  │     [StaticTls]: tstate = kindasafe::u64(fs_base + tls_offset)
-  │     [ThreadListWalk]: walk interpreter thread list matching gettid()
+  │     [StaticTls]: tstate = kindasafe::u64(fs_base + fs_offset)
   │     If tstate == 0 or read failed → unlock, return
   │
   ├─ 6. Unwind Python stack:
@@ -1444,24 +1424,22 @@ _PyRuntime (global, found via ELF symbol)
 
 ### A.4 TLS Access on x86_64
 
-For `_PyThreadState_GetCurrent` using a static `__thread` variable:
+For `_PyThreadState_GetCurrent` using a static `__thread` variable (Local Exec TLS model):
 ```
 // The compiler generates something like:
 //   mov rax, fs:[known_negative_offset]
 //   ret
 //
-// We extract known_negative_offset by disassembling the first bytes.
+// We extract known_negative_offset using the zydis disassembler on the first
+// 128 bytes of the function, looking for an FS-segment-prefixed memory operand.
 // At runtime in the handler:
 //   tstate = *(FS_BASE + known_negative_offset)
-// where FS_BASE can be read via arch_prctl or from fs:0x0.
+// where FS_BASE is read via arch_prctl(ARCH_GET_FS) at init time.
 ```
 
-For the legacy `autoTSSkey` approach (3.13 and earlier):
-```
-// fs_base = kindasafe::fs_0x10()  // TCB pointer
-// tls_slot = fs_base + 8 + ((tss_key + 0x31) << 4)
-// tstate = kindasafe::u64(tls_slot)
-```
+If `_PyThreadState_GetCurrent` uses the General Dynamic TLS model (`__tls_get_addr`),
+no FS-relative instruction is present and `InitError::TlsDiscoveryFailed` (code 6)
+is returned.
 
 ### A.5 Memory Read Patterns in Signal Handler
 
