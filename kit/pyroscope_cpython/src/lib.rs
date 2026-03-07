@@ -205,6 +205,7 @@ fn reader_thread(state: &'static HandlerState) {
                     notlibc::debug::write_hex(record.depth as usize);
                     notlibc::debug::puts("");
 
+                    let offsets = &state.debug_offsets;
                     for i in 0..record.depth as usize {
                         let frame = record.frame(i);
                         notlibc::debug::writes("  reader: [");
@@ -213,6 +214,44 @@ fn reader_thread(state: &'static HandlerState) {
                         notlibc::debug::write_hex(frame.code_object as usize);
                         notlibc::debug::writes(" instr=0x");
                         notlibc::debug::write_hex(frame.instr_offset as usize);
+
+                        // Symbolize: read co_qualname (or co_name fallback)
+                        let mut name_buf = [0u8; 256];
+                        let mut resolved = false;
+                        if let Ok(qualname_ptr) =
+                            kindasafe::u64(frame.code_object + offsets.code_object.qualname)
+                        {
+                            if qualname_ptr != 0 {
+                                if let Ok(name) = kindasafe::str(
+                                    &mut name_buf,
+                                    qualname_ptr + offsets.unicode_object.asciiobject_size,
+                                ) {
+                                    if !name.is_empty() {
+                                        notlibc::debug::writes(" ");
+                                        notlibc::debug::writes(name);
+                                        resolved = true;
+                                    }
+                                }
+                            }
+                        }
+                        if !resolved {
+                            if let Ok(name_ptr) =
+                                kindasafe::u64(frame.code_object + offsets.code_object.name)
+                            {
+                                if name_ptr != 0 {
+                                    if let Ok(name) = kindasafe::str(
+                                        &mut name_buf,
+                                        name_ptr + offsets.unicode_object.asciiobject_size,
+                                    ) {
+                                        if !name.is_empty() {
+                                            notlibc::debug::writes(" ");
+                                            notlibc::debug::writes(name);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         notlibc::debug::puts("");
                     }
                 }
