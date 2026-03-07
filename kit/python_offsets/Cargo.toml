@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+kindasafe = { path = "../kindasafe" }
 kindasafe_init = { path = "../kindasafe_init" }
 object = { version = "0.36", default-features = false, features = ["read", "elf"] }
 memmap2 = "0.9"
 zydis = "4.1.1"
 
 [dev-dependencies]
-kindasafe = { path = "../kindasafe" }
 libc = "=0.2.182"
 anyhow = "=1.0.102"

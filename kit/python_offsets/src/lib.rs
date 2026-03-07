@@ -1,7 +1,15 @@
+pub mod py313;
+pub mod py314;
+
+use core::mem::size_of;
 use std::io::BufRead;
 
 use object::{Object, ObjectSegment, ObjectSymbol};
 use zydis::ffi::DecodedOperandKind;
+
+/// Expected cookie at `_Py_DebugOffsets` offset 0: `b"xdebugpy"` as little-endian u64.
+/// This is version-independent — all CPython builds that have `_Py_DebugOffsets` use it.
+pub const COOKIE: u64 = 0x7970_6775_6265_6478;
 
 #[derive(Debug, PartialEq)]
 pub enum InitError {
@@ -10,6 +18,8 @@ pub enum InitError {
     /// `_PyRuntime` or `Py_Version` symbol not found in the ELF dynamic symbol table.
     /// Corresponds to init error code 3.
     SymbolNotFound,
+    DebugOffsetsMismatch,
+    UnsupportedVersion,
     /// The ELF file could not be parsed.
     ElfParse,
     /// Failed to open or mmap the binary file.
@@ -17,6 +27,141 @@ pub enum InitError {
     /// Disassembly of `_PyThreadState_GetCurrent` did not yield an FS-relative load.
     /// Corresponds to init error code 6.
     TlsDiscoveryFailed,
+}
+
+/// Parsed CPython version from `PY_VERSION_HEX`.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct PythonVersion {
+    pub major: u8,
+    pub minor: u8,
+    pub micro: u8,
+}
+
+/// Parse a raw `PY_VERSION_HEX` value into [`PythonVersion`].
+///
+/// The hex layout is `(major << 24) | (minor << 16) | (micro << 8) | release_level`.
+pub fn parse_version(version_hex: u64) -> PythonVersion {
+    PythonVersion {
+        major: ((version_hex >> 24) & 0xFF) as u8,
+        minor: ((version_hex >> 16) & 0xFF) as u8,
+        micro: ((version_hex >> 8) & 0xFF) as u8,
+    }
+}
+
+/// Convert a 3.14 `_Py_DebugOffsets` into the 3.13 layout (common denominator).
+/// Fields only present in 3.14 are dropped; shared sub-structs are copied
+/// field-by-field since the 3.14 versions may have extra trailing fields.
+impl From<&py314::_Py_DebugOffsets> for py313::_Py_DebugOffsets {
+    fn from(v: &py314::_Py_DebugOffsets) -> Self {
+        Self {
+            cookie: v.cookie,
+            version: v.version,
+            free_threaded: v.free_threaded,
+            runtime_state: py313::_Py_DebugOffsets__runtime_state {
+                size: v.runtime_state.size,
+                finalizing: v.runtime_state.finalizing,
+                interpreters_head: v.runtime_state.interpreters_head,
+            },
+            interpreter_state: py313::_Py_DebugOffsets__interpreter_state {
+                size: v.interpreter_state.size,
+                id: v.interpreter_state.id,
+                next: v.interpreter_state.next,
+                threads_head: v.interpreter_state.threads_head,
+                // 3.14 has threads_main here; 3.13 does not — skip it
+                gc: v.interpreter_state.gc,
+                imports_modules: v.interpreter_state.imports_modules,
+                sysdict: v.interpreter_state.sysdict,
+                builtins: v.interpreter_state.builtins,
+                ceval_gil: v.interpreter_state.ceval_gil,
+                gil_runtime_state: v.interpreter_state.gil_runtime_state,
+                gil_runtime_state_enabled: v.interpreter_state.gil_runtime_state_enabled,
+                gil_runtime_state_locked: v.interpreter_state.gil_runtime_state_locked,
+                gil_runtime_state_holder: v.interpreter_state.gil_runtime_state_holder,
+            },
+            thread_state: py313::_Py_DebugOffsets__thread_state {
+                size: v.thread_state.size,
+                prev: v.thread_state.prev,
+                next: v.thread_state.next,
+                interp: v.thread_state.interp,
+                current_frame: v.thread_state.current_frame,
+                thread_id: v.thread_state.thread_id,
+                native_thread_id: v.thread_state.native_thread_id,
+                datastack_chunk: v.thread_state.datastack_chunk,
+                status: v.thread_state.status,
+            },
+            interpreter_frame: py313::_Py_DebugOffsets__interpreter_frame {
+                size: v.interpreter_frame.size,
+                previous: v.interpreter_frame.previous,
+                executable: v.interpreter_frame.executable,
+                instr_ptr: v.interpreter_frame.instr_ptr,
+                localsplus: v.interpreter_frame.localsplus,
+                owner: v.interpreter_frame.owner,
+                // 3.14 has stackpointer here; 3.13 does not — drop it
+            },
+            code_object: py313::_Py_DebugOffsets__code_object {
+                size: v.code_object.size,
+                filename: v.code_object.filename,
+                name: v.code_object.name,
+                qualname: v.code_object.qualname,
+                linetable: v.code_object.linetable,
+                firstlineno: v.code_object.firstlineno,
+                argcount: v.code_object.argcount,
+                localsplusnames: v.code_object.localsplusnames,
+                localspluskinds: v.code_object.localspluskinds,
+                co_code_adaptive: v.code_object.co_code_adaptive,
+            },
+            pyobject: py313::_Py_DebugOffsets__pyobject {
+                size: v.pyobject.size,
+                ob_type: v.pyobject.ob_type,
+            },
+            type_object: py313::_Py_DebugOffsets__type_object {
+                size: v.type_object.size,
+                tp_name: v.type_object.tp_name,
+                tp_repr: v.type_object.tp_repr,
+                tp_flags: v.type_object.tp_flags,
+            },
+            tuple_object: py313::_Py_DebugOffsets__tuple_object {
+                size: v.tuple_object.size,
+                ob_item: v.tuple_object.ob_item,
+                ob_size: v.tuple_object.ob_size,
+            },
+            list_object: py313::_Py_DebugOffsets__list_object {
+                size: v.list_object.size,
+                ob_item: v.list_object.ob_item,
+                ob_size: v.list_object.ob_size,
+            },
+            dict_object: py313::_Py_DebugOffsets__dict_object {
+                size: v.dict_object.size,
+                ma_keys: v.dict_object.ma_keys,
+                ma_values: v.dict_object.ma_values,
+            },
+            float_object: py313::_Py_DebugOffsets__float_object {
+                size: v.float_object.size,
+                ob_fval: v.float_object.ob_fval,
+            },
+            long_object: py313::_Py_DebugOffsets__long_object {
+                size: v.long_object.size,
+                lv_tag: v.long_object.lv_tag,
+                ob_digit: v.long_object.ob_digit,
+            },
+            bytes_object: py313::_Py_DebugOffsets__bytes_object {
+                size: v.bytes_object.size,
+                ob_size: v.bytes_object.ob_size,
+                ob_sval: v.bytes_object.ob_sval,
+            },
+            unicode_object: py313::_Py_DebugOffsets__unicode_object {
+                size: v.unicode_object.size,
+                state: v.unicode_object.state,
+                length: v.unicode_object.length,
+                asciiobject_size: v.unicode_object.asciiobject_size,
+            },
+            gc: py313::_Py_DebugOffsets__gc {
+                size: v.gc.size,
+                collecting: v.gc.collecting,
+            },
+            // 3.14 sub-structs not in 3.13: set_object, gen_object, debugger_support — dropped
+        }
+    }
 }
 
 /// Absolute runtime addresses of two key CPython symbols, after applying ASLR load bias.
@@ -71,6 +216,90 @@ fn resolve_elf_symbols_from_bytes(data: &[u8], mapped_base: u64) -> Result<ElfSy
         }),
         _ => Err(InitError::SymbolNotFound),
     }
+}
+
+/// Read `Py_Version` from live memory, parse it, and validate it is a supported CPython version.
+///
+/// Currently supports CPython 3.13 and 3.14.
+/// Returns [`PythonVersion`] on success, or [`InitError::UnsupportedVersion`]
+/// for unsupported versions.
+pub fn detect_version(py_version_addr: u64) -> Result<PythonVersion, InitError> {
+    let raw = kindasafe::u64(py_version_addr).map_err(|_| InitError::UnsupportedVersion)?;
+    let version_hex = raw & 0xFFFF_FFFF;
+    let version = parse_version(version_hex);
+    if version.major != 3 || !matches!(version.minor, 13 | 14) {
+        return Err(InitError::UnsupportedVersion);
+    }
+    Ok(version)
+}
+
+/// Read `Py_Version` raw value from live memory as a 32-bit `PY_VERSION_HEX`.
+///
+/// This is the raw value needed by [`read_debug_offsets`] for cookie validation.
+pub fn read_version_hex(py_version_addr: u64) -> Result<u64, InitError> {
+    let raw = kindasafe::u64(py_version_addr).map_err(|_| InitError::UnsupportedVersion)?;
+    Ok(raw & 0xFFFF_FFFF)
+}
+
+/// Read `_Py_DebugOffsets` from `_PyRuntime` and return it as a
+/// [`py313::_Py_DebugOffsets`] (the common-denominator layout).
+///
+/// For CPython 3.14, reads the larger struct and converts down to the 3.13
+/// layout, dropping fields that only exist in 3.14.
+///
+/// `py_runtime_addr` is the absolute address of `_PyRuntime`.
+/// `version` is the validated [`PythonVersion`] from [`detect_version`].
+/// `version_hex` is the raw `PY_VERSION_HEX` from [`read_version_hex`].
+///
+/// Returns [`InitError::DebugOffsetsMismatch`] if cookie, version, or
+/// `free_threaded` validation fails.
+pub fn read_debug_offsets(
+    py_runtime_addr: u64,
+    version: &PythonVersion,
+    version_hex: u64,
+) -> Result<py313::_Py_DebugOffsets, InitError> {
+    match version.minor {
+        14 => {
+            let mut buf = [0u8; size_of::<py314::_Py_DebugOffsets>()];
+            kindasafe::slice(&mut buf, py_runtime_addr)
+                .map_err(|_| InitError::DebugOffsetsMismatch)?;
+            let d314 = parse_repr_c::<py314::_Py_DebugOffsets>(&buf, version_hex)?;
+            Ok(py313::_Py_DebugOffsets::from(&d314))
+        }
+        13 => {
+            let mut buf = [0u8; size_of::<py313::_Py_DebugOffsets>()];
+            kindasafe::slice(&mut buf, py_runtime_addr)
+                .map_err(|_| InitError::DebugOffsetsMismatch)?;
+            parse_repr_c::<py313::_Py_DebugOffsets>(&buf, version_hex)
+        }
+        _ => Err(InitError::UnsupportedVersion),
+    }
+}
+
+/// Common header validation for any `_Py_DebugOffsets` layout.
+///
+/// Checks cookie, version, and free_threaded at the fixed offsets (0, 8, 16).
+fn parse_repr_c<T>(buf: &[u8], expected_version: u64) -> Result<T, InitError> {
+    let size = size_of::<T>();
+    if buf.len() < size {
+        return Err(InitError::DebugOffsetsMismatch);
+    }
+    // Cookie at offset 0 (8 bytes), version at offset 8, free_threaded at offset 16
+    let cookie = u64::from_le_bytes(buf[0..8].try_into().unwrap());
+    if cookie != COOKIE {
+        return Err(InitError::DebugOffsetsMismatch);
+    }
+    let version = u64::from_le_bytes(buf[8..16].try_into().unwrap());
+    if version != expected_version {
+        return Err(InitError::DebugOffsetsMismatch);
+    }
+    let free_threaded = u64::from_le_bytes(buf[16..24].try_into().unwrap());
+    if free_threaded != 0 {
+        return Err(InitError::DebugOffsetsMismatch);
+    }
+    // SAFETY: buf is at least size_of::<T>() bytes. T is #[repr(C)] with only
+    // u64 and [u8; 8] fields. Any bit pattern is valid.
+    Ok(unsafe { core::ptr::read_unaligned(buf.as_ptr() as *const T) })
 }
 
 /// Maximum number of bytes to scan when disassembling `_PyThreadState_GetCurrent`.
@@ -147,12 +376,12 @@ pub fn discover_tls_offset(func_bytes: &[u8], func_addr: u64) -> Result<u64, Ini
 
         // Find the memory operand and extract its displacement.
         for op in insn.visible_operands() {
-            if let DecodedOperandKind::Mem(mem) = &op.kind {
-                if mem.disp.has_displacement {
-                    // Return the displacement as a u64 (preserving the bit
-                    // pattern; the value is a signed offset from FS base).
-                    return Ok(mem.disp.displacement as u64);
-                }
+            if let DecodedOperandKind::Mem(mem) = &op.kind
+                && mem.disp.has_displacement
+            {
+                // Return the displacement as a u64 (preserving the bit
+                // pattern; the value is a signed offset from FS base).
+                return Ok(mem.disp.displacement as u64);
             }
         }
     }
@@ -309,6 +538,47 @@ pub fn find_python_in_maps() -> Result<PythonBinary, InitError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── parse_version tests ────────────────────────────────────────────────
+
+    #[test]
+    fn parse_version_3_14_0_final() {
+        let v = parse_version(0x030E00F0);
+        assert_eq!(
+            v,
+            PythonVersion {
+                major: 3,
+                minor: 14,
+                micro: 0
+            }
+        );
+    }
+
+    #[test]
+    fn parse_version_3_14_2_final() {
+        let v = parse_version(0x030E02F0);
+        assert_eq!(
+            v,
+            PythonVersion {
+                major: 3,
+                minor: 14,
+                micro: 2
+            }
+        );
+    }
+
+    #[test]
+    fn parse_version_3_13_1() {
+        let v = parse_version(0x030D01F0);
+        assert_eq!(
+            v,
+            PythonVersion {
+                major: 3,
+                minor: 13,
+                micro: 1
+            }
+        );
+    }
 
     // ── parse_maps_line tests ────────────────────────────────────────────────
 

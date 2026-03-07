@@ -466,11 +466,7 @@ PythonOffsets {
     unicode_asciiobject_size: u64,       // data starts at this offset from object
 
     // TLS access
-    tls_method: TlsMethod,              // which method we're using
-}
-
-enum TlsMethod {
-    StaticTls { fs_offset: u64 },        // Direct FS-relative access
+    tls_offset: u64,                     // FS-relative offset for _Py_tss_tstate
 }
 ```
 
@@ -492,7 +488,7 @@ CPython stores the current thread state in a compiler-level `__thread` variable 
    - Pattern: `64 48 8b 04 25 XX XX XX XX` (mov rax, fs:disp32)
    - Or: `64 48 8b 05 XX XX XX XX` (mov rax, fs:[rip+disp32])
    - Extract the displacement value — this is the static TLS offset.
-4. Populate `TlsMethod::StaticTls { fs_offset }`.
+4. Store the displacement as `tls_offset` in `PythonOffsets`.
 5. At runtime in the signal handler:
    ```
    tstate = kindasafe::u64(fs_base + fs_offset)

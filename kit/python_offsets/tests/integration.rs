@@ -30,17 +30,32 @@ mod linux {
         assert_ne!(symbols.py_runtime_addr, 0);
         assert_ne!(symbols.py_version_addr, 0);
 
-        // Py_Version is a uint32_t: (major<<24)|(minor<<16)|(micro<<8)|release_level
-        // kindasafe::u64 reads 8 bytes; mask to 32 bits to isolate the version word.
-        let raw = kindasafe::u64(symbols.py_version_addr)
-            .map_err(|e| anyhow!("kindasafe::u64(py_version_addr) failed: {e:?}"))?;
+        // ── Version detection ────────────────────────────────────────────
+        let version = python_offsets::detect_version(symbols.py_version_addr)
+            .map_err(|e| anyhow!("detect_version failed: {e:?}"))?;
 
-        let version_u32 = (raw & 0xFFFF_FFFF) as u32;
-        let major = (version_u32 >> 24) & 0xFF;
-        let minor = (version_u32 >> 16) & 0xFF;
+        assert_eq!(version.major, 3);
+        assert_eq!(version.minor, 14);
 
-        assert_eq!(major, 3, "Py_Version major must be 3 (raw=0x{raw:016x})");
-        assert_eq!(minor, 14, "Py_Version minor must be 14 (raw=0x{raw:016x})");
+        // ── Debug offsets parsing ────────────────────────────────────────
+        let version_hex = python_offsets::read_version_hex(symbols.py_version_addr)
+            .map_err(|e| anyhow!("read_version_hex failed: {e:?}"))?;
+
+        let offsets =
+            python_offsets::read_debug_offsets(symbols.py_runtime_addr, &version, version_hex)
+                .map_err(|e| anyhow!("read_debug_offsets failed: {e:?}"))?;
+
+        // Returns py313 layout even for a 3.14 library (common denominator).
+        // Verify key offsets are populated. Some offsets can legitimately
+        // be 0 (e.g. code_name if co_name is the first field of PyCodeObject).
+        assert_ne!(offsets.runtime_state.interpreters_head, 0);
+        assert_ne!(offsets.interpreter_state.threads_head, 0);
+        assert_ne!(offsets.thread_state.native_thread_id, 0);
+        assert_ne!(offsets.thread_state.next, 0);
+        assert_ne!(offsets.interpreter_frame.executable, 0);
+        assert_ne!(offsets.code_object.filename, 0);
+        assert_ne!(offsets.code_object.qualname, 0);
+        assert_ne!(offsets.unicode_object.asciiobject_size, 0);
 
         Ok(())
     }
