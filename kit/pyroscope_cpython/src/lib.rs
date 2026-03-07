@@ -33,6 +33,7 @@ enum InitError {
     AllocFailed = 7,
     SignalHandler = 8,
     AlreadyRunning = 9,
+    KindasafeSanityCheck = 10,
 }
 
 // ── Logging ──────────────────────────────────────────────────────────────────
@@ -105,18 +106,34 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
     // Step 2: Read FS base.
     let fs_base = match kindasafe::fs_0x0() {
         Ok(v) => v,
-        Err(_) => return,
+        Err(e) => {
+            notlibc::debug::writes("sigprof: fs_0x0 failed sig=");
+            notlibc::debug::write_hex(e.signal as usize);
+            notlibc::debug::puts("");
+            return;
+        }
     };
 
     // Step 3: Read tstate from TLS.
     let tstate_addr = fs_base.wrapping_add(state.tls_offset);
     let tstate = match kindasafe::u64(tstate_addr) {
         Ok(v) => v,
-        Err(_) => return,
+        Err(e) => {
+            notlibc::debug::writes("sigprof: tstate read failed at 0x");
+            notlibc::debug::write_hex(tstate_addr as usize);
+            notlibc::debug::writes(" sig=");
+            notlibc::debug::write_hex(e.signal as usize);
+            notlibc::debug::puts("");
+            return;
+        }
     };
     if tstate == 0 {
         return;
     }
+
+    notlibc::debug::writes("sigprof: tstate=0x");
+    notlibc::debug::write_hex(tstate as usize);
+    notlibc::debug::puts("");
 
     // Step 4: Select shard via gettid, try-lock with 3 fallback attempts.
     let tid = notlibc::gettid();
@@ -287,6 +304,7 @@ fn reader_thread(state: &'static HandlerState) {
 /// - 7: memory allocation / resource creation failed
 /// - 8: signal handler installation failed
 /// - 9: profiler already running
+/// - 10: kindasafe sanity check failed (crash recovery not working)
 ///
 /// # Safety
 ///
@@ -470,11 +488,30 @@ fn init_sequence(num_shards: usize) -> Result<(), InitError> {
             InitError::AllocFailed
         })?;
 
-    // Steps 12+13: Install SIGPROF handler and start 10 ms ITIMER_PROF timer.
-    sighandler::start(on_sigprof).map_err(|_| {
-        log_error("signal handler installation failed");
-        InitError::SignalHandler
+    // Step 12: Install SIGPROF handler (but don't start the timer yet).
+    unsafe {
+        sighandler::register_sigaction(on_sigprof).map_err(|_| {
+            log_error("signal handler installation failed");
+            InitError::SignalHandler
+        })?;
+    }
+
+    // Step 12b: Verify kindasafe crash recovery works under the SIGPROF
+    // handler's signal mask (sa_mask). This catches misconfigurations like
+    // SIGSEGV/SIGBUS being blocked during SIGPROF.
+    kindasafe_init::sanity_check().map_err(|_| {
+        log_error("kindasafe sanity check failed — crash recovery is not working");
+        InitError::KindasafeSanityCheck
     })?;
+    log_info("kindasafe sanity check passed");
+
+    // Step 13: Start 10 ms ITIMER_PROF timer.
+    unsafe {
+        sighandler::start_timer().map_err(|_| {
+            log_error("setitimer failed");
+            InitError::SignalHandler
+        })?;
+    }
 
     log_info("init complete");
     notlibc::debug::puts("pyroscope_cpython: init complete");
