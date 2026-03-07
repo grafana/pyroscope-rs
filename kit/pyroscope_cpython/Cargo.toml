@@ -8,7 +8,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 kindasafe_init = { path = "../kindasafe_init" }
+kindasafe = { path = "../kindasafe" }
 python_offsets = { path = "../python_offsets" }
+python_offsets_types = { path = "../python_offsets_types" }
+python_unwind = { path = "../python_unwind" }
 sighandler = { path = "../sighandler" }
 notlibc = { path = "../notlibc" }
 libc = { version = "0.2.182" }

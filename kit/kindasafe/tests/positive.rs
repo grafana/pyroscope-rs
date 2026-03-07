@@ -165,6 +165,22 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 #[test]
+fn fs_0x0() -> Result<(), anyhow::Error> {
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
+    let res = kindasafe::arch::fs_0x0();
+    assert_eq!(0, res.signal);
+    assert_ne!(0, res.value);
+
+    // fs:0x0 is the self-pointer (TCB), which equals the FS base.
+    let fs_base = get_fs_base();
+    assert_ne!(0, fs_base);
+    assert_eq!(fs_base, res.value);
+
+    Ok(())
+}
+
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+#[test]
 fn fs_0x10() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     let res = kindasafe::arch::fs_0x10();

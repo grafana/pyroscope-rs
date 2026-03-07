@@ -2309,10 +2309,13 @@ dependencies = [
 name = "pyroscope_cpython"
 version = "0.1.0"
 dependencies = [
+ "kindasafe",
  "kindasafe_init",
  "libc",
  "notlibc",
  "python_offsets",
+ "python_offsets_types",
+ "python_unwind",
  "sighandler",
 ]
 

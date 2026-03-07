@@ -1,17 +1,77 @@
 use core::ffi::{c_char, c_int, c_void};
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::{AtomicPtr, AtomicU32, Ordering};
+
+use python_offsets_types::py313;
 
 const STATE_UNINITIALIZED: u32 = 0;
 const STATE_RUNNING: u32 = 1;
 
 static LIFECYCLE: AtomicU32 = AtomicU32::new(STATE_UNINITIALIZED);
 
+/// Profiler state shared between init (writer) and signal handler (reader).
+///
+/// Allocated once at init time via `Box::into_raw`. Published to the handler
+/// via an `AtomicPtr` store with `Release` ordering; the handler loads with
+/// `Acquire`. Never deallocated — the profiler runs for the process lifetime.
+struct HandlerState {
+    debug_offsets: py313::_Py_DebugOffsets,
+    /// FS-relative displacement for the CPython TLS thread-state variable.
+    /// This is the raw value from `mov rax, fs:[disp32]` in
+    /// `_PyThreadState_GetCurrent`, stored as `u64` (may be a negative `i64`
+    /// bit pattern for typical glibc static TLS).
+    tls_offset: u64,
+}
+
+static HANDLER_STATE: AtomicPtr<HandlerState> = AtomicPtr::new(core::ptr::null_mut());
+
 /// Signal handler called on every SIGPROF tick (~10 ms of CPU time).
 ///
-/// Currently just prints a debug message. In debug builds this emits
-/// "SIGPROF fired\n" via raw `SYS_write`; in release builds it is a no-op.
+/// Reads the FS base via `kindasafe::fs_0x0()`, computes the TLS address
+/// of `_Py_tss_tstate`, reads the current `PyThreadState*`, and unwinds
+/// the Python frame chain. In debug builds, `python_unwind::unwind` prints
+/// each frame's code object address and instruction pointer to stdout.
 extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_void) {
-    notlibc::debug::puts("SIGPROF fired");
+    // Step 1: Load global profiler state (Acquire pairs with Release in init).
+    let state_ptr = HANDLER_STATE.load(Ordering::Acquire);
+    if state_ptr.is_null() {
+        return;
+    }
+    // SAFETY: state_ptr was published via Box::into_raw after full
+    // initialization. It is never deallocated (profiler runs for process
+    // lifetime). The handler only reads from it.
+    let state = unsafe { &*state_ptr };
+
+    // Step 2: Read FS base (thread self-pointer at fs:0x0).
+    let fs_base = match kindasafe::fs_0x0() {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+
+    // Step 3: Read tstate from TLS.
+    // tls_offset is the displacement used in `mov rax, fs:[disp32]`.
+    // On glibc this is typically negative for static TLS; wrapping_add
+    // handles the sign correctly since tls_offset stores the u64 bit
+    // pattern of the signed displacement.
+    let tstate_addr = fs_base.wrapping_add(state.tls_offset);
+    let tstate = match kindasafe::u64(tstate_addr) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    if tstate == 0 {
+        return;
+    }
+
+    // Step 4: Unwind Python stack frames.
+    // Stack-allocated buffer — 128 frames * 16 bytes = 2048 bytes, well
+    // within the default signal stack size.
+    let mut buf = [python_unwind::RawFrame {
+        code_object: 0,
+        instr_offset: 0,
+    }; python_unwind::MAX_DEPTH];
+    python_unwind::unwind(tstate, &state.debug_offsets, &mut buf);
+    // python_unwind::unwind() prints each frame in debug builds via
+    // notlibc::debug (raw SYS_write syscall). In release builds this
+    // is a no-op.
 }
 
 /// Start the CPython profiler.
@@ -73,15 +133,22 @@ fn init_sequence() -> Result<(), c_int> {
         .map_err(|e| map_init_error(&e))?;
 
     // Step 5: Read _Py_DebugOffsets from _PyRuntime.
-    let _debug_offsets =
+    let debug_offsets =
         python_offsets::read_debug_offsets(symbols.py_runtime_addr, &version, version_hex)
             .map_err(|e| map_init_error(&e))?;
 
     // Step 6: Discover TLS offset for _PyThreadState_GetCurrent.
-    let _tls_offset = python_offsets::find_tls_offset(&binary).map_err(|e| map_init_error(&e))?;
+    let tls_offset = python_offsets::find_tls_offset(&binary).map_err(|e| map_init_error(&e))?;
 
-    // Steps 7-11 skipped: ring buffers, shards, global state, reader thread
-    // — not yet implemented.
+    // Publish handler state before installing the signal handler.
+    let state = Box::new(HandlerState {
+        debug_offsets,
+        tls_offset,
+    });
+    HANDLER_STATE.store(Box::into_raw(state), Ordering::Release);
+
+    // Steps 7-11 skipped: ring buffers, shards, reader thread
+    // — not yet implemented. For now the handler just unwinds and prints.
 
     // Steps 12+13: Install SIGPROF handler and start 10 ms ITIMER_PROF timer.
     sighandler::start(on_sigprof).map_err(|_| 8)?;
