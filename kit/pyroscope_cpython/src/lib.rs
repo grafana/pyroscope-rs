@@ -161,6 +161,13 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
         &mut guard.frame_buffer,
     );
     if depth == 0 {
+        notlibc::debug::writes("sigprof: unwind depth=0 tstate=0x");
+        notlibc::debug::write_hex(tstate as usize);
+        notlibc::debug::writes(" fs_base=0x");
+        notlibc::debug::write_hex(fs_base as usize);
+        notlibc::debug::writes(" tls_offset=0x");
+        notlibc::debug::write_hex(state.tls_offset as usize);
+        notlibc::debug::puts("");
         return;
     }
 
@@ -414,6 +421,50 @@ fn init_sequence(num_shards: usize) -> Result<(), InitError> {
         map_init_error(&e)
     })?;
     log_info(&format!("TLS offset: 0x{:x}", tls_offset));
+
+    // Step 6b: Validate TLS offset by reading tstate and checking native_thread_id.
+    {
+        let fs_base = kindasafe::fs_0x0().map_err(|_| {
+            log_error("TLS validation: failed to read fs_base");
+            InitError::TlsDiscoveryFailed
+        })?;
+        let tstate_addr = fs_base.wrapping_add(tls_offset);
+        let tstate = kindasafe::u64(tstate_addr).map_err(|_| {
+            log_error(&format!(
+                "TLS validation: failed to read tstate at 0x{:x} (fs_base=0x{:x}, tls_offset=0x{:x})",
+                tstate_addr, fs_base, tls_offset
+            ));
+            InitError::TlsDiscoveryFailed
+        })?;
+        if tstate == 0 {
+            log_error(&format!(
+                "TLS validation: tstate is NULL (fs_base=0x{:x}, tls_offset=0x{:x})",
+                fs_base, tls_offset
+            ));
+            return Err(InitError::TlsDiscoveryFailed);
+        }
+        let native_tid = kindasafe::u64(tstate + debug_offsets.thread_state.native_thread_id)
+            .map_err(|_| {
+                log_error(&format!(
+                    "TLS validation: failed to read native_thread_id from tstate=0x{:x}",
+                    tstate
+                ));
+                InitError::TlsDiscoveryFailed
+            })?;
+        let expected_tid = notlibc::gettid() as u64;
+        if native_tid != expected_tid {
+            log_error(&format!(
+                "TLS validation FAILED: native_thread_id={} but gettid()={} \
+                 (tstate=0x{:x}, fs_base=0x{:x}, tls_offset=0x{:x})",
+                native_tid, expected_tid, tstate, fs_base, tls_offset
+            ));
+            return Err(InitError::TlsDiscoveryFailed);
+        }
+        log_info(&format!(
+            "TLS validation passed: tstate=0x{:x}, native_thread_id={}",
+            tstate, native_tid
+        ));
+    }
 
     // Step 7: Allocate bbqueue buffers and split into producer/consumer pairs.
     let mut producers: Vec<Option<FrameProducer<'static, RING_SIZE>>> =

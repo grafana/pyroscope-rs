@@ -274,6 +274,12 @@ pub fn discover_tls_offset(func_bytes: &[u8], func_addr: u64) -> Result<u64, Ini
             if let DecodedOperandKind::Mem(mem) = &op.kind
                 && mem.disp.has_displacement
             {
+                // Skip the well-known x86_64 stack canary at fs:0x28.
+                // GCC/Clang emit `mov rax, fs:0x28` at function entry
+                // when -fstack-protector is enabled (e.g. pyenv builds).
+                if mem.disp.displacement == 0x28 {
+                    continue;
+                }
                 // Return the displacement as a u64 (preserving the bit
                 // pattern; the value is a signed offset from FS base).
                 return Ok(mem.disp.displacement as u64);
@@ -678,13 +684,27 @@ mod tests {
     }
 
     #[test]
-    fn ignores_fs_prefix_on_non_mov_instructions() {
+    fn skips_stack_canary_fs_0x28() {
         // Stack canary: 64 48 8b 04 25 28 00 00 00  →  mov rax, fs:0x28
-        // This HAS the FS prefix and IS a MOV — it should be matched and return 0x28.
-        // (The scanner doesn't filter by which FS offset it is, only that one exists.)
+        // The scanner must skip fs:0x28 because it is the stack canary,
+        // not a TLS variable access. With only the canary, discovery fails.
         let bytes = [0x64u8, 0x48, 0x8b, 0x04, 0x25, 0x28, 0x00, 0x00, 0x00, 0xc3];
+        assert_eq!(
+            discover_tls_offset(&bytes, 0),
+            Err(InitError::TlsDiscoveryFailed)
+        );
+    }
+
+    #[test]
+    fn skips_canary_returns_real_tls_offset() {
+        // Stack canary first: 64 48 8b 04 25 28 00 00 00  →  mov rax, fs:0x28
+        // Then real TLS access: 64 48 8b 04 25 e8 ff ff ff  →  mov rax, fs:0xffffffffffffffe8
+        let mut bytes = vec![];
+        bytes.extend_from_slice(&[0x64, 0x48, 0x8b, 0x04, 0x25, 0x28, 0x00, 0x00, 0x00]); // canary
+        bytes.extend_from_slice(&[0x64, 0x48, 0x8b, 0x04, 0x25, 0xe8, 0xff, 0xff, 0xff]); // real
+        bytes.push(0xc3); // ret
         let offset = discover_tls_offset(&bytes, 0).unwrap();
-        assert_eq!(offset, 0x28);
+        assert_eq!(offset, 0xffffffffffffffe8u64); // -24 as u64
     }
 
     #[test]
