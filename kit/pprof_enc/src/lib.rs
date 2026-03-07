@@ -136,9 +136,9 @@ impl StringTable {
 // Frame — a single symbolized stack frame
 // ---------------------------------------------------------------------------
 
-pub struct Frame {
-    pub function_name: String,
-    pub filename: String,
+pub struct Frame<'a> {
+    pub function_name: &'a str,
+    pub filename: &'a str,
     pub first_line: i64,
 }
 
@@ -155,6 +155,8 @@ pub struct ProfileBuilder {
     /// Map from function id → location id (1-based); one location per function
     loc_index: HashMap<u64, u64>,
     samples: Vec<Sample>,
+    /// Map from location_id sequence → index into self.samples (for merging)
+    sample_index: HashMap<Vec<u64>, usize>,
     time_nanos: i64,
     duration_nanos: i64,
     period: i64,
@@ -174,6 +176,7 @@ impl ProfileBuilder {
             locations: Vec::new(),
             loc_index: HashMap::new(),
             samples: Vec::new(),
+            sample_index: HashMap::new(),
             time_nanos,
             duration_nanos,
             period,
@@ -184,22 +187,55 @@ impl ProfileBuilder {
     ///
     /// Frames should be ordered leaf-first (innermost frame first).
     /// The value stored is `count * period` (CPU nanoseconds).
-    pub fn add_sample(&mut self, frames: &[Frame], count: i64) {
+    /// If an identical stack (same location_id sequence) was already added,
+    /// the values are merged (summed) instead of creating a duplicate sample.
+    pub fn add_sample(&mut self, frames: &[Frame<'_>], count: i64) {
         let mut location_ids: Vec<u64> = Vec::with_capacity(frames.len());
         for frame in frames {
             let func_id = self.intern_function(frame);
             let loc_id = self.intern_location(func_id, frame.first_line);
             location_ids.push(loc_id);
         }
-        self.samples.push(Sample {
-            location_id: location_ids,
-            value: vec![count * self.period],
-        });
+        let value = count * self.period;
+        if let Some(&idx) = self.sample_index.get(&location_ids) {
+            self.samples[idx].value[0] += value;
+        } else {
+            let idx = self.samples.len();
+            self.samples.push(Sample {
+                location_id: location_ids.clone(),
+                value: vec![value],
+            });
+            self.sample_index.insert(location_ids, idx);
+        }
     }
 
-    fn intern_function(&mut self, frame: &Frame) -> u64 {
-        let name_idx = self.st.intern(&frame.function_name);
-        let filename_idx = self.st.intern(&frame.filename);
+    /// Reset all accumulated state so the builder can be reused for the next
+    /// profile window. Keeps the allocated capacity for efficiency.
+    pub fn reset(&mut self, time_nanos: i64, duration_nanos: i64) {
+        self.st = StringTable::new();
+        self.functions.clear();
+        self.func_index.clear();
+        self.locations.clear();
+        self.loc_index.clear();
+        self.samples.clear();
+        self.sample_index.clear();
+        self.time_nanos = time_nanos;
+        self.duration_nanos = duration_nanos;
+    }
+
+    /// Return the number of accumulated samples (unique stacks).
+    pub fn len(&self) -> usize {
+        self.samples.len()
+    }
+
+    /// Return true if no samples have been accumulated.
+    pub fn is_empty(&self) -> bool {
+        self.samples.is_empty()
+    }
+
+    fn intern_function(&mut self, frame: &Frame<'_>) -> u64 {
+        let name_idx = self.st.intern(frame.function_name);
+        let filename_idx = self.st.intern(frame.filename);
         let start_line = frame.first_line;
         let key = (name_idx, filename_idx, start_line);
         if let Some(&id) = self.func_index.get(&key) {
@@ -233,7 +269,7 @@ impl ProfileBuilder {
     }
 
     /// Encode the profile to protobuf and gzip-compress it.
-    pub fn encode(mut self) -> Result<Vec<u8>, std::io::Error> {
+    pub fn encode(&mut self) -> Result<Vec<u8>, std::io::Error> {
         let cpu_type_idx = self.st.intern("cpu");
         let nanos_idx = self.st.intern("nanoseconds");
         let value_type = ValueType {
@@ -243,10 +279,10 @@ impl ProfileBuilder {
 
         let profile = Profile {
             sample_type: vec![value_type.clone()],
-            sample: self.samples,
-            location: self.locations,
-            function: self.functions,
-            string_table: self.st.strings,
+            sample: core::mem::take(&mut self.samples),
+            location: core::mem::take(&mut self.locations),
+            function: core::mem::take(&mut self.functions),
+            string_table: core::mem::take(&mut self.st.strings),
             time_nanos: self.time_nanos,
             duration_nanos: self.duration_nanos,
             period_type: Some(value_type),
@@ -269,10 +305,10 @@ impl ProfileBuilder {
 mod tests {
     use super::*;
 
-    fn make_frame(name: &str, file: &str, line: i64) -> Frame {
+    fn make_frame<'a>(name: &'a str, file: &'a str, line: i64) -> Frame<'a> {
         Frame {
-            function_name: name.to_owned(),
-            filename: file.to_owned(),
+            function_name: name,
+            filename: file,
             first_line: line,
         }
     }
@@ -295,7 +331,7 @@ mod tests {
 
     #[test]
     fn encode_empty_profile_is_valid_gzip() {
-        let builder = ProfileBuilder::new(0, 15_000_000_000, 10_000_000);
+        let mut builder = ProfileBuilder::new(0, 15_000_000_000, 10_000_000);
         let bytes = builder.encode().unwrap();
         assert!(!bytes.is_empty());
         // gzip magic bytes
@@ -343,7 +379,7 @@ mod tests {
     }
 
     #[test]
-    fn deduplicates_functions_and_locations() {
+    fn merges_identical_stacks() {
         let mut builder = ProfileBuilder::new(0, 15_000_000_000, 10_000_000);
         let frames = vec![make_frame("main", "main.rs", 1)];
         builder.add_sample(&frames, 1);
@@ -357,9 +393,10 @@ mod tests {
         decoder.read_to_end(&mut proto_bytes).unwrap();
 
         let profile = Profile::decode(proto_bytes.as_slice()).unwrap();
-        // Only one function and location despite two samples.
         assert_eq!(profile.function.len(), 1);
         assert_eq!(profile.location.len(), 1);
-        assert_eq!(profile.sample.len(), 2);
+        // Identical stacks are merged into one sample with summed value.
+        assert_eq!(profile.sample.len(), 1);
+        assert_eq!(profile.sample[0].value, vec![(1 + 2) * 10_000_000i64]);
     }
 }

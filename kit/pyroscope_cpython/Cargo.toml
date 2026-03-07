@@ -17,3 +17,5 @@ sighandler = { path = "../sighandler" }
 notlibc = { path = "../notlibc" }
 bbqueue = "0.5"
 libc = { version = "0.2.182" }
+pprof_enc = { path = "../pprof_enc" }
+pyroscope_ingest = { path = "../pyroscope_ingest" }

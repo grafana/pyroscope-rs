@@ -2320,6 +2320,8 @@ dependencies = [
  "kindasafe_init",
  "libc",
  "notlibc",
+ "pprof_enc",
+ "pyroscope_ingest",
  "python_offsets",
  "python_offsets_types",
  "python_unwind",

@@ -3,21 +3,15 @@
 Smoke test for pyroscope_cpython cdylib.
 
 Loads the .so via ctypes, calls pyroscope_start() with logging enabled,
-then burns CPU for a few seconds.
+then burns CPU for 20 seconds so at least one 15-second pprof flush
+is triggered. Uses nested function calls to produce multi-frame stacks.
 
 Run with:
     cargo build -p pyroscope_cpython
-    python3 kit/pyroscope_cpython/tests/test_cpython.py
+    python3.14 kit/pyroscope_cpython/tests/test_cpython.py
 
-Expected output:
-    pyroscope_cpython: configured num_shards=16, ring_size=256KiB
-    pyroscope_cpython: starting init: num_shards=16, ...
-    pyroscope_start returned: 0
-    second pyroscope_start returned: 9
-    Burning CPU for 3 seconds...
-    reader: tid=...
-    ...
-    done
+Expected: pyroscope_start returns 0, flush log line appears at ~15s,
+profile is sent to Pyroscope (if running on localhost:4040).
 """
 import ctypes
 import os
@@ -40,13 +34,25 @@ def find_library():
     sys.exit(1)
 
 
+def inner_work():
+    """Inner function to produce deeper stacks."""
+    total = 0
+    for i in range(100_000):
+        total += i
+    return total
+
+
+def outer_work():
+    """Outer function that calls inner_work."""
+    return inner_work()
+
+
 def burn_cpu(seconds):
     """Burn CPU time to trigger ITIMER_PROF / SIGPROF signals."""
     end = time.monotonic() + seconds
     total = 0
     while time.monotonic() < end:
-        for i in range(100_000):
-            total += i
+        total += outer_work()
     return total
 
 
@@ -75,8 +81,8 @@ def main():
     print(f"second pyroscope_start returned: {rc2}")
     assert rc2 == 9, f"Expected 9 (already running), got {rc2}"
 
-    print("Burning CPU for 3 seconds...")
-    burn_cpu(3)
+    print("Burning CPU for 20 seconds (flush expected at ~15s)...")
+    burn_cpu(20)
     print("done")
 
 
