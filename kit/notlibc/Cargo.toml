@@ -1,0 +1,11 @@
+[package]
+name = "notlibc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+spin = { version = "0.10.0" }
+
+[dev-dependencies]
+libc = "=0.2.182"
+anyhow = "=1.0.102"

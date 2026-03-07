@@ -2,9 +2,9 @@ name: Python Package
 
 on:
   push:
-    branches: [main]
+    branches: [main, yoloprof]
   pull_request:
-    branches: [main]
+    branches: [main, yoloprof]
 
 permissions:
   contents: read

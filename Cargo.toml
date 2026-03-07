@@ -23,6 +23,17 @@ members = [
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/python/rust",
     "kit/kindasafe",
+    "kit/kindasafe_init",
+    "kit/sighandler",
+    "kit/pyroscope_ingest",
+    "kit/pprof_enc",
+    "kit/notlibc",
+    "kit/python_offsets",
+    "kit/python_offsets_types",
+    "kit/python_unwind",
+    "kit/coredump",
+    "kit/sig_ring",
+    "kit/pyroscope_cpython",
 ]
 
 [workspace.dependencies]
@@ -44,6 +55,7 @@ pretty_env_logger = "0.5.0"
 rbspy = { version = "0.42" }
 remoteprocess = "0.5.0"
 anyhow = "1.0"
+flate2 = "1.1"
 py-spy = { git = "https://github.com/grafana/py-spy", rev = "3b390dc4230207914164e1dd6888eb3e680b1560" }
 
 

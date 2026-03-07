@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [main]
+    branches: [main, yoloprof]
   pull_request:
-    branches: [main]
+    branches: [main, yoloprof]
 
 permissions:
   contents: read

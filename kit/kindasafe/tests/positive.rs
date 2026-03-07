@@ -6,14 +6,14 @@ use kindasafe::{Ptr, slice, u64};
 
 #[test]
 fn test_init() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     Ok(())
 }
 
 #[test]
 fn u64_aligned() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
 
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef];
     let x_ptr = x.as_ptr() as Ptr;
@@ -25,7 +25,7 @@ fn u64_aligned() -> Result<(), anyhow::Error> {
 
 #[test]
 fn u64_unaligned() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
 
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef, 0x00];
     let x_ptr = x.as_ptr() as Ptr + 1;
@@ -36,7 +36,7 @@ fn u64_unaligned() -> Result<(), anyhow::Error> {
 
 #[test]
 fn u64_sigsegv() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     trigger_sigsegv(|p| {
         assert_eq!(
             u64(p),
@@ -50,7 +50,7 @@ fn u64_sigsegv() -> Result<(), anyhow::Error> {
 
 #[test]
 fn u64_sigbus() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     trigger_sigbus(|p| {
         assert_eq!(
             u64(p),
@@ -64,7 +64,7 @@ fn u64_sigbus() -> Result<(), anyhow::Error> {
 
 #[test]
 fn u64_unaligned_page_boundary() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
 
     trigger_sigsegv_page_boundary(|p| {
         assert_eq!(u64(p), Ok(0x6161616161616161));
@@ -87,7 +87,7 @@ fn u64_unaligned_page_boundary() -> Result<(), anyhow::Error> {
 
 #[test]
 fn vec_aligned() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     let mut buf = vec![0u8; 8];
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef];
     slice(&mut buf, x.as_ptr() as Ptr).map_err(|err| anyhow!("read mem error {err:?}"))?;
@@ -97,7 +97,7 @@ fn vec_aligned() -> Result<(), anyhow::Error> {
 
 #[test]
 fn vec_unaligned() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     let mut buf = vec![0u8; 8];
     let x: Vec<u8> = vec![0xca, 0xfe, 0xba, 0xbe, 0xde, 0xad, 0xbe, 0xef, 0xcc];
     let x_ptr = x.as_ptr() as Ptr + 1;
@@ -109,7 +109,7 @@ fn vec_unaligned() -> Result<(), anyhow::Error> {
 
 #[test]
 fn vec_sigsegv() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     trigger_sigsegv(|p| {
         let mut buf = [0u8; 8];
         let res = slice(&mut buf, p as Ptr);
@@ -125,7 +125,7 @@ fn vec_sigsegv() -> Result<(), anyhow::Error> {
 
 #[test]
 fn vec_sigbus() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     trigger_sigbus(|p| {
         let mut buf = [0u8; 8];
         let res = slice(&mut buf, p as Ptr);
@@ -140,7 +140,7 @@ fn vec_sigbus() -> Result<(), anyhow::Error> {
 }
 #[test]
 fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
+    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
 
     trigger_sigsegv_page_boundary(|p| {
         let mut buf = [0u8; 16];
@@ -160,30 +160,6 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
             .as_slice()
         );
     });
-    Ok(())
-}
-
-#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
-#[test]
-fn fs_0x10() -> Result<(), anyhow::Error> {
-    kindasafe::init().map_err(|err| anyhow!("{:?}", err))?;
-    let res = kindasafe::arch::fs_0x10();
-    assert_eq!(0, res.signal);
-    assert_ne!(0, res.value);
-
-    let fs_base = get_fs_base();
-    assert_ne!(0, fs_base);
-
-    //todo test SIGSEGV failure
-    // todo this crashes twice, once on the PROT_NONE, then next in the crash handler
-    // unsafe {
-    //     libc::mprotect((fs_base & 0xfffffffffffff000) as *mut libc::c_void, 0x1000, libc::PROT_NONE);
-    //     let res = kindasafenostd::arch::fs_0x10();
-    //     assert_eq!(0, res.signal);
-    //     assert_ne!(0, res.value);
-    //     libc::mprotect((fs_base & 0xfffffffffffff000) as *mut libc::c_void, 0x1000, libc::PROT_READ | libc::PROT_WRITE);
-    // }
-
     Ok(())
 }
 
@@ -257,23 +233,4 @@ where
 
         libc::munmap(m as *mut libc::c_void, 4);
     };
-}
-
-fn get_fs_base() -> u64 {
-    unsafe {
-        let pid = libc::fork();
-        if pid == 0 {
-            libc::ptrace(libc::PTRACE_TRACEME, 0, 0, 0);
-            libc::raise(libc::SIGTRAP);
-            std::process::exit(0);
-        }
-        let mut status: libc::c_int = 0;
-        let mut regs: libc::user_regs_struct = std::mem::zeroed();
-        libc::waitpid(pid, &mut status, 0);
-        libc::ptrace(libc::PTRACE_GETREGS, pid, 0, &mut regs);
-        libc::ptrace(libc::PTRACE_CONT, pid, 0, 0);
-        libc::waitpid(pid, &mut status, 0);
-        println!("ptrace_getregs {:x}", regs.fs_base);
-        regs.fs_base
-    }
 }

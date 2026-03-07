@@ -1,0 +1,9 @@
+[package]
+name = "python_unwind"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+kindasafe = { path = "../kindasafe" }
+notlibc = { path = "../notlibc" }
+python_offsets_types = { path = "../python_offsets_types" }

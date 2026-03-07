@@ -1,0 +1,11 @@
+[package]
+name = "pyroscope_ingest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ureq = "3"
+anyhow = "1.0"
+
+[dev-dependencies]
+mockito = "1"
