@@ -24,7 +24,7 @@ This document synthesizes the best ideas from three prior design proposals (desi
 6. [Signal Handler](#6-signal-handler)
 7. [Python Stack Unwinding](#7-python-stack-unwinding)
 8. [Async-Signal-Safe Primitives](#8-async-signal-safe-primitives)
-9. [Collection: Lock-Free Ring Buffer](#9-collection-lock-free-ring-buffer)
+9. [Collection: Per-Shard SPSC Queue (bbqueue)](#9-collection-per-shard-spsc-queue-kitsig_ring)
 10. [Reader Thread and Periodic Flush](#10-reader-thread-and-periodic-flush)
 11. [Symbolication](#11-symbolication)
 12. [Pprof Generation](#12-pprof-generation)
@@ -45,7 +45,7 @@ This document synthesizes the best ideas from three prior design proposals (desi
 - **In-process, signal-based CPU profiler** for CPython, written in Rust.
 - **`setitimer(ITIMER_PROF)` + `SIGPROF`** delivering a signal every **10ms of CPU time** (100 Hz). Design allows migration to per-thread `timer_create(CLOCK_THREAD_CPUTIME_ID)` later.
 - **Fully async-signal-safe signal handler**: no malloc/free, **no libc function calls whatsoever**, no /proc reads, no syscalls beyond `gettid`. All code executing in signal handler context must be `#![no_std]` and must not depend on `libc` — use raw syscall wrappers or inline assembly instead. Memory is pre-allocated via raw `mmap` syscall. Spinlocks (from the `spin` crate) are try-lock only in the handler; full lock is used by the reader thread during dump.
-- **Lock-free ring buffer** (`kit/sig_ring`) for passing raw stack traces from signal handler to reader thread. The handler appends variable-length records; every N samples it notifies the reader thread via an `eventfd` to process batches. The reader also drains the full buffer on every 15s flush. All mmap-backed, pre-allocated.
+- **Per-shard SPSC queue** (`kit/sig_ring`) for passing raw stack traces from signal handler to reader thread, built on the [`bbqueue`](https://github.com/jamesmunns/bbqueue) BipBuffer crate (`#![no_std]`, lockless, battle-tested in embedded/interrupt contexts). The handler requests a contiguous write grant, fills it with a variable-length record, and commits. Every N samples the handler notifies the reader thread via an `eventfd`. The reader also drains all queues on every 15s flush.
 - **No CPython API calls, no linking against libpython** — discover everything by inspecting process memory as a debugger would. Read `/proc/self/maps`, parse ELF, use `_Py_DebugOffsets` from `_PyRuntime`.
 - **Python 3.14 initially** — all offsets in a separate structure. Use `_Py_DebugOffsets` introspection to read as many offsets as possible; hardcode only what cannot be read.
 - **Minimal handler work** — only unwind Python frames and record raw `(PyCodeObject*, instr_offset)` tuples. No string reads, no symbol resolution, no filename/line extraction in the handler.
@@ -95,11 +95,10 @@ This document synthesizes the best ideas from three prior design proposals (desi
                                │
                                ▼
                   ┌────────────────────────┐
-                  │  Lock-Free Ring Buffer  │
+                  │  bbqueue SPSC Queue     │
                   │  (kit/sig_ring)         │
-                  │  per-shard SPSC         │
+                  │  per-shard BipBuffer    │
                   │  variable-length records│
-                  │  mmap-backed            │
                   └──────────┬─────────────┘
                              │
                      eventfd notify every
@@ -137,7 +136,7 @@ This document synthesizes the best ideas from three prior design proposals (desi
 │  │                      setup, depends on libc, NOT `#![no_std]`    │
 │  ├── notlibc/        Async-signal-safe primitives                │
 │  │                      raw mmap, eventfd, raw syscall helpers       │
-│  ├── sig_ring/          Lock-free SPSC ring buffer per shard        │
+│  ├── sig_ring/          Per-shard SPSC queue (wraps bbqueue)        │
 │  ├── sighandler/        Signal registration, setitimer, timer mgmt  │
 │  ├── python_offsets/    CPython version detection, _Py_DebugOffsets, │
 │  │                      ELF symbol lookup, /proc/self/maps parsing  │
@@ -173,9 +172,10 @@ _enc   │  _ingest    _unwind                        (#![no_std])
        │                │
        ▼           ┌────┤
      sig_ring   kindasafe  notlibc
-       │        (#![no_std])
-       ▼
-    notlibc
+       │  │     (#![no_std])
+       ▼  ▼
+  notlibc  bbqueue
+           (#![no_std])
 ```
 
 **Note on kindasafe split**: The existing `kindasafe` crate is a single crate that depends on `libc` and `spin`, mixing signal-handler-safe read primitives (naked asm) with init-time code (`sigaction` installation, fallback handler chaining). It must be split into two crates before other signal-handler-path crates can depend on it:
@@ -192,7 +192,7 @@ Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindas
 | `kit/kindasafe` | lib (`#![no_std]`) | (none) | **Split from existing `kindasafe` crate.** SIGSEGV-safe memory read primitives: `u64()`, `slice()`, `str()`, `fs_0x10()` via naked assembly. Crash-point table and crash handler (manipulates `ucontext_t` via raw pointer offsets to skip faulting instructions). Currently the crash handler uses `libc::ucontext_t` types — these must be replaced with raw pointer arithmetic at fixed offsets for `#![no_std]`. **No libc dependency, no `std`** — uses only `core` and naked asm. Safe for use in signal handler context. |
 | `kit/kindasafe_init` | lib | `kindasafe`, `libc`, `spin` | **Split from existing `kindasafe` crate.** Initialization for kindasafe: installs SIGSEGV/SIGBUS signal handlers via `sigaction` that delegate to `kindasafe::arch::crash_handler` for recovery. Manages fallback handler chaining (`FALLBACK_SIGSEGV`/`FALLBACK_SIGBUS` statics). Provides `init()` and `is_initialized()`. **Not `#![no_std]`** — depends on `libc` for `sigaction` and `ucontext_t` types. Called once at profiler startup, never from signal handler context. |
 | `kit/notlibc` | lib (`#![no_std]`) | `spin` | Async-signal-safe primitives: raw `mmap`/`munmap` wrappers (via raw `syscall` instruction — no libc), `eventfd` wrapper. Re-exports `spin::Mutex` for shard locking. **No libc dependency.** Uses inline assembly for syscalls. |
-| `kit/sig_ring` | lib (`#![no_std]`) | `notlibc` | Lock-free SPSC ring buffer with variable-length records. One per shard. Pre-allocated via mmap. Writer is signal handler, reader is background thread. Supports eventfd notification. **No libc dependency.** |
+| `kit/sig_ring` | lib (`#![no_std]`) | `bbqueue`, `notlibc` | Per-shard SPSC queue wrapping [`bbqueue`](https://github.com/jamesmunns/bbqueue) (a `#![no_std]`, lockless BipBuffer crate). One bbqueue instance per shard. Writer (signal handler) calls `grant_exact()` → fills record → `commit()`. Reader (background thread) calls `read()` → parses records → `release()`. Provides the record format (header + frames) and eventfd notification on top of bbqueue. **No libc dependency.** |
 | `kit/sighandler` | lib | `libc` | Signal handler registration (`sigaction`), `setitimer` wrapper. Generic — not Python-specific. Note: this crate uses `libc` for `sigaction`/`setitimer` calls at **init time only** — it is never called from within the signal handler. |
 | `kit/python_offsets` | lib | `kindasafe_init`, `libc` | CPython version detection, `_Py_DebugOffsets` reading, offset table structures. ELF symbol lookup for `_PyRuntime` and `Py_Version`. `/proc/self/maps` parsing. TLS offset discovery. All done at **init time only** — not in signal handler. Uses `kindasafe` reads (via `kindasafe_init`) for safe memory access during discovery. |
 | `kit/python_unwind` | lib (`#![no_std]`) | `kindasafe`, `notlibc` | Signal-safe Python frame walking. Reads `PyThreadState.current_frame` → `_PyInterpreterFrame` chain. Outputs `(PyCodeObject*, instr_offset)` tuples. **No libc dependency** — depends on `kindasafe` (the `#![no_std]` read crate), runs in signal handler context. |
@@ -206,11 +206,12 @@ Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindas
 - New crates **must not** depend on the existing `pyroscope` crate, `py-spy`, `rbspy`, or any existing workspace member except `kindasafe` and `kindasafe_init`.
 - External dependencies must be minimal:
   - `spin` — `#![no_std]` spinlock (in `notlibc`, `kindasafe_init`).
+  - `bbqueue` — `#![no_std]` lockless SPSC BipBuffer queue (in `sig_ring`). Battle-tested in embedded/interrupt contexts, provides contiguous variable-length write grants without allocation.
   - `libc` — **only for init-time crates** (`kindasafe_init`, `sighandler`, `python_offsets`) that call `sigaction`/`setitimer`/file I/O. Never in signal-handler-path crates.
   - `prost` — protobuf encoding (in `pprof_enc` only).
   - `flate2` — gzip compression (in `pprof_enc` only).
   - `ureq` or `minreq` — HTTP client (in `pyroscope_ingest` only).
-- **Signal-handler-path crates** (`kindasafe`, `notlibc`, `sig_ring`, `python_unwind`) **must be `#![no_std]` and must NOT depend on `libc`**. They use raw `syscall` instructions via inline assembly or naked asm for any OS interaction (e.g., `mmap`, `gettid`, memory reads). This ensures no libc function can ever be called from within the signal handler, regardless of interposition.
+- **Signal-handler-path crates** (`kindasafe`, `notlibc`, `sig_ring`, `python_unwind`) **must be `#![no_std]` and must NOT depend on `libc`**. They use raw `syscall` instructions via inline assembly or naked asm for any OS interaction (e.g., `mmap`, `gettid`, memory reads). This ensures no libc function can ever be called from within the signal handler, regardless of interposition. `bbqueue` is permitted in the signal-handler path because it is `#![no_std]` and lockless — it uses only core atomics, no libc.
 
 ---
 
@@ -301,7 +302,7 @@ In the signal handler, we identify the current thread via `gettid()` (raw `sysca
 |---------|-------------|-------------|---------|
 | `sigaction` | Init | N/A | Register signal handler |
 | `setitimer` | Init | N/A | Start process-wide timer |
-| `SYS_mmap` | Init (pre-alloc) | Yes (raw) | Allocate ring buffers, shard state |
+| `SYS_mmap` | Init (pre-alloc) | Yes (raw) | Allocate bbqueue buffers, shard state |
 | `SYS_eventfd2` | Init | N/A | Create eventfd for reader notification |
 | `SYS_write` | Signal handler (every N samples) | Yes (raw) | Write 1 to eventfd to wake reader |
 | `SYS_gettid` | Signal handler | Yes | Thread identification + shard selection |
@@ -514,9 +515,9 @@ pyroscope_start(config):
   5. python_offsets::read_debug_offsets()    — read _Py_DebugOffsets from _PyRuntime
   6. python_offsets::discover_tls()          — disassemble _PyThreadState_GetCurrent
   7. Construct PythonOffsets struct
-  8. Pre-allocate ring buffers (16 shards × 256 KiB via safe_mmap) + create eventfd
-  9. Pre-allocate per-shard frame buffers
-  10. Publish PythonOffsets + collector to global state (atomic pointer store with Release)
+  8. Pre-allocate bbqueue buffers (16 shards × 256 KiB via safe_mmap), split into Producer/Consumer pairs + create eventfd
+  9. Pre-allocate per-shard frame buffers, assign Producers to shards and Consumers to reader state
+  10. Publish PythonOffsets + shard state to global state (atomic pointer store with Release)
   11. Spawn reader thread
   12. sighandler::install_handler(SIGPROF)   — register signal handler
   13. sighandler::start_timer(10ms)          — arm setitimer
@@ -564,10 +565,12 @@ signal_handler(sig, info, ucontext):
   │     → fills frame_buffer with RawFrame structs
   │     → stops at max depth (128) or NULL/CSTACK frame
   │
-  ├─ 7. Append stack to per-shard ring buffer:
-  │     shard.ring_buffer.write(tid, shard.frame_buffer, depth)
-  │     → writes variable-length record (header + frames)
-  │     → if ring buffer full: increment overflow counter, skip
+  ├─ 7. Append stack to per-shard bbqueue:
+  │     record_len = (12 + depth * 16 + 7) & !7
+  │     grant = shard.bbqueue_producer.grant_exact(record_len)
+  │     → if grant is None (queue full): increment overflow counter, skip
+  │     → write record (header + frames) into grant slice
+  │     → grant.commit(record_len)
   │
   ├─ 8. Increment samples_collected counter
   │     If samples_collected % N == 0:
@@ -587,7 +590,7 @@ Every operation in the handler is async-signal-safe. **No libc functions are cal
 | `gettid()` | Raw `syscall` instruction via inline asm — no libc |
 | `spin::Mutex::try_lock()` | Single `compare_exchange` — no libc, never blocks |
 | `kindasafe::u64()` / `fs_0x10()` | Naked assembly with SIGSEGV recovery — no libc |
-| Ring buffer write | Atomic store on pre-allocated mmap'd memory — no libc |
+| bbqueue `grant_exact()` + `commit()` | Lock-free CAS on pre-allocated memory — `#![no_std]`, no libc |
 | eventfd notify | Raw `write` syscall via inline asm (8 bytes to fd) — no libc |
 | Atomic counter increment | `fetch_add(Relaxed)` — no libc |
 | `spin::MutexGuard::drop()` | `store(Release)` — no libc |
@@ -614,16 +617,21 @@ SignalHandlerState:
   samples_since_notify: AtomicU32    // global counter for batch notification
 
 Shard:
-  frame_buffer: [RawFrame; 128]   // scratch buffer for unwinding
-  ring_buffer: RingBuffer          // per-shard SPSC ring buffer
+  frame_buffer: [RawFrame; 128]      // scratch buffer for unwinding
+  bbqueue_producer: bbqueue::Producer // write half of per-shard bbqueue
+  overflow_count: AtomicU64          // samples dropped due to full queue
+
+ReaderState:
+  bbqueue_consumers: [bbqueue::Consumer; 16]  // read halves (one per shard)
 ```
 
 - Shard index: `gettid() % 16`
 - 3 attempts on contention: `shard`, `(shard+1) % 16`, `(shard+2) % 16`
 - With 16 shards and try-lock-only in the handler, the probability of dropping a sample is negligible even with many threads
 - Each shard's `frame_buffer` is used as scratch space during unwinding (not on the signal handler's stack — the shard is pre-allocated via mmap)
-- Each shard has its own `RingBuffer` instance — true SPSC since the shard lock ensures single-producer
+- Each shard has its own `bbqueue::Producer` — true SPSC since the shard lock ensures single-producer. The corresponding `bbqueue::Consumer` lives in the reader thread.
 - The `spin` crate's `Mutex` provides both `try_lock()` (used in handler — never blocks, async-signal-safe) and `lock()` (used by reader thread during drain — spins until acquired, ensures exclusive access to shard data)
+- **Why we still need the shard lock with bbqueue**: bbqueue is SPSC — it assumes a *single* producer. Since `SIGPROF` can fire on any thread, multiple threads could try to call `grant_exact()` on the same shard concurrently. The `spin::Mutex::try_lock()` serializes access, preserving the SPSC invariant.
 
 **Why `spin::Mutex` and not a custom lock**: The `spin` crate is well-tested, `#![no_std]`, and provides exactly the API we need — `try_lock()` for the signal handler and `lock()` for the reader thread. No need to reimplement a spinlock.
 
@@ -809,89 +817,128 @@ All syscall helpers use `core::arch::asm!` — no libc dependency.
 
 ---
 
-## 9. Collection: Lock-Free Ring Buffer (`kit/sig_ring`)
+## 9. Collection: Per-Shard SPSC Queue (`kit/sig_ring`)
 
-A per-shard SPSC (Single Producer Single Consumer) lock-free ring buffer with variable-length records. The signal handler appends raw stack traces; the reader thread drains them in batches.
+A per-shard SPSC queue built on [`bbqueue`](https://github.com/jamesmunns/bbqueue), a `#![no_std]` lockless BipBuffer crate. The signal handler writes variable-length stack trace records via contiguous write grants; the reader thread drains them in batches via read grants. `kit/sig_ring` owns the record format and eventfd notification; bbqueue handles the underlying buffer management, atomics, and wrap-around.
 
-### 9.1 Structure
+### 9.1 Why bbqueue
 
-```
-RingBuffer:
-  data: *mut u8             // mmap'd buffer
-  capacity: u32             // byte capacity (power of 2)
-  mask: u32                 // capacity - 1
+The original design specified a hand-rolled SPSC ring buffer with manual atomic positions, wrap-around copy logic, and cache-line padding. bbqueue replaces all of this with a well-tested library:
 
-  write_pos: AtomicU32      // writer position (monotonically increasing)
-  read_pos: AtomicU32       // reader position (monotonically increasing)
-  overflow_count: AtomicU64 // samples dropped due to full buffer
-```
+- **`#![no_std]`, no libc** — safe for signal-handler-path crates.
+- **Lockless BipBuffer** — `grant_exact(N)` returns a contiguous slice of N bytes, even near the buffer boundary (the BipBuffer design avoids split writes by using a watermark). No manual two-part copy needed.
+- **Battle-tested** — widely used in embedded Rust for DMA + interrupt handler contexts, which have the same constraints as our signal handler (no allocation, no blocking, single producer).
+- **Inline storage** — bbqueue supports const-generic inline backing (`BBQueue<N>`), so each shard's buffer can be a fixed-size array allocated via mmap at init time. No heap allocation.
 
-Both `write_pos` and `read_pos` are on separate cache lines (64-byte aligned) to avoid false sharing.
+**What we delete** by using bbqueue: custom `write_pos`/`read_pos` atomics, cache-line padding, `write_record_at`/`read_record_at` with two-part boundary copy, capacity/mask arithmetic. ~100 lines of subtle lock-free code replaced by library calls.
 
-### 9.2 Record Format
+**What we keep**: the record format (header + frames), the shard lock (`spin::Mutex`), the eventfd notification, and the overflow counter.
 
-Each sample is a variable-length record:
+### 9.2 Structure
 
 ```
-┌──────────┬───────────┬─────────┬──────────────────────────────────┐
-│ total_len│ thread_id │ depth   │ frames[0..depth]                 │
-│ (u32)    │ (u32)     │ (u32)   │ (code_object:u64, instr_ptr:u64) │
-└──────────┴───────────┴─────────┴──────────────────────────────────┘
+// At init time, per shard:
+bbqueue: BBQueue<262144>           // 256 KiB inline BipBuffer
+  → producer: bbqueue::Producer    // given to signal handler (inside Shard, behind spin::Mutex)
+  → consumer: bbqueue::Consumer    // given to reader thread (in ReaderState)
 
-total_len = 12 + depth * 16   (in bytes, padded to 8-byte alignment)
+// Per shard (inside spin::Mutex<Shard>):
+Shard:
+  frame_buffer: [RawFrame; 128]    // scratch buffer for unwinding
+  bbqueue_producer: Producer       // write half
+  overflow_count: AtomicU64        // samples dropped due to full queue
 ```
 
-Variable-length records are space-efficient: a typical 20-frame stack uses `12 + 20*16 = 332 bytes` (padded to 336), not the 4KB fixed entries of Proposal 3.
+The `Producer` and `Consumer` are the two halves of a bbqueue, obtained by splitting the `BBQueue` at init time. The `Producer` lives inside the shard (protected by `spin::Mutex`). The `Consumer` lives in the reader thread — it is safe to call `consumer.read()` without the shard lock because bbqueue's SPSC contract is upheld by the shard lock on the producer side.
 
-### 9.3 Write Path (Signal Handler)
+### 9.3 Record Format
 
-```
-fn write(&self, tid: u32, frames: &[RawFrame], depth: u32) -> bool:
-  record_len = (12 + depth * 16 + 7) & !7  // 8-byte aligned
-
-  w = self.write_pos.load(Relaxed)
-  r = self.read_pos.load(Acquire)
-  available = self.capacity - (w.wrapping_sub(r))
-
-  if record_len > available:
-    self.overflow_count.fetch_add(1, Relaxed)
-    return false
-
-  // Write record at w & mask
-  // Handle wraparound: if record spans buffer boundary, write in two parts
-  write_record_at(self.data, w & self.mask, self.capacity, tid, depth, frames)
-
-  // Publish: make data visible before advancing write_pos
-  self.write_pos.store(w.wrapping_add(record_len), Release)
-  return true
-```
-
-With the shard lock, only one writer exists per ring buffer (true SPSC), so no CAS loop is needed — a simple load + store suffices.
-
-### 9.4 Read Path (Reader Thread)
+Each sample is a variable-length record written into a bbqueue grant:
 
 ```
-fn drain(&self, out: &mut Vec<RawSample>) -> usize:
-  r = self.read_pos.load(Relaxed)    // only reader writes read_pos
-  w = self.write_pos.load(Acquire)
+┌───────────┬─────────┬──────────────────────────────────┐
+│ thread_id │ depth   │ frames[0..depth]                 │
+│ (u32)     │ (u32)   │ (code_object:u64, instr_ptr:u64) │
+└───────────┴─────────┴──────────────────────────────────┘
+
+record_len = (8 + depth * 16 + 7) & !7   (padded to 8-byte alignment)
+```
+
+Note: unlike the previous hand-rolled design, there is no `total_len` field in the record header. bbqueue's read grant already provides the exact byte length of the committed data, so the record length is implicit.
+
+Variable-length records are space-efficient: a typical 20-frame stack uses `8 + 20*16 = 328 bytes` (padded to 328), not the 4KB fixed entries of Proposal 3.
+
+### 9.4 Write Path (Signal Handler)
+
+```
+fn write(producer: &mut Producer, tid: u32, frames: &[RawFrame], depth: u32,
+         overflow: &AtomicU64) -> bool:
+  record_len = (8 + depth * 16 + 7) & !7  // 8-byte aligned
+
+  match producer.grant_exact(record_len):
+    Ok(mut grant):
+      // bbqueue guarantees grant is a contiguous &mut [u8] slice
+      // Write header
+      grant[0..4].copy_from_slice(&tid.to_ne_bytes())
+      grant[4..8].copy_from_slice(&depth.to_ne_bytes())
+      // Write frames
+      for i in 0..depth:
+        let offset = 8 + i * 16
+        grant[offset..offset+8].copy_from_slice(&frames[i].code_object.to_ne_bytes())
+        grant[offset+8..offset+16].copy_from_slice(&frames[i].instr_offset.to_ne_bytes())
+      // Commit — makes data visible to consumer
+      grant.commit(record_len)
+      return true
+
+    Err(_):
+      // Queue full — drop sample
+      overflow.fetch_add(1, Relaxed)
+      return false
+```
+
+**Key differences from hand-rolled version:**
+- `grant_exact()` handles space checking and wrap-around internally. No manual `write_pos`/`read_pos` arithmetic.
+- The grant is a contiguous `&mut [u8]` — no two-part copy even when the write spans the buffer boundary (BipBuffer watermark handles this).
+- `commit()` publishes the data atomically to the consumer.
+
+### 9.5 Read Path (Reader Thread)
+
+```
+fn drain(consumer: &mut Consumer, out: &mut Vec<RawSample>) -> usize:
   count = 0
 
-  while r != w:
-    (record_len, tid, depth, frames) = read_record_at(self.data, r & self.mask, self.capacity)
+  while let Ok(grant) = consumer.read():
+    let buf = &*grant
+    // Parse header
+    let tid = u32::from_ne_bytes(buf[0..4])
+    let depth = u32::from_ne_bytes(buf[4..8])
+    // Parse frames
+    let mut frames = Vec::with_capacity(depth as usize)
+    for i in 0..depth as usize:
+      let offset = 8 + i * 16
+      let code_object = u64::from_ne_bytes(buf[offset..offset+8])
+      let instr_offset = u64::from_ne_bytes(buf[offset+8..offset+16])
+      frames.push(RawFrame { code_object, instr_offset })
+
     out.push(RawSample { tid, frames, depth })
-    r = r.wrapping_add(record_len)
+    let len = grant.len()
+    grant.release(len)  // free space for producer
     count += 1
 
-  self.read_pos.store(r, Release)
   return count
 ```
 
-### 9.5 Notification Mechanism
+**Key differences from hand-rolled version:**
+- `consumer.read()` returns the next available contiguous record as a read grant, or `Err` if empty. No manual position tracking.
+- `grant.release()` advances the consumer position atomically.
+- The reader does NOT need the shard lock to call `consumer.read()` — the consumer half is exclusively owned by the reader thread. However, the reader still takes the shard lock during drain to ensure no signal handler is mid-unwind into the frame buffer (same as before).
 
-The signal handler notifies the reader thread via an `eventfd` every **N samples** (e.g., N = 32). This allows the reader to process samples in batches rather than sleeping for the full 15s interval:
+### 9.6 Notification Mechanism
+
+The signal handler notifies the reader thread via an `eventfd` every **N samples** (e.g., N = 32). This is separate from bbqueue — bbqueue has no built-in notification. The notification layer is identical to the original design:
 
 ```
-// In signal handler, after successful ring buffer write:
+// In signal handler, after successful grant.commit():
 total = global_sample_counter.fetch_add(1, Relaxed)
 if total % NOTIFY_INTERVAL == 0:
   eventfd_notify(state.eventfd)  // raw write(fd, &1u64, 8) — async-signal-safe
@@ -899,23 +946,25 @@ if total % NOTIFY_INTERVAL == 0:
 
 The notification is best-effort: if the write fails (fd full, etc.), it's harmless — the reader will still wake on the 15s timer. The `eventfd` is created with `EFD_NONBLOCK` so the handler never blocks.
 
-### 9.6 Sizing
+### 9.7 Sizing
 
-- 16 shards × 1 ring buffer per shard.
-- Each ring buffer: **256 KiB** = 262144 bytes.
-- At 100 Hz with 20-frame stacks: each record ≈ 336 bytes.
-- Per shard: `256 KiB / 336 ≈ 780` samples ≈ 7.8 seconds of data.
-- Total across 16 shards: **4 MiB**, ~12480 samples.
+- 16 shards × 1 bbqueue per shard.
+- Each bbqueue: **256 KiB** = 262144 bytes (inline const-generic storage).
+- At 100 Hz with 20-frame stacks: each record ≈ 328 bytes.
+- Per shard: `256 KiB / 328 ≈ 799` samples ≈ 8.0 seconds of data.
+- Total across 16 shards: **4 MiB**, ~12784 samples.
 - With reader draining on notification (every ~320ms at 100Hz/32), the buffers rarely fill up.
 - Overflow is tracked by per-shard `overflow_count`.
+- **BipBuffer overhead**: the BipBuffer watermark mechanism may leave some space unusable near the buffer end when a write doesn't fit contiguously. In the worst case this wastes up to one max-record-size of space (~2 KiB for a 128-frame stack) per wrap-around cycle — negligible relative to 256 KiB.
 
-### 9.7 Properties
+### 9.8 Properties
 
-- **True SPSC per shard**: one writer (signal handler holding shard lock), one reader (reader thread).
-- **Lock-free write path**: simple atomic store of `write_pos` (no CAS needed with SPSC).
+- **True SPSC per shard**: one writer (signal handler holding shard lock), one reader (reader thread). bbqueue's SPSC invariant is upheld by the shard lock.
+- **Lock-free write path**: bbqueue uses CAS internally for the BipBuffer watermark, but with true SPSC this never contends.
+- **Contiguous write grants**: BipBuffer guarantees the grant is a single contiguous `&mut [u8]` — no wrap-around copy logic needed.
 - **Variable-length records**: space-efficient for varying stack depths.
-- **No allocation in handler**: buffer is pre-allocated via mmap.
-- **Simple**: no hashing, no probing, no CAS races — just append and advance a position.
+- **No allocation in handler**: bbqueue buffer is pre-allocated at init (inline const-generic storage).
+- **No hand-rolled atomics**: all buffer management (positions, wrap-around, space checking) is handled by bbqueue's well-tested implementation.
 
 ---
 
@@ -926,10 +975,10 @@ The notification is best-effort: if the write fails (fd full, etc.), it's harmle
 **Crate:** `kit/profiler_core`
 
 A background thread that:
-- Wakes on **eventfd notification** (every N samples) to drain ring buffers and aggregate stacks.
+- Wakes on **eventfd notification** (every N samples) to drain bbqueue consumers and aggregate stacks.
 - Wakes on **15-second timeout** to flush: symbolize aggregated stacks, build pprof, send to Pyroscope.
 
-This two-trigger design ensures low-latency batch processing (ring buffers don't fill up) while still doing expensive symbolization/HTTP only every 15 seconds.
+This two-trigger design ensures low-latency batch processing (bbqueue buffers don't fill up) while still doing expensive symbolization/HTTP only every 15 seconds.
 
 ### 10.2 Thread Loop
 
@@ -943,7 +992,7 @@ fn reader_thread(state: Arc<ProfilerState>):
     timeout = Duration::from_secs(15) - last_flush.elapsed()
     poll_result = poll([eventfd], timeout)
 
-    // Drain all ring buffers regardless of wake reason
+    // Drain all bbqueue consumers regardless of wake reason
     drain_all_shards(&state, &mut aggregated)
 
     if poll_result == TIMEOUT || last_flush.elapsed() >= 15s:
@@ -953,10 +1002,13 @@ fn reader_thread(state: Arc<ProfilerState>):
 
 fn drain_all_shards(state: &ProfilerState, aggregated: &mut HashMap<Vec<RawFrame>, u64>):
   for shard_idx in 0..16:
+    // Lock shard to ensure no handler is mid-unwind into the frame buffer.
+    // The bbqueue consumer.read() itself is safe without the lock (SPSC consumer),
+    // but we need to ensure no handler is mid-write to the producer.
     let guard = shards[shard_idx].lock()  // wait for in-flight handler
     let mut raw_samples = Vec::new()
-    guard.ring_buffer.drain(&mut raw_samples)
-    // guard drops → shard unlocked immediately
+    sig_ring::drain(&mut state.bbqueue_consumers[shard_idx], &mut raw_samples)
+    drop(guard)  // shard unlocked immediately after drain
     for sample in raw_samples:
       *aggregated.entry(sample.frames).or_insert(0) += 1
 
@@ -990,13 +1042,13 @@ fn flush_and_send(state: &ProfilerState, aggregated: &mut HashMap<Vec<RawFrame>,
 
 ### 10.3 Drain Behavior
 
-The reader drains one shard at a time, taking a **full `spin::Mutex::lock()`** on each shard. This ensures no handler is mid-write to that shard's ring buffer. The lock is held only for the duration of the `drain()` call (reading atomic positions and copying data out), then immediately released — the shard is blocked for microseconds at most.
+The reader drains one shard at a time, taking a **full `spin::Mutex::lock()`** on each shard. This ensures no signal handler is mid-unwind or mid-write (calling `grant_exact` / `commit` on the producer). The lock is held only for the duration of the drain (reading all available records from the bbqueue consumer), then immediately released — the shard is blocked for microseconds at most.
 
 ```
 for shard_idx in 0..16:
   let guard = shards[shard_idx].lock()  // wait for in-flight handler
-  guard.ring_buffer.drain(&mut raw_samples)
-  // guard drops → shard unlocked, handler can resume
+  sig_ring::drain(&mut bbqueue_consumers[shard_idx], &mut raw_samples)
+  drop(guard)  // shard unlocked, handler can resume
 ```
 
 Since only one shard is locked at a time, at most 1/16 of concurrent signals are affected during drain.
@@ -1005,10 +1057,10 @@ Since only one shard is locked at a time, at most 1/16 of concurrent signals are
 
 | Phase | Trigger | What happens | Cost |
 |-------|---------|-------------|------|
-| **Drain** | eventfd (every N samples) | Read raw samples from ring buffers, aggregate into `HashMap<stack, count>` | Cheap — no symbolization, no I/O |
+| **Drain** | eventfd (every N samples) | Read records from bbqueue consumers, aggregate into `HashMap<stack, count>` | Cheap — no symbolization, no I/O |
 | **Flush** | 15s timeout | Symbolize aggregated stacks, build pprof, HTTP POST to Pyroscope | Expensive — string reads, protobuf encoding, network I/O |
 
-This separation means the ring buffers are drained frequently (keeping them from overflowing) while the expensive flush happens only once per 15-second window. The aggregation `HashMap` lives in the reader thread and is standard Rust — no signal-safety concerns.
+This separation means the bbqueue buffers are drained frequently (keeping them from overflowing) while the expensive flush happens only once per 15-second window. The aggregation `HashMap` lives in the reader thread and is standard Rust — no signal-safety concerns.
 
 ---
 
@@ -1220,8 +1272,8 @@ UNINITIALIZED (0) → RUNNING (1)
 
 | Participant | Runs on | What it accesses |
 |-------------|---------|-----------------|
-| Signal handler | Interrupted thread (any) | Shard lock, frame buffer, collector (write side), atomic counters |
-| Reader thread | Dedicated background thread | Collector (read side), symbol cache (HashMap), pprof builder, HTTP |
+| Signal handler | Interrupted thread (any) | Shard lock, frame buffer, bbqueue producer (write side), atomic counters |
+| Reader thread | Dedicated background thread | bbqueue consumers (read side), symbol cache (HashMap), pprof builder, HTTP |
 | Init | Main thread (Python caller) | Everything — but runs before handler is installed |
 
 ### 15.2 Lock Hierarchy
@@ -1230,8 +1282,8 @@ UNINITIALIZED (0) → RUNNING (1)
 |-------|-----------|---------|
 | Signal handler | `spin::Mutex::try_lock()` on per-shard state | Async-signal-safe |
 | Reader thread (dump) | `spin::Mutex::lock()` on per-shard state | Spins until acquired |
-| Signal handler | Atomic store on ring buffer write_pos | Async-signal-safe |
-| Reader thread (dump) | `spin::Mutex::lock()` on each shard sequentially | Normal (spins briefly) |
+| Signal handler | bbqueue `grant_exact()` + `commit()` (lock-free CAS) | Async-signal-safe |
+| Reader thread (dump) | bbqueue `read()` + `release()` (lock-free) under shard lock | Normal (spins briefly) |
 | Reader thread | `HashMap` for symbol cache (local to reader) | Normal |
 | Init | Sequential — runs before handler is installed | Sequential |
 
@@ -1239,7 +1291,7 @@ UNINITIALIZED (0) → RUNNING (1)
 
 1. **Signal handler** only uses `try_lock()` (never blocks) → cannot deadlock.
 2. **Reader thread** uses `lock()` on shard mutexes, but this is the only lock it acquires. The signal handler on the same thread cannot interrupt and deadlock because `sa_mask = {SIGPROF, SIGSEGV, SIGBUS}` blocks SIGPROF during handler execution, and the reader thread is not a signal handler.
-3. **Reader thread spin duration is bounded**: the signal handler holds the shard lock for ~1-10µs (one unwind + one collection write). The reader thread's `lock()` spin completes quickly.
+3. **Reader thread spin duration is bounded**: the signal handler holds the shard lock for ~1-10µs (one unwind + one bbqueue grant/commit). The reader thread's `lock()` spin completes quickly.
 4. **Init** runs before the handler is installed → no concurrent signal handler access during initialization.
 5. `sa_mask = {SIGPROF, SIGSEGV, SIGBUS}` prevents re-entrant handler execution and prevents delivery during fault recovery → the shard lock is never held by the same thread trying to re-acquire it via signal.
 
@@ -1268,8 +1320,9 @@ if state.is_null() { return }
 
 | Data Structure | Size | Allocated By | When Freed |
 |---------------|------|-------------|-----------|
-| Shard state (16 shards × lock + frame buf) | 16 × (4 + 128×16) ≈ 33 KiB | `safe_mmap` at init | Process exit |
-| Ring buffers (16 shards × 256 KiB) | 4 MiB | `safe_mmap` at init | Process exit |
+| Shard state (16 shards × lock + frame buf + producer) | 16 × (4 + 128×16 + ~64) ≈ 34 KiB | `safe_mmap` at init | Process exit |
+| bbqueue buffers (16 shards × 256 KiB inline storage) | 4 MiB | `safe_mmap` at init | Process exit |
+| bbqueue control structures (16 × Producer + Consumer) | ~2 KiB | `safe_mmap` at init | Process exit |
 | eventfd | 1 fd | `eventfd2` syscall at init | Process exit |
 | PythonOffsets struct | ~200 B | `Box::new` at init | Process exit (leaked) |
 | Symbol cache | Dynamic | Reader thread heap | Process exit |
@@ -1279,8 +1332,8 @@ if state.is_null() { return }
 
 The signal handler path allocates **zero bytes from the heap**:
 - Frame buffer: pre-allocated per-shard (via mmap).
-- Ring buffers: pre-allocated at init (via mmap).
-- Hash computation: pure computation, stack-local variables.
+- bbqueue buffers: pre-allocated at init (inline const-generic storage, backed by mmap'd memory).
+- bbqueue `grant_exact()` / `commit()`: operate on pre-allocated buffer via lock-free atomics — no allocation.
 - All atomic operations: on pre-allocated memory.
 
 ### 16.3 mmap vs malloc Boundary
@@ -1296,6 +1349,7 @@ The signal handler path uses **zero libc functions**. This is enforced structura
 - All handler-path crates (`kindasafe`, `notlibc`, `sig_ring`, `python_unwind`) are `#![no_std]` and do not have `libc` in their dependency tree.
 - `kindasafe` (the read crate) uses naked assembly — no libc. The init-time code (`kindasafe_init`) depends on libc but is never in the handler path.
 - `spin` is `#![no_std]` — no libc.
+- `bbqueue` is `#![no_std]` — uses only `core` atomics, no libc.
 - OS interactions (`gettid`, `mmap`) use raw `syscall` instructions via `core::arch::asm!`.
 
 ---
@@ -1313,7 +1367,7 @@ The signal handler must never panic, abort, or call `unwrap()`. All errors resul
 | TLS read failed | `samples_tstate_fail` |
 | PyThreadState is NULL | `samples_tstate_fail` |
 | Unwind produced 0 frames | `samples_empty` |
-| Ring buffer full | `samples_overflow` |
+| bbqueue full (`grant_exact` fails) | `samples_overflow` |
 | Successful collection | `samples_collected` |
 
 All counters are `AtomicU64` with `Relaxed` ordering — no synchronization needed for metrics.
