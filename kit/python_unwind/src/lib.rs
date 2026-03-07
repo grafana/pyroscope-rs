@@ -8,6 +8,15 @@ pub const FRAME_OWNED_BY_CSTACK: u64 = 3;
 /// Maximum number of frames to collect in a single unwind.
 pub const MAX_DEPTH: usize = 128;
 
+/// Expected type-object addresses resolved at init time.
+///
+/// Used during unwinding to verify that object pointers have the correct
+/// `ob_type`. A value of `0` means "unknown / skip check".
+#[derive(Copy, Clone)]
+pub struct TypeAddrs {
+    pub code_type: u64,
+}
+
 /// A raw Python frame captured during unwinding.
 ///
 /// Contains the `PyCodeObject*` address and the raw `instr_ptr` value.
@@ -32,7 +41,12 @@ pub struct RawFrame {
 /// Frames with `owner == FRAME_OWNED_BY_CSTACK` (C→Python entry shims) are
 /// skipped. Cycle detection and a max depth of `min(buf.len(), MAX_DEPTH)`
 /// prevent infinite loops from corrupted pointers.
-pub fn unwind(tstate: u64, offsets: &py313::_Py_DebugOffsets, buf: &mut [RawFrame]) -> usize {
+pub fn unwind(
+    tstate: u64,
+    offsets: &py313::_Py_DebugOffsets,
+    type_addrs: &TypeAddrs,
+    buf: &mut [RawFrame],
+) -> usize {
     let max = if buf.len() < MAX_DEPTH {
         buf.len()
     } else {
@@ -72,6 +86,22 @@ pub fn unwind(tstate: u64, offsets: &py313::_Py_DebugOffsets, buf: &mut [RawFram
         };
         if code_obj == 0 {
             break;
+        }
+
+        if type_addrs.code_type != 0 {
+            if let Ok(ob_type) = kindasafe::u64(code_obj + offsets.pyobject.ob_type) {
+                if ob_type != type_addrs.code_type {
+                    notlibc::debug::writes(
+                        "!!! ERROR python_unwind: ob_type mismatch for PyCodeObject at 0x",
+                    );
+                    notlibc::debug::write_hex(code_obj as usize);
+                    notlibc::debug::writes(" expected PyCode_Type=0x");
+                    notlibc::debug::write_hex(type_addrs.code_type as usize);
+                    notlibc::debug::writes(" got ob_type=0x");
+                    notlibc::debug::write_hex(ob_type as usize);
+                    notlibc::debug::puts("");
+                }
+            }
         }
 
         let instr_ptr = match kindasafe::u64(frame_ptr + offsets.interpreter_frame.instr_ptr) {

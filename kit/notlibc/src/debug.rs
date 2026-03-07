@@ -1,23 +1,20 @@
-//! Debug output helpers using raw syscalls — zero-cost no-ops in release builds.
+//! Debug output helpers using raw syscalls.
 //!
-//! All functions compile away completely when `debug_assertions` is disabled
-//! (i.e. in `--release` or any profile with `debug-assertions = false`).
+//! Output is always enabled (both debug and release builds).
 
-#[cfg(all(debug_assertions, target_arch = "x86_64", target_os = "linux"))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 use crate::syscall_nr::x86_64::SYS_WRITE;
-#[cfg(all(debug_assertions, target_arch = "x86_64", target_os = "linux"))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 const STDOUT: usize = 1;
 
-/// Write a string to stdout followed by a newline (debug builds only).
-#[cfg(debug_assertions)]
+/// Write a string to stdout followed by a newline.
 #[inline(always)]
 pub fn puts(s: &str) {
     writes(s);
     writes("\n");
 }
 
-/// Write a string to stdout without a trailing newline (debug builds only).
-#[cfg(debug_assertions)]
+/// Write a string to stdout without a trailing newline.
 #[inline(always)]
 pub fn writes(s: &str) {
     #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
@@ -26,11 +23,10 @@ pub fn writes(s: &str) {
     }
 }
 
-/// Write a `usize` value as lowercase hex digits to stdout (debug builds only).
+/// Write a `usize` value as lowercase hex digits to stdout.
 ///
 /// No `0x` prefix is emitted; callers should use `writes("0x")` before this
 /// if the prefix is desired.
-#[cfg(debug_assertions)]
 #[inline(always)]
 pub fn write_hex(v: usize) {
     #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
@@ -50,17 +46,3 @@ pub fn write_hex(v: usize) {
         crate::syscall::syscall3(SYS_WRITE, STDOUT, buf.as_ptr().add(i) as usize, 16 - i);
     }
 }
-
-// --- release-build no-ops ---
-
-#[cfg(not(debug_assertions))]
-#[inline(always)]
-pub fn puts(_s: &str) {}
-
-#[cfg(not(debug_assertions))]
-#[inline(always)]
-pub fn writes(_s: &str) {}
-
-#[cfg(not(debug_assertions))]
-#[inline(always)]
-pub fn write_hex(_v: usize) {}

@@ -20,6 +20,8 @@ struct HandlerState {
     /// `_PyThreadState_GetCurrent`, stored as `u64` (may be a negative `i64`
     /// bit pattern for typical glibc static TLS).
     tls_offset: u64,
+    /// Expected type-object addresses for runtime type checking.
+    type_addrs: python_unwind::TypeAddrs,
 }
 
 static HANDLER_STATE: AtomicPtr<HandlerState> = AtomicPtr::new(core::ptr::null_mut());
@@ -68,10 +70,9 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
         code_object: 0,
         instr_offset: 0,
     }; python_unwind::MAX_DEPTH];
-    python_unwind::unwind(tstate, &state.debug_offsets, &mut buf);
-    // python_unwind::unwind() prints each frame in debug builds via
-    // notlibc::debug (raw SYS_write syscall). In release builds this
-    // is a no-op.
+    python_unwind::unwind(tstate, &state.debug_offsets, &state.type_addrs, &mut buf);
+    // python_unwind::unwind() prints each frame via notlibc::debug
+    // (raw SYS_write syscall).
 }
 
 /// Start the CPython profiler.
@@ -141,9 +142,13 @@ fn init_sequence() -> Result<(), c_int> {
     let tls_offset = python_offsets::find_tls_offset(&binary).map_err(|e| map_init_error(&e))?;
 
     // Publish handler state before installing the signal handler.
+    let type_addrs = python_unwind::TypeAddrs {
+        code_type: symbols.py_code_type_addr,
+    };
     let state = Box::new(HandlerState {
         debug_offsets,
         tls_offset,
+        type_addrs,
     });
     HANDLER_STATE.store(Box::into_raw(state), Ordering::Release);
 
@@ -163,7 +168,7 @@ fn map_init_error(err: &python_offsets::InitError) -> c_int {
         python_offsets::InitError::KindasafeInitFailed => 1,
         python_offsets::InitError::PythonNotFound => 2,
         python_offsets::InitError::Io => 2,
-        python_offsets::InitError::SymbolNotFound => 3,
+        python_offsets::InitError::SymbolNotFound(_) => 3,
         python_offsets::InitError::ElfParse => 3,
         python_offsets::InitError::DebugOffsetsMismatch => 4,
         python_offsets::InitError::UnsupportedVersion => 5,
