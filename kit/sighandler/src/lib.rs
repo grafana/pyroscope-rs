@@ -22,32 +22,36 @@ pub fn start(handler: HandlerFn) -> Result<(), Error> {
 }
 
 unsafe fn register_sigaction(handler: HandlerFn) -> Result<(), Error> {
-    let mut new_action: libc::sigaction = core::mem::zeroed();
-    new_action.sa_sigaction = handler as usize;
-    new_action.sa_flags = libc::SA_SIGINFO | libc::SA_RESTART;
-    libc::sigemptyset(&mut new_action.sa_mask);
-    libc::sigaddset(&mut new_action.sa_mask, libc::SIGPROF);
-    libc::sigaddset(&mut new_action.sa_mask, libc::SIGSEGV);
-    libc::sigaddset(&mut new_action.sa_mask, libc::SIGBUS);
-    if libc::sigaction(libc::SIGPROF, &new_action, core::ptr::null_mut()) != 0 {
-        return Err(Error::SigactionFailed);
+    unsafe {
+        let mut new_action: libc::sigaction = core::mem::zeroed();
+        new_action.sa_sigaction = handler as usize;
+        new_action.sa_flags = libc::SA_SIGINFO | libc::SA_RESTART;
+        libc::sigemptyset(&mut new_action.sa_mask);
+        libc::sigaddset(&mut new_action.sa_mask, libc::SIGPROF);
+        libc::sigaddset(&mut new_action.sa_mask, libc::SIGSEGV);
+        libc::sigaddset(&mut new_action.sa_mask, libc::SIGBUS);
+        if libc::sigaction(libc::SIGPROF, &new_action, core::ptr::null_mut()) != 0 {
+            return Err(Error::SigactionFailed);
+        }
     }
     Ok(())
 }
 
 unsafe fn start_timer() -> Result<(), Error> {
-    let interval = libc::itimerval {
-        it_interval: libc::timeval {
-            tv_sec: 0,
-            tv_usec: 10_000,
-        },
-        it_value: libc::timeval {
-            tv_sec: 0,
-            tv_usec: 10_000,
-        },
-    };
-    if libc::setitimer(libc::ITIMER_PROF, &interval, core::ptr::null_mut()) != 0 {
-        return Err(Error::SetitimerFailed);
+    unsafe {
+        let interval = libc::itimerval {
+            it_interval: libc::timeval {
+                tv_sec: 0,
+                tv_usec: 10_000,
+            },
+            it_value: libc::timeval {
+                tv_sec: 0,
+                tv_usec: 10_000,
+            },
+        };
+        if libc::setitimer(libc::ITIMER_PROF, &interval, core::ptr::null_mut()) != 0 {
+            return Err(Error::SetitimerFailed);
+        }
     }
     Ok(())
 }

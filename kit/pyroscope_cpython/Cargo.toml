@@ -1,0 +1,14 @@
+[package]
+name = "pyroscope_cpython"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+kindasafe_init = { path = "../kindasafe_init" }
+python_offsets = { path = "../python_offsets" }
+sighandler = { path = "../sighandler" }
+notlibc = { path = "../notlibc" }
+libc = { version = "0.2.182" }

@@ -2306,6 +2306,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyroscope_cpython"
+version = "0.1.0"
+dependencies = [
+ "kindasafe_init",
+ "libc",
+ "notlibc",
+ "python_offsets",
+ "sighandler",
+]
+
+[[package]]
 name = "pyroscope_ingest"
 version = "0.1.0"
 dependencies = [

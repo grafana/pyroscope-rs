@@ -30,6 +30,7 @@ members = [
     "kit/notlibc",
     "kit/python_offsets",
     "kit/coredump",
+    "kit/pyroscope_cpython",
 ]
 
 [workspace.dependencies]

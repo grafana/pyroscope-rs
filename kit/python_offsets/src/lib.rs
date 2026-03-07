@@ -192,8 +192,13 @@ fn resolve_elf_symbols_from_bytes(data: &[u8], mapped_base: u64) -> Result<ElfSy
     let obj = object::File::parse(data).map_err(|_| InitError::ElfParse)?;
 
     // load_bias = runtime base − ELF-file base (first LOAD segment vaddr).
-    // For PIE/shared objects p_vaddr is 0, so load_bias == mapped_base.
-    let load_bias = mapped_base.wrapping_sub(obj.relative_address_base());
+    // For PIE/shared objects the first LOAD vaddr is 0, so load_bias == mapped_base.
+    // For non-PIE executables (ET_EXEC) the first LOAD vaddr is already the
+    // absolute address (e.g. 0x400000), so load_bias == 0.
+    // NOTE: object::Object::relative_address_base() always returns 0 for ELF,
+    // so we must compute the first LOAD vaddr ourselves from program headers.
+    let elf_base = obj.segments().map(|s| s.address()).min().unwrap_or(0);
+    let load_bias = mapped_base.wrapping_sub(elf_base);
 
     let mut py_runtime: Option<u64> = None;
     let mut py_version: Option<u64> = None;
