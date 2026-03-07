@@ -114,7 +114,7 @@ pub fn unwind(
             instr_offset: instr_ptr,
         };
 
-        notlibc::debug::writes("  [");
+        notlibc::debug::writes("  handler: [");
         notlibc::debug::write_hex(depth);
         notlibc::debug::writes("] code=0x");
         notlibc::debug::write_hex(code_obj as usize);
@@ -133,7 +133,7 @@ pub fn unwind(
         };
     }
 
-    notlibc::debug::writes("python_unwind: depth=");
+    notlibc::debug::writes("handler: depth=");
     notlibc::debug::write_hex(depth);
     notlibc::debug::puts("");
 

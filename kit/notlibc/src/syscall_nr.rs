@@ -10,6 +10,7 @@ pub mod x86_64 {
     pub const SYS_MMAP: usize = 9;
     pub const SYS_MPROTECT: usize = 10;
     pub const SYS_MUNMAP: usize = 11;
+    pub const SYS_GETTID: usize = 186;
     pub const SYS_EPOLL_WAIT: usize = 232;
     pub const SYS_EPOLL_CTL: usize = 233;
     pub const SYS_OPENAT: usize = 257;

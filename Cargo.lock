@@ -221,6 +221,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "bbqueue"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd3baa8859d1a4c7411039a75c0599a4640ef1c9a8fc811e4325b00e6cfe0a55"
+
+[[package]]
 name = "bindgen"
 version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2309,6 +2315,7 @@ dependencies = [
 name = "pyroscope_cpython"
 version = "0.1.0"
 dependencies = [
+ "bbqueue",
  "kindasafe",
  "kindasafe_init",
  "libc",
@@ -2316,6 +2323,7 @@ dependencies = [
  "python_offsets",
  "python_offsets_types",
  "python_unwind",
+ "sig_ring",
  "sighandler",
 ]
 
@@ -2989,6 +2997,14 @@ name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
+
+[[package]]
+name = "sig_ring"
+version = "0.1.0"
+dependencies = [
+ "bbqueue",
+ "python_unwind",
+]
 
 [[package]]
 name = "sighandler"

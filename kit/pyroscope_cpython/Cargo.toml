@@ -12,6 +12,8 @@ kindasafe = { path = "../kindasafe" }
 python_offsets = { path = "../python_offsets" }
 python_offsets_types = { path = "../python_offsets_types" }
 python_unwind = { path = "../python_unwind" }
+sig_ring = { path = "../sig_ring" }
 sighandler = { path = "../sighandler" }
 notlibc = { path = "../notlibc" }
+bbqueue = "0.5"
 libc = { version = "0.2.182" }

@@ -32,6 +32,7 @@ members = [
     "kit/python_offsets_types",
     "kit/python_unwind",
     "kit/coredump",
+    "kit/sig_ring",
     "kit/pyroscope_cpython",
 ]
 
