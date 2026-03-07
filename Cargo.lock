@@ -2346,7 +2346,21 @@ dependencies = [
  "libc",
  "memmap2 0.9.10",
  "object 0.36.7",
+ "python_offsets_types",
  "zydis",
+]
+
+[[package]]
+name = "python_offsets_types"
+version = "0.1.0"
+
+[[package]]
+name = "python_unwind"
+version = "0.1.0"
+dependencies = [
+ "kindasafe",
+ "notlibc",
+ "python_offsets_types",
 ]
 
 [[package]]

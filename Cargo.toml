@@ -29,6 +29,8 @@ members = [
     "kit/pprof_enc",
     "kit/notlibc",
     "kit/python_offsets",
+    "kit/python_offsets_types",
+    "kit/python_unwind",
     "kit/coredump",
     "kit/pyroscope_cpython",
 ]
