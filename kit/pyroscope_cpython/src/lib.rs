@@ -31,7 +31,6 @@ enum InitError {
     SymbolNotFound = 3,
     DebugOffsetsMismatch = 4,
     UnsupportedVersion = 5,
-    TlsDiscoveryFailed = 6,
     AllocFailed = 7,
     SignalHandler = 8,
     AlreadyRunning = 9,
@@ -71,7 +70,8 @@ struct Shard {
 /// with `Release`; the handler loads with `Acquire`. Never deallocated.
 struct HandlerState {
     debug_offsets: py313::_Py_DebugOffsets,
-    tls_offset: u64,
+    /// Function pointer to `_PyThreadState_GetCurrent()`, resolved at init time.
+    get_tstate: fn() -> u64,
     /// Expected type-object addresses for runtime type checking.
     type_addrs: python_unwind::TypeAddrs,
     /// Dynamically-sized shard array (length = num_shards).
@@ -90,7 +90,7 @@ struct HandlerState {
 
 // SAFETY: HandlerState is initialized once and then only accessed via:
 // - signal handler: loads AtomicPtr(Acquire), takes shard try_lock,
-//   reads debug_offsets/tls_offset (immutable), writes to producer.
+//   reads debug_offsets/get_tstate (immutable), writes to producer.
 // - reader thread: takes shard lock, reads consumers (separate from handler).
 // All accesses are properly synchronized via AtomicPtr + spin::Mutex.
 unsafe impl Sync for HandlerState {}
@@ -107,30 +107,8 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
     }
     let state = unsafe { &*state_ptr };
 
-    // Step 2: Read FS base.
-    let fs_base = match kindasafe::fs_0x0() {
-        Ok(v) => v,
-        Err(e) => {
-            notlibc::debug::writes("sigprof: fs_0x0 failed sig=");
-            notlibc::debug::write_hex(e.signal as usize);
-            notlibc::debug::puts("");
-            return;
-        }
-    };
-
-    // Step 3: Read tstate from TLS.
-    let tstate_addr = fs_base.wrapping_add(state.tls_offset);
-    let tstate = match kindasafe::u64(tstate_addr) {
-        Ok(v) => v,
-        Err(e) => {
-            notlibc::debug::writes("sigprof: tstate read failed at 0x");
-            notlibc::debug::write_hex(tstate_addr as usize);
-            notlibc::debug::writes(" sig=");
-            notlibc::debug::write_hex(e.signal as usize);
-            notlibc::debug::puts("");
-            return;
-        }
-    };
+    // Step 2: Get current thread state by calling _PyThreadState_GetCurrent.
+    let tstate = (state.get_tstate)();
     if tstate == 0 {
         return;
     }
@@ -167,10 +145,6 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
     if depth == 0 {
         notlibc::debug::writes("sigprof: unwind depth=0 tstate=0x");
         notlibc::debug::write_hex(tstate as usize);
-        notlibc::debug::writes(" fs_base=0x");
-        notlibc::debug::write_hex(fs_base as usize);
-        notlibc::debug::writes(" tls_offset=0x");
-        notlibc::debug::write_hex(state.tls_offset as usize);
         notlibc::debug::puts("");
         return;
     }
@@ -512,56 +486,12 @@ fn init_sequence(
             })?;
     log_info("read debug offsets");
 
-    // Step 6: Discover TLS offset for _PyThreadState_GetCurrent.
-    let tls_offset = python_offsets::find_tls_offset(&binary).map_err(|e| {
-        log_error(&format!("find_tls_offset: {:?}", e));
-        map_init_error(&e)
-    })?;
-    log_info(&format!("TLS offset: 0x{:x}", tls_offset));
-
-    // Step 6b: Validate TLS offset by reading tstate and checking native_thread_id.
-    {
-        let fs_base = kindasafe::fs_0x0().map_err(|_| {
-            log_error("TLS validation: failed to read fs_base");
-            InitError::TlsDiscoveryFailed
-        })?;
-        let tstate_addr = fs_base.wrapping_add(tls_offset);
-        let tstate = kindasafe::u64(tstate_addr).map_err(|_| {
-            log_error(&format!(
-                "TLS validation: failed to read tstate at 0x{:x} (fs_base=0x{:x}, tls_offset=0x{:x})",
-                tstate_addr, fs_base, tls_offset
-            ));
-            InitError::TlsDiscoveryFailed
-        })?;
-        if tstate == 0 {
-            log_error(&format!(
-                "TLS validation: tstate is NULL (fs_base=0x{:x}, tls_offset=0x{:x})",
-                fs_base, tls_offset
-            ));
-            return Err(InitError::TlsDiscoveryFailed);
-        }
-        let native_tid = kindasafe::u64(tstate + debug_offsets.thread_state.native_thread_id)
-            .map_err(|_| {
-                log_error(&format!(
-                    "TLS validation: failed to read native_thread_id from tstate=0x{:x}",
-                    tstate
-                ));
-                InitError::TlsDiscoveryFailed
-            })?;
-        let expected_tid = notlibc::gettid() as u64;
-        if native_tid != expected_tid {
-            log_error(&format!(
-                "TLS validation FAILED: native_thread_id={} but gettid()={} \
-                 (tstate=0x{:x}, fs_base=0x{:x}, tls_offset=0x{:x})",
-                native_tid, expected_tid, tstate, fs_base, tls_offset
-            ));
-            return Err(InitError::TlsDiscoveryFailed);
-        }
-        log_info(&format!(
-            "TLS validation passed: tstate=0x{:x}, native_thread_id={}",
-            tstate, native_tid
-        ));
-    }
+    // Step 6: Resolve _PyThreadState_GetCurrent as a callable function pointer.
+    let get_tstate: fn() -> u64 = unsafe { core::mem::transmute(symbols.get_tstate_addr as usize) };
+    log_info(&format!(
+        "_PyThreadState_GetCurrent at 0x{:x}",
+        symbols.get_tstate_addr
+    ));
 
     // Step 7: Allocate bbqueue buffers and split into producer/consumer pairs.
     let mut producers: Vec<Option<FrameProducer<'static, RING_SIZE>>> =
@@ -612,7 +542,7 @@ fn init_sequence(
     };
     let state = Box::new(HandlerState {
         debug_offsets,
-        tls_offset,
+        get_tstate,
         type_addrs,
         shards,
         consumers,
@@ -678,6 +608,5 @@ fn map_init_error(err: &python_offsets::InitError) -> InitError {
         python_offsets::InitError::ElfParse => InitError::SymbolNotFound,
         python_offsets::InitError::DebugOffsetsMismatch => InitError::DebugOffsetsMismatch,
         python_offsets::InitError::UnsupportedVersion => InitError::UnsupportedVersion,
-        python_offsets::InitError::TlsDiscoveryFailed => InitError::TlsDiscoveryFailed,
     }
 }

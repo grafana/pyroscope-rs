@@ -2360,7 +2360,6 @@ dependencies = [
  "memmap2 0.9.10",
  "object 0.36.7",
  "python_offsets_types",
- "zydis",
 ]
 
 [[package]]
@@ -4291,13 +4290,3 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
-
-[[package]]
-name = "zydis"
-version = "4.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0395dcbec9d43ff14811624d4876db7a4a51d1ed73ce3f9e89d14a7e4eeb9ae1"
-dependencies = [
- "bitflags 2.11.0",
- "cmake",
-]

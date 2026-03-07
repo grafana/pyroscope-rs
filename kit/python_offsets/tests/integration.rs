@@ -29,6 +29,7 @@ mod linux {
 
         assert_ne!(symbols.py_runtime_addr, 0);
         assert_ne!(symbols.py_version_addr, 0);
+        assert_ne!(symbols.get_tstate_addr, 0);
 
         // ── Version detection ────────────────────────────────────────────
         let version = python_offsets::detect_version(symbols.py_version_addr)

@@ -180,7 +180,7 @@ _enc   │  _ingest    _unwind                        (#![no_std])
 
 **Note on kindasafe split**: The existing `kindasafe` crate is a single crate that depends on `libc` and `spin`, mixing signal-handler-safe read primitives (naked asm) with init-time code (`sigaction` installation, fallback handler chaining). It must be split into two crates before other signal-handler-path crates can depend on it:
 
-- **`kindasafe`** (after split): `#![no_std]`, zero external dependencies. Contains only the naked-asm read primitives (`u64`, `slice`, `str`, `fs_0x10`), the crash-point table, and the `crash_handler` function. The `crash_handler` currently references `libc::ucontext_t` for register access — this must be replaced with raw pointer arithmetic at known offsets (the `ucontext_t` layout is stable on Linux x86_64). No libc dependency after split.
+- **`kindasafe`** (after split): `#![no_std]`, zero external dependencies. Contains only the naked-asm read primitives (`u64`, `slice`, `str`), the crash-point table, and the `crash_handler` function. The `crash_handler` currently references `libc::ucontext_t` for register access — this must be replaced with raw pointer arithmetic at known offsets (the `ucontext_t` layout is stable on Linux x86_64). No libc dependency after split.
 - **`kindasafe_init`** (new crate): depends on `kindasafe`, `libc`, `spin`. Contains `init()`, `is_initialized()`, SIGSEGV/SIGBUS signal handler installation via `sigaction`, fallback handler chaining (`FALLBACK_SIGSEGV`/`FALLBACK_SIGBUS` statics), and `restore_default_signal_handler()`.
 
 Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindasafe` (no_std). Init-time crates (`python_offsets`, `profiler_core`) depend on `kindasafe_init`.
@@ -189,12 +189,12 @@ Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindas
 
 | Crate | Type | Dependencies | Purpose |
 |-------|------|-------------|---------|
-| `kit/kindasafe` | lib (`#![no_std]`) | (none) | **Split from existing `kindasafe` crate.** SIGSEGV-safe memory read primitives: `u64()`, `slice()`, `str()`, `fs_0x10()` via naked assembly. Crash-point table and crash handler (manipulates `ucontext_t` via raw pointer offsets to skip faulting instructions). Currently the crash handler uses `libc::ucontext_t` types — these must be replaced with raw pointer arithmetic at fixed offsets for `#![no_std]`. **No libc dependency, no `std`** — uses only `core` and naked asm. Safe for use in signal handler context. |
+| `kit/kindasafe` | lib (`#![no_std]`) | (none) | **Split from existing `kindasafe` crate.** SIGSEGV-safe memory read primitives: `u64()`, `slice()`, `str()` via naked assembly. Crash-point table and crash handler (manipulates `ucontext_t` via raw pointer offsets to skip faulting instructions). Currently the crash handler uses `libc::ucontext_t` types — these must be replaced with raw pointer arithmetic at fixed offsets for `#![no_std]`. **No libc dependency, no `std`** — uses only `core` and naked asm. Safe for use in signal handler context. |
 | `kit/kindasafe_init` | lib | `kindasafe`, `libc`, `spin` | **Split from existing `kindasafe` crate.** Initialization for kindasafe: installs SIGSEGV/SIGBUS signal handlers via `sigaction` that delegate to `kindasafe::arch::crash_handler` for recovery. Manages fallback handler chaining (`FALLBACK_SIGSEGV`/`FALLBACK_SIGBUS` statics). Provides `init()` and `is_initialized()`. **Not `#![no_std]`** — depends on `libc` for `sigaction` and `ucontext_t` types. Called once at profiler startup, never from signal handler context. |
 | `kit/notlibc` | lib (`#![no_std]`) | `spin` | Async-signal-safe primitives: raw `mmap`/`munmap` wrappers (via raw `syscall` instruction — no libc), `eventfd` wrapper. Re-exports `spin::Mutex` for shard locking. **No libc dependency.** Uses inline assembly for syscalls. |
 | `kit/sig_ring` | lib (`#![no_std]`) | `bbqueue`, `notlibc` | Per-shard SPSC queue wrapping [`bbqueue`](https://github.com/jamesmunns/bbqueue) (a `#![no_std]`, lockless BipBuffer crate). One bbqueue instance per shard. Writer (signal handler) calls `grant_exact()` → fills record → `commit()`. Reader (background thread) calls `read()` → parses records → `release()`. Provides the record format (header + frames) and eventfd notification on top of bbqueue. **No libc dependency.** |
 | `kit/sighandler` | lib | `libc` | Signal handler registration (`sigaction`), `setitimer` wrapper. Generic — not Python-specific. Note: this crate uses `libc` for `sigaction`/`setitimer` calls at **init time only** — it is never called from within the signal handler. |
-| `kit/python_offsets` | lib | `kindasafe_init`, `libc` | CPython version detection, `_Py_DebugOffsets` reading, offset table structures. ELF symbol lookup for `_PyRuntime` and `Py_Version`. `/proc/self/maps` parsing. TLS offset discovery. All done at **init time only** — not in signal handler. Uses `kindasafe` reads (via `kindasafe_init`) for safe memory access during discovery. |
+| `kit/python_offsets` | lib | `kindasafe_init`, `libc` | CPython version detection, `_Py_DebugOffsets` reading, offset table structures. ELF symbol lookup for `_PyRuntime`, `Py_Version`, and `_PyThreadState_GetCurrent`. `/proc/self/maps` parsing. All done at **init time only** — not in signal handler. Uses `kindasafe` reads (via `kindasafe_init`) for safe memory access during discovery. |
 | `kit/python_unwind` | lib (`#![no_std]`) | `kindasafe`, `notlibc` | Signal-safe Python frame walking. Reads `PyThreadState.current_frame` → `_PyInterpreterFrame` chain. Outputs `(PyCodeObject*, instr_offset)` tuples. **No libc dependency** — depends on `kindasafe` (the `#![no_std]` read crate), runs in signal handler context. |
 | `kit/profiler_core` | lib | `sig_ring`, `python_unwind`, `python_offsets`, `pprof_enc`, `pyroscope_ingest`, `sighandler` | Orchestrator: owns the reader thread, periodic flush, stack aggregation, symbolication, pprof building, ingestion. |
 | `kit/pprof_enc` | lib | `prost` | Minimal pprof protobuf encoder. String table, Function, Location, Sample messages. Gzip output via `flate2`. |
@@ -285,7 +285,6 @@ The signal handler itself **never calls mmap** — all memory is pre-allocated a
 | Operation | API | Crate | Context |
 |-----------|-----|-------|---------|
 | Read memory safely | `kindasafe::u64()`, `kindasafe::slice()` | `kindasafe` | Signal handler + init |
-| Read FS segment base (TLS) | `kindasafe::fs_0x10()` | `kindasafe` | Signal handler |
 | Parse `/proc/self/maps` | `std::fs::read_to_string` | `python_offsets` | Init only |
 | Read ELF headers/symbols | `kindasafe::slice()` on mapped regions | `python_offsets` | Init only |
 | Read `_Py_DebugOffsets` | `kindasafe::slice()` | `python_offsets` | Init only |
@@ -466,43 +465,27 @@ PythonOffsets {
     // Unicode (for symbolication)
     unicode_asciiobject_size: u64,       // data starts at this offset from object
 
-    // TLS access
-    tls_offset: u64,                     // FS-relative offset for _Py_tss_tstate
+    // _PyThreadState_GetCurrent function pointer
+    get_tstate: fn() -> u64,             // resolved at init, called in signal handler
 }
 ```
 
 This struct is populated once at init time and then shared (read-only) with the signal handler via a global atomic pointer.
 
-### 5.6 TLS Offset Discovery (Finding PyThreadState in Signal Handler)
+### 5.6 Resolving `_PyThreadState_GetCurrent`
 
-**Crate:** `kit/python_offsets`
+The signal handler needs O(1) access to the current thread's `PyThreadState`. We call `_PyThreadState_GetCurrent` directly.
 
-The signal handler needs O(1) access to the current thread's `PyThreadState`. We use TLS-based access.
+At init time, resolve `_PyThreadState_GetCurrent` from the ELF `.dynsym` table (same lookup used for `_PyRuntime`, `Py_Version`, `PyCode_Type`). Apply the ASLR load bias (`mapped_base - elf_base`) to get the runtime address, then transmute to `fn() -> u64` and store in handler state.
 
-#### Approach: Disassemble `_PyThreadState_GetCurrent`
+The signal handler calls this function pointer directly to get the current thread's `PyThreadState`:
 
-CPython stores the current thread state in a compiler-level `__thread` variable (`_Py_tss_tstate`). The function `_PyThreadState_GetCurrent` reads it via an FS-relative load (static TLS model):
+```
+tstate = (get_tstate)()
+if tstate == 0 { return }
+```
 
-1. Find the address of `_PyThreadState_GetCurrent` from ELF `.dynsym`.
-2. Read the first 128 bytes of the function from the file image.
-3. Use the `zydis` disassembler to decode instructions and find the first instruction with an FS segment prefix on a memory operand:
-   - Pattern: `64 48 8b 04 25 XX XX XX XX` (mov rax, fs:disp32)
-   - Or: `64 48 8b 05 XX XX XX XX` (mov rax, fs:[rip+disp32])
-   - Extract the displacement value — this is the static TLS offset.
-4. Store the displacement as `tls_offset` in `PythonOffsets`.
-5. At runtime in the signal handler:
-   ```
-   tstate = kindasafe::u64(fs_base + fs_offset)
-   ```
-   where `fs_base` = the thread's TLS base (obtained via `arch_prctl(ARCH_GET_FS)` at init).
-
-Returns `InitError::TlsDiscoveryFailed` (error code 6) if `_PyThreadState_GetCurrent` is absent or no FS-relative load is found (e.g. when Python uses the General Dynamic TLS model via `__tls_get_addr`).
-
-#### Validation
-
-At init time, verify the discovered TLS offset by reading the current thread's `PyThreadState` and checking:
-- The value is non-null.
-- The `native_thread_id` field matches `gettid()`.
+This works regardless of TLS model — Local Exec (`fs:`-relative), Initial Exec, or General Dynamic (`__tls_get_addr`). No disassembly, no FS segment reads, no architecture-specific TLS hacking.
 
 ### 5.7 Init Sequence Summary
 
@@ -513,7 +496,7 @@ pyroscope_start(config):
   3. python_offsets::read_elf_symbols()      — find _PyRuntime, Py_Version
   4. python_offsets::check_version()         — verify Python 3.14
   5. python_offsets::read_debug_offsets()    — read _Py_DebugOffsets from _PyRuntime
-  6. python_offsets::discover_tls()          — disassemble _PyThreadState_GetCurrent
+  6. transmute symbols.get_tstate_addr        — resolve _PyThreadState_GetCurrent as fn() -> u64
   7. Construct PythonOffsets struct
   8. Pre-allocate bbqueue buffers (16 shards × 256 KiB via safe_mmap), split into Producer/Consumer pairs + create eventfd
   9. Pre-allocate per-shard frame buffers, assign Producers to shards and Consumers to reader state
@@ -555,9 +538,9 @@ signal_handler(sig, info, ucontext):
   │     On fail → try (shard+1) % N, then (shard+2) % N
   │     If all 3 fail → increment drop counter, return
   │
-  ├─ 5. Find PyThreadState via TLS:
-  │     [StaticTls]: tstate = kindasafe::u64(fs_base + fs_offset)
-  │     If tstate == 0 or read failed → unlock, return
+  ├─ 5. Get PyThreadState:
+  │     tstate = (get_tstate)()    // calls _PyThreadState_GetCurrent
+  │     If tstate == 0 → return
   │
   ├─ 6. Unwind Python stack:
   │     python_unwind::unwind(tstate, &offsets, &mut shard.frame_buffer)
@@ -589,7 +572,7 @@ Every operation in the handler is async-signal-safe. **No libc functions are cal
 | Atomic load of global state | `AtomicPtr::load(Acquire)` — lock-free, no libc |
 | `gettid()` | Raw `syscall` instruction via inline asm — no libc |
 | `spin::Mutex::try_lock()` | Single `compare_exchange` — no libc, never blocks |
-| `kindasafe::u64()` / `fs_0x10()` | Naked assembly with SIGSEGV recovery — no libc |
+| `kindasafe::u64()` | Naked assembly with SIGSEGV recovery — no libc |
 | bbqueue `grant_exact()` + `commit()` | Lock-free CAS on pre-allocated memory — `#![no_std]`, no libc |
 | eventfd notify | Raw `write` syscall via inline asm (8 bytes to fd) — no libc |
 | Atomic counter increment | `fetch_add(Relaxed)` — no libc |
@@ -1364,8 +1347,7 @@ The signal handler must never panic, abort, or call `unwrap()`. All errors resul
 |-----------|-------------------|
 | Global state is NULL | (none — just return) |
 | All 3 shard locks contended | `samples_lock_fail` |
-| TLS read failed | `samples_tstate_fail` |
-| PyThreadState is NULL | `samples_tstate_fail` |
+| PyThreadState is NULL | (none — just return) |
 | Unwind produced 0 frames | `samples_empty` |
 | bbqueue full (`grant_exact` fails) | `samples_overflow` |
 | Successful collection | `samples_collected` |
@@ -1472,24 +1454,9 @@ _PyRuntime (global, found via ELF symbol)
       + next → next PyThreadState* (or NULL)
 ```
 
-### A.4 TLS Access on x86_64
+### A.4 `_PyThreadState_GetCurrent` Resolution
 
-For `_PyThreadState_GetCurrent` using a static `__thread` variable (Local Exec TLS model):
-```
-// The compiler generates something like:
-//   mov rax, fs:[known_negative_offset]
-//   ret
-//
-// We extract known_negative_offset using the zydis disassembler on the first
-// 128 bytes of the function, looking for an FS-segment-prefixed memory operand.
-// At runtime in the handler:
-//   tstate = *(FS_BASE + known_negative_offset)
-// where FS_BASE is read via arch_prctl(ARCH_GET_FS) at init time.
-```
-
-If `_PyThreadState_GetCurrent` uses the General Dynamic TLS model (`__tls_get_addr`),
-no FS-relative instruction is present and `InitError::TlsDiscoveryFailed` (code 6)
-is returned.
+`_PyThreadState_GetCurrent` is resolved from the ELF dynamic symbol table at init time (same as other CPython symbols). Its runtime address is computed as `elf_va + load_bias` and transmuted to a `fn() -> u64` function pointer. The signal handler calls it directly — this works with any TLS model (Local Exec, Initial Exec, General Dynamic).
 
 ### A.5 Memory Read Patterns in Signal Handler
 
