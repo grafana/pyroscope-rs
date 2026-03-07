@@ -2,14 +2,18 @@
 
 use python_unwind::RawFrame;
 
-/// Number of shards for concurrent signal handler access.
-pub const NUM_SHARDS: usize = 16;
-
-/// Size of each per-shard bbqueue buffer in bytes (256 KiB).
+/// Default size of each per-shard bbqueue buffer in bytes (256 KiB).
+/// Can be overridden at compile time via the `ring-512k` or `ring-1m` features.
+#[cfg(feature = "ring-1m")]
+pub const RING_SIZE: usize = 1024 * 1024;
+#[cfg(all(feature = "ring-512k", not(feature = "ring-1m")))]
+pub const RING_SIZE: usize = 512 * 1024;
+#[cfg(not(any(feature = "ring-512k", feature = "ring-1m")))]
 pub const RING_SIZE: usize = 256 * 1024;
 
-/// Notify the reader thread every N successful sample writes.
-pub const NOTIFY_INTERVAL: u32 = 32;
+/// Default notification interval: notify the reader thread every N sample writes.
+/// Can be overridden at runtime via `pyroscope_cpython::Config::notify_interval`.
+pub const DEFAULT_NOTIFY_INTERVAL: u32 = 32;
 
 /// Size of the record header: thread_id (u32) + depth (u32).
 const HEADER_SIZE: usize = 8;
@@ -28,8 +32,10 @@ fn record_len(depth: usize) -> usize {
 ///
 /// Called from the signal handler inside a shard lock.
 /// Returns `true` on success, `false` if the queue is full.
-pub fn write(
-    producer: &mut bbqueue::framed::FrameProducer<'static, RING_SIZE>,
+///
+/// Generic over const `N` to support different ring buffer sizes.
+pub fn write<const N: usize>(
+    producer: &mut bbqueue::framed::FrameProducer<'static, N>,
     tid: u32,
     frames: &[RawFrame],
     depth: usize,

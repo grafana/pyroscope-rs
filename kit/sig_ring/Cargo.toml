@@ -3,6 +3,11 @@ name = "sig_ring"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+ring-512k = []
+ring-1m = []
+
 [dependencies]
 bbqueue = "0.5"
 python_unwind = { path = "../python_unwind" }

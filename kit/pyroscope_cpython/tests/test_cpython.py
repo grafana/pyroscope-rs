@@ -2,20 +2,20 @@
 """
 Smoke test for pyroscope_cpython cdylib.
 
-Loads the .so via ctypes, calls pyroscope_start(), then burns CPU
-for a few seconds. In debug builds, the SIGPROF handler prints
-"SIGPROF fired" to stdout via raw SYS_write.
+Loads the .so via ctypes, calls pyroscope_start() with logging enabled,
+then burns CPU for a few seconds.
 
 Run with:
     cargo build -p pyroscope_cpython
     python3 kit/pyroscope_cpython/tests/test_cpython.py
 
-Expected output (debug build):
+Expected output:
+    pyroscope_cpython: configured num_shards=16, ring_size=256KiB
+    pyroscope_cpython: starting init: num_shards=16, ...
     pyroscope_start returned: 0
     second pyroscope_start returned: 9
     Burning CPU for 3 seconds...
-    SIGPROF fired
-    SIGPROF fired
+    reader: tid=...
     ...
     done
 """
@@ -56,16 +56,22 @@ def main():
     lib = ctypes.CDLL(lib_path)
 
     lib.pyroscope_start.restype = ctypes.c_int
-    lib.pyroscope_start.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    lib.pyroscope_start.argtypes = [
+        ctypes.c_char_p,  # app_name
+        ctypes.c_char_p,  # server_url
+        ctypes.c_int,     # num_shards (0 = default)
+        ctypes.c_int,     # log_enabled
+    ]
 
-    rc = lib.pyroscope_start(b"test-app", b"http://localhost:4040")
+    # num_shards=0 (use default 16), log_enabled=1
+    rc = lib.pyroscope_start(b"test-app", b"http://localhost:4040", 0, 1)
     print(f"pyroscope_start returned: {rc}")
     if rc != 0:
         print(f"ERROR: pyroscope_start failed with code {rc}", file=sys.stderr)
         sys.exit(rc)
 
     # Calling again should return 9 (already running).
-    rc2 = lib.pyroscope_start(b"test-app", b"http://localhost:4040")
+    rc2 = lib.pyroscope_start(b"test-app", b"http://localhost:4040", 0, 0)
     print(f"second pyroscope_start returned: {rc2}")
     assert rc2 == 9, f"Expected 9 (already running), got {rc2}"
 
