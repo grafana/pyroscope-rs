@@ -56,6 +56,29 @@ def burn_cpu(seconds):
     return total
 
 
+# Function with Unicode characters in name: U+00E9 (é), U+00E0 (à), U+00FC (ü).
+# These are Latin-1 range (>0x7F), so CPython stores the name as a non-ASCII
+# compact string (kind=1, ascii=0). This exercises the non-ASCII reading path.
+def burn_cpu_éàü(seconds):
+    end = time.monotonic() + seconds
+    total = 0
+    while time.monotonic() < end:
+        for i in range(100_000):
+            total += i
+    return total
+
+
+# Function with CJK characters: U+4E16 (世), U+754C (界).
+# These require UCS2 storage in CPython (kind=2).
+def burn_cpu_世界(seconds):
+    end = time.monotonic() + seconds
+    total = 0
+    while time.monotonic() < end:
+        for i in range(100_000):
+            total += i
+    return total
+
+
 def main():
     lib_path = find_library()
     print(f"Loading: {lib_path}")
@@ -83,7 +106,17 @@ def main():
 
     print("Burning CPU for 20 seconds (flush expected at ~15s)...")
     burn_cpu(20)
-    print("done")
+    print("done with ASCII burn")
+
+    # Burn CPU with unicode-named functions to test non-ASCII string reading.
+    # The profiler should resolve these names in the debug output.
+    print("Burning CPU with Latin-1 function name (burn_cpu_éàü) for 3 seconds...")
+    burn_cpu_éàü(3)
+    print("done with Latin-1 burn")
+
+    print("Burning CPU with CJK function name (burn_cpu_世界) for 3 seconds...")
+    burn_cpu_世界(3)
+    print("done with CJK burn")
 
 
 if __name__ == "__main__":

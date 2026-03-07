@@ -163,6 +163,146 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
     }
 }
 
+// ── Unicode string reading ───────────────────────────────────────────────────
+
+/// Read a Python unicode string object into `buf` and return a UTF-8 `&str`.
+///
+/// Handles all CPython compact string representations:
+/// - ASCII (ascii=1): data at `obj + asciiobject_size`, null-terminated
+/// - Non-ASCII with cached UTF-8: reads from the `utf8` pointer field
+/// - UCS1/Latin-1 (kind=1, ascii=0): 1 byte/char, encoded to UTF-8
+/// - UCS2 (kind=2): 2 bytes/char (little-endian u16), encoded to UTF-8
+/// - UCS4 (kind=4): 4 bytes/char (little-endian u32), encoded to UTF-8
+fn read_pyunicode<'a>(
+    buf: &'a mut [u8],
+    obj_ptr: u64,
+    unicode_offsets: &py313::_Py_DebugOffsets__unicode_object,
+    free_threaded: bool,
+) -> Option<&'a str> {
+    if obj_ptr == 0 {
+        return None;
+    }
+
+    // Read state (u32 at the state offset within the unicode object).
+    let state_raw = kindasafe::u64(obj_ptr + unicode_offsets.state).ok()? as u32;
+
+    // Extract ascii and kind bits. The layout differs between standard and
+    // free-threaded builds:
+    //   Standard:      [interned:2][kind:3][compact:1][ascii:1][statically_allocated:1][pad:24]
+    //   Free-threaded: [interned:8][kind:3][compact:1][ascii:1][statically_allocated:1][pad:18]
+    let (ascii, kind) = if free_threaded {
+        (((state_raw >> 12) & 1) != 0, (state_raw >> 8) & 0x7)
+    } else {
+        (((state_raw >> 6) & 1) != 0, (state_raw >> 2) & 0x7)
+    };
+
+    // ASCII fast path: data is null-terminated UTF-8 right after PyASCIIObject.
+    if ascii {
+        return kindasafe::str(buf, obj_ptr + unicode_offsets.asciiobject_size)
+            .ok()
+            .filter(|s| !s.is_empty());
+    }
+
+    // Non-ASCII: try the cached utf8 pointer in PyCompactUnicodeObject.
+    // Layout: PyASCIIObject | utf8_length (8 bytes) | utf8 (8 bytes) | data...
+    let utf8_ptr_addr = obj_ptr + unicode_offsets.asciiobject_size + 8;
+    let utf8_ptr = kindasafe::u64(utf8_ptr_addr).unwrap_or(0);
+    if utf8_ptr != 0 {
+        // Read the cached UTF-8 representation directly.
+        return kindasafe::str(buf, utf8_ptr).ok().filter(|s| !s.is_empty());
+    }
+
+    // No cached UTF-8: read raw UCS data and convert.
+    let length = kindasafe::u64(obj_ptr + unicode_offsets.length).ok()? as usize;
+    if length == 0 {
+        return None;
+    }
+
+    // Data for compact non-ASCII strings starts after PyCompactUnicodeObject,
+    // which is PyASCIIObject + 16 bytes (utf8_length + utf8 pointer).
+    let data_addr = obj_ptr + unicode_offsets.asciiobject_size + 16;
+
+    match kind {
+        1 => read_ucs1_to_utf8(buf, data_addr, length),
+        2 => read_ucs2_to_utf8(buf, data_addr, length),
+        4 => read_ucs4_to_utf8(buf, data_addr, length),
+        _ => None,
+    }
+}
+
+/// Read UCS1 (Latin-1) data and encode to UTF-8.
+fn read_ucs1_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Option<&'a str> {
+    let max_read = length.min(128);
+    let mut raw = [0u8; 128];
+    kindasafe::slice(&mut raw[..max_read], data_addr).ok()?;
+
+    let mut out = 0;
+    for &byte in &raw[..max_read] {
+        if let Some(c) = char::from_u32(byte as u32) {
+            let len = c.len_utf8();
+            if out + len > buf.len() {
+                break;
+            }
+            c.encode_utf8(&mut buf[out..]);
+            out += len;
+        }
+    }
+    if out == 0 {
+        return None;
+    }
+    core::str::from_utf8(&buf[..out]).ok()
+}
+
+/// Read UCS2 data (little-endian u16) and encode to UTF-8.
+fn read_ucs2_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Option<&'a str> {
+    let max_read = length.min(128);
+    let byte_len = max_read * 2;
+    let mut raw = [0u8; 256];
+    kindasafe::slice(&mut raw[..byte_len], data_addr).ok()?;
+
+    let mut out = 0;
+    for i in 0..max_read {
+        let cp = u16::from_le_bytes([raw[i * 2], raw[i * 2 + 1]]) as u32;
+        if let Some(c) = char::from_u32(cp) {
+            let len = c.len_utf8();
+            if out + len > buf.len() {
+                break;
+            }
+            c.encode_utf8(&mut buf[out..]);
+            out += len;
+        }
+    }
+    if out == 0 {
+        return None;
+    }
+    core::str::from_utf8(&buf[..out]).ok()
+}
+
+/// Read UCS4 data (little-endian u32) and encode to UTF-8.
+fn read_ucs4_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Option<&'a str> {
+    let max_read = length.min(64);
+    let byte_len = max_read * 4;
+    let mut raw = [0u8; 256];
+    kindasafe::slice(&mut raw[..byte_len], data_addr).ok()?;
+
+    let mut out = 0;
+    for i in 0..max_read {
+        let cp = u32::from_le_bytes([raw[i * 4], raw[i * 4 + 1], raw[i * 4 + 2], raw[i * 4 + 3]]);
+        if let Some(c) = char::from_u32(cp) {
+            let len = c.len_utf8();
+            if out + len > buf.len() {
+                break;
+            }
+            c.encode_utf8(&mut buf[out..]);
+            out += len;
+        }
+    }
+    if out == 0 {
+        return None;
+    }
+    core::str::from_utf8(&buf[..out]).ok()
+}
+
 // ── Symbolization helper ─────────────────────────────────────────────────────
 
 /// Resolve the function name for a code object via `co_qualname` (with
@@ -170,32 +310,29 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
 /// resolution fails.
 fn resolve_function_name(code_object: u64, offsets: &py313::_Py_DebugOffsets) -> String {
     let mut name_buf = [0u8; 256];
+    let free_threaded = offsets.free_threaded != 0;
 
     // Try co_qualname first.
     if let Ok(qualname_ptr) = kindasafe::u64(code_object + offsets.code_object.qualname) {
-        if qualname_ptr != 0 {
-            if let Ok(name) = kindasafe::str(
-                &mut name_buf,
-                qualname_ptr + offsets.unicode_object.asciiobject_size,
-            ) {
-                if !name.is_empty() {
-                    return name.to_owned();
-                }
-            }
+        if let Some(name) = read_pyunicode(
+            &mut name_buf,
+            qualname_ptr,
+            &offsets.unicode_object,
+            free_threaded,
+        ) {
+            return name.to_owned();
         }
     }
 
     // Fallback to co_name.
     if let Ok(name_ptr) = kindasafe::u64(code_object + offsets.code_object.name) {
-        if name_ptr != 0 {
-            if let Ok(name) = kindasafe::str(
-                &mut name_buf,
-                name_ptr + offsets.unicode_object.asciiobject_size,
-            ) {
-                if !name.is_empty() {
-                    return name.to_owned();
-                }
-            }
+        if let Some(name) = read_pyunicode(
+            &mut name_buf,
+            name_ptr,
+            &offsets.unicode_object,
+            free_threaded,
+        ) {
+            return name.to_owned();
         }
     }
 
