@@ -4,12 +4,12 @@
 # Downloads the full CPython source, runs ./configure to generate pyconfig.h,
 # then runs bindgen on the real headers. No manual extraction or sed parsing.
 #
-# Usage:
+# Usage (run from kit/python_offsets/):
 #   ./gen_debug_offsets.sh <cpython-git-ref> <module-name>
 #
 # Examples:
-#   ./gen_debug_offsets.sh v3.14.0b1 py314
-#   ./gen_debug_offsets.sh 3.13      py313
+#   ./gen_debug_offsets.sh v3.14.0 py314
+#   ./gen_debug_offsets.sh v3.13.0 py313
 #
 # Prerequisites: bindgen-cli (cargo install bindgen-cli), clang, curl
 
@@ -20,9 +20,10 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 GIT_REF="$1"
 MODULE="$2"
-OUT="src/${MODULE}.rs"
+OUT="${SCRIPT_DIR}/../python_offsets_types/src/${MODULE}.rs"
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT

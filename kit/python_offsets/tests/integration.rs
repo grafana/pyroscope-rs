@@ -47,12 +47,13 @@ mod linux {
 
         // Returns py313 layout even for a 3.14 library (common denominator).
         // Verify key offsets are populated. Some offsets can legitimately
-        // be 0 (e.g. code_name if co_name is the first field of PyCodeObject).
+        // be 0 (e.g. executable if f_executable is the first field of
+        // _PyInterpreterFrame, as it is in 3.14.3+).
         assert_ne!(offsets.runtime_state.interpreters_head, 0);
         assert_ne!(offsets.interpreter_state.threads_head, 0);
         assert_ne!(offsets.thread_state.native_thread_id, 0);
         assert_ne!(offsets.thread_state.next, 0);
-        assert_ne!(offsets.interpreter_frame.executable, 0);
+        assert_ne!(offsets.interpreter_frame.previous, 0);
         assert_ne!(offsets.code_object.filename, 0);
         assert_ne!(offsets.code_object.qualname, 0);
         assert_ne!(offsets.unicode_object.asciiobject_size, 0);
