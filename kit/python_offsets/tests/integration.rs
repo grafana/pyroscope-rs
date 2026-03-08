@@ -46,7 +46,7 @@ mod linux {
             python_offsets::read_debug_offsets(symbols.py_runtime_addr, &version, version_hex)
                 .map_err(|e| anyhow!("read_debug_offsets failed: {e:?}"))?;
 
-        // Returns py313 layout even for a 3.14 library (common denominator).
+        // Returns py314 layout directly.
         // Verify key offsets are populated. Some offsets can legitimately
         // be 0 (e.g. executable if f_executable is the first field of
         // _PyInterpreterFrame, as it is in 3.14.3+).

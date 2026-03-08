@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use bbqueue::framed::{FrameConsumer, FrameProducer};
-use python_offsets_types::py313;
+use python_offsets_types::py314;
 use python_unwind::RawFrame;
 use sig_ring::RING_SIZE;
 
@@ -69,7 +69,7 @@ struct Shard {
 /// Allocated once at init time via `Box::into_raw`. Published to the handler
 /// with `Release`; the handler loads with `Acquire`. Never deallocated.
 struct HandlerState {
-    debug_offsets: py313::_Py_DebugOffsets,
+    debug_offsets: py314::_Py_DebugOffsets,
     /// Function pointer to `_PyThreadState_GetCurrent()`, resolved at init time.
     get_tstate: fn() -> u64,
     /// Expected type-object addresses for runtime type checking.
@@ -176,7 +176,7 @@ extern "C" fn on_sigprof(_sig: c_int, _info: *mut libc::siginfo_t, _ctx: *mut c_
 fn read_pyunicode<'a>(
     buf: &'a mut [u8],
     obj_ptr: u64,
-    unicode_offsets: &py313::_Py_DebugOffsets__unicode_object,
+    unicode_offsets: &py314::_Py_DebugOffsets__unicode_object,
     free_threaded: bool,
 ) -> Option<&'a str> {
     if obj_ptr == 0 {
@@ -308,7 +308,7 @@ fn read_ucs4_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Op
 /// Resolve the function name for a code object via `co_qualname` (with
 /// `co_name` fallback). Returns an owned `String`, or `"<unknown>"` if
 /// resolution fails.
-fn resolve_function_name(code_object: u64, offsets: &py313::_Py_DebugOffsets) -> String {
+fn resolve_function_name(code_object: u64, offsets: &py314::_Py_DebugOffsets) -> String {
     let mut name_buf = [0u8; 256];
     let free_threaded = offsets.free_threaded != 0;
 

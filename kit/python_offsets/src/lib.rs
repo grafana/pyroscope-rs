@@ -1,4 +1,4 @@
-pub use python_offsets_types::{py313, py314};
+pub use python_offsets_types::py314;
 
 use core::mem::size_of;
 use std::io::BufRead;
@@ -124,14 +124,14 @@ fn resolve_elf_symbols_from_bytes(data: &[u8], mapped_base: u64) -> Result<ElfSy
 
 /// Read `Py_Version` from live memory, parse it, and validate it is a supported CPython version.
 ///
-/// Currently supports CPython 3.13 and 3.14.
+/// Currently supports CPython 3.14 only.
 /// Returns [`PythonVersion`] on success, or [`InitError::UnsupportedVersion`]
 /// for unsupported versions.
 pub fn detect_version(py_version_addr: u64) -> Result<PythonVersion, InitError> {
     let raw = kindasafe::u64(py_version_addr).map_err(|_| InitError::UnsupportedVersion)?;
     let version_hex = raw & 0xFFFF_FFFF;
     let version = parse_version(version_hex);
-    if version.major != 3 || !matches!(version.minor, 13 | 14) {
+    if version.major != 3 || version.minor != 14 {
         return Err(InitError::UnsupportedVersion);
     }
     Ok(version)
@@ -146,10 +146,7 @@ pub fn read_version_hex(py_version_addr: u64) -> Result<u64, InitError> {
 }
 
 /// Read `_Py_DebugOffsets` from `_PyRuntime` and return it as a
-/// [`py313::_Py_DebugOffsets`] (the common-denominator layout).
-///
-/// For CPython 3.14, reads the larger struct and converts down to the 3.13
-/// layout, dropping fields that only exist in 3.14.
+/// [`py314::_Py_DebugOffsets`].
 ///
 /// `py_runtime_addr` is the absolute address of `_PyRuntime`.
 /// `version` is the validated [`PythonVersion`] from [`detect_version`].
@@ -161,20 +158,13 @@ pub fn read_debug_offsets(
     py_runtime_addr: u64,
     version: &PythonVersion,
     version_hex: u64,
-) -> Result<py313::_Py_DebugOffsets, InitError> {
+) -> Result<py314::_Py_DebugOffsets, InitError> {
     match version.minor {
         14 => {
             let mut buf = [0u8; size_of::<py314::_Py_DebugOffsets>()];
             kindasafe::slice(&mut buf, py_runtime_addr)
                 .map_err(|_| InitError::DebugOffsetsMismatch)?;
-            let d314 = parse_repr_c::<py314::_Py_DebugOffsets>(&buf, version_hex)?;
-            Ok(py313::_Py_DebugOffsets::from(&d314))
-        }
-        13 => {
-            let mut buf = [0u8; size_of::<py313::_Py_DebugOffsets>()];
-            kindasafe::slice(&mut buf, py_runtime_addr)
-                .map_err(|_| InitError::DebugOffsetsMismatch)?;
-            parse_repr_c::<py313::_Py_DebugOffsets>(&buf, version_hex)
+            parse_repr_c::<py314::_Py_DebugOffsets>(&buf, version_hex)
         }
         _ => Err(InitError::UnsupportedVersion),
     }
@@ -385,7 +375,9 @@ mod tests {
     }
 
     #[test]
-    fn parse_version_3_13_1() {
+    fn parse_version_3_13_1_unsupported() {
+        // Python 3.13 is no longer supported — parse_version still works
+        // but detect_version would reject it.
         let v = parse_version(0x030D01F0);
         assert_eq!(
             v,

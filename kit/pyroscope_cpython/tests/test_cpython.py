@@ -13,6 +13,7 @@ Run with:
 Expected: pyroscope_start returns 0, flush log line appears at ~15s,
 profile is sent to Pyroscope (if running on localhost:4040).
 """
+import asyncio
 import ctypes
 import os
 import sys
@@ -79,6 +80,52 @@ def burn_cpu_世界(seconds):
     return total
 
 
+# ── Async workload ───────────────────────────────────────────────────────────
+# These exercise asyncio profiling. Running coroutines appear in SIGPROF
+# samples (their frames are in the thread's frame chain). Suspended coroutines
+# (e.g. awaiting asyncio.sleep) are NOT captured by SIGPROF — they require
+# walking the cr_await chain from the asyncio task list.
+
+
+async def async_cpu_work():
+    """Burns CPU inside a coroutine — will appear in SIGPROF samples."""
+    total = 0
+    for i in range(500_000):
+        total += i
+    return total
+
+
+async def async_inner():
+    """Inner async function to create deeper async call stacks."""
+    return await async_cpu_work()
+
+
+async def async_outer():
+    """Outer async function: async_outer > async_inner > async_cpu_work."""
+    return await async_inner()
+
+
+async def async_io_work():
+    """Sleeps briefly — this is a suspended task, NOT visible in SIGPROF."""
+    await asyncio.sleep(0.01)
+
+
+async def async_mixed_workload():
+    """Run a mix of CPU-bound and IO-bound async tasks concurrently."""
+    tasks = []
+    for _ in range(5):
+        tasks.append(asyncio.create_task(async_outer()))
+        tasks.append(asyncio.create_task(async_io_work()))
+    await asyncio.gather(*tasks)
+
+
+async def async_main():
+    """Main async entry point — runs for ~5 seconds."""
+    end = time.monotonic() + 5
+    while time.monotonic() < end:
+        await async_mixed_workload()
+
+
 def main():
     lib_path = find_library()
     print(f"Loading: {lib_path}")
@@ -117,6 +164,11 @@ def main():
     print("Burning CPU with CJK function name (burn_cpu_世界) for 3 seconds...")
     burn_cpu_世界(3)
     print("done with CJK burn")
+
+    # Async workload: running coroutines show up in SIGPROF, suspended ones don't.
+    print("Running asyncio workload for 5 seconds...")
+    asyncio.run(async_main())
+    print("done with asyncio workload")
 
 
 if __name__ == "__main__":
