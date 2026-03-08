@@ -12,7 +12,7 @@ permissions:
 jobs:
   push-ruby-gems:
     name: "Push ruby gems"
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
     if: "startsWith(github.event.release.tag_name, 'ruby-')"
     outputs:
       files_json: ${{ steps.list-files.outputs.files_json }}
