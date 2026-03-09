@@ -20,6 +20,4 @@ libc = { workspace = true }
 
 [features]
 default = ["native-tls"]
-rustls-tls = ["pyroscope/rustls-tls"]
 native-tls = ["pyroscope/native-tls"]
-native-tls-vendored = ["pyroscope/native-tls-vendored"]
