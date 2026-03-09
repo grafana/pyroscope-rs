@@ -82,6 +82,12 @@ jemalloc_pprof = { workspace = true, optional = true  }
 [dev-dependencies]
 assert_matches = { workspace = true }
 claims = { workspace = true }
+tikv-jemallocator = "0.6"
+env_logger = "0.11"
+
+[[example]]
+name = "jemalloc"
+required-features = ["backend-jemalloc"]
 
 [features]
 default = ["rustls-tls"]
