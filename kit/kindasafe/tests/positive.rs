@@ -4,6 +4,13 @@ use kindasafe::ReadMemError;
 use anyhow::Result;
 use kindasafe::{Ptr, slice, u64};
 
+// On macOS, accessing a PROT_NONE mmap page delivers SIGBUS;
+// on Linux it delivers SIGSEGV.
+#[cfg(target_os = "linux")]
+const PROT_NONE_SIGNAL: u64 = libc::SIGSEGV as u64;
+#[cfg(target_os = "macos")]
+const PROT_NONE_SIGNAL: u64 = libc::SIGBUS as u64;
+
 #[test]
 fn test_init() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
@@ -38,7 +45,12 @@ fn u64_unaligned() -> Result<(), anyhow::Error> {
 fn u64_sigsegv() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     trigger_sigsegv(|p| {
-        assert!(u64(p).is_err());
+        assert_eq!(
+            u64(p),
+            Err(ReadMemError {
+                signal: PROT_NONE_SIGNAL
+            })
+        );
     });
     Ok(())
 }
@@ -64,8 +76,18 @@ fn u64_unaligned_page_boundary() -> Result<(), anyhow::Error> {
     trigger_sigsegv_page_boundary(|p| {
         assert_eq!(u64(p), Ok(0x6161616161616161));
         assert_eq!(u64(p + 0x1000 - 0x8), Ok(0x6161616161616161));
-        assert!(u64(p + 0x1000 - 0x7).is_err());
-        assert!(u64(p + 0x1000).is_err());
+        assert_eq!(
+            u64(p + 0x1000 - 0x7),
+            Err(ReadMemError {
+                signal: PROT_NONE_SIGNAL
+            })
+        );
+        assert_eq!(
+            u64(p + 0x1000),
+            Err(ReadMemError {
+                signal: PROT_NONE_SIGNAL
+            })
+        );
     });
     Ok(())
 }
@@ -97,7 +119,12 @@ fn vec_sigsegv() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     trigger_sigsegv(|p| {
         let mut buf = [0u8; 8];
-        assert!(slice(&mut buf, p as Ptr).is_err());
+        assert_eq!(
+            slice(&mut buf, p as Ptr),
+            Err(ReadMemError {
+                signal: PROT_NONE_SIGNAL
+            })
+        );
     });
     Ok(())
 }
@@ -123,7 +150,12 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
 
     trigger_sigsegv_page_boundary(|p| {
         let mut buf = [0u8; 16];
-        assert!(slice(&mut buf, (p + 0x1000 - 8) as Ptr).is_err());
+        assert_eq!(
+            slice(&mut buf, (p + 0x1000 - 8) as Ptr),
+            Err(ReadMemError {
+                signal: PROT_NONE_SIGNAL
+            })
+        );
         assert_eq!(
             buf,
             vec![

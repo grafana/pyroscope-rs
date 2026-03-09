@@ -90,6 +90,8 @@ unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut
         for x in kindasafe::crash_points().crash_points {
             if x.pc == pc {
                 (*ctx).uc_mcontext.pc = (pc + x.skip) as u64;
+                // libc provides no named constants for aarch64 register indices;
+                // mcontext_t.regs is [u64; 31] where index matches register number.
                 let reg_idx = match x.signal_reg {
                     kindasafe::Reg::X0 => 0,
                     kindasafe::Reg::X1 => 1,
@@ -113,6 +115,8 @@ unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut
         for x in kindasafe::crash_points().crash_points {
             if x.pc == pc {
                 (*mctx).__ss.__pc = (pc + x.skip) as u64;
+                // libc provides no named constants for aarch64 register indices;
+                // __darwin_arm_thread_state64.__x is [u64; 29] where index matches register number.
                 let reg_idx = match x.signal_reg {
                     kindasafe::Reg::X0 => 0,
                     kindasafe::Reg::X1 => 1,
