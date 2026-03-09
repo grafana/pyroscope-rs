@@ -13,13 +13,8 @@ crate-type = ["cdylib"]
 name = "pyroscope_python_extension" # this is the name of the shared rust, e.g. pyroscope_python_extension.abi3.so
 
 [dependencies]
-pyroscope = { path = "../../../", default-features = false }
+pyroscope = { path = "../../../", default-features = false, features = ["native-tls"] }
 py-spy = { workspace = true }
 pretty_env_logger = { workspace = true }
 log = { workspace = true }
 libc = { workspace = true }
-
-[features]
-default = ["rustls-tls"]
-rustls-tls = ["pyroscope/rustls-tls"]
-native-tls-vendored = ["pyroscope/native-tls-vendored"]
