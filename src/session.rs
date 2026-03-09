@@ -9,7 +9,11 @@ use crate::encode::gen::google::Profile;
 use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::{
-    backend::Report, encode::pprof, pyroscope::PyroscopeConfig, utils::get_time_range, Result,
+    backend::{Report, ReportBatch},
+    encode::pprof,
+    pyroscope::PyroscopeConfig,
+    utils::get_time_range,
+    Result,
 };
 use libflate::gzip::Encoder;
 use prost::Message;
@@ -88,7 +92,7 @@ impl SessionManager {
 #[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
-    pub reports: Vec<Report>,
+    pub batch: ReportBatch,
     // unix time todo remove comment, use types
     pub from: u64,
     // unix time todo remove comment, use types
@@ -104,7 +108,7 @@ impl Session {
     /// let until = 154065120;
     /// let session = Session::new(until, config, report)?;
     /// ```
-    pub fn new(until: u64, config: PyroscopeConfig, reports: Vec<Report>) -> Result<Self> {
+    pub fn new(until: u64, config: PyroscopeConfig, batch: ReportBatch) -> Result<Self> {
         log::info!(target: LOG_TAG, "Creating Session");
 
         // get_time_range should be used with "from". We balance this by reducing
@@ -113,7 +117,7 @@ impl Session {
 
         Ok(Self {
             config,
-            reports,
+            batch,
             from: time_range.from - 10,
             until: time_range.until - 10,
         })
@@ -132,8 +136,10 @@ impl Session {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
         let profile = match self.config.func {
-            None => self.encode_reports(&self.reports),
-            Some(f) => self.encode_reports(&self.reports.iter().map(|r| f(r.to_owned())).collect()),
+            None => self.encode_reports(&self.batch.reports),
+            Some(f) => {
+                self.encode_reports(&self.batch.reports.iter().map(|r| f(r.to_owned())).collect())
+            }
         };
 
         let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.iter().len());
@@ -143,7 +149,7 @@ impl Session {
         });
         labels.push(LabelPair {
             name: "__name__".to_string(),
-            value: "process_cpu".to_string(),
+            value: self.batch.profile_type,
         });
         for tag in self.config.tags {
             labels.push(LabelPair {
