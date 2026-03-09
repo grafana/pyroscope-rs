@@ -62,6 +62,7 @@ EOF
 # 4. Run bindgen for _Py_DebugOffsets
 echo "Running bindgen for _Py_DebugOffsets..."
 bindgen "$tmpdir/wrapper.h" \
+    --formatter=rustfmt \
     --allowlist-type '_Py_DebugOffsets' \
     --no-layout-tests \
     --no-doc-comments \
@@ -96,6 +97,7 @@ if [ -f "$ASYNCIO_MODULE" ] && grep -q 'Py_AsyncioModuleDebugOffsets' "$ASYNCIO_
 
         echo "Running bindgen for Py_AsyncioModuleDebugOffsets..."
         bindgen "$tmpdir/asyncio_wrapper.h" \
+            --formatter=rustfmt \
             --allowlist-type 'Py_AsyncioModuleDebugOffsets' \
             --no-layout-tests \
             --no-doc-comments \
