@@ -9,7 +9,7 @@ name = "rbspy"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyroscope = { path = "../../../../", default-features = false }
+pyroscope = { path = "../../../../", default-features = false, features = ["native-tls"] }
 rbspy = { workspace = true }
 remoteprocess = { workspace = true }
 anyhow = { workspace = true }
@@ -17,7 +17,3 @@ anyhow = { workspace = true }
 pretty_env_logger = { workspace = true }
 log = { workspace = true }
 libc = { workspace = true }
-
-[features]
-default = ["native-tls"]
-native-tls = ["pyroscope/native-tls"]
