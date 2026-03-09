@@ -108,13 +108,25 @@ impl Metadata {
     }
 }
 
+/// The payload of a report batch: either structured stack-trace reports
+/// (which will be encoded into pprof by the session layer) or pre-encoded
+/// pprof bytes produced directly by a backend (e.g. jemalloc).
+#[derive(Debug, Clone)]
+pub enum ReportData {
+    /// Structured stack-trace reports that must be pprof-encoded before sending.
+    Reports(Vec<Report>),
+    /// Pre-encoded pprof bytes (may already be gzipped). Used by backends
+    /// like jemalloc that produce a complete pprof profile directly.
+    RawPprof(Vec<u8>),
+}
+
 /// A batch of reports with a shared profile type.
 #[derive(Debug, Clone)]
 pub struct ReportBatch {
     /// Profile type name (e.g. "process_cpu", "memory")
     pub profile_type: String,
-    /// Reports in this batch
-    pub reports: Vec<Report>,
+    /// Report data in this batch
+    pub data: ReportData,
 }
 
 /// Report
@@ -124,8 +136,6 @@ pub struct Report {
     pub data: HashMap<StackTrace, usize>,
     /// Metadata
     pub metadata: Metadata,
-    /// Pre-encoded pprof bytes, may be gzipped (used by backends like jemalloc that produce pprof directly)
-    pub raw_pprof: Option<Vec<u8>>,
 }
 
 /// Custom implementation of the Hash trait for Report.
@@ -142,16 +152,6 @@ impl Report {
         Self {
             data,
             metadata: Metadata::default(),
-            raw_pprof: None,
-        }
-    }
-
-    /// Create a Report from pre-encoded pprof bytes (may be gzipped).
-    pub fn from_raw_pprof(pprof_data: Vec<u8>) -> Self {
-        Self {
-            data: HashMap::new(),
-            metadata: Metadata::default(),
-            raw_pprof: Some(pprof_data),
         }
     }
 
@@ -165,7 +165,6 @@ impl Report {
         Self {
             data: self.data,
             metadata,
-            raw_pprof: self.raw_pprof,
         }
     }
 
