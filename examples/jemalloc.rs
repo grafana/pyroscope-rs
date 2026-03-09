@@ -10,7 +10,7 @@
 //! ```toml
 //! [dependencies]
 //! pyroscope = { version = "0.5", features = ["backend-jemalloc"] }
-//! tikv-jemallocator = "0.6"
+//! tikv-jemallocator = { version = "0.6", features = ["profiling"] }
 //! ```
 //!
 //! # Running
@@ -23,7 +23,6 @@
 
 use pyroscope::backend::jemalloc::{jemalloc_backend, JemallocConfig};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
-use std::thread;
 use std::time::Duration;
 
 // Configure jemalloc as the global allocator.
@@ -47,12 +46,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let agent_running = agent.start()?;
 
-    // Simulate some allocations.
-    for i in 0..30 {
-        let size = 1024 * (1 + i % 10);
-        let _v: Vec<u8> = vec![0u8; size];
-        thread::sleep(Duration::from_secs(1));
+    // Simulate heavy allocations for 30 seconds.
+    let start = std::time::Instant::now();
+    let mut iteration = 0u64;
+    while start.elapsed() < Duration::from_secs(30) {
+        // Allocate vectors of varying sizes (1KB to 1MB).
+        for i in 0..100 {
+            let size = 1024 * (1 + (iteration as usize + i) % 1024);
+            let v: Vec<u8> = vec![0u8; size];
+            std::hint::black_box(&v);
+        }
+        iteration += 1;
     }
+    eprintln!("Completed {} iterations", iteration);
 
     let agent_ready = agent_running.stop()?;
     agent_ready.shutdown();

@@ -82,7 +82,7 @@ jemalloc_pprof = { workspace = true, optional = true  }
 [dev-dependencies]
 assert_matches = { workspace = true }
 claims = { workspace = true }
-tikv-jemallocator = "0.6"
+tikv-jemallocator = { version = "0.6", features = ["profiling"] }
 env_logger = "0.11"
 
 [[example]]
