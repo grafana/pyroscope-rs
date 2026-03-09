@@ -20,7 +20,7 @@ log = { workspace = true }
 libc = { workspace = true }
 
 [target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.dependencies]
-pysignalprof = { path = "../../../kit/pysignalprof" }
+pysignalprof = { path = "../../../kit/pysignalprof", version = "0.1.0" }
 
 [features]
 default = ["rustls-tls"]
