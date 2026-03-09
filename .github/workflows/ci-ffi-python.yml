@@ -2,9 +2,9 @@ name: Python Package
 
 on:
   push:
-    branches: [main, yoloprof]
+    branches: [main]
   pull_request:
-    branches: [main, yoloprof]
+    branches: [main]
 
 permissions:
   contents: read
@@ -73,7 +73,13 @@ jobs:
       fail-fast: false
       matrix:
         PYTHON_VERSION: ["3.10", "3.11", "3.12", "3.13"]
-        variant: ["manylinux-amd64", "manylinux-arm64", "musllinux-amd64", "musllinux-arm64"]
+        variant:
+          [
+            "manylinux-amd64",
+            "manylinux-arm64",
+            "musllinux-amd64",
+            "musllinux-arm64",
+          ]
         include:
           - variant: manylinux-amd64
             runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
