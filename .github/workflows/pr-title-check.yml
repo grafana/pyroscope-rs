@@ -1,0 +1,39 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title follows conventional commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Check if PR title starts with allowed conventional commit types
+          if echo "$PR_TITLE" | grep -qE '^(feat|fix|perf|revert|docs|style|chore|refactor|test|build|ci)(\(.+\))?(!)?:'; then
+            echo "✓ PR title follows conventional commits format"
+            exit 0
+          else
+            echo "✗ PR title must use conventional commit format: <type>[(<scope>)][!]: <description>"
+            echo "  Current title: $PR_TITLE"
+            echo ""
+            echo "Allowed types:"
+            echo "  feat:     new feature (minor bump)"
+            echo "  fix:      bug fix (patch bump)"
+            echo "  perf:     performance improvement (patch bump)"
+            echo "  docs:     documentation (patch bump)"
+            echo "  refactor: code refactoring (patch bump)"
+            echo "  test:     tests (patch bump)"
+            echo "  ci:       CI/CD changes (patch bump)"
+            echo "  chore:    maintenance (patch bump)"
+            echo "  build:    build system (patch bump)"
+            echo "  style:    code style (patch bump)"
+            echo "  revert:   revert changes (patch bump)"
+            echo ""
+            echo "Add ! for breaking changes (major bump): feat!:, fix!:, etc."
+            exit 1
+          fi

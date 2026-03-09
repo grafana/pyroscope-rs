@@ -12,13 +12,13 @@ jobs:
       contents: write
     needs: [ 'ruby-release' ]
     name: Release Linux gem amd64
-    runs-on: ubuntu-x64-large
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
       - run: make gem/linux/amd64
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-amd64
           path: pyroscope_ffi/ruby/pkg/*.gem
@@ -34,13 +34,13 @@ jobs:
       contents: write
     needs: [ 'ruby-release' ]
     name: Release Linux gem arm64
-    runs-on: ubuntu-arm64-large
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
       - run: make gem/linux/arm64
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-arm64
           path: pyroscope_ffi/ruby/pkg/*.gem
@@ -73,17 +73,17 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@09a7688d3b55cf0e976497ff046b70949eeaccfd # v1.288.0
+      - uses: ruby/setup-ruby@19a43a6a2428d455dbd1b85344698725179c9d8c # v1.289.0
         with:
           ruby-version: '4.0.1'
       - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
         with:
-          toolchain: 1.85.0
+          toolchain: 1.88.0
           target: ${{ matrix.target }}
 
       - run: make gem/mac/${{ matrix.mk-arch }}
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-mac-${{ matrix.target }}
           path: pyroscope_ffi/ruby/pkg/*.gem
@@ -99,14 +99,14 @@ jobs:
       contents: write
     needs: [ 'ruby-release' ]
     name: source
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - uses: ruby/setup-ruby@09a7688d3b55cf0e976497ff046b70949eeaccfd # v1.288.0
+      - uses: ruby/setup-ruby@19a43a6a2428d455dbd1b85344698725179c9d8c # v1.289.0
         with:
           ruby-version: '4.0.1'
 
@@ -118,7 +118,7 @@ jobs:
         run: rake source:gem
         working-directory: pyroscope_ffi/ruby
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ github.sha }}-ruby-source
           path: pyroscope_ffi/ruby/pkg/*.gem
@@ -133,8 +133,15 @@ jobs:
     permissions:
       contents: write
     name: Ruby Gem
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Verify tag matches Cargo package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: ./ci/check-tag-version.sh "$TAG"
       - id: auto-release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
