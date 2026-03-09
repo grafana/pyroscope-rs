@@ -5,11 +5,10 @@ use std::{
     time::Duration,
 };
 
-use crate::encode::gen::google::Profile;
 use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::{
-    backend::{Report, ReportBatch},
+    backend::{Report, ReportBatch, ReportData},
     encode::pprof,
     pyroscope::PyroscopeConfig,
     utils::get_time_range,
@@ -25,7 +24,6 @@ const LOG_TAG: &str = "Pyroscope::Session";
 /// Session Signal
 ///
 /// This enum is used to send data to the session thread. It can also kill the session thread.
-#[derive(Debug)]
 pub enum SessionSignal {
     /// Send session data to the session thread.
     Session(Box<Session>),
@@ -89,7 +87,6 @@ impl SessionManager {
     }
 }
 
-#[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
     pub batch: ReportBatch,
@@ -123,22 +120,34 @@ impl Session {
         })
     }
 
-    fn encode_reports(&self, reports: &Vec<Report>) -> Profile {
-        pprof::encode(
-            reports,
-            self.config.sample_rate,
-            self.from * 1_000_000_000,
-            (self.until - self.from) * 1_000_000_000,
-        )
-    }
-
     fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
-        let profile = match self.config.func {
-            None => self.encode_reports(&self.batch.reports),
-            Some(f) => {
-                self.encode_reports(&self.batch.reports.iter().map(|r| f(r.to_owned())).collect())
+        let ReportBatch { profile_type, data } = self.batch;
+
+        let raw_profile = match data {
+            ReportData::RawPprof(pprof_bytes) => {
+                if self.config.func.is_some() {
+                    log::warn!(target: LOG_TAG, "report transform function is not supported with raw pprof backends (e.g. jemalloc)");
+                }
+                pprof_bytes
+            }
+            ReportData::Reports(reports) => {
+                let transformed: Vec<Report>;
+                let encode_input = match self.config.func {
+                    None => &reports,
+                    Some(f) => {
+                        transformed = reports.iter().map(|r| f(r.to_owned())).collect();
+                        &transformed
+                    }
+                };
+                pprof::encode(
+                    encode_input,
+                    self.config.sample_rate,
+                    self.from * 1_000_000_000,
+                    (self.until - self.from) * 1_000_000_000,
+                )
+                .encode_to_vec()
             }
         };
 
@@ -149,7 +158,7 @@ impl Session {
         });
         labels.push(LabelPair {
             name: "__name__".to_string(),
-            value: self.batch.profile_type,
+            value: profile_type,
         });
         for tag in self.config.tags {
             labels.push(LabelPair {
@@ -161,7 +170,7 @@ impl Session {
             series: vec![RawProfileSeries {
                 labels,
                 samples: vec![RawSample {
-                    raw_profile: profile.encode_to_vec(),
+                    raw_profile,
                     id: Uuid::new_v4().to_string(),
                 }],
             }],

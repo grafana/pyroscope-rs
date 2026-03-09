@@ -1,6 +1,6 @@
 use crate::backend::{
-    Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ReportBatch, StackBuffer,
-    StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
+    Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ReportBatch, ReportData,
+    StackBuffer, StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
 };
 use crate::error::{PyroscopeError, Result};
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
@@ -97,7 +97,7 @@ impl Backend for Pprof<'_> {
 
         Ok(ReportBatch {
             profile_type: "process_cpu".into(),
-            reports,
+            data: ReportData::Reports(reports),
         })
     }
 
