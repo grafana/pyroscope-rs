@@ -45,15 +45,6 @@ pub fn str(buf: &mut [u8], at: Ptr) -> Result<&str, ReadMemError> {
     Err(ReadMemError { signal: 229 }) //todo
 }
 
-#[cfg(target_arch = "x86_64")]
-pub fn fs_0x10() -> Result<Ptr, ReadMemError> {
-    let res = arch::fs_0x10();
-    if res.signal == 0 {
-        return Ok(res.value);
-    }
-    Err(ReadMemError { signal: res.signal })
-}
-
 pub fn crash_points() -> CrashPoints {
     arch::crash_points()
 }
@@ -64,9 +55,6 @@ pub struct CrashPoint {
     pub signal_reg: usize,
     pub skip: usize,
 }
-#[cfg(target_arch = "x86_64")]
-const CRASH_POINTS_COUNT: usize = 3;
-#[cfg(target_arch = "aarch64")]
 const CRASH_POINTS_COUNT: usize = 2;
 
 #[derive(Copy, Clone)]
@@ -111,15 +99,6 @@ pub mod arch {
         )
     }
 
-    #[unsafe(naked)]
-    pub extern "sysv64" fn fs_0x10() -> U64Res {
-        core::arch::naked_asm!(
-            "mov    rax, qword ptr fs:0x10", // 00010000 	48 64 A1 10 00 00 00 00 00 00 00 	movabs 	eax, dword ptr fs:[0x10]
-            "xor    edx, edx",               // 0001000B 	31 D2 	xor 	edx, edx
-            "ret",                           // 0001000D 	C3 	ret
-        )
-    }
-
     const REG_RAX: usize = 13;
     const REG_RDX: usize = 12;
 
@@ -135,11 +114,6 @@ pub mod arch {
                     pc: slice as *const () as usize + 2, // +2 for 89 D1 	mov 	ecx, edx
                     signal_reg: REG_RAX,
                     skip: 4,
-                },
-                crate::CrashPoint {
-                    pc: fs_0x10 as *const () as usize,
-                    signal_reg: REG_RDX,
-                    skip: 13,
                 },
             ],
         }

@@ -163,30 +163,6 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
-#[test]
-fn fs_0x10() -> Result<(), anyhow::Error> {
-    kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
-    let res = kindasafe::arch::fs_0x10();
-    assert_eq!(0, res.signal);
-    assert_ne!(0, res.value);
-
-    let fs_base = get_fs_base();
-    assert_ne!(0, fs_base);
-
-    //todo test SIGSEGV failure
-    // todo this crashes twice, once on the PROT_NONE, then next in the crash handler
-    // unsafe {
-    //     libc::mprotect((fs_base & 0xfffffffffffff000) as *mut libc::c_void, 0x1000, libc::PROT_NONE);
-    //     let res = kindasafenostd::arch::fs_0x10();
-    //     assert_eq!(0, res.signal);
-    //     assert_ne!(0, res.value);
-    //     libc::mprotect((fs_base & 0xfffffffffffff000) as *mut libc::c_void, 0x1000, libc::PROT_READ | libc::PROT_WRITE);
-    // }
-
-    Ok(())
-}
-
 #[cfg(target_os = "linux")]
 fn trigger_sigsegv_page_boundary<F>(mut cb: F)
 where
@@ -257,23 +233,4 @@ where
 
         libc::munmap(m as *mut libc::c_void, 4);
     };
-}
-
-fn get_fs_base() -> u64 {
-    unsafe {
-        let pid = libc::fork();
-        if pid == 0 {
-            libc::ptrace(libc::PTRACE_TRACEME, 0, 0, 0);
-            libc::raise(libc::SIGTRAP);
-            std::process::exit(0);
-        }
-        let mut status: libc::c_int = 0;
-        let mut regs: libc::user_regs_struct = std::mem::zeroed();
-        libc::waitpid(pid, &mut status, 0);
-        libc::ptrace(libc::PTRACE_GETREGS, pid, 0, &mut regs);
-        libc::ptrace(libc::PTRACE_CONT, pid, 0, 0);
-        libc::waitpid(pid, &mut status, 0);
-        println!("ptrace_getregs {:x}", regs.fs_base);
-        regs.fs_base
-    }
 }
