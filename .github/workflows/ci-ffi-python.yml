@@ -12,7 +12,7 @@ permissions:
 jobs:
   check-generated-ffi:
     name: Check generated FFI files
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -35,16 +35,16 @@ jobs:
       matrix:
         include:
           - name: manylinux-amd64
-            runs-on: ubuntu-x64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
             make-target: wheel/linux/amd64
           - name: manylinux-arm64
-            runs-on: ubuntu-arm64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
             make-target: wheel/linux/arm64
           - name: musllinux-amd64
-            runs-on: ubuntu-x64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
             make-target: wheel/musllinux/amd64
           - name: musllinux-arm64
-            runs-on: ubuntu-arm64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
             make-target: wheel/musllinux/arm64
     name: Linux Build - ${{ matrix.name }}
     runs-on: ${{ matrix.runs-on }}
@@ -76,16 +76,16 @@ jobs:
         variant: ["manylinux-amd64", "manylinux-arm64", "musllinux-amd64", "musllinux-arm64"]
         include:
           - variant: manylinux-amd64
-            runs-on: ubuntu-x64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
             image-suffix: slim
           - variant: manylinux-arm64
-            runs-on: ubuntu-arm64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
             image-suffix: slim
           - variant: musllinux-amd64
-            runs-on: ubuntu-x64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
             image-suffix: alpine
           - variant: musllinux-arm64
-            runs-on: ubuntu-arm64-large
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
             image-suffix: alpine
         exclude:
           # python:3.10/3.11-alpine arm64 tests hang indefinitely
@@ -115,7 +115,7 @@ jobs:
 
   sdist-build:
     name: sdist
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
