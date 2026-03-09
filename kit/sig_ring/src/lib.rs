@@ -42,7 +42,8 @@ pub fn write<const N: usize>(
 ) -> bool {
     let len = record_len(depth);
 
-    let mut grant = match producer.grant(len) {
+    // bbqueue 0.6 switched framed producers to exact-size grants.
+    let mut grant = match producer.grant_exact(len) {
         Ok(g) => g,
         Err(_) => return false,
     };
