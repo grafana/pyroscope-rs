@@ -1,5 +1,6 @@
 {
   ".": "1.0.2",
   "pyroscope_ffi/python/rust": "1.0.4",
-  "pyroscope_ffi/ruby": "1.0.1"
+  "pyroscope_ffi/ruby": "1.0.1",
+  "kit/kindasafe": "0.1.0"
 }
