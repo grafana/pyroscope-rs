@@ -5,7 +5,6 @@ use std::{
     time::Duration,
 };
 
-use crate::encode::gen::google::Profile;
 use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::{
@@ -25,7 +24,6 @@ const LOG_TAG: &str = "Pyroscope::Session";
 /// Session Signal
 ///
 /// This enum is used to send data to the session thread. It can also kill the session thread.
-#[derive(Debug)]
 pub enum SessionSignal {
     /// Send session data to the session thread.
     Session(Box<Session>),
@@ -122,15 +120,6 @@ impl Session {
         })
     }
 
-    fn encode_reports(&self, reports: &Vec<Report>) -> Profile {
-        pprof::encode(
-            reports,
-            self.config.sample_rate,
-            self.from * 1_000_000_000,
-            (self.until - self.from) * 1_000_000_000,
-        )
-    }
-
     fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
@@ -144,13 +133,21 @@ impl Session {
                 pprof_bytes
             }
             ReportData::Reports(reports) => {
-                let profile = match self.config.func {
-                    None => self.encode_reports(&reports),
+                let transformed: Vec<Report>;
+                let encode_input = match self.config.func {
+                    None => &reports,
                     Some(f) => {
-                        self.encode_reports(&reports.iter().map(|r| f(r.to_owned())).collect())
+                        transformed = reports.iter().map(|r| f(r.to_owned())).collect();
+                        &transformed
                     }
                 };
-                profile.encode_to_vec()
+                pprof::encode(
+                    encode_input,
+                    self.config.sample_rate,
+                    self.from * 1_000_000_000,
+                    (self.until - self.from) * 1_000_000_000,
+                )
+                .encode_to_vec()
             }
         };
 
