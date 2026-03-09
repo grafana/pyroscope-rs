@@ -46,7 +46,12 @@ impl Backend for Jemalloc {
                 "jemalloc: PROF_CTL not available. Ensure jemalloc is configured with prof:true",
             )
         })?;
-        let guard = prof_ctl.blocking_lock();
+        let guard = prof_ctl.try_lock().map_err(|_| {
+            PyroscopeError::new(
+                "jemalloc: failed to acquire PROF_CTL lock during initialization. \
+                 This is unexpected at startup; ensure no other code holds the lock.",
+            )
+        })?;
         if !guard.activated() {
             return Err(PyroscopeError::new(
                 "jemalloc: profiling is not activated. Ensure malloc_conf includes prof:true,prof_active:true",
