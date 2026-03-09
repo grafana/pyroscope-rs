@@ -2,6 +2,7 @@
 name = "coredump"
 version = "0.1.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 object = { version = "0.38", default-features = false, features = ["read", "elf"] }

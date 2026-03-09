@@ -2,9 +2,15 @@
 name = "kindasafe_init"
 version = "0.1.0"
 edition = "2024"
+description = "Signal handler initialization for the kindasafe signal-safe memory reading library"
+license = "Apache-2.0"
+repository = "https://github.com/grafana/pyroscope-rs"
+keywords = ["memory", "signal-safe", "profiler"]
+categories = ["os::unix-apis"]
+readme = "README.md"
 
 [dependencies]
-kindasafe = { path = "../kindasafe" }
+kindasafe = { path = "../kindasafe", version = "0.1.0" }
 libc = { version = "0.2.182" }
 spin = { version = "0.10.0" }
 

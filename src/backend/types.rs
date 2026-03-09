@@ -108,6 +108,15 @@ impl Metadata {
     }
 }
 
+/// A batch of reports with a shared profile type.
+#[derive(Debug, Clone)]
+pub struct ReportBatch {
+    /// Profile type name (e.g. "process_cpu", "memory")
+    pub profile_type: String,
+    /// Reports in this batch
+    pub reports: Vec<Report>,
+}
+
 /// Report
 #[derive(Debug, Default, Clone)]
 pub struct Report {
