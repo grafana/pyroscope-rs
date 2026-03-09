@@ -19,7 +19,7 @@ pretty_env_logger = { workspace = true }
 log = { workspace = true }
 libc = { workspace = true }
 
-[target.'cfg(target_arch = "x86_64")'.dependencies]
+[target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.dependencies]
 pysignalprof = { path = "../../../kit/pysignalprof" }
 
 [features]
