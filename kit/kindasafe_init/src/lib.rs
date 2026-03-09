@@ -37,15 +37,19 @@ pub fn init_locked() -> Result<(), InitError> {
 
 /// # Safety
 /// `data` must be a valid pointer to `libc::ucontext_t`.
-#[cfg(target_arch = "x86_64")]
-pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
         let pc = (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] as usize;
-        for x in kindasafe::arch::crash_points().crash_points {
+        for x in kindasafe::crash_points().crash_points {
             if x.pc == pc {
                 (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] = (pc + x.skip) as libc::greg_t;
-                (*ctx).uc_mcontext.gregs[x.signal_reg] = sig as u64 as libc::greg_t;
+                let reg_idx = match x.signal_reg {
+                    kindasafe::Reg::Rax => libc::REG_RAX as usize,
+                    kindasafe::Reg::Rdx => libc::REG_RDX as usize,
+                };
+                (*ctx).uc_mcontext.gregs[reg_idx] = sig as u64 as libc::greg_t;
                 return;
             }
         }
@@ -55,15 +59,69 @@ pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: 
 
 /// # Safety
 /// `data` must be a valid pointer to `libc::ucontext_t`.
-#[cfg(target_arch = "aarch64")]
-pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+    unsafe {
+        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+        let mctx = (*ctx).uc_mcontext;
+        let ss = &mut (*mctx).__ss;
+        let pc = ss.__rip as usize;
+        for x in kindasafe::crash_points().crash_points {
+            if x.pc == pc {
+                ss.__rip = (pc + x.skip) as u64;
+                match x.signal_reg {
+                    kindasafe::Reg::Rax => ss.__rax = sig as u64,
+                    kindasafe::Reg::Rdx => ss.__rdx = sig as u64,
+                };
+                return;
+            }
+        }
+        fallback(sig, info, data);
+    }
+}
+
+/// # Safety
+/// `data` must be a valid pointer to `libc::ucontext_t`.
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
+unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
         let pc = (*ctx).uc_mcontext.pc as usize;
-        for x in kindasafe::arch::crash_points().crash_points {
+        for x in kindasafe::crash_points().crash_points {
             if x.pc == pc {
                 (*ctx).uc_mcontext.pc = (pc + x.skip) as u64;
-                (*ctx).uc_mcontext.regs[x.signal_reg] = sig as u64;
+                // libc provides no named constants for aarch64 register indices;
+                // mcontext_t.regs is [u64; 31] where index matches register number.
+                let reg_idx = match x.signal_reg {
+                    kindasafe::Reg::X0 => 0,
+                    kindasafe::Reg::X1 => 1,
+                };
+                (*ctx).uc_mcontext.regs[reg_idx] = sig as u64;
+                return;
+            }
+        }
+        fallback(sig, info, data);
+    }
+}
+
+/// # Safety
+/// `data` must be a valid pointer to `libc::ucontext_t`.
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+    unsafe {
+        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+        let mctx = (*ctx).uc_mcontext;
+        let pc = (*mctx).__ss.__pc as usize;
+        for x in kindasafe::crash_points().crash_points {
+            if x.pc == pc {
+                (*mctx).__ss.__pc = (pc + x.skip) as u64;
+                // libc provides no named constants for aarch64 register indices;
+                // __darwin_arm_thread_state64.__x is [u64; 29] where index matches register number.
+                let reg_idx = match x.signal_reg {
+                    kindasafe::Reg::X0 => 0,
+                    kindasafe::Reg::X1 => 1,
+                };
+                (*mctx).__ss.__x[reg_idx] = sig as u64;
                 return;
             }
         }
@@ -137,7 +195,7 @@ pub fn sanity_check() -> Result<(), InitError> {
             std::ptr::null_mut(),
             4096,
             libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
         );

@@ -4,6 +4,13 @@ use kindasafe::ReadMemError;
 use anyhow::Result;
 use kindasafe::{Ptr, slice, u64};
 
+// On macOS, accessing a PROT_NONE mmap page delivers SIGBUS;
+// on Linux it delivers SIGSEGV.
+#[cfg(target_os = "linux")]
+const PROT_NONE_SIGNAL: u64 = libc::SIGSEGV as u64;
+#[cfg(target_os = "macos")]
+const PROT_NONE_SIGNAL: u64 = libc::SIGBUS as u64;
+
 #[test]
 fn test_init() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
@@ -41,7 +48,7 @@ fn u64_sigsegv() -> Result<(), anyhow::Error> {
         assert_eq!(
             u64(p),
             Err(ReadMemError {
-                signal: libc::SIGSEGV as u64
+                signal: PROT_NONE_SIGNAL
             })
         );
     });
@@ -72,13 +79,13 @@ fn u64_unaligned_page_boundary() -> Result<(), anyhow::Error> {
         assert_eq!(
             u64(p + 0x1000 - 0x7),
             Err(ReadMemError {
-                signal: libc::SIGSEGV as u64
+                signal: PROT_NONE_SIGNAL
             })
         );
         assert_eq!(
             u64(p + 0x1000),
             Err(ReadMemError {
-                signal: libc::SIGSEGV as u64
+                signal: PROT_NONE_SIGNAL
             })
         );
     });
@@ -112,11 +119,10 @@ fn vec_sigsegv() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
     trigger_sigsegv(|p| {
         let mut buf = [0u8; 8];
-        let res = slice(&mut buf, p as Ptr);
         assert_eq!(
-            res,
+            slice(&mut buf, p as Ptr),
             Err(ReadMemError {
-                signal: libc::SIGSEGV as u64
+                signal: PROT_NONE_SIGNAL
             })
         );
     });
@@ -144,11 +150,10 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
 
     trigger_sigsegv_page_boundary(|p| {
         let mut buf = [0u8; 16];
-        let i = slice(&mut buf, (p + 0x1000 - 8) as Ptr);
         assert_eq!(
-            i,
+            slice(&mut buf, (p + 0x1000 - 8) as Ptr),
             Err(ReadMemError {
-                signal: libc::SIGSEGV as u64
+                signal: PROT_NONE_SIGNAL
             })
         );
         assert_eq!(
@@ -163,7 +168,6 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
 fn trigger_sigsegv_page_boundary<F>(mut cb: F)
 where
     F: FnMut(Ptr),
@@ -173,7 +177,7 @@ where
             0xdead000 as *mut libc::c_void,
             0x2000,
             libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
         ) as usize;
@@ -190,7 +194,6 @@ where
     }
 }
 
-#[cfg(target_os = "linux")]
 pub fn trigger_sigbus<F>(mut cb: F)
 where
     F: FnMut(u64),
@@ -213,7 +216,6 @@ where
     };
 }
 
-#[cfg(target_os = "linux")]
 pub fn trigger_sigsegv<F>(mut cb: F)
 where
     F: FnMut(u64),
@@ -223,7 +225,7 @@ where
             std::ptr::null_mut::<libc::c_void>(),
             4,
             libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
         );
