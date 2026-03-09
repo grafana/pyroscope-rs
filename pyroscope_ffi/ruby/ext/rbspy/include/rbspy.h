@@ -12,6 +12,10 @@
 
 bool initialize_logging(uint32_t logging_level);
 
+/*
+ # Safety
+ All pointer arguments must be valid, non-null, null-terminated C strings.
+ */
 bool initialize_agent(const char *application_name,
                       const char *server_address,
                       const char *basic_auth_user,
@@ -26,8 +30,16 @@ bool initialize_agent(const char *application_name,
 
 bool drop_agent(void);
 
+/*
+ # Safety
+ `key` and `value` must be valid, non-null, null-terminated C strings.
+ */
 bool add_thread_tag(const char *key, const char *value);
 
+/*
+ # Safety
+ `key` and `value` must be valid, non-null, null-terminated C strings.
+ */
 bool remove_thread_tag(const char *key, const char *value);
 
 #endif  /* RBSPY_H_ */

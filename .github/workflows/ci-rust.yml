@@ -12,7 +12,7 @@ permissions:
 jobs:
   format:
     name: cargo fmt --check
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -26,16 +26,61 @@ jobs:
       - name: Run formatting check
         run: make rust/fmt/check
 
+  clippy:
+    name: cargo clippy
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        with:
+          toolchain: stable
+          components: clippy
+
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
+
+  codegen:
+    name: check generated files
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        with:
+          toolchain: stable
+          components: rustfmt
+
+      - name: Install bindgen-cli
+        run: cargo install bindgen-cli
+
+      - name: Regenerate py314.rs
+        run: cd kit/python_offsets && ./gen_debug_offsets.sh v3.14.0 py314
+
+      - name: Assert no diff
+        run: git diff --exit-code kit/python_offsets_types/src/py314.rs
+
   test:
-    name: cargo test (${{ matrix.package }})
-    runs-on: ubuntu-x64-small
+    name: cargo test (${{ matrix.package }}, ${{ matrix.arch.name }})
+    runs-on: ${{ matrix.arch.runner }}
     strategy:
       fail-fast: false
       matrix:
+        arch:
+          - name: x64
+            runner: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+          - name: arm64
+            runner: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
         package:
           - pyroscope
           - pyroscope_python_extension
           - ffiruby
+          - kindasafe
+          - kindasafe_init
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -47,3 +92,28 @@ jobs:
 
       - name: Run tests
         run: cargo test --locked -p ${{ matrix.package }}
+
+  test-macos:
+    name: cargo test (${{ matrix.package }}, ${{ matrix.target }})
+    runs-on: ${{ github.repository_owner == 'grafana' && 'macos-14' || 'macos-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+        package:
+          - kindasafe
+          - kindasafe_init
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Run tests
+        run: cargo test --locked -p ${{ matrix.package }} --target ${{ matrix.target }}
