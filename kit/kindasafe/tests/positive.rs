@@ -163,7 +163,7 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+#[cfg(target_os = "linux")]
 fn trigger_sigsegv_page_boundary<F>(mut cb: F)
 where
     F: FnMut(Ptr),
@@ -190,7 +190,7 @@ where
     }
 }
 
-#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+#[cfg(target_os = "linux")]
 pub fn trigger_sigbus<F>(mut cb: F)
 where
     F: FnMut(u64),
@@ -213,7 +213,7 @@ where
     };
 }
 
-#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+#[cfg(target_os = "linux")]
 pub fn trigger_sigsegv<F>(mut cb: F)
 where
     F: FnMut(u64),
