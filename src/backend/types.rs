@@ -111,7 +111,6 @@ impl Metadata {
 /// The payload of a report batch: either structured stack-trace reports
 /// (which will be encoded into pprof by the session layer) or pre-encoded
 /// pprof bytes produced directly by a backend (e.g. jemalloc).
-#[derive(Debug, Clone)]
 pub enum ReportData {
     /// Structured stack-trace reports that must be pprof-encoded before sending.
     Reports(Vec<Report>),
@@ -121,7 +120,6 @@ pub enum ReportData {
 }
 
 /// A batch of reports with a shared profile type.
-#[derive(Debug, Clone)]
 pub struct ReportBatch {
     /// Profile type name (e.g. "process_cpu", "memory")
     pub profile_type: String,

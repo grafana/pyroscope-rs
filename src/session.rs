@@ -24,7 +24,6 @@ const LOG_TAG: &str = "Pyroscope::Session";
 /// Session Signal
 ///
 /// This enum is used to send data to the session thread. It can also kill the session thread.
-#[derive(Debug)]
 pub enum SessionSignal {
     /// Send session data to the session thread.
     Session(Box<Session>),
@@ -88,7 +87,6 @@ impl SessionManager {
     }
 }
 
-#[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
     pub batch: ReportBatch,
