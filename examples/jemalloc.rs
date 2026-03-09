@@ -9,7 +9,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! pyroscope = { version = "0.5", features = ["backend-jemalloc"] }
+//! pyroscope = { version = "2.0.0", features = ["backend-jemalloc"] }
 //! tikv-jemallocator = { version = "0.6", features = ["profiling"] }
 //! ```
 //!
