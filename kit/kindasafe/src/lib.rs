@@ -52,7 +52,7 @@ pub fn crash_points() -> CrashPoints {
 #[derive(Copy, Clone)]
 pub struct CrashPoint {
     pub pc: usize,
-    pub signal_reg: usize,
+    pub signal_reg: Reg,
     pub skip: usize,
 }
 const CRASH_POINTS_COUNT: usize = 2;
@@ -60,6 +60,20 @@ const CRASH_POINTS_COUNT: usize = 2;
 #[derive(Copy, Clone)]
 pub struct CrashPoints {
     pub crash_points: [CrashPoint; CRASH_POINTS_COUNT],
+}
+
+#[cfg(target_arch = "x86_64")]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Reg {
+    Rax,
+    Rdx,
+}
+
+#[cfg(target_arch = "aarch64")]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Reg {
+    X0,
+    X1,
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -99,33 +113,17 @@ pub mod arch {
         )
     }
 
-    // Register indices into the OS-specific register array used by crash_handler.
-    // Linux: gregs[] array. macOS: __darwin_x86_thread_state64 cast as *mut u64.
-    #[cfg(target_os = "linux")]
-    pub mod regs {
-        pub const REG_RAX: usize = 13;
-        pub const REG_RDX: usize = 12;
-        pub const REG_RIP: usize = 16;
-    }
-    #[cfg(target_os = "macos")]
-    pub mod regs {
-        pub const REG_RAX: usize = 0;
-        pub const REG_RDX: usize = 3;
-        pub const REG_RIP: usize = 16;
-    }
-    use regs::*;
-
     pub fn crash_points() -> crate::CrashPoints {
         crate::CrashPoints {
             crash_points: [
                 crate::CrashPoint {
                     pc: u64 as *const () as usize,
-                    signal_reg: REG_RDX,
+                    signal_reg: crate::Reg::Rdx,
                     skip: 5,
                 },
                 crate::CrashPoint {
                     pc: slice as *const () as usize + 2, // +2 for 89 D1 	mov 	ecx, edx
-                    signal_reg: REG_RAX,
+                    signal_reg: crate::Reg::Rax,
                     skip: 4,
                 },
             ],
@@ -175,25 +173,17 @@ pub mod arch {
         )
     }
 
-    // Register indices into the OS-specific register array used by crash_handler.
-    // Linux: mcontext.regs[]. macOS: __darwin_arm_thread_state64.__x[].
-    pub mod regs {
-        pub const REG_X0: usize = 0;
-        pub const REG_X1: usize = 1;
-    }
-    use regs::*;
-
     pub fn crash_points() -> crate::CrashPoints {
         crate::CrashPoints {
             crash_points: [
                 crate::CrashPoint {
                     pc: u64 as *const () as usize,
-                    signal_reg: REG_X1,
+                    signal_reg: crate::Reg::X1,
                     skip: 8, // skip ldr + mov to land on ret
                 },
                 crate::CrashPoint {
                     pc: slice as *const () as usize + 4, // +4 for cbz
-                    signal_reg: REG_X0,
+                    signal_reg: crate::Reg::X0,
                     skip: 20, // skip ldrb + strb + subs + b.ne + mov to land on ret
                 },
             ],
