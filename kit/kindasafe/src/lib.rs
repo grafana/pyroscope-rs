@@ -99,8 +99,17 @@ pub mod arch {
         )
     }
 
+    // Linux gregs[] indices
+    #[cfg(target_os = "linux")]
     const REG_RAX: usize = 13;
+    #[cfg(target_os = "linux")]
     const REG_RDX: usize = 12;
+
+    // macOS __darwin_x86_thread_state64 field indices (cast __ss as *mut u64)
+    #[cfg(target_os = "macos")]
+    const REG_RAX: usize = 0;
+    #[cfg(target_os = "macos")]
+    const REG_RDX: usize = 3;
 
     pub fn crash_points() -> crate::CrashPoints {
         crate::CrashPoints {

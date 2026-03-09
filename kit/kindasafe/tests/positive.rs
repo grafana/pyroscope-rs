@@ -163,7 +163,6 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
 fn trigger_sigsegv_page_boundary<F>(mut cb: F)
 where
     F: FnMut(Ptr),
@@ -173,7 +172,7 @@ where
             0xdead000 as *mut libc::c_void,
             0x2000,
             libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
         ) as usize;
@@ -190,7 +189,6 @@ where
     }
 }
 
-#[cfg(target_os = "linux")]
 pub fn trigger_sigbus<F>(mut cb: F)
 where
     F: FnMut(u64),
@@ -213,7 +211,6 @@ where
     };
 }
 
-#[cfg(target_os = "linux")]
 pub fn trigger_sigsegv<F>(mut cb: F)
 where
     F: FnMut(u64),
@@ -223,7 +220,7 @@ where
             std::ptr::null_mut::<libc::c_void>(),
             4,
             libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
         );

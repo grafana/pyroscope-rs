@@ -37,7 +37,7 @@ pub fn init_locked() -> Result<(), InitError> {
 
 /// # Safety
 /// `data` must be a valid pointer to `libc::ucontext_t`.
-#[cfg(target_arch = "x86_64")]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
@@ -55,7 +55,28 @@ pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: 
 
 /// # Safety
 /// `data` must be a valid pointer to `libc::ucontext_t`.
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+    unsafe {
+        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+        let mctx = (*ctx).uc_mcontext;
+        let regs = &mut (*mctx).__ss as *mut _ as *mut u64;
+        const RIP_IDX: usize = 16;
+        let pc = *regs.add(RIP_IDX) as usize;
+        for x in kindasafe::arch::crash_points().crash_points {
+            if x.pc == pc {
+                *regs.add(RIP_IDX) = (pc + x.skip) as u64;
+                *regs.add(x.signal_reg) = sig as u64;
+                return;
+            }
+        }
+        fallback(sig, info, data);
+    }
+}
+
+/// # Safety
+/// `data` must be a valid pointer to `libc::ucontext_t`.
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
@@ -64,6 +85,25 @@ pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: 
             if x.pc == pc {
                 (*ctx).uc_mcontext.pc = (pc + x.skip) as u64;
                 (*ctx).uc_mcontext.regs[x.signal_reg] = sig as u64;
+                return;
+            }
+        }
+        fallback(sig, info, data);
+    }
+}
+
+/// # Safety
+/// `data` must be a valid pointer to `libc::ucontext_t`.
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+    unsafe {
+        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+        let mctx = (*ctx).uc_mcontext;
+        let pc = (*mctx).__ss.__pc as usize;
+        for x in kindasafe::arch::crash_points().crash_points {
+            if x.pc == pc {
+                (*mctx).__ss.__pc = (pc + x.skip) as u64;
+                (*mctx).__ss.__x[x.signal_reg] = sig as u64;
                 return;
             }
         }
@@ -137,7 +177,7 @@ pub fn sanity_check() -> Result<(), InitError> {
             std::ptr::null_mut(),
             4096,
             libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
         );
