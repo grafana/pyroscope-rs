@@ -33,6 +33,7 @@ ADD rustfmt.toml \
 
 ADD src src
 ADD kit/ kit/
+ADD examples/ examples/
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
