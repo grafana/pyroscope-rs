@@ -89,7 +89,6 @@ impl SessionManager {
     }
 }
 
-#[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
     pub batch: ReportBatch,
