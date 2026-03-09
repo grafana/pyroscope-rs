@@ -2329,6 +2329,7 @@ dependencies = [
  "pretty_env_logger",
  "py-spy",
  "pyroscope",
+ "pysignalprof",
 ]
 
 [[package]]
