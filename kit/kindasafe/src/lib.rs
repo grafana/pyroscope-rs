@@ -67,12 +67,16 @@ pub struct CrashPoint {
     pub signal_reg: usize,
     pub skip: usize,
 }
+#[cfg(target_arch = "x86_64")]
+const CRASH_POINTS_COUNT: usize = 3;
+#[cfg(target_arch = "aarch64")]
+const CRASH_POINTS_COUNT: usize = 2;
+
 #[derive(Copy, Clone)]
 pub struct CrashPoints {
-    pub crash_points: [CrashPoint; 3],
+    pub crash_points: [CrashPoint; CRASH_POINTS_COUNT],
 }
 
-// todo arm64
 #[cfg(target_arch = "x86_64")]
 pub mod arch {
 
@@ -159,6 +163,90 @@ pub mod arch {
                     (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] =
                         (pc + x.skip) as libc::greg_t;
                     (*ctx).uc_mcontext.gregs[x.signal_reg] = sig as u64 as libc::greg_t;
+                    return;
+                }
+            }
+            super::fallback(sig, info, data);
+        }
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+pub mod arch {
+
+    #[repr(C)]
+    pub struct U64Res {
+        pub value: u64,
+        pub signal: u64,
+    }
+
+    #[unsafe(naked)]
+    pub extern "C" fn u64(_at: u64) -> U64Res {
+        core::arch::naked_asm!(
+            "ldr x0, [x0]", // offset 0: load 64-bit value from address in x0
+            "mov x1, #0",   // offset 4: signal = 0 (success)
+            "ret",           // offset 8
+        )
+    }
+
+    #[repr(C)]
+    pub struct VecResult {
+        pub signal: u64,
+    }
+
+    #[unsafe(naked)]
+    pub extern "C" fn slice(
+        _dst: *const u8, // x0
+        _src: u64,       // x1
+        _n: u64,         // x2
+    ) -> VecResult {
+        core::arch::naked_asm!(
+            "cbz x2, 2f",          // offset 0: skip if n==0
+            "1:",
+            "ldrb w3, [x1], #1",   // offset 4: load byte from src, post-increment
+            "strb w3, [x0], #1",   // offset 8: store byte to dst, post-increment
+            "subs x2, x2, #1",     // offset 12: decrement counter
+            "b.ne 1b",             // offset 16: loop if not zero
+            "2:",
+            "mov x0, #0",          // offset 20: signal = 0 (success)
+            "ret",                  // offset 24
+        )
+    }
+
+    const REG_X0: usize = 0;
+    const REG_X1: usize = 1;
+
+    pub fn crash_points() -> crate::CrashPoints {
+        crate::CrashPoints {
+            crash_points: [
+                crate::CrashPoint {
+                    pc: u64 as *const () as usize,
+                    signal_reg: REG_X1,
+                    skip: 8, // skip ldr + mov to land on ret
+                },
+                crate::CrashPoint {
+                    pc: slice as *const () as usize + 4, // +4 for cbz
+                    signal_reg: REG_X0,
+                    skip: 20, // skip ldrb + strb + subs + b.ne + mov to land on ret
+                },
+            ],
+        }
+    }
+
+    /// # Safety
+    /// `data` must be a valid pointer to `libc::ucontext_t`.
+    pub unsafe fn crash_handler(
+        sig: core::ffi::c_int,
+        info: *const core::ffi::c_void,
+        data: *mut core::ffi::c_void,
+    ) {
+        unsafe {
+            let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+            let pc = (*ctx).uc_mcontext.pc as usize;
+            for x in crash_points().crash_points {
+                if x.pc == pc {
+                    (*ctx).uc_mcontext.pc = (pc + x.skip) as u64;
+                    (*ctx).uc_mcontext.regs[x.signal_reg] = sig as u64;
                     return;
                 }
             }
