@@ -342,6 +342,99 @@ pub fn find_python_in_maps() -> Result<PythonBinary, InitError> {
     find_python_in_maps_reader(std::io::BufReader::new(f))
 }
 
+/// Parse `/proc/self/maps` and return the `PythonBinary` describing where the
+/// `_asyncio` CPython extension module is loaded.
+///
+/// Looks for a mapping whose path contains `_asyncio.cpython-3`.
+/// Returns [`InitError::PythonNotFound`] when the module is not loaded.
+pub fn find_asyncio_in_maps() -> Result<PythonBinary, InitError> {
+    let f = std::fs::File::open("/proc/self/maps").map_err(|_| InitError::PythonNotFound)?;
+    find_asyncio_in_maps_reader(std::io::BufReader::new(f))
+}
+
+fn find_asyncio_in_maps_reader<R: BufRead>(mut reader: R) -> Result<PythonBinary, InitError> {
+    let mut buf: Vec<u8> = Vec::with_capacity(256);
+    loop {
+        buf.clear();
+        let n = reader
+            .read_until(b'\n', &mut buf)
+            .map_err(|_| InitError::PythonNotFound)?;
+        if n == 0 {
+            break;
+        }
+        let (start, _end, _flags, _offset, _dev_major, _dev_minor, _inode, path_bytes) =
+            match parse_maps_line(&buf) {
+                Some(e) => e,
+                None => continue,
+            };
+        if path_contains(path_bytes, b"_asyncio.cpython-3") {
+            return Ok(PythonBinary {
+                base: start,
+                path: String::from_utf8_lossy(path_bytes).into_owned(),
+            });
+        }
+    }
+    Err(InitError::PythonNotFound)
+}
+
+/// Open the `_asyncio` extension module ELF binary, find the `_AsyncioDebug`
+/// symbol, and return its absolute runtime address.
+///
+/// Lookup order: dynamic symbols (`.dynsym`), then regular symbols (`.symtab`),
+/// then fall back to the `.AsyncioDebug` ELF section address.
+pub fn resolve_asyncio_debug_symbol(binary: &PythonBinary) -> Result<u64, InitError> {
+    let file = std::fs::File::open(&binary.path).map_err(|_| InitError::Io)?;
+    let mmap = unsafe { memmap2::Mmap::map(&file) }.map_err(|_| InitError::Io)?;
+    resolve_asyncio_debug_symbol_from_bytes(&mmap, binary.base)
+}
+
+fn resolve_asyncio_debug_symbol_from_bytes(
+    data: &[u8],
+    mapped_base: u64,
+) -> Result<u64, InitError> {
+    let obj = object::File::parse(data).map_err(|_| InitError::ElfParse)?;
+
+    let elf_base = obj.segments().map(|s| s.address()).min().unwrap_or(0);
+    let load_bias = mapped_base.wrapping_sub(elf_base);
+
+    // Try dynamic symbols first (most common for .so files).
+    for sym in obj.dynamic_symbols() {
+        if sym.name() == Ok("_AsyncioDebug") {
+            return Ok(sym.address().wrapping_add(load_bias));
+        }
+    }
+
+    // Fall back to regular symbol table.
+    for sym in obj.symbols() {
+        if sym.name() == Ok("_AsyncioDebug") {
+            return Ok(sym.address().wrapping_add(load_bias));
+        }
+    }
+
+    // Last resort: look up the `.AsyncioDebug` section and use its address.
+    use object::ObjectSection;
+    for section in obj.sections() {
+        if section.name() == Ok(".AsyncioDebug") {
+            return Ok(section.address().wrapping_add(load_bias));
+        }
+    }
+
+    Err(InitError::SymbolNotFound("_AsyncioDebug"))
+}
+
+/// Read `Py_AsyncioModuleDebugOffsets` from live memory at `addr`.
+pub fn read_asyncio_debug_offsets(
+    addr: u64,
+) -> Result<py314::Py_AsyncioModuleDebugOffsets, InitError> {
+    let mut buf = [0u8; size_of::<py314::Py_AsyncioModuleDebugOffsets>()];
+    kindasafe::slice(&mut buf, addr).map_err(|_| InitError::DebugOffsetsMismatch)?;
+    // SAFETY: Py_AsyncioModuleDebugOffsets is #[repr(C)] with only u64 fields.
+    // Any bit pattern is valid.
+    Ok(unsafe {
+        core::ptr::read_unaligned(buf.as_ptr() as *const py314::Py_AsyncioModuleDebugOffsets)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -594,5 +687,79 @@ mod tests {
     fn elf_invalid_bytes_returns_elf_parse_error() {
         let result = resolve_elf_symbols_from_bytes(b"not an elf file", 0);
         assert_eq!(result, Err(InitError::ElfParse));
+    }
+
+    // ── find_asyncio_in_maps_reader tests ────────────────────────────────────
+
+    fn run_asyncio(maps: &[u8]) -> Result<PythonBinary, InitError> {
+        find_asyncio_in_maps_reader(std::io::Cursor::new(maps))
+    }
+
+    const MAPS_WITH_ASYNCIO: &[u8] = b"\
+7f0000000000-7f0000020000 r--p 00000000 08:01 111 /usr/lib/libpython3.14.so.1.0\n\
+7f0000100000-7f0000110000 r--p 00000000 08:01 222 /usr/lib/python3.14/lib-dynload/_asyncio.cpython-314-x86_64-linux-gnu.so\n\
+7f0000110000-7f0000120000 r-xp 00010000 08:01 222 /usr/lib/python3.14/lib-dynload/_asyncio.cpython-314-x86_64-linux-gnu.so\n\
+";
+
+    const MAPS_WITHOUT_ASYNCIO: &[u8] = b"\
+7f0000000000-7f0000020000 r--p 00000000 08:01 111 /usr/lib/libpython3.14.so.1.0\n\
+7fff00000000-7fff00020000 rw-p 00000000 00:00 0\n\
+";
+
+    #[test]
+    fn finds_asyncio_module() {
+        let bin = run_asyncio(MAPS_WITH_ASYNCIO).unwrap();
+        assert_eq!(bin.base, 0x7f0000100000);
+        assert!(bin.path.contains("_asyncio.cpython-314"));
+    }
+
+    #[test]
+    fn returns_first_asyncio_mapping() {
+        // Should return the first (r--p, offset 0) mapping, not the r-xp one.
+        let bin = run_asyncio(MAPS_WITH_ASYNCIO).unwrap();
+        assert_eq!(bin.base, 0x7f0000100000);
+    }
+
+    #[test]
+    fn asyncio_not_found_when_absent() {
+        assert_eq!(
+            run_asyncio(MAPS_WITHOUT_ASYNCIO),
+            Err(InitError::PythonNotFound)
+        );
+    }
+
+    #[test]
+    fn asyncio_not_found_in_empty_maps() {
+        assert_eq!(run_asyncio(b""), Err(InitError::PythonNotFound));
+    }
+
+    // ── resolve_asyncio_debug_symbol_from_bytes tests ────────────────────────
+
+    #[test]
+    fn asyncio_debug_invalid_elf() {
+        let result = resolve_asyncio_debug_symbol_from_bytes(b"not an elf file", 0);
+        assert_eq!(result, Err(InitError::ElfParse));
+    }
+
+    // ── resolve_asyncio_debug_symbol_from_bytes against real _asyncio.so ─────
+
+    // Real _asyncio.cpython-314-x86_64-linux-gnu.so committed as a test fixture.
+    // The _AsyncioDebug symbol is only in the .AsyncioDebug ELF section (not .dynsym/.symtab).
+    // Section address verified with: readelf -S ... | grep AsyncioDebug → 0x117c0
+    const ASYNCIO_SO: &[u8] =
+        include_bytes!("../testdata/_asyncio.cpython-314-x86_64-linux-gnu.so");
+
+    #[test]
+    fn resolves_asyncio_debug_section() {
+        // mapped_base = 0 → load_bias = 0
+        let addr = resolve_asyncio_debug_symbol_from_bytes(ASYNCIO_SO, 0).unwrap();
+        assert_eq!(addr, 0x117c0, "expected .AsyncioDebug section address");
+    }
+
+    #[test]
+    fn resolves_asyncio_debug_with_load_bias() {
+        let mapped_base: u64 = 0x7f00_0000_0000;
+        let addr = resolve_asyncio_debug_symbol_from_bytes(ASYNCIO_SO, mapped_base).unwrap();
+        assert_eq!(addr, mapped_base + 0x117c0);
     }
 }

@@ -74,6 +74,10 @@ struct HandlerState {
     get_tstate: fn() -> u64,
     /// Expected type-object addresses for runtime type checking.
     type_addrs: python_unwind::TypeAddrs,
+    /// Asyncio module debug offsets (`None` if `_asyncio` was not loaded at init).
+    /// Used by the reader thread for walking suspended async tasks (future work).
+    #[allow(dead_code)]
+    asyncio_offsets: Option<py314::Py_AsyncioModuleDebugOffsets>,
     /// Dynamically-sized shard array (length = num_shards).
     shards: Vec<notlibc::ShardMutex<Shard>>,
     /// Per-shard bbqueue consumers. Only accessed by the reader thread.
@@ -623,6 +627,30 @@ fn init_sequence(
             })?;
     log_info("read debug offsets");
 
+    // Step 5b: Try to read asyncio module debug offsets (non-fatal).
+    let asyncio_offsets = match python_offsets::find_asyncio_in_maps() {
+        Ok(asyncio_binary) => match python_offsets::resolve_asyncio_debug_symbol(&asyncio_binary) {
+            Ok(addr) => match python_offsets::read_asyncio_debug_offsets(addr) {
+                Ok(offsets) => {
+                    log_info("read asyncio debug offsets");
+                    Some(offsets)
+                }
+                Err(e) => {
+                    log_info(&format!("asyncio debug offsets read failed: {:?}", e));
+                    None
+                }
+            },
+            Err(e) => {
+                log_info(&format!("asyncio debug symbol not found: {:?}", e));
+                None
+            }
+        },
+        Err(_) => {
+            log_info("_asyncio module not loaded yet");
+            None
+        }
+    };
+
     // Step 6: Resolve _PyThreadState_GetCurrent as a callable function pointer.
     let get_tstate: fn() -> u64 = unsafe { core::mem::transmute(symbols.get_tstate_addr as usize) };
     log_info(&format!(
@@ -681,6 +709,7 @@ fn init_sequence(
         debug_offsets,
         get_tstate,
         type_addrs,
+        asyncio_offsets,
         shards,
         consumers,
         eventfd,
