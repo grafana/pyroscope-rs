@@ -1,4 +1,3 @@
-#![cfg(target_arch = "x86_64")]
 #![no_std]
 
 #[derive(Debug, PartialEq)]
@@ -46,15 +45,6 @@ pub fn str(buf: &mut [u8], at: Ptr) -> Result<&str, ReadMemError> {
     Err(ReadMemError { signal: 229 }) //todo
 }
 
-#[cfg(target_arch = "x86_64")]
-pub fn fs_0x10() -> Result<Ptr, ReadMemError> {
-    let res = arch::fs_0x10();
-    if res.signal == 0 {
-        return Ok(res.value);
-    }
-    Err(ReadMemError { signal: res.signal })
-}
-
 pub fn crash_points() -> CrashPoints {
     arch::crash_points()
 }
@@ -65,12 +55,13 @@ pub struct CrashPoint {
     pub signal_reg: usize,
     pub skip: usize,
 }
+const CRASH_POINTS_COUNT: usize = 2;
+
 #[derive(Copy, Clone)]
 pub struct CrashPoints {
-    pub crash_points: [CrashPoint; 3],
+    pub crash_points: [CrashPoint; CRASH_POINTS_COUNT],
 }
 
-// todo arm64
 #[cfg(target_arch = "x86_64")]
 pub mod arch {
 
@@ -108,15 +99,6 @@ pub mod arch {
         )
     }
 
-    #[unsafe(naked)]
-    pub extern "sysv64" fn fs_0x10() -> U64Res {
-        core::arch::naked_asm!(
-            "mov    rax, qword ptr fs:0x10", // 00010000 	48 64 A1 10 00 00 00 00 00 00 00 	movabs 	eax, dword ptr fs:[0x10]
-            "xor    edx, edx",               // 0001000B 	31 D2 	xor 	edx, edx
-            "ret",                           // 0001000D 	C3 	ret
-        )
-    }
-
     const REG_RAX: usize = 13;
     const REG_RDX: usize = 12;
 
@@ -133,10 +115,68 @@ pub mod arch {
                     signal_reg: REG_RAX,
                     skip: 4,
                 },
+            ],
+        }
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+pub mod arch {
+
+    #[repr(C)]
+    pub struct U64Res {
+        pub value: u64,
+        pub signal: u64,
+    }
+
+    #[unsafe(naked)]
+    pub extern "C" fn u64(_at: u64) -> U64Res {
+        core::arch::naked_asm!(
+            "ldr x0, [x0]", // offset 0: load 64-bit value from address in x0
+            "mov x1, #0",   // offset 4: signal = 0 (success)
+            "ret",          // offset 8
+        )
+    }
+
+    #[repr(C)]
+    pub struct VecResult {
+        pub signal: u64,
+    }
+
+    #[unsafe(naked)]
+    pub extern "C" fn slice(
+        _dst: *const u8, // x0
+        _src: u64,       // x1
+        _n: u64,         // x2
+    ) -> VecResult {
+        core::arch::naked_asm!(
+            "cbz x2, 2f", // offset 0: skip if n==0
+            "1:",
+            "ldrb w3, [x1], #1", // offset 4: load byte from src, post-increment
+            "strb w3, [x0], #1", // offset 8: store byte to dst, post-increment
+            "subs x2, x2, #1",   // offset 12: decrement counter
+            "b.ne 1b",           // offset 16: loop if not zero
+            "2:",
+            "mov x0, #0", // offset 20: signal = 0 (success)
+            "ret",        // offset 24
+        )
+    }
+
+    const REG_X0: usize = 0;
+    const REG_X1: usize = 1;
+
+    pub fn crash_points() -> crate::CrashPoints {
+        crate::CrashPoints {
+            crash_points: [
                 crate::CrashPoint {
-                    pc: fs_0x10 as *const () as usize,
-                    signal_reg: REG_RDX,
-                    skip: 13,
+                    pc: u64 as *const () as usize,
+                    signal_reg: REG_X1,
+                    skip: 8, // skip ldr + mov to land on ret
+                },
+                crate::CrashPoint {
+                    pc: slice as *const () as usize + 4, // +4 for cbz
+                    signal_reg: REG_X0,
+                    skip: 20, // skip ldrb + strb + subs + b.ne + mov to land on ret
                 },
             ],
         }
