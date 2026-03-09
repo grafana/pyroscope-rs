@@ -1,7 +1,7 @@
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, Report, ReportBatch, StackBuffer, StackFrame, StackTrace,
-        ThreadTag, ThreadTagsSet,
+        Backend, BackendConfig, Report, ReportBatch, ReportData, StackBuffer, StackFrame,
+        StackTrace, ThreadTag, ThreadTagsSet,
     },
     error::{PyroscopeError, Result},
 };
@@ -134,7 +134,7 @@ impl Backend for Rbspy {
 
         Ok(ReportBatch {
             profile_type: "process_cpu".into(),
-            reports,
+            data: ReportData::Reports(reports),
         })
     }
 }
