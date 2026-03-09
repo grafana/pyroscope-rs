@@ -13,7 +13,7 @@ jobs:
     permissions:
       id-token: write
     name: "Python"
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
     if: "startsWith(github.event.release.tag_name, 'python-')"
     steps:
       - uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # 1.12

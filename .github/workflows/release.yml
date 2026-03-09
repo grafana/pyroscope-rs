@@ -7,7 +7,7 @@ jobs:
     permissions:
       contents: write
     name: pyroscope-main
-    runs-on: ubuntu-x64-small
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
     if: "startsWith(github.ref, 'refs/tags/lib-')"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
