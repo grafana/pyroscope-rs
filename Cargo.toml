@@ -5,7 +5,7 @@ Pyroscope Profiler Agent for continuous profiling of Rust, Python and Ruby appli
 """
 keywords = ["pyroscope", "profiler", "profiling", "pprof"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "1.0.2"
+version = "0.5.9"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://pyroscope.io/docs/rust"
@@ -22,67 +22,30 @@ rust-version = "1.64"
 members = [
     "pyroscope_ffi/ruby/ext/rbspy",
     "pyroscope_ffi/python/rust",
-    "kit/kindasafe",
-    "kit/kindasafe_init",
-    "kit/sighandler",
-    "kit/pyroscope_ingest",
-    "kit/pprof_enc",
-    "kit/notlibc",
-    "kit/python_offsets",
-    "kit/python_offsets_types",
-    "kit/python_unwind",
-    "kit/coredump",
-    "kit/sig_ring",
-    "kit/pysignalprof",
-    "kit/pysignalprof_capi",
 ]
-
-[workspace.dependencies]
-thiserror = "2.0.12"
-log = "0.4"
-names = { version = "0.14.0", default-features = false }
-reqwest = { version = "0.13", features = ["blocking", "query"], default-features = false }
-uuid = { version = "1.20.0", features = ["v4"] }
-url = "2.2.2"
-libflate = "2.1.0"
-libc = "^0.2.124"
-prost = "0.14"
-serde_json = "1.0.115"
-pprof = { package = "pprof-pyroscope-fork", version = "0.1500.2", features = ["framehop", "framehop-unwinder"] }
-jemalloc_pprof = { version = "0.8", features = ["symbolize"] }
-tokio = { version = "1", features = ["rt"] }
-lazy_static = "1.5.0"
-assert_matches = "=1.5.0"
-claims = "=0.8.0"
-pretty_env_logger = "0.5.0"
-rbspy = { version = "0.42" }
-remoteprocess = "0.5.0"
-anyhow = "1.0"
-flate2 = "1.1"
-py-spy = { git = "https://github.com/grafana/py-spy", rev = "5f1661d", default-features = false }
 
 
 
 
 [dependencies]
-thiserror = { workspace = true }
-log = { workspace = true }
-names = { workspace = true }
-reqwest = { workspace = true }
-uuid = { workspace = true }
-url = { workspace = true }
-libflate = { workspace = true }
-libc = { workspace = true }
-prost = { workspace = true }
-serde_json = { workspace = true }
-pprof = { workspace = true, optional = true }
-jemalloc_pprof = { workspace = true, optional = true }
-tokio = { workspace = true, optional = true }
-lazy_static = { workspace = true }
+thiserror = "2.0.12"
+log = "0.4"
+names = { version = "0.14.0", default-features = false }
+reqwest = { version = "0.13", features = ["blocking", "query"], default-features = false }
+uuid = { version = "1.20.0" , features = ["v4"]}
+url = "2.2.2"
+libflate = "2.1.0"
+libc = "^0.2.124"
+prost = "0.14"
+serde_json = "1.0.115"
+pprof = { version = "0.15", features = ["framehop", "framehop-unwinder"], optional = true }
+jemalloc_pprof = { version = "0.8", features = ["symbolize"], optional = true }
+tokio = { version = "1", features = ["rt"], optional = true }
+lazy_static = "1.5.0"
 
 [dev-dependencies]
-assert_matches = { workspace = true }
-claims = { workspace = true }
+assert_matches = "=1.5.0"
+claims = "=0.8.0"
 
 [features]
 default = ["rustls-tls"]

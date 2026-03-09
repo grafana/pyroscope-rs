@@ -242,11 +242,10 @@ fn test_stacktrace_add() {
         ))
         .unwrap();
 
-    let backend_config = BackendConfig {
-        report_pid: true,
-        report_thread_id: true,
-        report_thread_name: true,
-    };
+    let mut backend_config = BackendConfig::default();
+    backend_config.report_pid = true;
+    backend_config.report_thread_id = true;
+    backend_config.report_thread_name = true;
 
     let stacktrace = StackTrace::new(
         &backend_config,

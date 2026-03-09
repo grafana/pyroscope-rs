@@ -7,6 +7,7 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 
 use crate::backend::Rbspy;
+use pyroscope;
 use pyroscope::backend::{BackendConfig, BackendImpl, Report, StackFrame, Tag};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 
@@ -28,15 +29,27 @@ pub fn transform_report(report: Report) -> Report {
                 .map(|frame| {
                     let frame = frame.to_owned();
                     let mut s = frame.filename.unwrap();
-                    if let Some(i) = s.find(cwd) {
-                        s = s[(i + cwd.len() + 1)..].to_string();
-                    } else if let Some(i) = s.find("/gems/") {
-                        s = s[(i + 1)..].to_string();
-                    } else if let Some(i) = s.find("/ruby/") {
-                        s = s[(i + 6)..].to_string();
-                        if let Some(i) = s.find('/') {
-                            s = s[(i + 1)..].to_string();
+                    match s.find(cwd) {
+                        Some(i) => {
+                            s = s[(i + cwd.len() + 1)..].to_string();
                         }
+                        None => match s.find("/gems/") {
+                            Some(i) => {
+                                s = s[(i + 1)..].to_string();
+                            }
+                            None => match s.find("/ruby/") {
+                                Some(i) => {
+                                    s = s[(i + 6)..].to_string();
+                                    match s.find("/") {
+                                        Some(i) => {
+                                            s = s[(i + 1)..].to_string();
+                                        }
+                                        None => {}
+                                    }
+                                }
+                                None => {}
+                            },
+                        },
                     }
 
                     // something
@@ -59,7 +72,9 @@ pub fn transform_report(report: Report) -> Report {
         })
         .collect();
 
-    Report::new(data).metadata(report.metadata.clone())
+    let new_report = Report::new(data).metadata(report.metadata.clone());
+
+    new_report
 }
 
 #[no_mangle]
@@ -93,9 +108,7 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 }
 
 #[no_mangle]
-/// # Safety
-/// All pointer arguments must be valid, non-null, null-terminated C strings.
-pub unsafe extern "C" fn initialize_agent(
+pub extern "C" fn initialize_agent(
     application_name: *const c_char,
     server_address: *const c_char,
     basic_auth_user: *const c_char,
@@ -168,11 +181,11 @@ pub unsafe extern "C" fn initialize_agent(
     .func(transform_report)
     .tags(tags);
 
-    if !basic_auth_user.is_empty() && !basic_auth_password.is_empty() {
+    if basic_auth_user != "" && basic_auth_password != "" {
         agent_builder = agent_builder.basic_auth(basic_auth_user, basic_auth_password);
     }
 
-    if !tenant_id.is_empty() {
+    if tenant_id != "" {
         agent_builder = agent_builder.tenant_id(tenant_id);
     }
 
@@ -201,9 +214,7 @@ pub extern "C" fn drop_agent() -> bool {
 }
 
 #[no_mangle]
-/// # Safety
-/// `key` and `value` must be valid, non-null, null-terminated C strings.
-pub unsafe extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
+pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -218,9 +229,7 @@ pub unsafe extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char
 }
 
 #[no_mangle]
-/// # Safety
-/// `key` and `value` must be valid, non-null, null-terminated C strings.
-pub unsafe extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
+pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -234,7 +243,7 @@ pub unsafe extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_c
     .is_ok()
 }
 
-fn string_to_tags(tags: &str) -> Vec<(&str, &str)> {
+fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     let mut tags_vec = Vec::new();
     // check if string is empty
     if tags.is_empty() {

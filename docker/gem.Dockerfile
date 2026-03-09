@@ -1,28 +1,12 @@
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
-ARG OPENSSL_VERSION=3.5.5
 
-ENV RUST_VERSION=1.88
+ENV RUST_VERSION=1.87
 RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rustup-init -o ./rustup-init \
     && chmod +x ./rustup-init \
     && ./rustup-init  -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-gnu
 ENV PATH=/root/.cargo/bin:$PATH
 RUN yum -y install gcc libffi-devel perl-core wget gcc-c++ glibc-devel make
-
-# Build OpenSSL from source
-RUN curl -fsSL "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" \
-    -o /tmp/openssl.tar.gz \
-    && tar xzf /tmp/openssl.tar.gz -C /tmp \
-    && cd /tmp/openssl-${OPENSSL_VERSION} \
-    && ./config no-shared no-tests --prefix=/usr/local/openssl \
-    && make -j$(nproc) \
-    && make install_sw \
-    && ln -sf /usr/local/openssl/lib64 /usr/local/openssl/lib || true \
-    && cd / \
-    && rm -rf /tmp/openssl*
-
-ENV OPENSSL_DIR=/usr/local/openssl
-ENV OPENSSL_STATIC=1
 
 WORKDIR /pyroscope-rs
 
@@ -32,12 +16,11 @@ ADD rustfmt.toml \
     ./
 
 ADD src src
-ADD kit/ kit/
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
-RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
+RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release --no-default-features --features native-tls-vendored
 
-FROM ruby:4.0@sha256:66302616aabd939350e9bd7bc31ccad5ef993a5ba5e93f0cc029bb82e80a8d3b AS builder-gem
+FROM ruby:4.0@sha256:1daddc4ceb1d2e2ffcd90664032ab501097607afcd620b59f5f2ff18e1ac4d51 AS builder-gem
 WORKDIR /gem
 ADD pyroscope_ffi/ruby /gem/
 

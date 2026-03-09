@@ -15,16 +15,16 @@ jobs:
       matrix:
         include:
           - name: manylinux-amd64
-            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
+            runs-on: ubuntu-x64-large
             make-target: wheel/linux/amd64
           - name: manylinux-arm64
-            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
+            runs-on: ubuntu-arm64-large
             make-target: wheel/linux/arm64
           - name: musllinux-amd64
-            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
+            runs-on: ubuntu-x64-large
             make-target: wheel/musllinux/amd64
           - name: musllinux-arm64
-            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
+            runs-on: ubuntu-arm64-large
             make-target: wheel/musllinux/arm64
     name: Release python linux - ${{ matrix.name }}
     runs-on: ${{ matrix.runs-on }}
@@ -33,7 +33,7 @@ jobs:
         with:
           persist-credentials: false
       - run: make ${{ matrix.make-target }}
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-${{ matrix.name }}
           path: dist/*
@@ -68,7 +68,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
         with:
-          toolchain: 1.88.0
+          toolchain: 1.85.0
           target: ${{ matrix.target }}
 
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # 6.2.0
@@ -78,7 +78,7 @@ jobs:
       - run: pip install build wheel
       - run: make wheel/mac/${{ matrix.mk-arch }}
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-macos-${{ matrix.target }}
           path: dist/*
@@ -93,7 +93,7 @@ jobs:
       contents: write
     needs: [ 'python-release' ]
     name: sdist
-    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    runs-on: ubuntu-x64-small
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -105,7 +105,7 @@ jobs:
           python-version: "3.10"
       - run: python -m pip install build
       - run: python -m build --sdist
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ github.sha }}-python-sdist
           path: dist/*
@@ -119,15 +119,8 @@ jobs:
     permissions:
       contents: write
     name: Python Package
-    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    runs-on: ubuntu-x64-small
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Verify tag matches Cargo package version
-        env:
-          TAG: ${{ github.ref_name }}
-        run: ./ci/check-tag-version.sh "$TAG"
       - id: auto-release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:

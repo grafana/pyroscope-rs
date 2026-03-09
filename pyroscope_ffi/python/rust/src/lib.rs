@@ -5,12 +5,8 @@ use pyroscope::backend::{BackendConfig, BackendImpl, Tag};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 const LOG_TAG: &str = "Pyroscope::pyspy::ffi";
-
-/// Tracks whether pysignalprof is the active backend (set once during init).
-static USING_PYSIGNALPROF: AtomicBool = AtomicBool::new(false);
 const PYSPY_NAME: &str = "pyspy";
 const PYSPY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -44,9 +40,7 @@ pub extern "C" fn initialize_logging(logging_level: u32) -> bool {
 }
 
 #[no_mangle]
-/// # Safety
-/// All pointer arguments must be valid, non-null, null-terminated C strings.
-pub unsafe extern "C" fn initialize_agent(
+pub extern "C" fn initialize_agent(
     application_name: *const c_char,
     server_address: *const c_char,
     basic_auth_username: *const c_char,
@@ -71,28 +65,6 @@ pub unsafe extern "C" fn initialize_agent(
         .to_str()
         .unwrap()
         .to_string();
-
-    // When PYROSCOPE_PYSIGNALPROF=true, use the new signal-based profiler
-    // instead of py-spy. Tags, shutdown, and other unsupported features become no-ops.
-    // Only available on x86_64 Linux; silently ignored on other platforms.
-    #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
-    if std::env::var("PYROSCOPE_PYSIGNALPROF").unwrap_or_default() == "true" {
-        USING_PYSIGNALPROF.store(true, Ordering::Release);
-        let server_url = if server_address.is_empty() {
-            None
-        } else {
-            Some(server_address)
-        };
-        let log_enabled = std::env::var("RUST_LOG")
-            .map(|v| v != "off")
-            .unwrap_or(false);
-        let tags_string = unsafe { CStr::from_ptr(tags) }.to_str().unwrap_or("");
-        let tags: Vec<(String, String)> = string_to_tags(tags_string)
-            .into_iter()
-            .map(|(k, v)| (k.to_owned(), v.to_owned()))
-            .collect();
-        return pysignalprof::start(application_name, server_url, 0, log_enabled, tags).is_ok();
-    }
 
     let basic_auth_username = unsafe { CStr::from_ptr(basic_auth_username) }
         .to_str()
@@ -159,10 +131,10 @@ pub unsafe extern "C" fn initialize_agent(
     )
     .tags(tags);
 
-    if !basic_auth_username.is_empty() && !basic_auth_password.is_empty() {
+    if basic_auth_username != "" && basic_auth_password != "" {
         agent_builder = agent_builder.basic_auth(basic_auth_username, basic_auth_password);
     }
-    if !tenant_id.is_empty() {
+    if tenant_id != "" {
         agent_builder = agent_builder.tenant_id(tenant_id);
     }
 
@@ -187,19 +159,11 @@ pub unsafe extern "C" fn initialize_agent(
 
 #[no_mangle]
 pub extern "C" fn drop_agent() -> bool {
-    if USING_PYSIGNALPROF.load(Ordering::Acquire) {
-        return true;
-    }
     pyroscope::ffikit::send(pyroscope::ffikit::Signal::Kill).is_ok()
 }
 
 #[no_mangle]
-/// # Safety
-/// `key` and `value` must be valid, non-null, null-terminated C strings.
-pub unsafe extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
-    if USING_PYSIGNALPROF.load(Ordering::Acquire) {
-        return true;
-    }
+pub extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -214,12 +178,7 @@ pub unsafe extern "C" fn add_thread_tag(key: *const c_char, value: *const c_char
 }
 
 #[no_mangle]
-/// # Safety
-/// `key` and `value` must be valid, non-null, null-terminated C strings.
-pub unsafe extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
-    if USING_PYSIGNALPROF.load(Ordering::Acquire) {
-        return true;
-    }
+pub extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_char) -> bool {
     let key = unsafe { CStr::from_ptr(key) }.to_str().unwrap().to_owned();
     let value = unsafe { CStr::from_ptr(value) }
         .to_str()
@@ -233,7 +192,7 @@ pub unsafe extern "C" fn remove_thread_tag(key: *const c_char, value: *const c_c
     .is_ok()
 }
 
-fn string_to_tags(tags: &str) -> Vec<(&str, &str)> {
+fn string_to_tags<'a>(tags: &'a str) -> Vec<(&'a str, &'a str)> {
     let mut tags_vec = Vec::new();
 
     // check if string is empty
@@ -259,9 +218,9 @@ pub enum LineNo {
     NoLine = 2,
 }
 
-impl From<LineNo> for py_spy::config::LineNo {
-    fn from(val: LineNo) -> Self {
-        match val {
+impl Into<py_spy::config::LineNo> for LineNo {
+    fn into(self) -> py_spy::config::LineNo {
+        match self {
             LineNo::LastInstruction => py_spy::config::LineNo::LastInstruction,
             LineNo::First => py_spy::config::LineNo::First,
             LineNo::NoLine => py_spy::config::LineNo::NoLine,
