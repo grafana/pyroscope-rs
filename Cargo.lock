@@ -2152,7 +2152,6 @@ dependencies = [
 name = "pprof_enc"
 version = "0.1.0"
 dependencies = [
- "flate2",
  "prost",
 ]
 
@@ -2316,8 +2315,11 @@ name = "pyroscope_ingest"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "flate2",
  "mockito",
+ "prost",
  "ureq",
+ "uuid",
 ]
 
 [[package]]

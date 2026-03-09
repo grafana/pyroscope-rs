@@ -1,12 +1,10 @@
 // Minimal pprof protobuf encoder.
 //
 // Defines pprof message structs inline using prost derive macros (no .proto file).
-// Encodes to protobuf with prost, then gzip-compresses with flate2.
+// Encodes to protobuf bytes with prost.
 
 use std::collections::HashMap;
-use std::io::Write as _;
 
-use flate2::{Compression, write::GzEncoder};
 use prost::Message;
 
 // ---------------------------------------------------------------------------
@@ -268,8 +266,8 @@ impl ProfileBuilder {
         id
     }
 
-    /// Encode the profile to protobuf and gzip-compress it.
-    pub fn encode(&mut self) -> Result<Vec<u8>, std::io::Error> {
+    /// Encode the profile to protobuf bytes.
+    pub fn encode(&mut self) -> Vec<u8> {
         let cpu_type_idx = self.st.intern("cpu");
         let nanos_idx = self.st.intern("nanoseconds");
         let value_type = ValueType {
@@ -289,11 +287,7 @@ impl ProfileBuilder {
             period: self.period,
         };
 
-        let proto_bytes = profile.encode_to_vec();
-
-        let mut gz = GzEncoder::new(Vec::new(), Compression::default());
-        gz.write_all(&proto_bytes)?;
-        gz.finish()
+        profile.encode_to_vec()
     }
 }
 
@@ -330,12 +324,12 @@ mod tests {
     }
 
     #[test]
-    fn encode_empty_profile_is_valid_gzip() {
+    fn encode_empty_profile_is_valid_protobuf() {
         let mut builder = ProfileBuilder::new(0, 15_000_000_000, 10_000_000);
-        let bytes = builder.encode().unwrap();
+        let bytes = builder.encode();
         assert!(!bytes.is_empty());
-        // gzip magic bytes
-        assert_eq!(&bytes[0..2], &[0x1f, 0x8b]);
+        let profile = Profile::decode(bytes.as_slice()).unwrap();
+        assert_eq!(profile.string_table[0], "");
     }
 
     #[test]
@@ -346,16 +340,9 @@ mod tests {
             make_frame("root_fn", "root.rs", 1),
         ];
         builder.add_sample(&frames, 3);
-        let bytes = builder.encode().unwrap();
+        let bytes = builder.encode();
 
-        // Decompress and decode to verify structure.
-        use flate2::read::GzDecoder;
-        use std::io::Read;
-        let mut decoder = GzDecoder::new(bytes.as_slice());
-        let mut proto_bytes = Vec::new();
-        decoder.read_to_end(&mut proto_bytes).unwrap();
-
-        let profile = Profile::decode(proto_bytes.as_slice()).unwrap();
+        let profile = Profile::decode(bytes.as_slice()).unwrap();
 
         // string_table[0] must be ""
         assert_eq!(profile.string_table[0], "");
@@ -384,15 +371,9 @@ mod tests {
         let frames = vec![make_frame("main", "main.rs", 1)];
         builder.add_sample(&frames, 1);
         builder.add_sample(&frames, 2);
-        let bytes = builder.encode().unwrap();
+        let bytes = builder.encode();
 
-        use flate2::read::GzDecoder;
-        use std::io::Read;
-        let mut decoder = GzDecoder::new(bytes.as_slice());
-        let mut proto_bytes = Vec::new();
-        decoder.read_to_end(&mut proto_bytes).unwrap();
-
-        let profile = Profile::decode(proto_bytes.as_slice()).unwrap();
+        let profile = Profile::decode(bytes.as_slice()).unwrap();
         assert_eq!(profile.function.len(), 1);
         assert_eq!(profile.location.len(), 1);
         // Identical stacks are merged into one sample with summed value.

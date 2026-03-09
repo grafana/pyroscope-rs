@@ -447,29 +447,21 @@ fn flush_pprof(state: &'static HandlerState, builder: &mut pprof_enc::ProfileBui
     }
 
     let num_stacks = builder.len();
-    match builder.encode() {
-        Ok(pprof_gz) => {
-            log_info(&format!(
-                "flush: {} unique stacks, pprof {} bytes",
-                num_stacks,
-                pprof_gz.len(),
-            ));
+    let pprof = builder.encode();
+    log_info(&format!(
+        "flush: {} unique stacks, pprof {} bytes",
+        num_stacks,
+        pprof.len(),
+    ));
 
-            if let Some(ref url) = state.server_url {
-                let now_secs = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs();
-                let from_secs = now_secs.saturating_sub(15);
-                if let Err(e) =
-                    pyroscope_ingest::send(url, &state.app_name, &pprof_gz, from_secs, now_secs)
-                {
-                    log_error(&format!("ingest send failed: {}", e));
-                }
-            }
-        }
-        Err(e) => {
-            log_error(&format!("pprof encode failed: {}", e));
+    if let Some(ref url) = state.server_url {
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let from_secs = now_secs.saturating_sub(15);
+        if let Err(e) = pyroscope_ingest::send(url, &state.app_name, &pprof, from_secs, now_secs) {
+            log_error(&format!("ingest send failed: {}", e));
         }
     }
 
