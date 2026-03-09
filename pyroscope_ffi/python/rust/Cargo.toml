@@ -6,7 +6,7 @@ authors = [
     "Tolyan Korniltsev <anatoly.korniltsev@grafana.com>"
 ]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.66"
 
 [lib]
 crate-type = ["cdylib"]

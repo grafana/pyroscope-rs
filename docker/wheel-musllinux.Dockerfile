@@ -47,6 +47,7 @@ ADD --chown=builder:builder pyproject.toml \
 
 ADD --chown=builder:builder src src
 ADD --chown=builder:builder kit/ kit/
+ADD --chown=builder:builder examples/ examples/
 ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 
 RUN --mount=type=cache,target=/home/builder/.cargo/registry,uid=1000,gid=1000 \
