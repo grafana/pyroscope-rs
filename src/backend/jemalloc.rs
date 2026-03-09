@@ -11,35 +11,19 @@ const LOG_TAG: &str = "Pyroscope::Jemalloc";
 ///
 /// ```ignore
 /// use pyroscope::PyroscopeAgent;
-/// use pyroscope::backend::jemalloc::{jemalloc_backend, JemallocConfig};
+/// use pyroscope::backend::jemalloc::jemalloc_backend;
 ///
 /// let agent = PyroscopeAgent::builder("http://localhost:4040", "my-app")
-///     .backend(jemalloc_backend(JemallocConfig::default()))
+///     .backend(jemalloc_backend())
 ///     .build()?;
 /// agent.start()?;
 /// ```
-pub fn jemalloc_backend(config: JemallocConfig) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Box::new(Jemalloc::new(config)))
+pub fn jemalloc_backend() -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Box::new(Jemalloc))
 }
 
-#[derive(Debug, Default)]
-pub struct JemallocConfig {}
-
-struct Jemalloc {
-    _config: JemallocConfig,
-}
-
-impl Jemalloc {
-    fn new(config: JemallocConfig) -> Self {
-        Self { _config: config }
-    }
-}
-
-impl std::fmt::Debug for Jemalloc {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(fmt, "Jemalloc Backend")
-    }
-}
+#[derive(Debug)]
+struct Jemalloc;
 
 impl Backend for Jemalloc {
     fn initialize(&mut self) -> Result<()> {

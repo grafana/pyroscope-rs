@@ -21,7 +21,7 @@
 //!     cargo run --example jemalloc --features backend-jemalloc
 //! ```
 
-use pyroscope::backend::jemalloc::{jemalloc_backend, JemallocConfig};
+use pyroscope::backend::jemalloc::jemalloc_backend;
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use std::time::Duration;
 
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         100,
         "pyroscope-rs",
         env!("CARGO_PKG_VERSION"),
-        jemalloc_backend(JemallocConfig::default()),
+        jemalloc_backend(),
     )
     .tags(vec![("env", "dev")])
     .build()?;

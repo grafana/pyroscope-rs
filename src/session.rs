@@ -153,7 +153,7 @@ impl Session {
             }
         };
 
-        let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.iter().len());
+        let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.len());
         labels.push(LabelPair {
             name: "service_name".to_string(),
             value: self.config.application_name.clone(),
