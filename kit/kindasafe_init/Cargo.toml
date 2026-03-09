@@ -1,6 +1,6 @@
 [package]
 name = "kindasafe_init"
-version = "0.1.0"
+version = "2.0.0"
 edition = "2024"
 description = "Signal handler initialization for the kindasafe signal-safe memory reading library"
 license = "Apache-2.0"
@@ -10,7 +10,7 @@ categories = ["os::unix-apis"]
 readme = "README.md"
 
 [dependencies]
-kindasafe = { path = "../kindasafe", version = "0.1.0" }
+kindasafe = { path = "../kindasafe", version = "2.0.0" }
 libc = { version = "0.2.182" }
 spin = { version = "0.10.0" }
 
