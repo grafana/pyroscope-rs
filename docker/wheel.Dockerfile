@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.22@sha256:4a43a54dd1fedceb30ba47e76cfcf2b47304f4161c0caeac2db1c61804ea3c91
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
-ARG OPENSSL_VERSION=3.5.4
+ARG OPENSSL_VERSION=3.5.5
 
 RUN yum -y install gcc libffi-devel perl-core glibc-devel make
 
