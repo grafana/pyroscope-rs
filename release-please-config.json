@@ -14,12 +14,7 @@
       "changelog-path": "CHANGELOG.md",
       "include-v-in-tag": false,
       "include-component-in-tag": true,
-      "extra-files": [
-        {
-          "type": "cargo-workspace",
-          "path": "/Cargo.lock"
-        }
-      ],
+      "extra-files": [],
       "changelog-sections": [
         {"type": "feat", "section": "Features"},
         {"type": "fix", "section": "Bug Fixes"},
@@ -44,10 +39,6 @@
         {
           "type": "generic",
           "path": "/pyproject.toml"
-        },
-        {
-          "type": "cargo-workspace",
-          "path": "/Cargo.lock"
         }
       ],
       "changelog-sections": [
@@ -102,10 +93,6 @@
           "type": "toml",
           "path": "/kit/kindasafe_init/Cargo.toml",
           "jsonpath": "$.package.version"
-        },
-        {
-          "type": "cargo-workspace",
-          "path": "/Cargo.lock"
         }
       ],
       "changelog-sections": [
