@@ -14,11 +14,11 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Check if PR title starts with allowed conventional commit types
-          if echo "$PR_TITLE" | grep -qE '^(feat|fix|perf|revert|docs|style|chore|refactor|test|build|ci)(!)?:'; then
+          if echo "$PR_TITLE" | grep -qE '^(feat|fix|perf|revert|docs|style|chore|refactor|test|build|ci)(\(.+\))?(!)?:'; then
             echo "✓ PR title follows conventional commits format"
             exit 0
           else
-            echo "✗ PR title must use conventional commit format: <type>: <description>"
+            echo "✗ PR title must use conventional commit format: <type>[(<scope>)][!]: <description>"
             echo "  Current title: $PR_TITLE"
             echo ""
             echo "Allowed types:"
