@@ -19,7 +19,7 @@ log = { workspace = true }
 libc = { workspace = true }
 
 [features]
-default = ["rustls-tls"]
+default = ["native-tls"]
 rustls-tls = ["pyroscope/rustls-tls"]
 native-tls = ["pyroscope/native-tls"]
 native-tls-vendored = ["pyroscope/native-tls-vendored"]

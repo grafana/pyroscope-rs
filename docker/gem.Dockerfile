@@ -35,7 +35,7 @@ ADD src src
 ADD kit/ kit/
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
-RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release --no-default-features --features native-tls
+RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
 
 FROM ruby:4.0@sha256:66302616aabd939350e9bd7bc31ccad5ef993a5ba5e93f0cc029bb82e80a8d3b AS builder-gem
 WORKDIR /gem
