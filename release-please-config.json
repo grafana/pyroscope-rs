@@ -57,8 +57,9 @@
       "include-component-in-tag": true,
       "extra-files": [
         {
-          "type": "cargo-toml",
-          "path": "ext/rbspy/Cargo.toml"
+          "type": "toml",
+          "path": "ext/rbspy/Cargo.toml",
+          "jsonpath": "$.package.version"
         }
       ],
       "changelog-sections": [
@@ -83,8 +84,9 @@
       "include-component-in-tag": true,
       "extra-files": [
         {
-          "type": "cargo-toml",
-          "path": "../kindasafe_init/Cargo.toml"
+          "type": "toml",
+          "path": "/kit/kindasafe_init/Cargo.toml",
+          "jsonpath": "$.package.version"
         }
       ],
       "changelog-sections": [
