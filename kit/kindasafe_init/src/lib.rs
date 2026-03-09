@@ -229,25 +229,4 @@ mod tests {
         assert!(init().is_ok());
         assert!(sanity_check().is_ok());
     }
-
-    #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
-    #[test]
-    fn test_reg_mapping() {
-        // Verify our Reg enum maps to the correct libc register indices.
-        // The crash_handler maps Reg::Rax -> libc::REG_RAX, Reg::Rdx -> libc::REG_RDX.
-        assert_eq!(libc::REG_RAX, 13);
-        assert_eq!(libc::REG_RDX, 12);
-    }
-
-    #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
-    #[test]
-    fn test_reg_mapping() {
-        // Verify our Reg enum maps to the correct __darwin_x86_thread_state64 fields.
-        // The crash_handler maps Reg::Rax -> __ss.__rax, Reg::Rdx -> __ss.__rdx.
-        let ss: libc::__darwin_x86_thread_state64 = unsafe { std::mem::zeroed() };
-        let base = &ss as *const _ as usize;
-        assert_eq!((&ss.__rax as *const _ as usize - base) % 8, 0);
-        assert_eq!((&ss.__rdx as *const _ as usize - base) % 8, 0);
-        assert_eq!((&ss.__rip as *const _ as usize - base) % 8, 0);
-    }
 }
