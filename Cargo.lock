@@ -2119,7 +2119,7 @@ dependencies = [
 [[package]]
 name = "py-spy"
 version = "0.4.1"
-source = "git+https://github.com/grafana/py-spy?rev=3b390dc4230207914164e1dd6888eb3e680b1560#3b390dc4230207914164e1dd6888eb3e680b1560"
+source = "git+https://github.com/grafana/py-spy?rev=5f1661d3b9ff33b47d9e217ff3f6f4a03ff51adc#5f1661d3b9ff33b47d9e217ff3f6f4a03ff51adc"
 dependencies = [
  "anyhow",
  "chrono",
