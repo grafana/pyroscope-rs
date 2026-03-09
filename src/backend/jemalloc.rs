@@ -12,11 +12,15 @@ pub struct JemallocConfig {}
 
 struct Jemalloc {
     _config: JemallocConfig,
+    runtime: Option<tokio::runtime::Runtime>,
 }
 
 impl Jemalloc {
     fn new(config: JemallocConfig) -> Self {
-        Self { _config: config }
+        Self {
+            _config: config,
+            runtime: None,
+        }
     }
 }
 
@@ -28,21 +32,25 @@ impl std::fmt::Debug for Jemalloc {
 
 impl Backend for Jemalloc {
     fn initialize(&mut self) -> Result<()> {
-        // Verify PROF_CTL is available and activated
-        let prof_ctl = jemalloc_pprof::PROF_CTL.as_ref().ok_or_else(|| {
-            PyroscopeError::new(
-                "jemalloc: PROF_CTL not available. Ensure jemalloc is configured with prof:true",
-            )
-        })?;
-        let guard = prof_ctl.try_lock().map_err(|_| {
-            PyroscopeError::new("jemalloc: failed to lock PROF_CTL during initialization")
-        })?;
-        if !guard.activated() {
-            return Err(PyroscopeError::new(
-                "jemalloc: profiling is not activated. Ensure malloc_conf includes prof:true,prof_active:true",
-            ));
-        }
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .map_err(|e| {
+                PyroscopeError::new(&format!("jemalloc: failed to create tokio runtime: {}", e))
+            })?;
 
+        // Verify PROF_CTL is available and activated
+        runtime.block_on(async {
+            let prof_ctl = jemalloc_pprof::PROF_CTL
+                .as_ref()
+                .ok_or_else(|| PyroscopeError::new("jemalloc: PROF_CTL not available. Ensure jemalloc is configured with prof:true"))?;
+            let guard = prof_ctl.lock().await;
+            if !guard.activated() {
+                return Err(PyroscopeError::new("jemalloc: profiling is not activated. Ensure malloc_conf includes prof:true,prof_active:true"));
+            }
+            Ok(())
+        })?;
+
+        self.runtime = Some(runtime);
         log::info!(target: LOG_TAG, "Jemalloc profiling backend initialized");
 
         Ok(())
@@ -50,19 +58,25 @@ impl Backend for Jemalloc {
 
     fn shutdown(self: Box<Self>) -> Result<()> {
         log::trace!(target: LOG_TAG, "Shutting down jemalloc backend");
+        // runtime is dropped here
         Ok(())
     }
 
     fn report(&mut self) -> Result<Vec<Report>> {
-        let prof_ctl = jemalloc_pprof::PROF_CTL
+        let runtime = self
+            .runtime
             .as_ref()
-            .ok_or_else(|| PyroscopeError::new("jemalloc: PROF_CTL not available"))?;
-        let mut guard = prof_ctl
-            .try_lock()
-            .map_err(|_| PyroscopeError::new("jemalloc: failed to lock PROF_CTL during report"))?;
-        let pprof_data = guard
-            .dump_pprof()
-            .map_err(|e| PyroscopeError::new(&format!("jemalloc: dump_pprof failed: {}", e)))?;
+            .ok_or_else(|| PyroscopeError::new("jemalloc: runtime not initialized"))?;
+
+        let pprof_data = runtime.block_on(async {
+            let prof_ctl = jemalloc_pprof::PROF_CTL
+                .as_ref()
+                .ok_or_else(|| PyroscopeError::new("jemalloc: PROF_CTL not available"))?;
+            let mut guard = prof_ctl.lock().await;
+            guard
+                .dump_pprof()
+                .map_err(|e| PyroscopeError::new(&format!("jemalloc: dump_pprof failed: {}", e)))
+        })?;
 
         Ok(vec![Report::from_raw_pprof("memory", pprof_data)])
     }
