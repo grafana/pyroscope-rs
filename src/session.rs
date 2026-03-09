@@ -9,7 +9,7 @@ use crate::encode::gen::google::Profile;
 use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::{
-    backend::{Report, ReportBatch},
+    backend::{Report, ReportBatch, ReportData},
     encode::pprof,
     pyroscope::PyroscopeConfig,
     utils::get_time_range,
@@ -135,10 +135,23 @@ impl Session {
     fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
-        let profile = match self.config.func {
-            None => self.encode_reports(&self.batch.reports),
-            Some(f) => {
-                self.encode_reports(&self.batch.reports.iter().map(|r| f(r.to_owned())).collect())
+        let ReportBatch { profile_type, data } = self.batch;
+
+        let raw_profile = match data {
+            ReportData::RawPprof(pprof_bytes) => {
+                if self.config.func.is_some() {
+                    log::warn!(target: LOG_TAG, "report transform function is not supported with raw pprof backends (e.g. jemalloc)");
+                }
+                pprof_bytes
+            }
+            ReportData::Reports(reports) => {
+                let profile = match self.config.func {
+                    None => self.encode_reports(&reports),
+                    Some(f) => {
+                        self.encode_reports(&reports.iter().map(|r| f(r.to_owned())).collect())
+                    }
+                };
+                profile.encode_to_vec()
             }
         };
 
@@ -149,7 +162,7 @@ impl Session {
         });
         labels.push(LabelPair {
             name: "__name__".to_string(),
-            value: self.batch.profile_type,
+            value: profile_type,
         });
         for tag in self.config.tags {
             labels.push(LabelPair {
@@ -161,7 +174,7 @@ impl Session {
             series: vec![RawProfileSeries {
                 labels,
                 samples: vec![RawSample {
-                    raw_profile: profile.encode_to_vec(),
+                    raw_profile,
                     id: Uuid::new_v4().to_string(),
                 }],
             }],
