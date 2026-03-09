@@ -134,7 +134,7 @@ pub mod arch {
         core::arch::naked_asm!(
             "ldr x0, [x0]", // offset 0: load 64-bit value from address in x0
             "mov x1, #0",   // offset 4: signal = 0 (success)
-            "ret",           // offset 8
+            "ret",          // offset 8
         )
     }
 
@@ -150,15 +150,15 @@ pub mod arch {
         _n: u64,         // x2
     ) -> VecResult {
         core::arch::naked_asm!(
-            "cbz x2, 2f",          // offset 0: skip if n==0
+            "cbz x2, 2f", // offset 0: skip if n==0
             "1:",
-            "ldrb w3, [x1], #1",   // offset 4: load byte from src, post-increment
-            "strb w3, [x0], #1",   // offset 8: store byte to dst, post-increment
-            "subs x2, x2, #1",     // offset 12: decrement counter
-            "b.ne 1b",             // offset 16: loop if not zero
+            "ldrb w3, [x1], #1", // offset 4: load byte from src, post-increment
+            "strb w3, [x0], #1", // offset 8: store byte to dst, post-increment
+            "subs x2, x2, #1",   // offset 12: decrement counter
+            "b.ne 1b",           // offset 16: loop if not zero
             "2:",
-            "mov x0, #0",          // offset 20: signal = 0 (success)
-            "ret",                  // offset 24
+            "mov x0, #0", // offset 20: signal = 0 (success)
+            "ret",        // offset 24
         )
     }
 
