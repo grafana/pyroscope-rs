@@ -17,15 +17,9 @@ RUN curl -fsSL "https://github.com/openssl/openssl/releases/download/openssl-${O
     && ./config no-shared no-tests --prefix=/usr/local/openssl \
     && make -j$(nproc) \
     && make install_sw \
+    && ln -sf /usr/local/openssl/lib64 /usr/local/openssl/lib || true \
     && cd / \
     && rm -rf /tmp/openssl*
-
-# Ensure both lib/ and lib64/ exist (OpenSSL uses lib64/ on x86_64, lib/ on aarch64)
-RUN if [ -d /usr/local/openssl/lib64 ] && [ ! -d /usr/local/openssl/lib ]; then \
-        ln -s /usr/local/openssl/lib64 /usr/local/openssl/lib; \
-    elif [ -d /usr/local/openssl/lib ] && [ ! -d /usr/local/openssl/lib64 ]; then \
-        ln -s /usr/local/openssl/lib /usr/local/openssl/lib64; \
-    fi
 
 ENV OPENSSL_DIR=/usr/local/openssl
 ENV OPENSSL_STATIC=1
