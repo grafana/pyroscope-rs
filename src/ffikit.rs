@@ -22,7 +22,7 @@ lazy_static! {
 }
 pub fn run(agent: PyroscopeAgentBuilder) -> Result<()> {
     let mut sender_holder = SENDER.lock()?;
-    if let Some(_) = &*sender_holder {
+    if (*sender_holder).is_some() {
         return Err(PyroscopeError::new("FFI channel already initialized"));
     }
 
