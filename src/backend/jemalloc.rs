@@ -74,7 +74,9 @@ impl Backend for Jemalloc {
         let prof_ctl = jemalloc_pprof::PROF_CTL
             .as_ref()
             .ok_or_else(|| PyroscopeError::new("jemalloc: PROF_CTL not available"))?;
-        let mut guard = prof_ctl.blocking_lock();
+        let mut guard = prof_ctl.try_lock().map_err(|_| {
+            PyroscopeError::new("jemalloc: failed to acquire PROF_CTL lock for report")
+        })?;
         let pprof_data = guard
             .dump_pprof()
             .map_err(|e| PyroscopeError::new(&format!("jemalloc: dump_pprof failed: {}", e)))?;
