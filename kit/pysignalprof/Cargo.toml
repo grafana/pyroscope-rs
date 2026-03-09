@@ -3,6 +3,10 @@ name = "pysignalprof"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+debug-print = ["notlibc/debug-print", "python_unwind/debug-print"]
+
 [dependencies]
 kindasafe_init = { path = "../kindasafe_init" }
 kindasafe = { path = "../kindasafe" }
