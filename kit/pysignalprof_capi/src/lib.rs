@@ -55,7 +55,13 @@ pub unsafe extern "C" fn pyroscope_start(
         num_shards as usize
     };
 
-    match pysignalprof::start(app_name, server_url, num_shards, log_enabled != 0) {
+    match pysignalprof::start(
+        app_name,
+        server_url,
+        num_shards,
+        log_enabled != 0,
+        Vec::new(),
+    ) {
         Ok(()) => 0,
         Err(code) => code as c_int,
     }

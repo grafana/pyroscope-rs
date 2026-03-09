@@ -92,6 +92,7 @@ struct HandlerState {
     notify_interval: u32,
     app_name: String,
     server_url: Option<String>,
+    tags: Vec<(String, String)>,
 }
 
 // SAFETY: HandlerState is initialized once and then only accessed via:
@@ -460,7 +461,14 @@ fn flush_pprof(state: &'static HandlerState, builder: &mut pprof_enc::ProfileBui
             .unwrap_or_default()
             .as_secs();
         let from_secs = now_secs.saturating_sub(15);
-        if let Err(e) = pyroscope_ingest::send(url, &state.app_name, &pprof, from_secs, now_secs) {
+        let tag_refs: Vec<(&str, &str)> = state
+            .tags
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        if let Err(e) =
+            pyroscope_ingest::send(url, &state.app_name, &tag_refs, &pprof, from_secs, now_secs)
+        {
             log_error(&format!("ingest send failed: {}", e));
         }
     }
@@ -486,6 +494,7 @@ fn flush_pprof(state: &'static HandlerState, builder: &mut pprof_enc::ProfileBui
 /// - `server_url`: server URL (`None` to skip ingestion).
 /// - `num_shards`: number of shards (0 = use default 16).
 /// - `log_enabled`: if true, print diagnostic messages to stderr.
+/// - `tags`: static key-value labels to attach to ingested profiles.
 ///
 /// Returns `Ok(())` on success, `Err(InitError)` on failure.
 pub fn start(
@@ -493,6 +502,7 @@ pub fn start(
     server_url: Option<String>,
     num_shards: usize,
     log_enabled: bool,
+    tags: Vec<(String, String)>,
 ) -> Result<(), InitError> {
     if LIFECYCLE
         .compare_exchange(
@@ -522,7 +532,7 @@ pub fn start(
         RING_SIZE / 1024,
     ));
 
-    match init_sequence(num_shards, app_name, server_url) {
+    match init_sequence(num_shards, app_name, server_url, tags) {
         Ok(()) => Ok(()),
         Err(code) => {
             log_error(&format!("init failed with code {}", code as c_int));
@@ -536,6 +546,7 @@ fn init_sequence(
     num_shards: usize,
     app_name: String,
     server_url: Option<String>,
+    tags: Vec<(String, String)>,
 ) -> Result<(), InitError> {
     let notify_interval = sig_ring::DEFAULT_NOTIFY_INTERVAL;
 
@@ -680,6 +691,7 @@ fn init_sequence(
         notify_interval,
         app_name,
         server_url,
+        tags,
     });
     let state: &'static HandlerState = unsafe { &*Box::into_raw(state) };
     HANDLER_STATE.store(

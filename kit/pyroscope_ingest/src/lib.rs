@@ -18,19 +18,33 @@ use push::{LabelPair, PushRequest, RawProfileSeries, RawSample};
 /// - `_until`: profile end time (Unix seconds) — unused by push API, kept for caller compat
 ///
 /// Errors are returned but do not retry — callers should log and discard on failure.
-pub fn send(base_url: &str, app_name: &str, pprof: &[u8], _from: u64, _until: u64) -> Result<()> {
+pub fn send(
+    base_url: &str,
+    app_name: &str,
+    tags: &[(&str, &str)],
+    pprof: &[u8],
+    _from: u64,
+    _until: u64,
+) -> Result<()> {
+    let mut labels = vec![
+        LabelPair {
+            name: "service_name".to_string(),
+            value: app_name.to_string(),
+        },
+        LabelPair {
+            name: "__name__".to_string(),
+            value: "process_cpu".to_string(),
+        },
+    ];
+    for &(k, v) in tags {
+        labels.push(LabelPair {
+            name: k.to_string(),
+            value: v.to_string(),
+        });
+    }
     let req = PushRequest {
         series: vec![RawProfileSeries {
-            labels: vec![
-                LabelPair {
-                    name: "service_name".to_string(),
-                    value: app_name.to_string(),
-                },
-                LabelPair {
-                    name: "__name__".to_string(),
-                    value: "process_cpu".to_string(),
-                },
-            ],
+            labels,
             samples: vec![RawSample {
                 raw_profile: pprof.to_vec(),
                 id: uuid::Uuid::new_v4().to_string(),
@@ -72,7 +86,7 @@ mod tests {
             .with_status(200)
             .create();
 
-        let result = send(&server.url(), "myapp", b"fakepprof", 1000, 2000);
+        let result = send(&server.url(), "myapp", &[], b"fakepprof", 1000, 2000);
         assert!(result.is_ok(), "expected Ok, got: {:?}", result);
         mock.assert();
     }
@@ -85,7 +99,7 @@ mod tests {
             .with_status(500)
             .create();
 
-        let result = send(&server.url(), "myapp", b"fakepprof", 1000, 2000);
+        let result = send(&server.url(), "myapp", &[], b"fakepprof", 1000, 2000);
         assert!(result.is_err(), "expected Err on 500, got Ok");
     }
 
@@ -100,8 +114,52 @@ mod tests {
             .with_status(200)
             .create();
 
-        let result = send(&server.url(), "myapp", b"\x0a\x0b", 100, 200);
+        let result = send(&server.url(), "myapp", &[], b"\x0a\x0b", 100, 200);
         assert!(result.is_ok(), "expected Ok, got: {:?}", result);
         mock.assert();
+    }
+
+    #[test]
+    fn test_send_includes_tags_as_labels() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/push.v1.PusherService/Push")
+            .match_header("content-type", "application/proto")
+            .match_header("content-encoding", "gzip")
+            .with_status(200)
+            .create();
+
+        let tags = vec![("env", "prod"), ("region", "us-east")];
+        let result = send(&server.url(), "myapp", &tags, b"fakepprof", 100, 200);
+        assert!(result.is_ok(), "expected Ok, got: {:?}", result);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_push_request_contains_tags() {
+        let tags = vec![("env", "prod"), ("canary", "abc123")];
+
+        let mut labels = vec![
+            LabelPair {
+                name: "service_name".to_string(),
+                value: "myapp".to_string(),
+            },
+            LabelPair {
+                name: "__name__".to_string(),
+                value: "process_cpu".to_string(),
+            },
+        ];
+        for &(k, v) in &tags {
+            labels.push(LabelPair {
+                name: k.to_string(),
+                value: v.to_string(),
+            });
+        }
+
+        assert_eq!(labels.len(), 4);
+        assert_eq!(labels[2].name, "env");
+        assert_eq!(labels[2].value, "prod");
+        assert_eq!(labels[3].name, "canary");
+        assert_eq!(labels[3].value, "abc123");
     }
 }
