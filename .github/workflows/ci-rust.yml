@@ -72,16 +72,14 @@ jobs:
         run: cargo test --locked -p ${{ matrix.package }}
 
   test-macos:
-    name: cargo test (${{ matrix.package }}, macos-${{ matrix.os.name }})
-    runs-on: ${{ matrix.os.runner }}
+    name: cargo test (${{ matrix.package }}, ${{ matrix.target }})
+    runs-on: ${{ github.repository_owner == 'grafana' && 'macos-14' || 'macos-latest' }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - name: x64
-            runner: macos-13
-          - name: arm64
-            runner: macos-14
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
         package:
           - kindasafe
           - kindasafe_init
@@ -93,6 +91,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
         with:
           toolchain: stable
+          targets: ${{ matrix.target }}
 
       - name: Run tests
-        run: cargo test --locked -p ${{ matrix.package }}
+        run: cargo test --locked -p ${{ matrix.package }} --target ${{ matrix.target }}
