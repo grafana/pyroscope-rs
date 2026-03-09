@@ -42,7 +42,7 @@ pub fn write<const N: usize>(
 ) -> bool {
     let len = record_len(depth);
 
-    let mut grant = match producer.grant(len) {
+    let mut grant = match producer.grant_exact(len) {
         Ok(g) => g,
         Err(_) => return false,
     };
