@@ -24,6 +24,17 @@ members = [
     "pyroscope_ffi/python/rust",
     "kit/kindasafe",
     "kit/kindasafe_init",
+    "kit/sighandler",
+    "kit/pyroscope_ingest",
+    "kit/pprof_enc",
+    "kit/notlibc",
+    "kit/python_offsets",
+    "kit/python_offsets_types",
+    "kit/python_unwind",
+    "kit/coredump",
+    "kit/sig_ring",
+    "kit/pysignalprof",
+    "kit/pysignalprof_capi",
 ]
 
 [workspace.dependencies]
@@ -45,6 +56,7 @@ pretty_env_logger = "0.5.0"
 rbspy = { version = "0.42" }
 remoteprocess = "0.5.0"
 anyhow = "1.0"
+flate2 = "1.1"
 py-spy = { git = "https://github.com/grafana/py-spy", rev = "5f1661d", default-features = false }
 
 
