@@ -68,7 +68,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
         with:
-          toolchain: 1.85.0
+          toolchain: 1.88.0
           target: ${{ matrix.target }}
 
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # 6.2.0

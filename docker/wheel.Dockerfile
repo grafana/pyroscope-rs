@@ -11,7 +11,7 @@ RUN useradd -m builder \
 USER builder
 RUN test "$(id -u)" = "1000" || { echo "ERROR: builder uid is $(id -u), expected 1000"; exit 1; }
 
-ENV RUST_VERSION=1.87
+ENV RUST_VERSION=1.88
 RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rustup-init -o /tmp/rustup-init \
     && chmod +x /tmp/rustup-init \
     && /tmp/rustup-init -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-gnu \
