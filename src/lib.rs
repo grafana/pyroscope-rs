@@ -6,7 +6,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! pyroscope = { version = "0.5", features = ["backend-pprof-rs"] }
+//! pyroscope = { version = "2.0.0", features = ["backend-pprof-rs"] }
 //! ```
 //!
 //! ## Configure a Pyroscope Agent

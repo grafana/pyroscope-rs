@@ -2223,7 +2223,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "1.0.2"
+version = "2.0.0"
 dependencies = [
  "assert_matches",
  "claims",
