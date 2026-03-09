@@ -5,8 +5,8 @@ pub enum InitError {
 }
 
 // todo think how to have less static mut
-static mut FALLBACK_SIGSEGV: libc::sigaction = unsafe { core::mem::zeroed() };
-static mut FALLBACK_SIGBUS: libc::sigaction = unsafe { core::mem::zeroed() };
+static mut FALLBACK_SIGSEGV: libc::sigaction = unsafe { std::mem::zeroed() };
+static mut FALLBACK_SIGBUS: libc::sigaction = unsafe { std::mem::zeroed() };
 
 static INIT_LOCK: spin::Mutex<Option<Result<(), InitError>>> = spin::Mutex::new(None);
 
@@ -39,9 +39,9 @@ pub fn init_locked() -> Result<(), InitError> {
 /// `data` must be a valid pointer to `libc::ucontext_t`.
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn crash_handler(
-    sig: core::ffi::c_int,
-    info: *const core::ffi::c_void,
-    data: *mut core::ffi::c_void,
+    sig: libc::c_int,
+    info: *mut libc::siginfo_t,
+    data: *mut libc::c_void,
 ) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
@@ -61,9 +61,9 @@ pub unsafe fn crash_handler(
 /// `data` must be a valid pointer to `libc::ucontext_t`.
 #[cfg(target_arch = "aarch64")]
 pub unsafe fn crash_handler(
-    sig: core::ffi::c_int,
-    info: *const core::ffi::c_void,
-    data: *mut core::ffi::c_void,
+    sig: libc::c_int,
+    info: *mut libc::siginfo_t,
+    data: *mut libc::c_void,
 ) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
@@ -80,27 +80,27 @@ pub unsafe fn crash_handler(
 }
 
 fn call_fallback(
-    sig: core::ffi::c_int,
-    info: *const core::ffi::c_void,
-    data: *mut core::ffi::c_void,
+    sig: libc::c_int,
+    info: *mut libc::siginfo_t,
+    data: *mut libc::c_void,
     fallback: libc::sigaction,
 ) {
     if fallback.sa_sigaction == 0 {
         restore_default_ignal_handler(sig);
     } else {
         let handler = unsafe {
-            core::mem::transmute::<
+            std::mem::transmute::<
                 usize,
-                extern "C" fn(core::ffi::c_int, *const core::ffi::c_void, *mut core::ffi::c_void),
+                extern "C" fn(libc::c_int, *mut libc::siginfo_t, *mut libc::c_void),
             >(fallback.sa_sigaction)
         };
         handler(sig, info, data);
     }
 }
 unsafe fn fallback(
-    sig: core::ffi::c_int,
-    info: *const core::ffi::c_void,
-    data: *mut core::ffi::c_void,
+    sig: libc::c_int,
+    info: *mut libc::siginfo_t,
+    data: *mut libc::c_void,
 ) {
     if sig == libc::SIGSEGV {
         call_fallback(sig, info, data, unsafe { FALLBACK_SIGSEGV });
@@ -112,16 +112,16 @@ unsafe fn fallback(
 }
 
 fn new_signal_handler(
-    signal: core::ffi::c_int,
+    signal: libc::c_int,
     handler: unsafe fn(
-        sig: core::ffi::c_int,
-        info: *const core::ffi::c_void,
-        data: *mut core::ffi::c_void,
+        sig: libc::c_int,
+        info: *mut libc::siginfo_t,
+        data: *mut libc::c_void,
     ),
 ) -> Result<libc::sigaction, ()> {
     unsafe {
-        let mut old: libc::sigaction = core::mem::zeroed();
-        if libc::sigaction(signal, core::ptr::null_mut(), &mut old) != 0 {
+        let mut old: libc::sigaction = std::mem::zeroed();
+        if libc::sigaction(signal, std::ptr::null_mut(), &mut old) != 0 {
             return Err(());
         }
         let mut new: libc::sigaction = old;
@@ -134,9 +134,9 @@ fn new_signal_handler(
     }
 }
 
-pub fn restore_default_ignal_handler(sig: core::ffi::c_int) {
-    let action: libc::sigaction = unsafe { core::mem::zeroed() };
-    unsafe { libc::sigaction(sig, &action, core::ptr::null_mut()) };
+pub fn restore_default_ignal_handler(sig: libc::c_int) {
+    let action: libc::sigaction = unsafe { std::mem::zeroed() };
+    unsafe { libc::sigaction(sig, &action, std::ptr::null_mut()) };
 }
 
 /// Sanity check that kindasafe crash recovery is working.
@@ -150,7 +150,7 @@ pub fn restore_default_ignal_handler(sig: core::ffi::c_int) {
 pub fn sanity_check() -> Result<(), InitError> {
     unsafe {
         let page = libc::mmap(
-            core::ptr::null_mut(),
+            std::ptr::null_mut(),
             4096,
             libc::PROT_NONE,
             libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
