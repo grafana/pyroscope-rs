@@ -78,7 +78,6 @@ serde_json = { workspace = true }
 pprof = { workspace = true, optional = true }
 lazy_static = { workspace = true }
 jemalloc_pprof = { workspace = true, optional = true  }
-tokio = { workspace = true , optional = true   }
 
 [dev-dependencies]
 assert_matches = { workspace = true }
@@ -91,7 +90,7 @@ native-tls = ["reqwest/native-tls"]
 native-tls-vendored = ["reqwest/native-tls-vendored"]
 rustls-no-provider = ["reqwest/rustls-no-provider"]
 backend-pprof-rs = ["dep:pprof"]
-backend-jemalloc = ["dep:jemalloc_pprof", "dep:tokio"]
+backend-jemalloc = ["dep:jemalloc_pprof"]
 
 [profile.dev]
 opt-level=0

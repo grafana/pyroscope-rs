@@ -5,7 +5,6 @@ use std::{
     time::Duration,
 };
 
-use crate::encode::gen::google::Profile;
 use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::{
@@ -123,15 +122,6 @@ impl Session {
         })
     }
 
-    fn encode_reports(&self, reports: &Vec<Report>) -> Profile {
-        pprof::encode(
-            reports,
-            self.config.sample_rate,
-            self.from * 1_000_000_000,
-            (self.until - self.from) * 1_000_000_000,
-        )
-    }
-
     fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
@@ -140,10 +130,7 @@ impl Session {
             reports,
         } = self.batch;
 
-        let has_raw_pprof = reports
-            .first()
-            .and_then(|r| r.raw_pprof.as_ref())
-            .is_some();
+        let has_raw_pprof = reports.first().and_then(|r| r.raw_pprof.as_ref()).is_some();
 
         let raw_profile = if has_raw_pprof {
             debug_assert!(
@@ -160,13 +147,21 @@ impl Session {
                 .find_map(|r| r.raw_pprof)
                 .unwrap_or_default()
         } else {
-            let profile = match self.config.func {
-                None => self.encode_reports(&reports),
+            let transformed: Vec<Report>;
+            let encode_input = match self.config.func {
+                None => &reports,
                 Some(f) => {
-                    self.encode_reports(&reports.iter().map(|r| f(r.to_owned())).collect())
+                    transformed = reports.iter().map(|r| f(r.to_owned())).collect();
+                    &transformed
                 }
             };
-            profile.encode_to_vec()
+            pprof::encode(
+                encode_input,
+                self.config.sample_rate,
+                self.from * 1_000_000_000,
+                (self.until - self.from) * 1_000_000_000,
+            )
+            .encode_to_vec()
         };
 
         let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.iter().len());
