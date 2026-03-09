@@ -88,13 +88,7 @@
       "changelog-path": "CHANGELOG.md",
       "include-v-in-tag": false,
       "include-component-in-tag": true,
-      "extra-files": [
-        {
-          "type": "toml",
-          "path": "/kit/kindasafe_init/Cargo.toml",
-          "jsonpath": "$.package.version"
-        }
-      ],
+      "extra-files": [],
       "changelog-sections": [
         {"type": "feat", "section": "Features"},
         {"type": "fix", "section": "Bug Fixes"},
