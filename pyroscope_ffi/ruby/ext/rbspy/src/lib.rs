@@ -72,7 +72,7 @@ pub fn transform_report(report: Report) -> Report {
         })
         .collect();
 
-    let new_report = Report::new(data).metadata(report.metadata.clone());
+    let new_report = Report::new("process_cpu", data).metadata(report.metadata.clone());
 
     new_report
 }

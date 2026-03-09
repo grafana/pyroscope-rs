@@ -30,7 +30,7 @@ fn test_session_new() {
         ..Default::default()
     };
 
-    let report = vec![Report::new(HashMap::new())];
+    let report = vec![Report::new("process_cpu", HashMap::new())];
 
     let session = Session::new(1950, config, report).unwrap();
 
@@ -49,7 +49,7 @@ fn test_session_send_error() {
         ..Default::default()
     };
 
-    let report = vec![Report::new(HashMap::new())];
+    let report = vec![Report::new("process_cpu", HashMap::new())];
 
     let _session = Session::new(1950, config, report).unwrap();
 }

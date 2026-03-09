@@ -91,7 +91,7 @@ impl Backend for Pprof<'_> {
 
         let report: StackBuffer = buffer.lock()?.deref().to_owned();
 
-        let reports: Vec<Report> = report.into();
+        let reports: Vec<Report> = report.into_reports("process_cpu");
 
         buffer.lock()?.clear();
 

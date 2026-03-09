@@ -131,6 +131,12 @@ impl Session {
     fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
+        let profile_type = self
+            .reports
+            .first()
+            .map(|r| r.profile_type.clone())
+            .unwrap_or_default();
+
         let has_raw_pprof = self
             .reports
             .first()
@@ -168,7 +174,7 @@ impl Session {
         });
         labels.push(LabelPair {
             name: "__name__".to_string(),
-            value: self.config.profile_type.clone(),
+            value: profile_type,
         });
         for tag in self.config.tags {
             labels.push(LabelPair {
