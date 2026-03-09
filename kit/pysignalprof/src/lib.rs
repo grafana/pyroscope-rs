@@ -1,3 +1,5 @@
+#![cfg(target_arch = "x86_64")]
+
 use core::cell::UnsafeCell;
 use core::ffi::{c_int, c_void};
 use core::sync::atomic::{AtomicBool, AtomicPtr, AtomicU32, Ordering};

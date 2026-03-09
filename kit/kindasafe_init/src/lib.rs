@@ -1,3 +1,5 @@
+#![cfg(target_arch = "x86_64")]
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum InitError {
     InstallSignalHandlersFailed,

@@ -74,6 +74,8 @@ pub unsafe extern "C" fn initialize_agent(
 
     // When PYROSCOPE_PYSIGNALPROF=true, use the new signal-based profiler
     // instead of py-spy. Tags, shutdown, and other unsupported features become no-ops.
+    // Only available on x86_64; silently ignored on other architectures.
+    #[cfg(target_arch = "x86_64")]
     if std::env::var("PYROSCOPE_PYSIGNALPROF").unwrap_or_default() == "true" {
         USING_PYSIGNALPROF.store(true, Ordering::Release);
         let server_url = if server_address.is_empty() {

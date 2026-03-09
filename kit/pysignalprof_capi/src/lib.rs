@@ -1,3 +1,5 @@
+#![cfg(target_arch = "x86_64")]
+
 use core::ffi::{CStr, c_char, c_int};
 
 /// Start the CPython profiler.
