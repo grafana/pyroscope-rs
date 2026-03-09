@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Smoke test for pyroscope_cpython cdylib.
+Smoke test for pysignalprof_capi cdylib.
 
 Loads the .so via ctypes, calls pyroscope_start() with logging enabled,
 then burns CPU for 20 seconds so at least one 15-second pprof flush
 is triggered. Uses nested function calls to produce multi-frame stacks.
 
 Run with:
-    cargo build -p pyroscope_cpython
-    python3.14 kit/pyroscope_cpython/tests/test_cpython.py
+    cargo build -p pysignalprof_capi
+    python3.14 kit/pysignalprof_capi/tests/test_cpython.py
 
 Expected: pyroscope_start returns 0, flush log line appears at ~15s,
 profile is sent to Pyroscope (if running on localhost:4040).
@@ -25,11 +25,11 @@ def find_library():
     base = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.abspath(os.path.join(base, "..", "..", ".."))
     for profile in ("debug", "release"):
-        path = os.path.join(repo_root, "target", profile, "libpyroscope_cpython.so")
+        path = os.path.join(repo_root, "target", profile, "libpysignalprof_capi.so")
         if os.path.exists(path):
             return path
     print(
-        f"ERROR: libpyroscope_cpython.so not found under {repo_root}/target/",
+        f"ERROR: libpysignalprof_capi.so not found under {repo_root}/target/",
         file=sys.stderr,
     )
     sys.exit(1)

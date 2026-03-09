@@ -12,7 +12,7 @@ pub const RING_SIZE: usize = 512 * 1024;
 pub const RING_SIZE: usize = 256 * 1024;
 
 /// Default notification interval: notify the reader thread every N sample writes.
-/// Can be overridden at runtime via `pyroscope_cpython::Config::notify_interval`.
+/// Can be overridden at runtime via the `notify_interval` field in profiler state.
 pub const DEFAULT_NOTIFY_INTERVAL: u32 = 32;
 
 /// Size of the record header: thread_id (u32) + depth (u32).

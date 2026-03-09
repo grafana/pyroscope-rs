@@ -2312,24 +2312,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pyroscope_cpython"
-version = "0.1.0"
-dependencies = [
- "bbqueue",
- "kindasafe",
- "kindasafe_init",
- "libc",
- "notlibc",
- "pprof_enc",
- "pyroscope_ingest",
- "python_offsets",
- "python_offsets_types",
- "python_unwind",
- "sig_ring",
- "sighandler",
-]
-
-[[package]]
 name = "pyroscope_ingest"
 version = "0.1.0"
 dependencies = [
@@ -2347,6 +2329,31 @@ dependencies = [
  "pretty_env_logger",
  "py-spy",
  "pyroscope",
+]
+
+[[package]]
+name = "pysignalprof"
+version = "0.1.0"
+dependencies = [
+ "bbqueue",
+ "kindasafe",
+ "kindasafe_init",
+ "libc",
+ "notlibc",
+ "pprof_enc",
+ "pyroscope_ingest",
+ "python_offsets",
+ "python_offsets_types",
+ "python_unwind",
+ "sig_ring",
+ "sighandler",
+]
+
+[[package]]
+name = "pysignalprof_capi"
+version = "0.1.0"
+dependencies = [
+ "pysignalprof",
 ]
 
 [[package]]

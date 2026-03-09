@@ -44,6 +44,12 @@ pub unsafe fn register_sigaction(handler: HandlerFn) -> Result<(), Error> {
 }
 
 /// Start a repeating 10 ms ITIMER_PROF timer (100 Hz).
+///
+/// # Safety
+///
+/// Must be called after the SIGPROF handler has been installed via
+/// `register_sigaction`. Calling this without a handler installed will
+/// cause the default signal disposition (process termination).
 pub unsafe fn start_timer() -> Result<(), Error> {
     unsafe {
         let interval = libc::itimerval {

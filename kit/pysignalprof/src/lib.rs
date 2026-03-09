@@ -1,5 +1,5 @@
 use core::cell::UnsafeCell;
-use core::ffi::{CStr, c_char, c_int, c_void};
+use core::ffi::{c_int, c_void};
 use core::sync::atomic::{AtomicBool, AtomicPtr, AtomicU32, Ordering};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -22,10 +22,10 @@ static LOG_ENABLED: AtomicBool = AtomicBool::new(false);
 
 // ── Error codes ──────────────────────────────────────────────────────────────
 
-/// Error codes returned by `pyroscope_start`.
+/// Error codes returned by `start`.
 #[repr(i32)]
-#[derive(Copy, Clone)]
-enum InitError {
+#[derive(Copy, Clone, Debug)]
+pub enum InitError {
     KindasafeInit = 1,
     PythonNotFound = 2,
     SymbolNotFound = 3,
@@ -41,13 +41,13 @@ enum InitError {
 
 fn log_info(msg: &str) {
     if LOG_ENABLED.load(Ordering::Relaxed) {
-        eprintln!("pyroscope_cpython: {}", msg);
+        eprintln!("pysignalprof: {}", msg);
     }
 }
 
 fn log_error(msg: &str) {
     if LOG_ENABLED.load(Ordering::Relaxed) {
-        eprintln!("pyroscope_cpython ERROR: {}", msg);
+        eprintln!("pysignalprof ERROR: {}", msg);
     }
 }
 
@@ -235,7 +235,7 @@ fn read_pyunicode<'a>(
 }
 
 /// Read UCS1 (Latin-1) data and encode to UTF-8.
-fn read_ucs1_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Option<&'a str> {
+fn read_ucs1_to_utf8(buf: &mut [u8], data_addr: u64, length: usize) -> Option<&str> {
     let max_read = length.min(128);
     let mut raw = [0u8; 128];
     kindasafe::slice(&mut raw[..max_read], data_addr).ok()?;
@@ -258,7 +258,7 @@ fn read_ucs1_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Op
 }
 
 /// Read UCS2 data (little-endian u16) and encode to UTF-8.
-fn read_ucs2_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Option<&'a str> {
+fn read_ucs2_to_utf8(buf: &mut [u8], data_addr: u64, length: usize) -> Option<&str> {
     let max_read = length.min(128);
     let byte_len = max_read * 2;
     let mut raw = [0u8; 256];
@@ -283,7 +283,7 @@ fn read_ucs2_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Op
 }
 
 /// Read UCS4 data (little-endian u32) and encode to UTF-8.
-fn read_ucs4_to_utf8<'a>(buf: &'a mut [u8], data_addr: u64, length: usize) -> Option<&'a str> {
+fn read_ucs4_to_utf8(buf: &mut [u8], data_addr: u64, length: usize) -> Option<&str> {
     let max_read = length.min(64);
     let byte_len = max_read * 4;
     let mut raw = [0u8; 256];
@@ -317,27 +317,27 @@ fn resolve_function_name(code_object: u64, offsets: &py314::_Py_DebugOffsets) ->
     let free_threaded = offsets.free_threaded != 0;
 
     // Try co_qualname first.
-    if let Ok(qualname_ptr) = kindasafe::u64(code_object + offsets.code_object.qualname) {
-        if let Some(name) = read_pyunicode(
+    if let Ok(qualname_ptr) = kindasafe::u64(code_object + offsets.code_object.qualname)
+        && let Some(name) = read_pyunicode(
             &mut name_buf,
             qualname_ptr,
             &offsets.unicode_object,
             free_threaded,
-        ) {
-            return name.to_owned();
-        }
+        )
+    {
+        return name.to_owned();
     }
 
     // Fallback to co_name.
-    if let Ok(name_ptr) = kindasafe::u64(code_object + offsets.code_object.name) {
-        if let Some(name) = read_pyunicode(
+    if let Ok(name_ptr) = kindasafe::u64(code_object + offsets.code_object.name)
+        && let Some(name) = read_pyunicode(
             &mut name_buf,
             name_ptr,
             &offsets.unicode_object,
             free_threaded,
-        ) {
-            return name.to_owned();
-        }
+        )
+    {
+        return name.to_owned();
     }
 
     "<unknown>".to_owned()
@@ -415,7 +415,7 @@ fn reader_thread(state: &'static HandlerState) {
                     if log {
                         let names: Vec<&str> = frames.iter().map(|f| f.function_name).collect();
                         eprintln!(
-                            "pyroscope_cpython: reader: tid=0x{:x} depth={} [{}]",
+                            "pysignalprof: reader: tid=0x{:x} depth={} [{}]",
                             record.tid,
                             depth,
                             names.join(" < "),
@@ -478,7 +478,7 @@ fn flush_pprof(state: &'static HandlerState, builder: &mut pprof_enc::ProfileBui
     builder.reset(now_nanos, 15_000_000_000);
 }
 
-// ── Public C API ─────────────────────────────────────────────────────────────
+// ── Public API ───────────────────────────────────────────────────────────────
 
 /// Start the CPython profiler.
 ///
@@ -488,34 +488,18 @@ fn flush_pprof(state: &'static HandlerState, builder: &mut pprof_enc::ProfileBui
 /// then installs a SIGPROF handler + 10 ms timer.
 ///
 /// Parameters:
-/// - `app_name`: application name (NUL-terminated C string, or null).
-/// - `server_url`: server URL (NUL-terminated C string, or null).
-/// - `num_shards`: number of shards (0 = use default 16). Must be >= 1.
-/// - `log_enabled`: if nonzero, print diagnostic messages to stderr.
+/// - `app_name`: application name (empty string if not specified).
+/// - `server_url`: server URL (`None` to skip ingestion).
+/// - `num_shards`: number of shards (0 = use default 16).
+/// - `log_enabled`: if true, print diagnostic messages to stderr.
 ///
-/// Returns 0 on success, nonzero error code on failure:
-/// - 1: kindasafe init failed
-/// - 2: Python binary not found
-/// - 3: ELF symbol not found
-/// - 4: debug offsets validation failed
-/// - 5: unsupported Python version
-/// - 6: TLS discovery failed
-/// - 7: memory allocation / resource creation failed
-/// - 8: signal handler installation failed
-/// - 9: profiler already running
-/// - 10: kindasafe sanity check failed (crash recovery not working)
-///
-/// # Safety
-///
-/// `app_name` and `server_url` must be valid pointers to NUL-terminated
-/// C strings, or null.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn pyroscope_start(
-    app_name: *const c_char,
-    server_url: *const c_char,
-    num_shards: c_int,
-    log_enabled: c_int,
-) -> c_int {
+/// Returns `Ok(())` on success, `Err(InitError)` on failure.
+pub fn start(
+    app_name: String,
+    server_url: Option<String>,
+    num_shards: usize,
+    log_enabled: bool,
+) -> Result<(), InitError> {
     if LIFECYCLE
         .compare_exchange(
             STATE_UNINITIALIZED,
@@ -525,33 +509,17 @@ pub unsafe extern "C" fn pyroscope_start(
         )
         .is_err()
     {
-        return InitError::AlreadyRunning as c_int;
+        return Err(InitError::AlreadyRunning);
     }
 
-    if log_enabled != 0 {
+    if log_enabled {
         LOG_ENABLED.store(true, Ordering::Release);
     }
 
-    let num_shards = if num_shards <= 0 {
+    let num_shards = if num_shards == 0 {
         DEFAULT_NUM_SHARDS
     } else {
-        num_shards as usize
-    };
-
-    let app_name = if app_name.is_null() {
-        String::new()
-    } else {
-        unsafe { CStr::from_ptr(app_name) }
-            .to_string_lossy()
-            .into_owned()
-    };
-    let server_url = if server_url.is_null() {
-        None
-    } else {
-        let s = unsafe { CStr::from_ptr(server_url) }
-            .to_string_lossy()
-            .into_owned();
-        if s.is_empty() { None } else { Some(s) }
+        num_shards
     };
 
     log_info(&format!(
@@ -561,11 +529,11 @@ pub unsafe extern "C" fn pyroscope_start(
     ));
 
     match init_sequence(num_shards, app_name, server_url) {
-        Ok(()) => 0,
+        Ok(()) => Ok(()),
         Err(code) => {
             log_error(&format!("init failed with code {}", code as c_int));
             LIFECYCLE.store(STATE_UNINITIALIZED, Ordering::Release);
-            code as c_int
+            Err(code)
         }
     }
 }
@@ -760,7 +728,7 @@ fn init_sequence(
     }
 
     log_info("init complete");
-    notlibc::debug::puts("pyroscope_cpython: init complete");
+    notlibc::debug::puts("pysignalprof: init complete");
     Ok(())
 }
 

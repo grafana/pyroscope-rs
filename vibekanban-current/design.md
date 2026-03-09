@@ -144,7 +144,9 @@ This document synthesizes the best ideas from three prior design proposals (desi
 │  ├── profiler_core/     Orchestration: reader thread, flush, symbol │
 │  ├── pprof_enc/         Minimal pprof protobuf encoder              │
 │  ├── pyroscope_ingest/  HTTP POST to Pyroscope push API             │
-│  └── pyroscope_cpython/ cdylib: dlopen entry point                  │
+│  ├── pysignalprof/      Core profiler library: signal handler,      │
+│  │                      reader thread, init, symbolization           │
+│  └── pysignalprof_capi/ cdylib: thin C API wrapper, dlopen entry pt │
 │                                                                     │
 │  (existing crates — NOT depended upon by new crates)                │
 │  ├── pyroscope/         Existing agent (not used)                   │
@@ -159,20 +161,26 @@ This document synthesizes the best ideas from three prior design proposals (desi
 Each crate has minimal dependencies. The dependency graph flows in one direction:
 
 ```
-                     pyroscope_cpython (cdylib)
+                     pysignalprof_capi (cdylib)
+                             │
+                        pysignalprof (lib)
                              │
                 ┌────────────┼─────────────┐
                 ▼            ▼              ▼
-         profiler_core   sighandler    python_offsets
-             │  │  │        │              │
-   ┌────┬───┘  │  └──┐     │         ┌────┘
-   ▼    ▼      ▼     ▼     ▼         ▼
-pprof  │  pyroscope  python     kindasafe_init ──→ kindasafe
-_enc   │  _ingest    _unwind                        (#![no_std])
-       │                │
-       ▼           ┌────┤
-     sig_ring   kindasafe  notlibc
-       │  │     (#![no_std])
+           sighandler   python_offsets   pprof_enc
+                │            │
+           ┌────┘       ┌────┘
+           ▼            ▼
+   kindasafe_init ──→ kindasafe     pyroscope_ingest
+                      (#![no_std])
+        python_unwind
+             │
+        ┌────┤
+     kindasafe  notlibc
+     (#![no_std])
+
+     sig_ring
+       │  │
        ▼  ▼
   notlibc  bbqueue
            (#![no_std])
@@ -199,7 +207,8 @@ Signal-handler-path crates (`python_unwind`, `sig_ring`, etc.) depend on `kindas
 | `kit/profiler_core` | lib | `sig_ring`, `python_unwind`, `python_offsets`, `pprof_enc`, `pyroscope_ingest`, `sighandler` | Orchestrator: owns the reader thread, periodic flush, stack aggregation, symbolication, pprof building, ingestion. |
 | `kit/pprof_enc` | lib | `prost` | Minimal pprof protobuf encoder. String table, Function, Location, Sample messages. Gzip output via `flate2`. |
 | `kit/pyroscope_ingest` | lib | `ureq` or `minreq` | HTTP POST of gzipped pprof to `{base_url}/ingest` with query parameters. |
-| `kit/pyroscope_cpython` | cdylib | `profiler_core` | Exposes `extern "C" pyroscope_start(config)`. The `.so` that gets `dlopen`'d. No stop — profiler runs for process lifetime. |
+| `kit/pysignalprof` | lib | `kindasafe_init`, `kindasafe`, `python_offsets`, `python_offsets_types`, `python_unwind`, `sig_ring`, `sighandler`, `notlibc`, `bbqueue`, `libc`, `pprof_enc`, `pyroscope_ingest` | Core profiler library. Contains all profiler logic: signal handler callback, reader thread, init sequence, symbolization, state management. Exposes `pub fn start(...)` for Rust consumers. |
+| `kit/pysignalprof_capi` | cdylib | `pysignalprof` | Thin C API wrapper. Exposes `extern "C" pyroscope_start(...)` for `dlopen`/ctypes. Parses C strings, delegates to `pysignalprof::start()`. The `.so` that gets `dlopen`'d. |
 
 ### Dependency Policy
 
@@ -514,7 +523,7 @@ pyroscope_start(config):
 
 ### 6.1 Handler Signature
 
-**Crate:** `kit/sighandler` (generic registration) + `kit/pyroscope_cpython` (Python-specific callback)
+**Crate:** `kit/sighandler` (generic registration) + `kit/pysignalprof` (Python-specific callback)
 
 ```
 extern "C" fn signal_handler(
@@ -1213,14 +1222,14 @@ fn send(base_url: &str, app_name: &str, pprof_gz: &[u8], from: u64, until: u64) 
 
 ### 14.1 Overview
 
-**Crate:** `kit/pyroscope_cpython`
+**Crate:** `kit/pysignalprof_capi` (thin C API wrapper around `kit/pysignalprof`)
 
 Produces a `.so` (cdylib) loadable via `dlopen`:
 
 ```python
 import ctypes
-lib = ctypes.CDLL("./libpyroscope_cpython.so")
-lib.pyroscope_start(b"my-python-app", b"http://localhost:4040")
+lib = ctypes.CDLL("./libpysignalprof_capi.so")
+lib.pyroscope_start(b"my-python-app", b"http://localhost:4040", 0, 1)
 # ... application runs, profiling continues for process lifetime ...
 ```
 

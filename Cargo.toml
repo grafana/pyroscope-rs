@@ -33,7 +33,8 @@ members = [
     "kit/python_unwind",
     "kit/coredump",
     "kit/sig_ring",
-    "kit/pyroscope_cpython",
+    "kit/pysignalprof",
+    "kit/pysignalprof_capi",
 ]
 
 [workspace.dependencies]
