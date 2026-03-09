@@ -29,7 +29,7 @@ jobs:
       - run: make ffi/python/header ffi/python/cffi
       - run: git diff --exit-code
 
-  linux-build:
+  python-linux-build:
     strategy:
       fail-fast: false
       matrix:
@@ -46,7 +46,7 @@ jobs:
           - name: musllinux-arm64
             runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
             make-target: wheel/musllinux/arm64
-    name: Linux Build - ${{ matrix.name }}
+    name: Python Linux Build - ${{ matrix.name }}
     runs-on: ${{ matrix.runs-on }}
 
     steps:
@@ -68,7 +68,7 @@ jobs:
           name: "${{ matrix.name }}.whl"
           path: dist/*
 
-  linux-test:
+  python-linux-test:
     strategy:
       fail-fast: false
       matrix:
@@ -106,8 +106,8 @@ jobs:
             PYTHON_VERSION: "3.10"
           - variant: musllinux-arm64
             PYTHON_VERSION: "3.11"
-    needs: ["linux-build"]
-    name: Linux Test - ${{ matrix.variant }} - ${{ matrix.PYTHON_VERSION }}
+    needs: ["python-linux-build"]
+    name: Python Linux Test - ${{ matrix.variant }} - ${{ matrix.PYTHON_VERSION }}
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -150,7 +150,7 @@ jobs:
           name: "sdist.whl"
           path: dist/*
 
-  macos-build:
+  python-macos-build:
     strategy:
       fail-fast: false
       matrix:
@@ -162,7 +162,7 @@ jobs:
             target: aarch64-apple-darwin
             mk-arch: arm64
 
-    name: macOS - ${{ matrix.target }}
+    name: Python macOS - ${{ matrix.target }}
     runs-on: macos-${{ matrix.macos-version }}
 
     steps:

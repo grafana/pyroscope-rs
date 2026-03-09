@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use super::{Report, ThreadTag};
+use super::{ReportBatch, ThreadTag};
 
 /// Backend Config
 #[derive(Debug, Copy, Clone, Default)]
@@ -23,7 +23,7 @@ pub trait Backend: Send {
     /// Drop the backend.
     fn shutdown(self: Box<Self>) -> Result<()>;
     /// Generate profiling report
-    fn report(&mut self) -> Result<Vec<Report>>;
+    fn report(&mut self) -> Result<ReportBatch>;
     fn add_tag(&self, tag: ThreadTag) -> Result<()>;
     fn remove_tag(&self, tag: ThreadTag) -> Result<()>;
 }
@@ -124,7 +124,7 @@ impl BackendImpl<BackendReady> {
     }
 
     /// Generate profiling report
-    pub fn report(&mut self) -> Result<Vec<Report>> {
+    pub fn report(&mut self) -> Result<ReportBatch> {
         self.backend
             .lock()?
             .as_mut()

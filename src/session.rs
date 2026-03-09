@@ -5,11 +5,14 @@ use std::{
     time::Duration,
 };
 
-use crate::encode::gen::google::Profile;
 use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::{
-    backend::Report, encode::pprof, pyroscope::PyroscopeConfig, utils::get_time_range, Result,
+    backend::{Report, ReportBatch},
+    encode::pprof,
+    pyroscope::PyroscopeConfig,
+    utils::get_time_range,
+    Result,
 };
 use libflate::gzip::Encoder;
 use prost::Message;
@@ -88,7 +91,7 @@ impl SessionManager {
 #[derive(Clone, Debug)]
 pub struct Session {
     pub config: PyroscopeConfig,
-    pub reports: Vec<Report>,
+    pub batch: ReportBatch,
     // unix time todo remove comment, use types
     pub from: u64,
     // unix time todo remove comment, use types
@@ -104,7 +107,7 @@ impl Session {
     /// let until = 154065120;
     /// let session = Session::new(until, config, report)?;
     /// ```
-    pub fn new(until: u64, config: PyroscopeConfig, reports: Vec<Report>) -> Result<Self> {
+    pub fn new(until: u64, config: PyroscopeConfig, batch: ReportBatch) -> Result<Self> {
         log::info!(target: LOG_TAG, "Creating Session");
 
         // get_time_range should be used with "from". We balance this by reducing
@@ -113,33 +116,25 @@ impl Session {
 
         Ok(Self {
             config,
-            reports,
+            batch,
             from: time_range.from - 10,
             until: time_range.until - 10,
         })
     }
 
-    fn encode_reports(&self, reports: &Vec<Report>) -> Profile {
-        pprof::encode(
-            reports,
-            self.config.sample_rate,
-            self.from * 1_000_000_000,
-            (self.until - self.from) * 1_000_000_000,
-        )
-    }
-
     fn push(self, client: &reqwest::blocking::Client) -> Result<()> {
         log::info!(target: LOG_TAG, "Sending Session: {} - {}", self.from, self.until);
 
-        let has_raw_pprof = self
-            .reports
-            .first()
-            .and_then(|r| r.raw_pprof.as_ref())
-            .is_some();
+        let ReportBatch {
+            profile_type,
+            reports,
+        } = self.batch;
+
+        let has_raw_pprof = reports.first().and_then(|r| r.raw_pprof.as_ref()).is_some();
 
         let raw_profile = if has_raw_pprof {
             debug_assert!(
-                self.reports.len() == 1,
+                reports.len() == 1,
                 "raw_pprof path expects exactly one report"
             );
             if self.config.func.is_some() {
@@ -147,18 +142,26 @@ impl Session {
             }
             // Backends like jemalloc produce a complete pprof profile (may be gzipped).
             // Pass it through directly — Pyroscope accepts both compressed and uncompressed pprof.
-            self.reports
+            reports
                 .into_iter()
                 .find_map(|r| r.raw_pprof)
                 .unwrap_or_default()
         } else {
-            let profile = match self.config.func {
-                None => self.encode_reports(&self.reports),
+            let transformed: Vec<Report>;
+            let encode_input = match self.config.func {
+                None => &reports,
                 Some(f) => {
-                    self.encode_reports(&self.reports.iter().map(|r| f(r.to_owned())).collect())
+                    transformed = reports.iter().map(|r| f(r.to_owned())).collect();
+                    &transformed
                 }
             };
-            profile.encode_to_vec()
+            pprof::encode(
+                encode_input,
+                self.config.sample_rate,
+                self.from * 1_000_000_000,
+                (self.until - self.from) * 1_000_000_000,
+            )
+            .encode_to_vec()
         };
 
         let mut labels: Vec<LabelPair> = Vec::with_capacity(2 + self.config.tags.iter().len());
@@ -168,7 +171,7 @@ impl Session {
         });
         labels.push(LabelPair {
             name: "__name__".to_string(),
-            value: self.config.profile_type.clone(),
+            value: profile_type,
         });
         for tag in self.config.tags {
             labels.push(LabelPair {

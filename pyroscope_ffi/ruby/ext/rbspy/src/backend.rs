@@ -1,7 +1,7 @@
 use pyroscope::{
     backend::{
-        Backend, BackendConfig, Report, StackBuffer, StackFrame, StackTrace, ThreadTag,
-        ThreadTagsSet,
+        Backend, BackendConfig, Report, ReportBatch, StackBuffer, StackFrame, StackTrace,
+        ThreadTag, ThreadTagsSet,
     },
     error::{PyroscopeError, Result},
 };
@@ -126,14 +126,16 @@ impl Backend for Rbspy {
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<Report>> {
+    fn report(&mut self) -> Result<ReportBatch> {
         let v8: StackBuffer = self.buffer.lock()?.deref().to_owned();
         let reports: Vec<Report> = v8.into();
 
         self.buffer.lock()?.clear();
 
-        // Return the writer's buffer
-        Ok(reports)
+        Ok(ReportBatch {
+            profile_type: "process_cpu".into(),
+            reports,
+        })
     }
 }
 
