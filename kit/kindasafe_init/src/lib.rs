@@ -38,11 +38,7 @@ pub fn init_locked() -> Result<(), InitError> {
 /// # Safety
 /// `data` must be a valid pointer to `libc::ucontext_t`.
 #[cfg(target_arch = "x86_64")]
-pub unsafe fn crash_handler(
-    sig: libc::c_int,
-    info: *mut libc::siginfo_t,
-    data: *mut libc::c_void,
-) {
+pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
         let pc = (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] as usize;
@@ -60,11 +56,7 @@ pub unsafe fn crash_handler(
 /// # Safety
 /// `data` must be a valid pointer to `libc::ucontext_t`.
 #[cfg(target_arch = "aarch64")]
-pub unsafe fn crash_handler(
-    sig: libc::c_int,
-    info: *mut libc::siginfo_t,
-    data: *mut libc::c_void,
-) {
+pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
     unsafe {
         let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
         let pc = (*ctx).uc_mcontext.pc as usize;
@@ -97,11 +89,7 @@ fn call_fallback(
         handler(sig, info, data);
     }
 }
-unsafe fn fallback(
-    sig: libc::c_int,
-    info: *mut libc::siginfo_t,
-    data: *mut libc::c_void,
-) {
+unsafe fn fallback(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
     if sig == libc::SIGSEGV {
         call_fallback(sig, info, data, unsafe { FALLBACK_SIGSEGV });
         return;
@@ -113,11 +101,7 @@ unsafe fn fallback(
 
 fn new_signal_handler(
     signal: libc::c_int,
-    handler: unsafe fn(
-        sig: libc::c_int,
-        info: *mut libc::siginfo_t,
-        data: *mut libc::c_void,
-    ),
+    handler: unsafe fn(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void),
 ) -> Result<libc::sigaction, ()> {
     unsafe {
         let mut old: libc::sigaction = std::mem::zeroed();
