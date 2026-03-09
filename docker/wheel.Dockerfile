@@ -1,8 +1,30 @@
 # syntax=docker/dockerfile:1.22@sha256:4a43a54dd1fedceb30ba47e76cfcf2b47304f4161c0caeac2db1c61804ea3c91
 ARG PLATFORM=x86_64
 FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
+ARG OPENSSL_VERSION=3.5.5
 
 RUN yum -y install gcc libffi-devel perl-core glibc-devel make
+
+# Build OpenSSL from source
+RUN curl -fsSL "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" \
+    -o /tmp/openssl.tar.gz \
+    && tar xzf /tmp/openssl.tar.gz -C /tmp \
+    && cd /tmp/openssl-${OPENSSL_VERSION} \
+    && ./config no-shared no-tests --prefix=/usr/local/openssl \
+    && make -j$(nproc) \
+    && make install_sw \
+    && cd / \
+    && rm -rf /tmp/openssl*
+
+# Ensure both lib/ and lib64/ exist (OpenSSL uses lib64/ on x86_64, lib/ on aarch64)
+RUN if [ -d /usr/local/openssl/lib64 ] && [ ! -d /usr/local/openssl/lib ]; then \
+        ln -s /usr/local/openssl/lib64 /usr/local/openssl/lib; \
+    elif [ -d /usr/local/openssl/lib ] && [ ! -d /usr/local/openssl/lib64 ]; then \
+        ln -s /usr/local/openssl/lib /usr/local/openssl/lib64; \
+    fi
+
+ENV OPENSSL_DIR=/usr/local/openssl
+ENV OPENSSL_STATIC=1
 
 RUN useradd -m builder \
     && mkdir -p /pyroscope-rs \
@@ -34,7 +56,7 @@ ADD --chown=builder:builder kit/ kit/
 ADD --chown=builder:builder pyroscope_ffi/ pyroscope_ffi/
 
 ARG PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=1
-ARG PYROSCOPE_CARGO_FEATURES=native-tls-vendored
+ARG PYROSCOPE_CARGO_FEATURES=native-tls
 ENV PYROSCOPE_CARGO_NO_DEFAULT_FEATURES=${PYROSCOPE_CARGO_NO_DEFAULT_FEATURES}
 ENV PYROSCOPE_CARGO_FEATURES=${PYROSCOPE_CARGO_FEATURES}
 
