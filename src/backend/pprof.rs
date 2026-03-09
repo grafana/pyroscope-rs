@@ -1,6 +1,6 @@
 use crate::backend::{
-    Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, StackBuffer, StackFrame,
-    StackTrace, ThreadTag, ThreadTagsSet,
+    Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ReportBatch, StackBuffer,
+    StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
 };
 use crate::error::{PyroscopeError, Result};
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
@@ -84,18 +84,21 @@ impl Backend for Pprof<'_> {
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<Report>> {
+    fn report(&mut self) -> Result<ReportBatch> {
         self.dump_report()?;
 
         let buffer = self.buffer.clone();
 
         let report: StackBuffer = buffer.lock()?.deref().to_owned();
 
-        let reports: Vec<Report> = report.into_reports("process_cpu");
+        let reports: Vec<Report> = report.into();
 
         buffer.lock()?.clear();
 
-        Ok(reports)
+        Ok(ReportBatch {
+            profile_type: "process_cpu".into(),
+            reports,
+        })
     }
 
     fn add_tag(&self, tag: ThreadTag) -> Result<()> {

@@ -1,4 +1,4 @@
-use crate::backend::{Backend, BackendImpl, BackendUninitialized, Report, ThreadTag};
+use crate::backend::{Backend, BackendImpl, BackendUninitialized, Report, ReportBatch, ThreadTag};
 use crate::error::{PyroscopeError, Result};
 
 const LOG_TAG: &str = "Pyroscope::Jemalloc";
@@ -62,7 +62,7 @@ impl Backend for Jemalloc {
         Ok(())
     }
 
-    fn report(&mut self) -> Result<Vec<Report>> {
+    fn report(&mut self) -> Result<ReportBatch> {
         let runtime = self
             .runtime
             .as_ref()
@@ -78,7 +78,10 @@ impl Backend for Jemalloc {
                 .map_err(|e| PyroscopeError::new(&format!("jemalloc: dump_pprof failed: {}", e)))
         })?;
 
-        Ok(vec![Report::from_raw_pprof("memory", pprof_data)])
+        Ok(ReportBatch {
+            profile_type: "memory".into(),
+            reports: vec![Report::from_raw_pprof(pprof_data)],
+        })
     }
 
     fn add_tag(&self, _tag: ThreadTag) -> Result<()> {

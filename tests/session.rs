@@ -1,6 +1,6 @@
 use claims::assert_ok;
 use pyroscope::{
-    backend::Report,
+    backend::{Report, ReportBatch},
     pyroscope::PyroscopeConfig,
     session::{Session, SessionManager, SessionSignal},
 };
@@ -30,9 +30,12 @@ fn test_session_new() {
         ..Default::default()
     };
 
-    let report = vec![Report::new("process_cpu", HashMap::new())];
+    let batch = ReportBatch {
+        profile_type: "process_cpu".into(),
+        reports: vec![Report::new(HashMap::new())],
+    };
 
-    let session = Session::new(1950, config, report).unwrap();
+    let session = Session::new(1950, config, batch).unwrap();
 
     assert_eq!(session.from, 1940);
     assert_eq!(session.until, 1950);
@@ -49,7 +52,10 @@ fn test_session_send_error() {
         ..Default::default()
     };
 
-    let report = vec![Report::new("process_cpu", HashMap::new())];
+    let batch = ReportBatch {
+        profile_type: "process_cpu".into(),
+        reports: vec![Report::new(HashMap::new())],
+    };
 
-    let _session = Session::new(1950, config, report).unwrap();
+    let _session = Session::new(1950, config, batch).unwrap();
 }

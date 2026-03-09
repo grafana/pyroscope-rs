@@ -60,20 +60,21 @@ impl StackBuffer {
     }
 }
 
-impl StackBuffer {
-    /// Convert this buffer into a list of Reports grouped by metadata.
-    pub fn into_reports(self, profile_type: &str) -> Vec<Report> {
-        self.data
+impl From<StackBuffer> for Vec<Report> {
+    fn from(stack_buffer: StackBuffer) -> Self {
+        stack_buffer
+            .data
             .into_iter()
             .fold(
                 HashMap::new(),
-                |mut acc: HashMap<usize, Report>, (stacktrace, count): (StackTrace, usize)| {
+                |acc: HashMap<usize, Report>, (stacktrace, count): (StackTrace, usize)| {
+                    let mut acc = acc;
                     if let Some(report) = acc.get_mut(&stacktrace.metadata.get_id()) {
                         report.record_with_count(stacktrace, count);
                     } else {
+                        let report = Report::new(HashMap::new());
                         let report_id = stacktrace.metadata.get_id();
-                        let mut report = Report::new(profile_type, HashMap::new())
-                            .metadata(stacktrace.metadata.clone());
+                        let mut report = report.metadata(stacktrace.metadata.clone());
                         report.record_with_count(stacktrace, count);
                         acc.insert(report_id, report);
                     }
@@ -107,11 +108,18 @@ impl Metadata {
     }
 }
 
+/// A batch of reports with a shared profile type.
+#[derive(Debug, Clone)]
+pub struct ReportBatch {
+    /// Profile type name (e.g. "process_cpu", "memory")
+    pub profile_type: String,
+    /// Reports in this batch
+    pub reports: Vec<Report>,
+}
+
 /// Report
 #[derive(Debug, Default, Clone)]
 pub struct Report {
-    /// Profile type name (e.g. "process_cpu", "memory")
-    pub profile_type: String,
     /// Report StackTraces
     pub data: HashMap<StackTrace, usize>,
     /// Metadata
@@ -130,9 +138,8 @@ impl Hash for Report {
 
 impl Report {
     /// Create a new Report.
-    pub fn new(profile_type: impl Into<String>, data: HashMap<StackTrace, usize>) -> Self {
+    pub fn new(data: HashMap<StackTrace, usize>) -> Self {
         Self {
-            profile_type: profile_type.into(),
             data,
             metadata: Metadata::default(),
             raw_pprof: None,
@@ -140,9 +147,8 @@ impl Report {
     }
 
     /// Create a Report from pre-encoded pprof bytes (may be gzipped).
-    pub fn from_raw_pprof(profile_type: impl Into<String>, pprof_data: Vec<u8>) -> Self {
+    pub fn from_raw_pprof(pprof_data: Vec<u8>) -> Self {
         Self {
-            profile_type: profile_type.into(),
             data: HashMap::new(),
             metadata: Metadata::default(),
             raw_pprof: Some(pprof_data),
@@ -157,7 +163,6 @@ impl Report {
     /// Set the metadata of the report.
     pub fn metadata(self, metadata: Metadata) -> Self {
         Self {
-            profile_type: self.profile_type,
             data: self.data,
             metadata,
             raw_pprof: self.raw_pprof,

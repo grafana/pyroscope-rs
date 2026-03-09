@@ -50,7 +50,7 @@ fn test_stack_trace_display() {
 
 #[test]
 fn test_report_record() {
-    let mut report = Report::new("process_cpu", HashMap::new());
+    let mut report = Report::new(HashMap::new());
 
     let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, vec![]);
 
