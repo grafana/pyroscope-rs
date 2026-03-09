@@ -1342,6 +1342,16 @@ name = "kindasafe"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "kindasafe_init",
+ "libc",
+]
+
+[[package]]
+name = "kindasafe_init"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "kindasafe",
  "libc",
  "spin",
 ]
