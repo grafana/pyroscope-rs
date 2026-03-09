@@ -73,17 +73,18 @@ fn u64_sigbus() -> Result<(), anyhow::Error> {
 fn u64_unaligned_page_boundary() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
 
-    trigger_sigsegv_page_boundary(|p| {
+    trigger_sigsegv_page_boundary(|p, ps| {
+        let boundary = ps as u64;
         assert_eq!(u64(p), Ok(0x6161616161616161));
-        assert_eq!(u64(p + 0x1000 - 0x8), Ok(0x6161616161616161));
+        assert_eq!(u64(p + boundary - 0x8), Ok(0x6161616161616161));
         assert_eq!(
-            u64(p + 0x1000 - 0x7),
+            u64(p + boundary - 0x7),
             Err(ReadMemError {
                 signal: PROT_NONE_SIGNAL
             })
         );
         assert_eq!(
-            u64(p + 0x1000),
+            u64(p + boundary),
             Err(ReadMemError {
                 signal: PROT_NONE_SIGNAL
             })
@@ -148,10 +149,11 @@ fn vec_sigbus() -> Result<(), anyhow::Error> {
 fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
     kindasafe_init::init().map_err(|err| anyhow!("{:?}", err))?;
 
-    trigger_sigsegv_page_boundary(|p| {
+    trigger_sigsegv_page_boundary(|p, ps| {
+        let boundary = ps as u64;
         let mut buf = [0u8; 16];
         assert_eq!(
-            slice(&mut buf, (p + 0x1000 - 8) as Ptr),
+            slice(&mut buf, (p + boundary - 8) as Ptr),
             Err(ReadMemError {
                 signal: PROT_NONE_SIGNAL
             })
@@ -168,29 +170,40 @@ fn vec_sigsegv_page_boundary() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+fn page_size() -> usize {
+    let ps = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    assert!(ps > 0, "sysconf(_SC_PAGESIZE) failed");
+    ps as usize
+}
+
 fn trigger_sigsegv_page_boundary<F>(mut cb: F)
 where
-    F: FnMut(Ptr),
+    F: FnMut(Ptr, usize),
 {
+    let ps = page_size();
+    let map_size = 2 * ps;
     unsafe {
         let x_ptr = libc::mmap(
-            0xdead000 as *mut libc::c_void,
-            0x2000,
+            std::ptr::null_mut::<libc::c_void>(),
+            map_size,
             libc::PROT_NONE,
             libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
-        ) as usize;
-        libc::mprotect(
+        );
+        assert_ne!(libc::MAP_FAILED, x_ptr, "mmap failed");
+        let x_ptr = x_ptr as usize;
+        let ret = libc::mprotect(
             x_ptr as *mut libc::c_void,
-            0x1000,
+            ps,
             libc::PROT_READ | libc::PROT_WRITE,
         );
-        libc::memset(x_ptr as *mut libc::c_void, 0x61, 0x1000);
+        assert_eq!(ret, 0, "mprotect failed");
+        libc::memset(x_ptr as *mut libc::c_void, 0x61, ps);
 
-        cb(x_ptr as Ptr);
+        cb(x_ptr as Ptr, ps);
 
-        libc::munmap(x_ptr as *mut libc::c_void, 0x2000);
+        libc::munmap(x_ptr as *mut libc::c_void, map_size);
     }
 }
 
