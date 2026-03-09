@@ -1,22 +1,35 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "packageRules": [
     {
-      "matchDepNames": ["openssl/openssl"],
+      "matchDepNames": [
+        "openssl/openssl"
+      ],
       "separateMinorPatch": true
     },
     {
-      "matchDepNames": ["openssl/openssl"],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchDepNames": [
+        "openssl/openssl"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
       "enabled": false
     }
   ],
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^docker/.*\\.Dockerfile$"],
-      "matchStrings": ["ARG OPENSSL_VERSION=(?<currentValue>[\\d.]+)"],
+      "managerFilePatterns": [
+        "/^docker/.*\\.Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG OPENSSL_VERSION=(?<currentValue>[\\d.]+)"
+      ],
       "depNameTemplate": "openssl/openssl",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^openssl-(?<version>.*)$"
