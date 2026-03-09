@@ -1,12 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "separate-pull-requests": true,
-  "plugins": [
-    {
-      "type": "cargo-workspace",
-      "merge": false
-    }
-  ],
   "packages": {
     ".": {
       "component": "lib",
