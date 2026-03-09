@@ -16,7 +16,7 @@ python_unwind = { path = "../python_unwind" }
 sig_ring = { path = "../sig_ring" }
 sighandler = { path = "../sighandler" }
 notlibc = { path = "../notlibc" }
-bbqueue = "0.5"
+bbqueue = "0.6"
 libc = { version = "0.2.182" }
 pprof_enc = { path = "../pprof_enc" }
 pyroscope_ingest = { path = "../pyroscope_ingest" }
