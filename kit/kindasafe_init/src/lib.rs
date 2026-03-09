@@ -35,81 +35,94 @@ pub fn init_locked() -> Result<(), InitError> {
     Ok(())
 }
 
-/// # Safety
-/// `data` must be a valid pointer to `libc::ucontext_t`.
+// OS-specific crash_handler implementations.
+// Each module provides crash_handler that reads/writes CPU registers
+// from ucontext_t using the platform's register layout.
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
-pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
-    unsafe {
-        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
-        let pc = (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] as usize;
-        for x in kindasafe::arch::crash_points().crash_points {
-            if x.pc == pc {
-                (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] = (pc + x.skip) as libc::greg_t;
-                (*ctx).uc_mcontext.gregs[x.signal_reg] = sig as u64 as libc::greg_t;
-                return;
+mod osimpl {
+    /// # Safety
+    /// `data` must be a valid pointer to `libc::ucontext_t`.
+    pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+        unsafe {
+            let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+            let pc = (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] as usize;
+            for x in kindasafe::arch::crash_points().crash_points {
+                if x.pc == pc {
+                    (*ctx).uc_mcontext.gregs[libc::REG_RIP as usize] = (pc + x.skip) as libc::greg_t;
+                    (*ctx).uc_mcontext.gregs[x.signal_reg] = sig as u64 as libc::greg_t;
+                    return;
+                }
             }
+            super::fallback(sig, info, data);
         }
-        fallback(sig, info, data);
     }
 }
 
-/// # Safety
-/// `data` must be a valid pointer to `libc::ucontext_t`.
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
-pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
-    unsafe {
-        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
-        let mctx = (*ctx).uc_mcontext;
-        let regs = &mut (*mctx).__ss as *mut _ as *mut u64;
-        const RIP_IDX: usize = 16;
-        let pc = *regs.add(RIP_IDX) as usize;
-        for x in kindasafe::arch::crash_points().crash_points {
-            if x.pc == pc {
-                *regs.add(RIP_IDX) = (pc + x.skip) as u64;
-                *regs.add(x.signal_reg) = sig as u64;
-                return;
+mod osimpl {
+    /// # Safety
+    /// `data` must be a valid pointer to `libc::ucontext_t`.
+    pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+        unsafe {
+            let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+            let mctx = (*ctx).uc_mcontext;
+            let regs = &mut (*mctx).__ss as *mut _ as *mut u64;
+            const RIP_IDX: usize = 16;
+            let pc = *regs.add(RIP_IDX) as usize;
+            for x in kindasafe::arch::crash_points().crash_points {
+                if x.pc == pc {
+                    *regs.add(RIP_IDX) = (pc + x.skip) as u64;
+                    *regs.add(x.signal_reg) = sig as u64;
+                    return;
+                }
             }
+            super::fallback(sig, info, data);
         }
-        fallback(sig, info, data);
     }
 }
 
-/// # Safety
-/// `data` must be a valid pointer to `libc::ucontext_t`.
 #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
-pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
-    unsafe {
-        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
-        let pc = (*ctx).uc_mcontext.pc as usize;
-        for x in kindasafe::arch::crash_points().crash_points {
-            if x.pc == pc {
-                (*ctx).uc_mcontext.pc = (pc + x.skip) as u64;
-                (*ctx).uc_mcontext.regs[x.signal_reg] = sig as u64;
-                return;
+mod osimpl {
+    /// # Safety
+    /// `data` must be a valid pointer to `libc::ucontext_t`.
+    pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+        unsafe {
+            let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+            let pc = (*ctx).uc_mcontext.pc as usize;
+            for x in kindasafe::arch::crash_points().crash_points {
+                if x.pc == pc {
+                    (*ctx).uc_mcontext.pc = (pc + x.skip) as u64;
+                    (*ctx).uc_mcontext.regs[x.signal_reg] = sig as u64;
+                    return;
+                }
             }
+            super::fallback(sig, info, data);
         }
-        fallback(sig, info, data);
     }
 }
 
-/// # Safety
-/// `data` must be a valid pointer to `libc::ucontext_t`.
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
-    unsafe {
-        let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
-        let mctx = (*ctx).uc_mcontext;
-        let pc = (*mctx).__ss.__pc as usize;
-        for x in kindasafe::arch::crash_points().crash_points {
-            if x.pc == pc {
-                (*mctx).__ss.__pc = (pc + x.skip) as u64;
-                (*mctx).__ss.__x[x.signal_reg] = sig as u64;
-                return;
+mod osimpl {
+    /// # Safety
+    /// `data` must be a valid pointer to `libc::ucontext_t`.
+    pub unsafe fn crash_handler(sig: libc::c_int, info: *mut libc::siginfo_t, data: *mut libc::c_void) {
+        unsafe {
+            let ctx: *mut libc::ucontext_t = data as *mut libc::ucontext_t;
+            let mctx = (*ctx).uc_mcontext;
+            let pc = (*mctx).__ss.__pc as usize;
+            for x in kindasafe::arch::crash_points().crash_points {
+                if x.pc == pc {
+                    (*mctx).__ss.__pc = (pc + x.skip) as u64;
+                    (*mctx).__ss.__x[x.signal_reg] = sig as u64;
+                    return;
+                }
             }
+            super::fallback(sig, info, data);
         }
-        fallback(sig, info, data);
     }
 }
+
+pub use osimpl::crash_handler;
 
 fn call_fallback(
     sig: libc::c_int,

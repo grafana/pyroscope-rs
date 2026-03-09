@@ -99,17 +99,19 @@ pub mod arch {
         )
     }
 
-    // Linux gregs[] indices
+    // Register indices into the OS-specific register array used by crash_handler.
+    // Linux: gregs[] array. macOS: __darwin_x86_thread_state64 cast as *mut u64.
     #[cfg(target_os = "linux")]
-    const REG_RAX: usize = 13;
-    #[cfg(target_os = "linux")]
-    const REG_RDX: usize = 12;
-
-    // macOS __darwin_x86_thread_state64 field indices (cast __ss as *mut u64)
+    mod osimpl {
+        pub const REG_RAX: usize = 13;
+        pub const REG_RDX: usize = 12;
+    }
     #[cfg(target_os = "macos")]
-    const REG_RAX: usize = 0;
-    #[cfg(target_os = "macos")]
-    const REG_RDX: usize = 3;
+    mod osimpl {
+        pub const REG_RAX: usize = 0;
+        pub const REG_RDX: usize = 3;
+    }
+    use osimpl::*;
 
     pub fn crash_points() -> crate::CrashPoints {
         crate::CrashPoints {
