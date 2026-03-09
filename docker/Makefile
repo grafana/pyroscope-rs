@@ -1,17 +1,41 @@
-PREFIX ?= pyroscope/rust_builder
-CLI_BUILDER_VERSION ?= 3
-MANYLINUX_VERSION ?= 4
+REGISTRY ?= ghcr.io/grafana/pyroscope-rs
+BASE_VERSION ?= v1
 
-.PHONY: push_x86_64
-push_x86_64:
-	docker buildx build --platform linux/amd64 -t $(PREFIX)_manylinux2014_x86_64:$(MANYLINUX_VERSION) -f Dockerfile.manylinux2014_x86_64 --push .
+.PHONY: base/manylinux/amd64
+base/manylinux/amd64:
+	docker buildx build \
+		--build-arg=PLATFORM=x86_64 \
+		--platform=linux/amd64 \
+		-t $(REGISTRY)/builder-manylinux:$(BASE_VERSION)-x86_64 \
+		-f base-manylinux.Dockerfile \
+		--push .
 
-.PHONY: push_aarch64
-push_aarch64:
-	docker buildx build --platform linux/arm64 -t $(PREFIX)_manylinux2014_aarch64:$(MANYLINUX_VERSION) -f Dockerfile.manylinux2014_aarch64 --push .
+.PHONY: base/manylinux/arm64
+base/manylinux/arm64:
+	docker buildx build \
+		--build-arg=PLATFORM=aarch64 \
+		--platform=linux/arm64 \
+		-t $(REGISTRY)/builder-manylinux:$(BASE_VERSION)-aarch64 \
+		-f base-manylinux.Dockerfile \
+		--push .
 
+.PHONY: base/musllinux/amd64
+base/musllinux/amd64:
+	docker buildx build \
+		--build-arg=PLATFORM=x86_64 \
+		--platform=linux/amd64 \
+		-t $(REGISTRY)/builder-musllinux:$(BASE_VERSION)-x86_64 \
+		-f base-musllinux.Dockerfile \
+		--push .
 
-.PHONY: push_cli_builder
-push_cli_builder:
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(PREFIX)_cli:$(CLI_BUILDER_VERSION) -f Dockerfile.cli_builder --push .
+.PHONY: base/musllinux/arm64
+base/musllinux/arm64:
+	docker buildx build \
+		--build-arg=PLATFORM=aarch64 \
+		--platform=linux/arm64 \
+		-t $(REGISTRY)/builder-musllinux:$(BASE_VERSION)-aarch64 \
+		-f base-musllinux.Dockerfile \
+		--push .
 
+.PHONY: base/all
+base/all: base/manylinux/amd64 base/manylinux/arm64 base/musllinux/amd64 base/musllinux/arm64

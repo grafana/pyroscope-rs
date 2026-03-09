@@ -1,13 +1,9 @@
 ARG PLATFORM=x86_64
-FROM quay.io/pypa/manylinux2014_${PLATFORM} AS builder
+ARG BASE_VERSION=v1
+ARG REGISTRY=ghcr.io/grafana/pyroscope-rs
+FROM ${REGISTRY}/builder-manylinux:${BASE_VERSION}-${PLATFORM} AS builder
 
-ENV RUST_VERSION=1.87
-RUN curl https://static.rust-lang.org/rustup/dist/$(arch)-unknown-linux-musl/rustup-init -o ./rustup-init \
-    && chmod +x ./rustup-init \
-    && ./rustup-init  -y --default-toolchain=${RUST_VERSION} --default-host=$(arch)-unknown-linux-gnu
-ENV PATH=/root/.cargo/bin:$PATH
-RUN yum -y install gcc libffi-devel perl-core wget gcc-c++ glibc-devel make
-
+USER root
 WORKDIR /pyroscope-rs
 
 ADD rustfmt.toml \
@@ -19,7 +15,7 @@ ADD src src
 ADD kit/ kit/
 ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
-RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release --no-default-features --features native-tls-vendored
+RUN --mount=type=cache,target=/opt/rust/cargo/registry cargo build -p ffiruby --release --no-default-features --features native-tls-vendored
 
 FROM ruby:4.0@sha256:66302616aabd939350e9bd7bc31ccad5ef993a5ba5e93f0cc029bb82e80a8d3b AS builder-gem
 WORKDIR /gem

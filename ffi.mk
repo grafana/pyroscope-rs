@@ -1,13 +1,13 @@
 
-MANYLINUX_PREFIX=pyroscope/rust_builder
-MANYLINUX_VERSION=4
-BUILD_ARCH_AMD=manylinux2014_x86_64
-BUILD_ARCH_ARM=manylinux2014_aarch64
+REGISTRY ?= ghcr.io/grafana/pyroscope-rs
+BASE_VERSION ?= v1
 
 .phony: wheel/linux/amd64
 wheel/linux/amd64:
 	docker buildx build \
 		--build-arg=PLATFORM=x86_64 \
+		--build-arg=REGISTRY=$(REGISTRY) \
+		--build-arg=BASE_VERSION=$(BASE_VERSION) \
 	 	--platform=linux/amd64 \
 	 	--output=. \
 	 	-f docker/wheel.Dockerfile \
@@ -17,6 +17,8 @@ wheel/linux/amd64:
 wheel/linux/arm64:
 	docker buildx build \
 		--build-arg=PLATFORM=aarch64 \
+		--build-arg=REGISTRY=$(REGISTRY) \
+		--build-arg=BASE_VERSION=$(BASE_VERSION) \
 	 	--platform=linux/arm64 \
 	 	--output=. \
 	 	-f docker/wheel.Dockerfile \
@@ -26,6 +28,8 @@ wheel/linux/arm64:
 wheel/musllinux/amd64:
 	docker buildx build \
 		--build-arg=PLATFORM=x86_64 \
+		--build-arg=REGISTRY=$(REGISTRY) \
+		--build-arg=BASE_VERSION=$(BASE_VERSION) \
 	 	--platform=linux/amd64 \
 	 	--output=. \
 	 	-f docker/wheel-musllinux.Dockerfile \
@@ -35,6 +39,8 @@ wheel/musllinux/amd64:
 wheel/musllinux/arm64:
 	docker buildx build \
 		--build-arg=PLATFORM=aarch64 \
+		--build-arg=REGISTRY=$(REGISTRY) \
+		--build-arg=BASE_VERSION=$(BASE_VERSION) \
 	 	--platform=linux/arm64 \
 	 	--output=. \
 	 	-f docker/wheel-musllinux.Dockerfile \
@@ -55,6 +61,8 @@ wheel/mac/arm64:
 gem/linux/amd64:
 	docker buildx build \
 		--build-arg=PLATFORM=x86_64 \
+		--build-arg=REGISTRY=$(REGISTRY) \
+		--build-arg=BASE_VERSION=$(BASE_VERSION) \
 		--build-arg="TARGET_TASK=x86_64_linux:gem" \
 		--output=pyroscope_ffi/ruby \
 	 	--platform=linux/amd64 \
@@ -65,6 +73,8 @@ gem/linux/amd64:
 gem/linux/arm64:
 	docker buildx build  \
 		--build-arg=PLATFORM=aarch64 \
+		--build-arg=REGISTRY=$(REGISTRY) \
+		--build-arg=BASE_VERSION=$(BASE_VERSION) \
 		--build-arg="TARGET_TASK=aarch64_linux:gem" \
 		--output=pyroscope_ffi/ruby \
 		--platform=linux/arm64 \

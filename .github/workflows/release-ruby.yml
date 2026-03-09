@@ -10,6 +10,7 @@ jobs:
   ruby-release-linux:
     permissions:
       contents: write
+      packages: read
     needs: [ 'ruby-release' ]
     name: Release Linux gem amd64
     runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
@@ -17,6 +18,10 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - run: make gem/linux/amd64
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
@@ -32,6 +37,7 @@ jobs:
   ruby-release-linux-arm:
     permissions:
       contents: write
+      packages: read
     needs: [ 'ruby-release' ]
     name: Release Linux gem arm64
     runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
@@ -39,6 +45,10 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - run: make gem/linux/arm64
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:

@@ -1,0 +1,72 @@
+name: Build Base Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/base-*.Dockerfile'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository }}
+  BASE_VERSION: v1
+
+jobs:
+  build-base-images:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: builder-manylinux-x86_64
+            dockerfile: docker/base-manylinux.Dockerfile
+            platform: linux/amd64
+            build-arg-platform: x86_64
+            image-name: builder-manylinux
+            tag-suffix: x86_64
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
+          - name: builder-manylinux-aarch64
+            dockerfile: docker/base-manylinux.Dockerfile
+            platform: linux/arm64
+            build-arg-platform: aarch64
+            image-name: builder-manylinux
+            tag-suffix: aarch64
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
+          - name: builder-musllinux-x86_64
+            dockerfile: docker/base-musllinux.Dockerfile
+            platform: linux/amd64
+            build-arg-platform: x86_64
+            image-name: builder-musllinux
+            tag-suffix: x86_64
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-large' || 'ubuntu-latest' }}
+          - name: builder-musllinux-aarch64
+            dockerfile: docker/base-musllinux.Dockerfile
+            platform: linux/arm64
+            build-arg-platform: aarch64
+            image-name: builder-musllinux
+            tag-suffix: aarch64
+            runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
+
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push
+        run: |
+          docker buildx build \
+            --build-arg=PLATFORM=${{ matrix.build-arg-platform }} \
+            --platform=${{ matrix.platform }} \
+            -t ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ env.BASE_VERSION }}-${{ matrix.tag-suffix }} \
+            -f ${{ matrix.dockerfile }} \
+            --push \
+            .
