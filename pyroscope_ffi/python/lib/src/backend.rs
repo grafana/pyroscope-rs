@@ -9,7 +9,7 @@ use pyroscope::{
 use std::{
     ops::Deref,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Mutex,
     },
     thread::JoinHandle,
@@ -102,6 +102,11 @@ impl Backend for Pyspy {
 
             let sampler_output = sampler.take_while(|_x| running.load(Ordering::Relaxed));
 
+            let asan_crash_after: Option<u64> = std::env::var("PYROSCOPE_ASAN_CRASH_AFTER_SAMPLES")
+                .ok()
+                .and_then(|v| v.parse().ok());
+            let sample_count = AtomicU64::new(0);
+
             for sample in sampler_output {
                 for trace in sample.traces {
                     if !(config.include_idle || trace.active) {
@@ -116,6 +121,22 @@ impl Backend for Pyspy {
                         Into::<StackTraceWrapper>::into((trace.clone(), &backend_config)).into();
 
                     let stacktrace = own_trace + &ruleset.lock()?.clone();
+
+                    if let Some(crash_at) = asan_crash_after {
+                        let n = sample_count.fetch_add(1, Ordering::Relaxed);
+                        if n % 10 == 0 {
+                            eprintln!("[pyroscope-asan-test] sample_count={}", n);
+                        }
+                        if n == crash_at {
+                            eprintln!("[pyroscope-asan-test] triggering OOB heap read at sample {}", n);
+                            let v: Vec<u8> = vec![1, 2, 3];
+                            unsafe {
+                                let ptr = v.as_ptr();
+                                let _oob = std::ptr::read_volatile(ptr.add(128));
+                            }
+                            eprintln!("[pyroscope-asan-test] OOB read did not crash — ASAN may not be active");
+                        }
+                    }
 
                     buffer.lock()?.record(stacktrace)?;
                 }

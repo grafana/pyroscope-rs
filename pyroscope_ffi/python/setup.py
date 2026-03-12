@@ -8,18 +8,19 @@ os.chdir(SCRIPT_DIR)
 LIB_DIR = str(SCRIPT_DIR / "lib")
 
 def build_native(spec):
-    # Step 1: build the rust library
+    # Step 1: build the rust library with ASAN enabled by default
+    asan_env = os.environ.copy()
+    asan_env['RUSTFLAGS'] = '-Zsanitizer=address'
+    asan_env['CARGO_BUILD_TARGET'] = 'x86_64-unknown-linux-gnu'
     build = spec.add_external_build(
-        cmd=['cargo', 'build', '-p' 'pyroscope_ffi', '--release'],
-        path=LIB_DIR
+        cmd=['cargo', '+nightly', 'build', '-p', 'pyroscope_ffi',
+             '--target', 'x86_64-unknown-linux-gnu'],
+        path=LIB_DIR,
+        env=asan_env,
     )
 
     def find_dylib():
-        cargo_target = os.environ.get('CARGO_BUILD_TARGET')
-        if cargo_target:
-            in_path = '../../../target/%s/release' % (cargo_target)
-        else:
-            in_path = '../../../target/release'
+        in_path = '../../../target/x86_64-unknown-linux-gnu/debug'
         return build.find_dylib('pyroscope_ffi', in_path=in_path)
 
     # Step 2: package the compiled library

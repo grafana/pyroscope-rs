@@ -1,0 +1,66 @@
+FROM debian:trixie
+
+RUN apt-get update && apt-get install -y \
+    clang \
+    llvm \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
+    wget \
+    curl \
+    git \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust nightly
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && . /root/.cargo/env \
+    && rustup toolchain install nightly \
+    && rustup default nightly
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Build CPython 3.11 with ASAN
+ARG PYTHON_VERSION=3.11.15
+RUN wget -q https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz \
+    && tar xzf Python-${PYTHON_VERSION}.tgz \
+    && cd Python-${PYTHON_VERSION} \
+    && CC=clang CXX=clang++ \
+       CFLAGS="-fsanitize=address -fno-omit-frame-pointer -g" \
+       LDFLAGS="-fsanitize=address" \
+       ./configure --prefix=/opt/cpython-asan --with-pydebug --without-pymalloc \
+    && ASAN_OPTIONS=detect_leaks=0 make -j$(nproc) \
+    && ASAN_OPTIONS=detect_leaks=0 make install \
+    && cd / && rm -rf Python-${PYTHON_VERSION}*
+
+ENV PATH="/opt/cpython-asan/bin:${PATH}"
+
+# Install Python build dependencies
+RUN ASAN_OPTIONS=detect_leaks=0 python3.11 -m pip install --upgrade pip setuptools wheel \
+    && ASAN_OPTIONS=detect_leaks=0 python3.11 -m pip install pyromilksnakex==0.1.8 cffi pycparser
+
+# Clone the ASAN build branch and build the wheel
+RUN git clone --depth=1 --branch vk/asan-build-support --single-branch \
+    https://github.com/korniltsev-grafanista-yolo-vibecoder239/pyroscope-rs.git /pyroscope-rs
+
+WORKDIR /pyroscope-rs/pyroscope_ffi/python
+
+RUN ASAN_OPTIONS=detect_leaks=0 python3.11 setup.py bdist_wheel \
+    && ASAN_OPTIONS=detect_leaks=0 python3.11 -m pip install dist/pyroscope_io-*.whl
+
+# Verify the install
+RUN cd /tmp && ASAN_OPTIONS=detect_leaks=0 python3.11 -c "import pyroscope; print('pyroscope imported OK')"
+
+RUN mkdir -p /app && cp /pyroscope-rs/pyroscope_ffi/python/scripts/tests/test_asan.py /app/test_asan.py
+
+WORKDIR /app
+ENV ASAN_OPTIONS=detect_leaks=0
+
+CMD ["python3.11", "test_asan.py"]
