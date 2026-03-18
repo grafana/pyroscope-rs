@@ -49,7 +49,7 @@ case "$lang" in
     echo "Ruby versions bumped: gem/rust cargo $ruby_current -> $ruby_new"
     ;;
   python)
-    python_current="$(sed -n 's/^version = "\([0-9]*\.[0-9]*\.[0-9]*\)"/\1/p' pyproject.toml)"
+    python_current="$(sed -n 's/^version = "\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/p' pyproject.toml)"
     python_new="$(bump_semver "$python_current")"
     sed -i -E "s/^(version = \")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$python_new\2/" pyproject.toml
     sed -i -E "0,/^version = \"[0-9]+\.[0-9]+\.[0-9]+\"/s//version = \"$python_new\"/" pyroscope_ffi/python/rust/Cargo.toml

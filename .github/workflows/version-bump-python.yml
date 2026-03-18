@@ -61,7 +61,7 @@ jobs:
 
           BUMP="$BUMP_TYPE" ./ci/bump_ffi_version.sh python
 
-          new_version=$(sed -n 's/^version = "\([0-9]*\.[0-9]*\.[0-9]*\)"/\1/p' pyproject.toml)
+          new_version=$(sed -n 's/^version = "\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/p' pyproject.toml)
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
 
       - name: Get GitHub App User ID
