@@ -15,7 +15,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: ./ci/check-tag-version.sh "$TAG"
-      - uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+      - uses: softprops/action-gh-release@b25b93d384199fc0fc8c2e126b2d937a0cbeb2ae # v2.5.2
         with:
           tag_name: "${{ github.ref_name }}"
           name: "pyroscope-${{ github.ref_name }}"
@@ -34,7 +34,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: ./ci/check-tag-version.sh "$TAG"
-      - uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+      - uses: softprops/action-gh-release@b25b93d384199fc0fc8c2e126b2d937a0cbeb2ae # v2.5.2
         with:
           tag_name: "${{ github.ref_name }}"
           name: "kindasafe ${{ github.ref_name }}"
