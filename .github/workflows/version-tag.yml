@@ -1,0 +1,90 @@
+name: Create Release Tag
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  tag:
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    steps:
+      - name: Check if release commit
+        id: check
+        run: |
+          COMMIT_MSG=$(jq -r '.head_commit.message' "$GITHUB_EVENT_PATH")
+
+          # Match commit messages from version bump PRs
+          # Direct merge/rebase: "python version X.Y.Z", "ruby version X.Y.Z", "lib version X.Y.Z"
+          # Squash merge: "Release python-vX.Y.Z ...", "Release ruby-vX.Y.Z ...", "Release lib-vX.Y.Z ..."
+          if [[ "$COMMIT_MSG" =~ ^python\ version\ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "tag=python-${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$COMMIT_MSG" =~ ^Release\ python-v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "tag=python-${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$COMMIT_MSG" =~ ^ruby\ version\ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "tag=ruby-${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$COMMIT_MSG" =~ ^Release\ ruby-v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "tag=ruby-${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$COMMIT_MSG" =~ ^lib\ version\ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "tag=lib-${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$COMMIT_MSG" =~ ^Release\ lib-v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "tag=lib-${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get secrets
+        if: steps.check.outputs.is_release == 'true'
+        uses: grafana/shared-workflows/actions/get-vault-secrets@ac5193564bb463032623a9a0ba23716f866f309c
+        with:
+          repo_secrets: |
+            GITHUB_APP_ID=pyroscope-development-app:app-id
+            GITHUB_APP_PRIVATE_KEY=pyroscope-development-app:app-private-key
+
+      - name: Generate GitHub token
+        if: steps.check.outputs.is_release == 'true'
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2
+        id: app-token
+        with:
+          app-id: ${{ env.GITHUB_APP_ID }}
+          private-key: ${{ env.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        if: steps.check.outputs.is_release == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
+
+      - name: Get GitHub App User ID
+        if: steps.check.outputs.is_release == 'true'
+        id: get-user-id
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          APP_BOT="${APP_SLUG}[bot]"
+          echo "user-id=$(gh api "/users/${APP_BOT}" --jq .id)" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: steps.check.outputs.is_release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          USER_ID: ${{ steps.get-user-id.outputs.user-id }}
+          TAG: ${{ steps.check.outputs.tag }}
+        run: |
+          APP_BOT="${APP_SLUG}[bot]"
+          git config --global user.name "${APP_BOT}"
+          git config --global user.email "${USER_ID}+${APP_BOT}@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "${TAG}"

@@ -1,0 +1,101 @@
+name: Version Bump Ruby
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version Bump Type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  prepare:
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    steps:
+      - name: Get secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@ac5193564bb463032623a9a0ba23716f866f309c
+        with:
+          repo_secrets: |
+            GITHUB_APP_ID=pyroscope-development-app:app-id
+            GITHUB_APP_PRIVATE_KEY=pyroscope-development-app:app-private-key
+
+      - name: Generate GitHub token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2
+        id: app-token
+        with:
+          app-id: ${{ env.GITHUB_APP_ID }}
+          private-key: ${{ env.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        with:
+          toolchain: 1.88.0
+
+      - name: Bump version
+        id: bump_version
+        env:
+          VERSION_BUMP: ${{ inputs.version_bump }}
+        run: |
+          # Map workflow input to bump_ffi_version.sh BUMP value
+          case "$VERSION_BUMP" in
+            "patch") BUMP_TYPE="fix" ;;
+            "minor") BUMP_TYPE="minor" ;;
+            "major") BUMP_TYPE="major" ;;
+          esac
+
+          BUMP="$BUMP_TYPE" ./ci/bump_ffi_version.sh ruby
+
+          new_version=$(sed -n "s/.*VERSION = '\([0-9]*\.[0-9]*\.[0-9]*\)'.*/\1/p" pyroscope_ffi/ruby/lib/pyroscope/version.rb)
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+
+      - name: Get GitHub App User ID
+        id: get-user-id
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          APP_BOT="${APP_SLUG}[bot]"
+          echo "user-id=$(gh api "/users/${APP_BOT}" --jq .id)" >> "$GITHUB_OUTPUT"
+
+      - name: Create release branch and PR
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          USER_ID: ${{ steps.get-user-id.outputs.user-id }}
+          VERSION: ${{ steps.bump_version.outputs.version }}
+        run: |
+          APP_BOT="${APP_SLUG}[bot]"
+          git config --global user.name "${APP_BOT}"
+          git config --global user.email "${USER_ID}+${APP_BOT}@users.noreply.github.com"
+
+          BRANCH="release/ruby-v${VERSION}"
+          git checkout -b "${BRANCH}"
+          git add pyroscope_ffi/ruby/lib/pyroscope/version.rb pyroscope_ffi/ruby/ext/rbspy/Cargo.toml Cargo.lock
+          git commit -m "ruby version ${VERSION}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "Release ruby-v${VERSION}" \
+            --body "Automated release PR for Ruby version ${VERSION}.
+
+          Once this PR is merged, the version-tag workflow will automatically:
+          - Create the ruby-${VERSION} tag
+          - Trigger the release and publish pipelines"

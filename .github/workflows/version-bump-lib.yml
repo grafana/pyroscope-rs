@@ -1,0 +1,116 @@
+name: Version Bump Lib
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version Bump Type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  prepare:
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    steps:
+      - name: Get secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@ac5193564bb463032623a9a0ba23716f866f309c
+        with:
+          repo_secrets: |
+            GITHUB_APP_ID=pyroscope-development-app:app-id
+            GITHUB_APP_PRIVATE_KEY=pyroscope-development-app:app-private-key
+
+      - name: Generate GitHub token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2
+        id: app-token
+        with:
+          app-id: ${{ env.GITHUB_APP_ID }}
+          private-key: ${{ env.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        with:
+          toolchain: 1.88.0
+
+      - name: Bump version
+        id: bump_version
+        env:
+          VERSION_BUMP: ${{ inputs.version_bump }}
+        run: |
+          current_version=$(awk -F'=' '/^version[[:space:]]*=/{gsub(/[[:space:]"]/, "", $2); print $2; exit}' Cargo.toml)
+          echo "Current version: $current_version"
+
+          IFS='.' read -r major minor patch <<< "$current_version"
+
+          case "$VERSION_BUMP" in
+            "major")
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            "minor")
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            "patch")
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          new_version="${major}.${minor}.${patch}"
+          echo "New version: $new_version"
+
+          sed -i -E "0,/^version = \"[0-9]+\.[0-9]+\.[0-9]+\"/s//version = \"$new_version\"/" Cargo.toml
+          cargo update --package pyroscope
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+
+      - name: Get GitHub App User ID
+        id: get-user-id
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          APP_BOT="${APP_SLUG}[bot]"
+          echo "user-id=$(gh api "/users/${APP_BOT}" --jq .id)" >> "$GITHUB_OUTPUT"
+
+      - name: Create release branch and PR
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          USER_ID: ${{ steps.get-user-id.outputs.user-id }}
+          VERSION: ${{ steps.bump_version.outputs.version }}
+        run: |
+          APP_BOT="${APP_SLUG}[bot]"
+          git config --global user.name "${APP_BOT}"
+          git config --global user.email "${USER_ID}+${APP_BOT}@users.noreply.github.com"
+
+          BRANCH="release/lib-v${VERSION}"
+          git checkout -b "${BRANCH}"
+          git add Cargo.toml Cargo.lock
+          git commit -m "lib version ${VERSION}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "Release lib-v${VERSION}" \
+            --body "Automated release PR for pyroscope lib version ${VERSION}.
+
+          Once this PR is merged, the version-tag workflow will automatically:
+          - Create the lib-${VERSION} tag
+          - Trigger the release and publish pipelines"
