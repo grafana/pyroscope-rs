@@ -32,7 +32,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ruby/setup-ruby@19a43a6a2428d455dbd1b85344698725179c9d8c # v1.289.0
         with:
-          ruby-version: '4.0.1'
+          ruby-version: '4.0.2'
       - run: |
           set -ex
           cd dist
