@@ -24,7 +24,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: softprops/action-gh-release@1853d73993c8ca1b2c9c1a7fede39682d0ab5c2a # v2.5.3
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
@@ -46,7 +46,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: softprops/action-gh-release@1853d73993c8ca1b2c9c1a7fede39682d0ab5c2a # v2.5.3
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
@@ -89,7 +89,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: softprops/action-gh-release@1853d73993c8ca1b2c9c1a7fede39682d0ab5c2a # v2.5.3
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
@@ -124,7 +124,7 @@ jobs:
           path: pyroscope_ffi/ruby/pkg/*.gem
 
       - name: Upload release artifact
-        uses: softprops/action-gh-release@1853d73993c8ca1b2c9c1a7fede39682d0ab5c2a # v2.5.3
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           draft: true
           files: pyroscope_ffi/ruby/pkg/*.gem
@@ -143,7 +143,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: ./ci/check-tag-version.sh "$TAG"
       - id: auto-release
-        uses: softprops/action-gh-release@1853d73993c8ca1b2c9c1a7fede39682d0ab5c2a # v2.5.3
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           tag_name: "${{ github.ref_name }}"
           name: "Ruby Gem: ${{ github.ref_name }}"
