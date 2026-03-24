@@ -10,4 +10,4 @@ memmap2 = "0.9"
 
 [dev-dependencies]
 anyhow = "=1.0.102"
-libc = "=0.2.182"
+libc = "=0.2.183"
