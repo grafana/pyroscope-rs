@@ -12,5 +12,5 @@ debug-print = []
 spin = { version = "0.10.0" }
 
 [dev-dependencies]
-libc = "=0.2.182"
+libc = "=0.2.183"
 anyhow = "=1.0.102"
