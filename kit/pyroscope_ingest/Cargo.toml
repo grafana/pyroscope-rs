@@ -12,4 +12,4 @@ uuid = { workspace = true }
 flate2 = { workspace = true }
 
 [dev-dependencies]
-mockito = "1"
+mockito = "=1.7.2"
