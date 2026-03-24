@@ -38,7 +38,7 @@ ADD pyroscope_ffi/ pyroscope_ffi/
 # TODO --frozen
 RUN --mount=type=cache,target=/root/.cargo/registry cargo build -p ffiruby --release
 
-FROM ruby:4.0@sha256:66302616aabd939350e9bd7bc31ccad5ef993a5ba5e93f0cc029bb82e80a8d3b AS builder-gem
+FROM ruby:4.0@sha256:d0996dba0e549565279d666a436053d6489bce8df19d2b1024e7de559c6b079d AS builder-gem
 WORKDIR /gem
 ADD pyroscope_ffi/ruby /gem/
 
