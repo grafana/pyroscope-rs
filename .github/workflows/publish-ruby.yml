@@ -30,7 +30,7 @@ jobs:
           zipBall: false
           out-file-path: "dist"
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: ruby/setup-ruby@19a43a6a2428d455dbd1b85344698725179c9d8c # v1.289.0
+      - uses: ruby/setup-ruby@c515ec17f69368147deb311832da000dd229d338 # v1.297.0
         with:
           ruby-version: '4.0.1'
       - run: |
