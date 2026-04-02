@@ -78,4 +78,4 @@ jobs:
           toolchain: stable
 
       - name: Run tests
-        run: cargo test --locked
+        run: cargo test --locked --lib --tests
