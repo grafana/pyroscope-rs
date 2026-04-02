@@ -15,12 +15,8 @@ pprofrs/test:
 	cargo  test --manifest-path Cargo.toml --features backend-pprof-rs
 
 
-.PHONY: ffikit/test
-ffikit/test:
-	cargo  test --manifest-path pyroscope_ffi/ffikit/Cargo.toml
-
 .PHONY: test
-test: pprofrs/test  lib/test ffikit/test
+test: pprofrs/test  lib/test
 
 
 .PHONY: rust/fmt
@@ -32,30 +28,12 @@ rust/fmt:
 rust/fmt/check:
 	cargo fmt --all --check
 
-
-.PHONY: ruby/version/bump
-ruby/version/bump:
-	BUMP=$(BUMP) bash ci/bump_ffi_version.sh ruby
-
-
-.PHONY: python/version/bump
-python/version/bump:
-	BUMP=$(BUMP) bash ci/bump_ffi_version.sh python
-
-
-.PHONY: ffi/python/header
-ffi/python/header:
-	cd pyroscope_ffi/python/rust && cbindgen --config cbindgen.toml --output include/pyroscope_ffi.h
-
-
-.PHONY: ffi/python/cffi
-ffi/python/cffi:
-	python pyroscope_ffi/python/scripts/tests/compile_ffi.py
-
-
-.PHONY: ffi/ruby/header
-ffi/ruby/header:
-	cd pyroscope_ffi/ruby/ext/rbspy && cbindgen --config cbindgen.toml --output include/rbspy.h
-
-
-include ffi.mk
+.PHONY: check/lib-tag-version
+check/lib-tag-version:
+	@TAG_VERSION=$${TAG#lib-}; \
+	CARGO_VERSION=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1); \
+	if [ "$$TAG_VERSION" != "$$CARGO_VERSION" ]; then \
+		echo "error: tag version ($$TAG_VERSION) does not match Cargo.toml version ($$CARGO_VERSION)"; \
+		exit 1; \
+	fi; \
+	echo "tag version ($$TAG_VERSION) matches Cargo.toml version ($$CARGO_VERSION)"
