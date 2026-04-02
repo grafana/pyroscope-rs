@@ -67,7 +67,6 @@ jobs:
         package:
           - pyroscope
           - pyroscope_python_extension
-          - ffiruby
           - kindasafe
           - kindasafe_init
     steps:

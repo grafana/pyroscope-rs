@@ -8,7 +8,6 @@ set -euo pipefail
 # Supported tag formats:
 #   lib-X.Y.Z       → checks root Cargo.toml (pyroscope crate)
 #   python-X.Y.Z    → checks pyroscope_ffi/python/rust/Cargo.toml
-#   ruby-X.Y.Z      → checks pyroscope_ffi/ruby/ext/rbspy/Cargo.toml
 #   kindasafe-X.Y.Z → checks kit/kindasafe/Cargo.toml
 
 cd "$(dirname "$0")/.."
@@ -29,15 +28,12 @@ if [[ "$TAG" =~ ^lib-(.+)$ ]]; then
 elif [[ "$TAG" =~ ^python-(.+)$ ]]; then
   tag_version="${BASH_REMATCH[1]}"
   cargo_file="pyroscope_ffi/python/rust/Cargo.toml"
-elif [[ "$TAG" =~ ^ruby-(.+)$ ]]; then
-  tag_version="${BASH_REMATCH[1]}"
-  cargo_file="pyroscope_ffi/ruby/ext/rbspy/Cargo.toml"
 elif [[ "$TAG" =~ ^kindasafe-(.+)$ ]]; then
   tag_version="${BASH_REMATCH[1]}"
   cargo_file="kit/kindasafe/Cargo.toml"
 else
   echo "Unknown tag format: $TAG"
-  echo "Expected one of: lib-X.Y.Z, python-X.Y.Z, ruby-X.Y.Z, kindasafe-X.Y.Z"
+  echo "Expected one of: lib-X.Y.Z, python-X.Y.Z, kindasafe-X.Y.Z"
   exit 1
 fi
 

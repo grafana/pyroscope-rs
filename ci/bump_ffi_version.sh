@@ -5,7 +5,7 @@ lang="${1:-}"
 bump_part="${BUMP:-fix}"
 
 if [[ -z "$lang" ]]; then
-  echo "Usage: BUMP=<major|minor|fix> $0 <ruby|python>" >&2
+  echo "Usage: BUMP=<major|minor|fix> $0 <python>" >&2
   exit 1
 fi
 
@@ -40,14 +40,6 @@ bump_semver() {
 }
 
 case "$lang" in
-  ruby)
-    ruby_current="$(sed -n "s/.*VERSION = '\([0-9]*\.[0-9]*\.[0-9]*\)'.*/\1/p" pyroscope_ffi/ruby/lib/pyroscope/version.rb)"
-    ruby_new="$(bump_semver "$ruby_current")"
-    sed -i -E "s/(VERSION = ')[0-9]+\.[0-9]+\.[0-9]+('\\.freeze)/\1$ruby_new\2/" pyroscope_ffi/ruby/lib/pyroscope/version.rb
-    sed -i -E "0,/^version = \"[0-9]+\.[0-9]+\.[0-9]+\"/s//version = \"$ruby_new\"/" pyroscope_ffi/ruby/ext/rbspy/Cargo.toml
-    cargo update --package ffiruby
-    echo "Ruby versions bumped: gem/rust cargo $ruby_current -> $ruby_new"
-    ;;
   python)
     python_current="$(sed -n 's/^version = "\([0-9]*\.[0-9]*\.[0-9]*\)"/\1/p' pyproject.toml)"
     python_new="$(bump_semver "$python_current")"
