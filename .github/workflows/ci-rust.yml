@@ -42,28 +42,6 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
 
-  codegen:
-    name: check generated files
-    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
-        with:
-          toolchain: stable
-          components: rustfmt
-
-      - name: Install bindgen-cli
-        run: cargo install bindgen-cli
-
-      - name: Regenerate py314.rs
-        run: cd kit/python_offsets && ./gen_debug_offsets.sh v3.14.0 py314
-
-      - name: Assert no diff
-        run: git diff --exit-code kit/python_offsets_types/src/py314.rs
-
   kindasafe-versions:
     name: check kindasafe versions
     runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}

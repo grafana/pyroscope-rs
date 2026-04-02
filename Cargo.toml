@@ -24,17 +24,6 @@ members = [
     "pyroscope_ffi/python/rust",
     "kit/kindasafe",
     "kit/kindasafe_init",
-    "kit/sighandler",
-    "kit/pyroscope_ingest",
-    "kit/pprof_enc",
-    "kit/notlibc",
-    "kit/python_offsets",
-    "kit/python_offsets_types",
-    "kit/python_unwind",
-    "kit/coredump",
-    "kit/sig_ring",
-    "kit/pysignalprof",
-    "kit/pysignalprof_capi",
 ]
 
 [workspace.dependencies]
@@ -49,7 +38,6 @@ libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
 jemalloc_pprof = { version = "0.8", features = ["symbolize"]}
-tokio = { version = "1", features = ["rt"]}
 pprof = { package = "pprof-pyroscope-fork", version = "0.1500.2", features = ["framehop", "framehop-unwinder"] }
 lazy_static = "1.5.0"
 assert_matches = "=1.5.0"
@@ -58,7 +46,6 @@ pretty_env_logger = "0.5.0"
 rbspy = { version = "0.44" }
 remoteprocess = "0.5.0"
 anyhow = "1.0"
-flate2 = "1.1"
 py-spy = { git = "https://github.com/grafana/py-spy", rev = "5f1661d", default-features = false }
 
 
