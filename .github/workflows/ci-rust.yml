@@ -43,8 +43,9 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
 
   test:
-    name: cargo test (${{ matrix.arch.name }})
+    name: cargo test (${{ matrix.arch.name }}, ${{ matrix.libc.name }})
     runs-on: ${{ matrix.arch.runner }}
+    container: ${{ matrix.libc.container }}
     strategy:
       fail-fast: false
       matrix:
@@ -53,12 +54,22 @@ jobs:
             runner: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
           - name: arm64
             runner: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
+        libc:
+          - name: glibc
+            container: ""
+          - name: musl
+            container: "rust:alpine"
     steps:
+      - name: Install Alpine dependencies
+        if: matrix.libc.name == 'musl'
+        run: apk add --no-cache git make
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        if: matrix.libc.name == 'glibc'
         with:
           toolchain: stable
 
