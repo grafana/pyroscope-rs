@@ -19,6 +19,13 @@
         "minor"
       ],
       "enabled": false
+    },
+    {
+      "description": "Allow all updates for critical profiling dependencies",
+      "matchDepNames": [
+        "pprof-pyroscope-fork"
+      ],
+      "enabled": true
     }
   ],
   "customManagers": [
