@@ -79,4 +79,4 @@ jobs:
           persist-credentials: false
 
       - name: Run tests
-        run: docker build --build-arg BASE_IMAGE=${{ matrix.libc.base_image }} -f ci/test.Dockerfile .
+        run: docker build --progress=plain --build-arg BASE_IMAGE=${{ matrix.libc.base_image }} -f ci/test.Dockerfile .
