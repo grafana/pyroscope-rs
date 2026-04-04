@@ -9,14 +9,20 @@ const LOG_TAG: &str = "Pyroscope::Jemalloc";
 ///
 /// # Example
 ///
-/// ```ignore
-/// use pyroscope::PyroscopeAgent;
+/// ```no_run
+/// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 /// use pyroscope::backend::jemalloc::jemalloc_backend;
 ///
-/// let agent = PyroscopeAgent::builder("http://localhost:4040", "my-app")
-///     .backend(jemalloc_backend())
-///     .build()?;
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let agent = PyroscopeAgentBuilder::new(
+///     "http://localhost:4040", "my-app", 100,
+///     "pyroscope-rs", env!("CARGO_PKG_VERSION"),
+///     jemalloc_backend(),
+/// )
+/// .build()?;
 /// agent.start()?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn jemalloc_backend() -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Jemalloc))

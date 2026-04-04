@@ -40,7 +40,22 @@ jobs:
           components: clippy
 
       - name: Run clippy
-        run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
+        run: cargo clippy --locked --workspace --all-targets --all-features -- --deny warnings
+
+  doc-tests:
+    name: cargo test --doc
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        with:
+          toolchain: stable
+
+      - name: Run doc tests
+        run: cargo test --doc --locked --all-features
 
   test:
     name: cargo test (${{ matrix.arch.name }})
@@ -63,4 +78,4 @@ jobs:
           toolchain: stable
 
       - name: Run tests
-        run: cargo test --locked
+        run: cargo test --locked --lib --tests
