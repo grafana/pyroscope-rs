@@ -43,7 +43,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
 
   test:
-    name: cargo test (${{ matrix.arch.name }})
+    name: cargo test (${{ matrix.arch.name }}, ${{ matrix.libc.name }})
     runs-on: ${{ matrix.arch.runner }}
     strategy:
       fail-fast: false
@@ -53,14 +53,15 @@ jobs:
             runner: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
           - name: arm64
             runner: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
+        libc:
+          - name: glibc
+            base_image: "rust:trixie"
+          - name: musl
+            base_image: "rust:alpine"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
-        with:
-          toolchain: stable
-
       - name: Run tests
-        run: cargo test --locked
+        run: docker build --progress=plain --build-arg BASE_IMAGE=${{ matrix.libc.base_image }} -f ci/test.Dockerfile .
