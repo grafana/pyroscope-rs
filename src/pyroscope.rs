@@ -81,7 +81,8 @@ impl PyroscopeConfig {
     /// Create a new PyroscopeConfig object.
     ///
     /// # Example
-    /// ```ignore
+    /// ```
+    /// use pyroscope::pyroscope::PyroscopeConfig;
     /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app", 100, "pyspy", "0.8.16");
     /// ```
     pub fn new(
@@ -131,10 +132,10 @@ impl PyroscopeConfig {
     /// Set the tags.
     ///
     /// # Example
-    /// ```ignore
+    /// ```
     /// use pyroscope::pyroscope::PyroscopeConfig;
-    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app")
-    ///    .tags(vec![("env", "dev")])?;
+    /// let config = PyroscopeConfig::new("http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0")
+    ///    .tags(vec![("env", "dev")]);
     /// ```
     pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         // Convert &[(&str, &str)] to HashMap(String, String)
@@ -168,14 +169,19 @@ impl PyroscopeConfig {
 
 /// PyroscopeAgent Builder
 ///
-/// Alternatively, you can use PyroscopeAgent::build() which is a short-hand
-/// for calling PyroscopeAgentBuilder::new()
-///
 /// # Example
-/// ```ignore
+/// ```no_run
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
-/// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app", 100, "pyspy", "0.8.16", backend);
-/// let agent = builder.build()?;
+/// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let agent = PyroscopeAgentBuilder::new(
+///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
+///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
+/// )
+/// .build()?;
+/// # Ok(())
+/// # }
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
@@ -188,8 +194,14 @@ impl PyroscopeAgentBuilder {
     /// Create a new PyroscopeAgentBuilder object.
     ///
     /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app", 100, "pyspy", "0.8.16", backend);
+    /// ```no_run
+    /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+    ///
+    /// let builder = PyroscopeAgentBuilder::new(
+    ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
+    ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
+    /// );
     /// ```
     pub fn new(
         url: impl AsRef<str>,
@@ -205,14 +217,22 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// Set the Pyroscope Server URL. This can be used if the Builder was initialized with the default
-    /// trait. Default is "http://localhost:4040".
+    /// Override the Pyroscope Server URL.
     ///
     /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::default()
+    /// ```no_run
+    /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let agent = PyroscopeAgentBuilder::new(
+    ///     "http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0",
+    ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
+    /// )
     /// .url("http://localhost:8080")
     /// .build()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn url(self, url: impl AsRef<str>) -> Self {
         Self {
@@ -232,15 +252,21 @@ impl PyroscopeAgentBuilder {
 
     /// Set the Function.
     /// This is optional. If not set, the agent will not apply any function.
-    /// #Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
-    /// .func(|report| {
-    ///    report
-    ///    })
-    ///    .build()
-    ///    ?;
-    ///    ```
+    /// # Example
+    /// ```no_run
+    /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let agent = PyroscopeAgentBuilder::new(
+    ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
+    ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
+    /// )
+    /// .func(|report| report)
+    /// .build()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn func(self, func: fn(Report) -> Report) -> Self {
         Self {
             config: self.config.func(func),
@@ -251,10 +277,19 @@ impl PyroscopeAgentBuilder {
     /// Set tags. Default is empty.
     ///
     /// # Example
-    /// ```ignore
-    /// let builder = PyroscopeAgentBuilder::new("http://localhost:8080", "my-app")
+    /// ```no_run
+    /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let agent = PyroscopeAgentBuilder::new(
+    ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
+    ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
+    /// )
     /// .tags(vec![("env", "dev")])
     /// .build()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
@@ -432,9 +467,14 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
     /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s seconds.
     ///
     /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
+    /// ```no_run
+    /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// let agent_running = agent.start()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn start(mut self) -> Result<PyroscopeAgent<PyroscopeAgentRunning>> {
         log::debug!(target: LOG_TAG, "Starting");
@@ -511,11 +551,15 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     ///
     /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// let agent_running = agent.start()?;
-    /// // Expensive operation
-    /// let agent_ready = agent_running.stop();
+    /// ```no_run
+    /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
+    /// # let agent_running = agent.start()?;
+    /// let agent_ready = agent_running.stop()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn stop(mut self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
         log::debug!(target: LOG_TAG, "Stopping");
@@ -541,10 +585,15 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// thread boundaries. This function can be called multiple times.
     ///
     /// # Example
-    /// ```ignore
-    /// let agent = PyroscopeAgent::builder("http://localhost:8080", "my-app").build()?;
-    /// let agent_running = agent.start()?;
+    /// ```no_run
+    /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
+    /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
+    /// # let agent_running = agent.start()?;
     /// let (add_tag, remove_tag) = agent_running.tag_wrapper();
+    /// # Ok(())
+    /// # }
     /// ```
     ///
     /// The functions can be later called from any thread.
