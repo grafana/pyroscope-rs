@@ -21,68 +21,54 @@ fn busy_work(duration: Duration) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    eprintln!("=== Granular memory investigation ===");
+    eprintln!("=== Memory investigation (issue #127) ===");
     eprintln!();
     eprintln!("[0] Baseline RSS: {:.1} MB", rss_mb());
 
-    // Step 1: Just calling backtrace::Backtrace::new() — triggers DWARF loading
-    eprintln!();
-    eprintln!("--- Step 1: backtrace::Backtrace::new() ---");
-    let _bt = backtrace::Backtrace::new();
-    eprintln!("[1] After backtrace::Backtrace::new(): {:.1} MB", rss_mb());
-    drop(_bt);
-    eprintln!("[1b] After dropping backtrace: {:.1} MB", rss_mb());
-
-    // Step 2: Build ProfilerGuard (triggers trigger_lazy + Collector + UNWINDER)
-    eprintln!();
-    eprintln!("--- Step 2: ProfilerGuardBuilder::default().build() ---");
+    // ProfilerGuard::build() internally calls trigger_lazy() which runs
+    // backtrace::Backtrace::new() (primes the global DWARF cache) and
+    // creates the Collector<UnresolvedFrames> (~18 MB pre-allocation).
     let guard = pprof::ProfilerGuardBuilder::default()
         .frequency(100)
         .build()
         .unwrap();
-    eprintln!("[2] After ProfilerGuard build: {:.1} MB", rss_mb());
+    eprintln!("[1] After ProfilerGuard::build(): {:.1} MB", rss_mb());
 
-    // Step 3: Collect some samples
-    eprintln!();
-    eprintln!("--- Step 3: Busy work for 3s to collect samples ---");
     busy_work(Duration::from_secs(3));
-    eprintln!("[3] After collecting samples: {:.1} MB", rss_mb());
+    eprintln!("[2] After collecting samples (3s): {:.1} MB", rss_mb());
 
-    // Step 4: Build report (triggers symbol resolution via backtrace::resolve)
-    eprintln!();
-    eprintln!("--- Step 4: guard.report().build() (symbol resolution) ---");
+    // report().build() resolves symbols via backtrace::resolve() for each
+    // frame, which may load additional DWARF sections into the global cache.
     let report = guard.report().build().unwrap();
     eprintln!(
-        "[4] After report().build(): {:.1} MB  (report has {} unique stacks)",
+        "[3] After report().build(): {:.1} MB  ({} unique stacks)",
         rss_mb(),
         report.data.len()
     );
     drop(report);
-    eprintln!("[4b] After dropping report: {:.1} MB", rss_mb());
 
-    // Step 5: Drop guard, build new one, collect, report again
-    eprintln!();
-    eprintln!("--- Step 5: Drop guard, build new, collect, report ---");
+    // Dropping the guard calls Profiler::stop() → Profiler::init() which
+    // allocates a new Collector before dropping the old one. glibc keeps
+    // the freed pages mapped, so RSS increases by ~18 MB and never shrinks.
     drop(guard);
-    eprintln!("[5a] After dropping guard: {:.1} MB", rss_mb());
+    eprintln!("[4] After dropping guard: {:.1} MB", rss_mb());
 
+    // Second cycle to show memory is stable (no unbounded growth).
     let guard2 = pprof::ProfilerGuardBuilder::default()
         .frequency(100)
         .build()
         .unwrap();
-    eprintln!("[5b] After new guard build: {:.1} MB", rss_mb());
-
     busy_work(Duration::from_secs(3));
     let report2 = guard2.report().build().unwrap();
     eprintln!(
-        "[5c] After second report: {:.1} MB  ({} unique stacks)",
+        "[5] After second cycle: {:.1} MB  ({} unique stacks)",
         rss_mb(),
         report2.data.len()
     );
 
     drop(report2);
     drop(guard2);
-    eprintln!("[5d] After dropping everything: {:.1} MB", rss_mb());
+    eprintln!("[6] Final: {:.1} MB", rss_mb());
 
     Ok(())
 }
