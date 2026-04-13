@@ -35,6 +35,7 @@ jemalloc_pprof = { version = "0.8", features = ["symbolize"], optional = true }
 
 [dev-dependencies]
 assert_matches = "=1.5.0"
+backtrace = "0.3"
 claims = "=0.8.0"
 tikv-jemallocator = { version = "=0.6.1", features = ["profiling"] }
 env_logger = "=0.11.10"

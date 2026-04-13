@@ -1495,6 +1495,7 @@ name = "pyroscope"
 version = "2.0.0"
 dependencies = [
  "assert_matches",
+ "backtrace",
  "claims",
  "env_logger",
  "jemalloc_pprof",
