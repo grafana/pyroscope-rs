@@ -6,6 +6,8 @@ pub type Result<T> = std::result::Result<T, PyroscopeError>;
 pub enum PyroscopeError {
     #[error("Other: {}", &.0)]
     AdHoc(String),
+    #[error("Unimplemented")]
+    Unimplemented,
 
     #[error("{msg}: {source:?}")]
     Compat {
