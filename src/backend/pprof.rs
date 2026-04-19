@@ -36,7 +36,6 @@ pub struct Pprof<'a> {
     buffer: Arc<Mutex<StackBuffer>>,
     config: PprofConfig,
     backend_config: BackendConfig,
-    inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
     guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
     ruleset: ThreadTagsSet,
 }
@@ -53,7 +52,6 @@ impl<'a> Pprof<'a> {
             buffer: Arc::new(Mutex::new(StackBuffer::default())),
             config,
             backend_config,
-            inner_builder: Arc::new(Mutex::new(None)),
             guard: Arc::new(Mutex::new(None)),
             ruleset: ThreadTagsSet::default(),
         }
@@ -67,19 +65,12 @@ impl Backend for Pprof<'_> {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        let profiler = ProfilerGuardBuilder::default().frequency(self.config.sample_rate as i32);
+        let profiler = ProfilerGuardBuilder::default()
+            .frequency(self.config.sample_rate as i32)
+            .build()
+            .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        *self.inner_builder.lock()? = Some(profiler);
-
-        *self.guard.lock()? = Some(
-            self.inner_builder
-                .lock()?
-                .as_ref()
-                .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuardBuilder error"))?
-                .clone()
-                .build()
-                .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?,
-        );
+        *self.guard.lock()? = Some(profiler);
 
         Ok(())
     }
