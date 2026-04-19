@@ -1,6 +1,6 @@
 use crate::backend::{
     Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ReportBatch, ReportData,
-    StackBuffer, StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
+    StackBuffer, StackFrame, StackTrace, ThreadTag,
 };
 use crate::error::{PyroscopeError, Result};
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
@@ -38,7 +38,6 @@ pub struct Pprof<'a> {
     backend_config: BackendConfig,
     inner_builder: Arc<Mutex<Option<ProfilerGuardBuilder>>>,
     guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
-    ruleset: ThreadTagsSet,
 }
 
 impl std::fmt::Debug for Pprof<'_> {
@@ -55,7 +54,6 @@ impl<'a> Pprof<'a> {
             backend_config,
             inner_builder: Arc::new(Mutex::new(None)),
             guard: Arc::new(Mutex::new(None)),
-            ruleset: ThreadTagsSet::default(),
         }
     }
 }
@@ -101,24 +99,12 @@ impl Backend for Pprof<'_> {
         })
     }
 
-    fn add_tag(&self, tag: ThreadTag) -> Result<()> {
-        if self.guard.lock()?.as_ref().is_some() {
-            self.dump_report()?;
-        }
-
-        self.ruleset.add(tag)?;
-
-        Ok(())
+    fn add_tag(&self, _tag: ThreadTag) -> Result<()> {
+        Err(PyroscopeError::Unimplemented)
     }
 
-    fn remove_tag(&self, tag: ThreadTag) -> Result<()> {
-        if self.guard.lock()?.as_ref().is_some() {
-            self.dump_report()?;
-        }
-
-        self.ruleset.remove(tag)?;
-
-        Ok(())
+    fn remove_tag(&self, _tag: ThreadTag) -> Result<()> {
+        Err(PyroscopeError::Unimplemented)
     }
 }
 
@@ -139,19 +125,11 @@ impl Pprof<'_> {
             &self.backend_config,
         )));
 
-        let data: HashMap<StackTrace, usize> = stack_buffer
-            .data
-            .iter()
-            .map(|(stacktrace, ss)| {
-                let stacktrace = stacktrace.to_owned().add_tag_rules(&self.ruleset);
-                (stacktrace, ss.to_owned())
-            })
-            .collect();
-
-        let buffer = self.buffer.clone();
-
-        for (stacktrace, count) in data {
-            buffer.lock()?.record_with_count(stacktrace, count)?;
+        {
+            let mut buffer = self.buffer.lock()?;
+            for (stacktrace, count) in stack_buffer.data {
+                buffer.record_with_count(stacktrace, count)?;
+            }
         }
 
         self.reset()?;
