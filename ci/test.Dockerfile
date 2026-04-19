@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=rust:trixie@sha256:652612f07bfbbdfa3af34761c1e435094c00dde4a98036132fca28c7bb2b165c
+ARG BASE_IMAGE=rust:trixie@sha256:4a7e3a0c309c9bab658e469f842711bd595fae484936bc5d605e08ca0c631bf4
 FROM ${BASE_IMAGE}
 
 # Install make - needed by tikv-jemalloc-sys build script.
