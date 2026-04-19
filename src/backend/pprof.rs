@@ -1,6 +1,6 @@
 use crate::backend::{
     Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ReportBatch, ReportData,
-    StackBuffer, StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
+    StackBuffer, StackFrame, StackTrace, ThreadTag,
 };
 use crate::error::{PyroscopeError, Result};
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
