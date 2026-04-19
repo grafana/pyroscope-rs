@@ -3,6 +3,12 @@ use crate::backend::{
     StackBuffer, StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
 };
 use crate::error::{PyroscopeError, Result};
+use blazesym::symbolize::source::Process;
+use blazesym::symbolize::source::Source;
+use blazesym::symbolize::Input;
+use blazesym::symbolize::{Builder, Symbolizer};
+use blazesym::Addr;
+use blazesym::Pid;
 use pprof::{ProfilerGuard, ProfilerGuardBuilder};
 use std::{
     collections::HashMap,
@@ -10,21 +16,8 @@ use std::{
     ops::Deref,
     sync::{Arc, Mutex},
 };
-use blazesym::symbolize::source::Process;
-use blazesym::symbolize::source::Source;
-use blazesym::symbolize::Input;
-use blazesym::symbolize::{Symbolizer, Builder};
-use blazesym::Addr;
-use blazesym::Pid;
 
 const LOG_TAG: &str = "Pyroscope::Pprofrs";
-
-pub fn pprof_backend(
-    config: PprofConfig,
-    backend_config: BackendConfig,
-) -> BackendImpl<BackendUninitialized> {
-    BackendImpl::new(Box::new(Pprof::new(config, backend_config)))
-}
 
 #[derive(Debug)]
 pub struct PprofConfig {
@@ -37,15 +30,13 @@ impl Default for PprofConfig {
     }
 }
 
-
 pub struct Pprof<'a> {
     buffer: Arc<Mutex<StackBuffer>>,
     config: PprofConfig,
     backend_config: BackendConfig,
-    guard: Arc<Mutex<Option<ProfilerGuard<'a>>>>,
+    guard: ProfilerGuard<'a>,
 
     symbolizer: Symbolizer,
-
 }
 
 impl std::fmt::Debug for Pprof<'_> {
@@ -55,37 +46,30 @@ impl std::fmt::Debug for Pprof<'_> {
 }
 
 impl<'a> Pprof<'a> {
-    pub fn new(config: PprofConfig, backend_config: BackendConfig) -> Self {
-        let symbolizer = Symbolizer::builder()
-            .build();
-        Pprof {
-            buffer: Arc::new(Mutex::new(StackBuffer::default())),
-            config,
-            backend_config,
-            guard: Arc::new(Mutex::new(None)),
-            symbolizer
-        }
-    }
-}
+    pub fn new(config: PprofConfig, backend_config: BackendConfig) -> Result<Self> {
+        let symbolizer = Symbolizer::builder().build();
 
-impl Backend for Pprof<'_> {
-    fn shutdown(self: Box<Self>) -> Result<()> {
-        log::trace!(target: LOG_TAG, "Shutting down sampler thread");
-        Ok(())
-    }
-
-    fn initialize(&mut self) -> Result<()> {
         let profiler = ProfilerGuardBuilder::default()
-            .frequency(self.config.sample_rate as i32)
+            .frequency(config.sample_rate as i32)
             .build()
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;
 
-        *self.guard.lock()? = Some(profiler);
+        // *self.guard.lock()? = Some(profiler);
+        //
+        // Ok(())
 
-        Ok(())
+        Ok(Pprof {
+            buffer: Arc::new(Mutex::new(StackBuffer::default())),
+            config,
+            backend_config,
+            guard: profiler,
+            symbolizer,
+        })
     }
+}
 
-    fn report(&mut self) -> Result<ReportBatch> {
+impl Pprof<'_> {
+    pub fn report(&mut self) -> Result<ReportBatch> {
         self.dump_report()?;
 
         let buffer = self.buffer.clone();
@@ -101,24 +85,12 @@ impl Backend for Pprof<'_> {
             data: ReportData::Reports(reports),
         })
     }
-
-    fn add_tag(&self, _tag: ThreadTag) -> Result<()> {
-        Err(PyroscopeError::Unimplemented)
-    }
-
-    fn remove_tag(&self, _tag: ThreadTag) -> Result<()> {
-        Err(PyroscopeError::Unimplemented)
-    }
 }
 
 impl Pprof<'_> {
-    /// Workaround for pprof-rs to interrupt the profiler.
-    pub fn dump_report(&self) -> Result<()> {
+    pub fn dump_report(&mut self) -> Result<()> {
         let report = self
             .guard
-            .lock()?
-            .as_ref()
-            .ok_or_else(|| PyroscopeError::new("pprof-rs: ProfilerGuard report error"))?
             .report()
             .build_unresolved_and_reset()
             .map_err(|e| PyroscopeError::new(e.to_string().as_str()))?;

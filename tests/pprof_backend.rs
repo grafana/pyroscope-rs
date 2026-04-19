@@ -1,6 +1,6 @@
 #[cfg(feature = "backend-pprof-rs")]
 mod tests {
-    use pyroscope::backend::{pprof_backend, BackendConfig, PprofConfig};
+    use pyroscope::backend::{BackendConfig, Pprof, PprofConfig};
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -16,7 +16,8 @@ mod tests {
     // lifecycle against a live workload and makes no assertions on the output.
     // No failures have been observed so far; kept as a smoke test for the future.
     #[test]
-    fn test_pprof_backend_alloc_loop() {
+    fn test_pprof_backend_alloc_loop() -> pyroscope::error::Result<()> {
+        
         let stop = Arc::new(AtomicBool::new(false));
         let stop_thread = stop.clone();
 
@@ -34,16 +35,16 @@ mod tests {
         // Brief pause so the alloc thread is running before profiling starts
         std::thread::sleep(Duration::from_millis(50));
 
-        let mut backend = pprof_backend(PprofConfig::default(), BackendConfig::default())
-            .initialize()
-            .expect("failed to initialize pprof backend");
+        let mut backend = Pprof::new(PprofConfig::default(), BackendConfig::default())?;
 
         std::thread::sleep(Duration::from_secs(5));
 
-        let reports = backend.report().expect("failed to dump report");
+        let reports = backend.report()?;
         drop(reports);
 
         stop.store(true, Ordering::Relaxed);
         alloc_thread.join().expect("alloc thread panicked");
+
+        Ok(())
     }
 }
