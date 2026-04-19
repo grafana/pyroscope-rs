@@ -281,15 +281,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cpp_demangle"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0667304c32ea56cb4cd6d2d7c0cfe9a2f8041229db8c033af7f8d69492429def"
-dependencies = [
- "cfg-if",
-]
-
-[[package]]
 name = "crc32fast"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -303,15 +294,6 @@ name = "dary_heap"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06d2e3287df1c007e74221c49ca10a95d557349e54b3a75dc2fb14712c751f04"
-
-[[package]]
-name = "debugid"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bef552e6f588e446098f6ba40d89ac146c8c7b64aade83c051ee00bb5d2bc18d"
-dependencies = [
- "uuid",
-]
 
 [[package]]
 name = "displaydoc"
@@ -1121,15 +1103,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "memmap2"
-version = "0.9.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "714098028fe011992e1c3962653c96b2d578c4b4bce9036e15ff220319b1e0e3"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "miniz_oxide"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1409,23 +1382,19 @@ dependencies = [
 [[package]]
 name = "pprof-pyroscope-fork"
 version = "0.1500.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79f090659c6f3f8c12785dabca0cb7f40154a40dc254c06848598ff31c3be1d8"
 dependencies = [
  "aligned-vec",
  "backtrace",
- "cfg-if",
  "findshlibs",
  "framehop",
  "libc",
  "log",
- "memmap2 0.5.10",
+ "memmap2",
  "nix",
  "object 0.29.0",
  "once_cell",
  "smallvec",
  "spin",
- "symbolic-demangle",
  "tempfile",
  "thiserror 2.0.18",
 ]
@@ -2019,29 +1988,6 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
-
-[[package]]
-name = "symbolic-common"
-version = "12.17.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "803d14d7cb9c6fa5b95a6f3de8af95b356a528d391998fa45a07d320a5573e51"
-dependencies = [
- "debugid",
- "memmap2 0.9.10",
- "stable_deref_trait",
- "uuid",
-]
-
-[[package]]
-name = "symbolic-demangle"
-version = "12.17.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39505731ae891b2dde47b0e4ae2ec40a7ced3476ab1129f1bf829e3fba62bb83"
-dependencies = [
- "cpp_demangle",
- "rustc-demangle",
- "symbolic-common",
-]
 
 [[package]]
 name = "syn"
