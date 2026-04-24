@@ -200,7 +200,7 @@ impl std::fmt::Display for StackTrace {
                 .frames
                 .iter()
                 .rev()
-                .map(|frame| format!("{}", frame))
+                .map(|frame| format!("{frame}"))
                 .collect::<Vec<_>>()
                 .join(";")
         )

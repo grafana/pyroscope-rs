@@ -14,7 +14,7 @@ impl std::fmt::Display for TimerSignal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::Terminate => write!(f, "Terminate"),
-            Self::NextSnapshot(when) => write!(f, "NextSnapshot({})", when),
+            Self::NextSnapshot(when) => write!(f, "NextSnapshot({when})"),
         }
     }
 }

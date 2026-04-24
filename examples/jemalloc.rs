@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         iteration += 1;
     }
-    eprintln!("Completed {} iterations", iteration);
+    eprintln!("Completed {iteration} iterations");
 
     let agent_ready = agent_running.stop()?;
     agent_ready.shutdown();
