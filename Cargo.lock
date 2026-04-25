@@ -273,9 +273,9 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cpp_demangle"
-version = "0.5.1"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0667304c32ea56cb4cd6d2d7c0cfe9a2f8041229db8c033af7f8d69492429def"
+checksum = "f2bb79cb74d735044c972aae58ed0aaa9a837e85b01106a54c39e42e97f62253"
 dependencies = [
  "cfg-if",
 ]
@@ -1409,6 +1409,25 @@ dependencies = [
 [[package]]
 name = "pprof-pyroscope-fork"
 version = "0.1500.3"
+dependencies = [
+ "aligned-vec",
+ "findshlibs",
+ "framehop",
+ "libc",
+ "log",
+ "memmap2 0.5.10",
+ "nix",
+ "object 0.29.0",
+ "once_cell",
+ "smallvec",
+ "spin",
+ "tempfile",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "pprof-pyroscope-fork"
+version = "0.1500.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79f090659c6f3f8c12785dabca0cb7f40154a40dc254c06848598ff31c3be1d8"
 dependencies = [
@@ -1508,7 +1527,8 @@ dependencies = [
  "libflate",
  "log",
  "names",
- "pprof-pyroscope-fork",
+ "pprof-pyroscope-fork 0.1500.3",
+ "pprof-pyroscope-fork 0.1500.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost",
  "reqwest",
  "serde_json",
@@ -2022,9 +2042,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "symbolic-common"
-version = "12.18.1"
+version = "12.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f3cdeaae6779ecba2567f20bf7716718b8c4ce6717c9def4ced18786bb11ea"
+checksum = "332615d90111d8eeaf86a84dc9bbe9f65d0d8c5cf11b4caccedc37754eb0dcfd"
 dependencies = [
  "debugid",
  "memmap2 0.9.10",
@@ -2034,9 +2054,9 @@ dependencies = [
 
 [[package]]
 name = "symbolic-demangle"
-version = "12.18.1"
+version = "12.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "672c6ad9cb8fce6a1283cc9df9070073cccad00ae241b80e3686328a64e3523b"
+checksum = "912017718eb4d21930546245af9a3475c9dccf15675a5c215664e76621afc471"
 dependencies = [
  "cpp_demangle",
  "rustc-demangle",
