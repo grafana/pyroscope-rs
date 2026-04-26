@@ -1497,7 +1497,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "assert_matches",
  "claims",
