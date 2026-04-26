@@ -114,11 +114,11 @@ impl Timer {
         // new_value sets the Timer
         let mut new_value = libc::itimerspec {
             it_interval: libc::timespec {
-                tv_sec: cycle.as_secs() as i64,
-                tv_nsec: cycle.subsec_nanos() as i64,
+                tv_sec: cycle.as_secs() as libc::c_long,
+                tv_nsec: cycle.subsec_nanos() as libc::c_long,
             },
             it_value: libc::timespec {
-                tv_sec: first_fire as i64,
+                tv_sec: first_fire as libc::c_long,
                 tv_nsec: 0,
             },
         };
