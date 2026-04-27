@@ -5,41 +5,11 @@
   ],
   "packageRules": [
     {
-      "matchDepNames": [
-        "openssl/openssl"
-      ],
-      "separateMinorPatch": true
-    },
-    {
-      "matchDepNames": [
-        "openssl/openssl"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor"
-      ],
-      "enabled": false
-    },
-    {
       "description": "Allow all updates for critical profiling dependencies",
       "matchDepNames": [
         "pprof-pyroscope-fork"
       ],
       "enabled": true
-    }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^docker/.*\\.Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG OPENSSL_VERSION=(?<currentValue>[\\d.]+)"
-      ],
-      "depNameTemplate": "openssl/openssl",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^openssl-(?<version>.*)$"
     }
   ]
 }
