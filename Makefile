@@ -30,7 +30,7 @@ rust/fmt/check:
 
 .PHONY: rust/cross-compile/arm
 rust/cross-compile/arm:
-	docker build -t pyroscope-arm-cross -f ci/Dockerfile.arm-cross .
+	docker build -t pyroscope-arm-cross -f ci/Dockerfile.arm-cross ci
 	docker run --rm -v $(shell pwd):/work pyroscope-arm-cross cargo build --locked --target arm-unknown-linux-gnueabi --all-features
 
 .PHONY: check/lib-tag-version
