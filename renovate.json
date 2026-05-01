@@ -8,8 +8,7 @@
       "description": "Always update these to latest, all update types. Overrides the wildcard enabled:false from security:only-security-updates.",
       "matchPackageNames": [
         "pprof-pyroscope-fork",
-        "jemalloc_pprof",
-        "framehop"
+        "jemalloc_pprof"
       ],
       "enabled": true
     }
