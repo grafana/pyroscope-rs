@@ -1502,6 +1502,7 @@ dependencies = [
  "assert_matches",
  "claims",
  "env_logger",
+ "framehop",
  "jemalloc_pprof",
  "lazy_static",
  "libc",
