@@ -1,0 +1,17 @@
+FROM rust:latest
+
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends \
+      gcc-arm-linux-gnueabi \
+      binutils-arm-linux-gnueabi \
+      libc6-dev-armel-cross \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN rustup target add arm-unknown-linux-gnueabi
+
+ENV CC_arm_unknown_linux_gnueabi=arm-linux-gnueabi-gcc \
+    AR_arm_unknown_linux_gnueabi=arm-linux-gnueabi-ar \
+    CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABI_LINKER=arm-linux-gnueabi-gcc \
+    CARGO_TARGET_DIR=/work/target/docker-arm
+
+WORKDIR /work

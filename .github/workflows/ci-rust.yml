@@ -80,3 +80,14 @@ jobs:
 
       - name: Run tests
         run: docker build --progress=plain --build-arg BASE_IMAGE=${{ matrix.libc.base_image }} -f ci/test.Dockerfile .
+
+  cross-compile-arm:
+    name: cross-compile arm
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Cross-compile to ARM
+        run: make rust/cross-compile/arm
