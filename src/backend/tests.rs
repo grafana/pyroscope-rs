@@ -16,7 +16,7 @@ fn test_stack_frame_display() {
         Some(1),
     );
 
-    assert_eq!(format!("{}", frame), "filename:1 - name");
+    assert_eq!(format!("{frame}"), "filename:1 - name");
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn test_stack_trace_display() {
     let stack_trace = StackTrace::new(&BackendConfig::default(), None, None, None, frames);
 
     assert_eq!(
-        format!("{}", stack_trace),
+        format!("{stack_trace}"),
         "filename:2 - name;filename:1 - name"
     );
 }

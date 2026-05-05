@@ -60,7 +60,7 @@ impl SessionManager {
                         // the SessionManager thread if the server is not available.
                         match (*session).push(&client) {
                             Ok(_) => log::trace!("SessionManager - Session sent"),
-                            Err(e) => log::error!("SessionManager - Failed to send session: {}", e),
+                            Err(e) => log::error!("SessionManager - Failed to send session: {e}"),
                         }
                     }
                     SessionSignal::Kill => {

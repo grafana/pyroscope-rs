@@ -69,7 +69,7 @@ impl Backend for Jemalloc {
         })?;
         let pprof_data = guard
             .dump_pprof()
-            .map_err(|e| PyroscopeError::new(&format!("jemalloc: dump_pprof failed: {}", e)))?;
+            .map_err(|e| PyroscopeError::new(&format!("jemalloc: dump_pprof failed: {e}")))?;
 
         Ok(ReportBatch {
             profile_type: "memory".into(),

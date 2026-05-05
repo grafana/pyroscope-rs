@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.0.3](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.2...lib-2.0.3) (2026-04-26)
+
+
+### Bug Fixes
+
+* **epoll:** use libc::c_long for itimerspec fields ([#532](https://github.com/grafana/pyroscope-rs/issues/532)) ([093406e](https://github.com/grafana/pyroscope-rs/commit/093406e667175e5bc28ca7a1c5efe62be6b9b4a0))
+
+
+### Miscellaneous Chores
+
+* **deps:** update googleapis/release-please-action action to v5 ([#530](https://github.com/grafana/pyroscope-rs/issues/530)) ([6c97b9d](https://github.com/grafana/pyroscope-rs/commit/6c97b9d414c7a1e26b07334a1cf0922e1c2cd2c9))
+
+## [2.0.2](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.1...lib-2.0.2) (2026-04-24)
+
+
+### Miscellaneous Chores
+
+* **deps:** bump rustls-webpki from 0.103.12 to 0.103.13 ([#524](https://github.com/grafana/pyroscope-rs/issues/524)) ([935384d](https://github.com/grafana/pyroscope-rs/commit/935384dc4d3479a1a12df2502898a8813b775884))
+* **deps:** lock file maintenance ([#522](https://github.com/grafana/pyroscope-rs/issues/522)) ([4bd95bb](https://github.com/grafana/pyroscope-rs/commit/4bd95bb47f84f3aa6db6aa22173a7d74f774ab45))
+* **deps:** update dependency ruby to v4.0.3 ([#523](https://github.com/grafana/pyroscope-rs/issues/523)) ([e126aa2](https://github.com/grafana/pyroscope-rs/commit/e126aa24517ba6efea62302e465ea736e4cef54c))
+* **deps:** update rust:trixie docker digest to e4f09e8 ([#515](https://github.com/grafana/pyroscope-rs/issues/515)) ([f450327](https://github.com/grafana/pyroscope-rs/commit/f450327b1901f43d97d96eee5e0d73ccb64aa768))
+
 ## [2.0.1](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.0...lib-2.0.1) (2026-04-19)
 
 

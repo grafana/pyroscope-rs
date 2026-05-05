@@ -39,18 +39,18 @@ pub fn run(agent: PyroscopeAgentBuilder) -> Result<()> {
             match signal {
                 Signal::Kill => {
                     if let Err(err) = stop(agent) {
-                        log::error!(target: TAG, "failed to stop agent {}", err);
+                        log::error!(target: TAG, "failed to stop agent {err}");
                     }
                     break;
                 }
                 Signal::AddThreadTag(thread_id, tag) => {
                     if let Err(err) = agent.add_thread_tag(thread_id, tag) {
-                        log::error!(target: TAG, "failed to add tag {}", err);
+                        log::error!(target: TAG, "failed to add tag {err}");
                     }
                 }
                 Signal::RemoveThreadTag(thread_id, tag) => {
                     if let Err(err) = agent.remove_thread_tag(thread_id, tag) {
-                        log::error!(target: TAG, "failed to remove tag {}", err);
+                        log::error!(target: TAG, "failed to remove tag {err}");
                     }
                 }
             }
