@@ -1,4 +1,4 @@
-FROM rust:latest
+FROM rust:latest@sha256:a9cfb755b33f5bb872610cbdb25da61f527416b28fc9c052bbce4bef93e7799a
 
 RUN apt-get update -qq \
  && apt-get install -y -qq --no-install-recommends \
