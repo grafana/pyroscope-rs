@@ -72,7 +72,7 @@ impl Timer {
                     // Get the current time range
                     let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
 
-                    log::trace!(target: LOG_TAG, "Timer fired @ {}", from);
+                    log::trace!(target: LOG_TAG, "Timer fired @ {from}");
 
                     // Iterate through Senders
                     txs.lock()?.iter().for_each(|tx| {
