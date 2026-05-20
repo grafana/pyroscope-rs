@@ -1,45 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "security:only-security-updates"
   ],
   "packageRules": [
     {
-      "matchDepNames": [
-        "openssl/openssl"
-      ],
-      "separateMinorPatch": true
-    },
-    {
-      "matchDepNames": [
-        "openssl/openssl"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor"
-      ],
-      "enabled": false
-    },
-    {
-      "description": "Allow all updates for critical profiling dependencies",
-      "matchDepNames": [
-        "pprof-pyroscope-fork"
+      "description": "Always update these to latest, all update types. Overrides the wildcard enabled:false from security:only-security-updates.",
+      "matchPackageNames": [
+        "pprof-pyroscope-fork",
+        "jemalloc_pprof",
+        "framehop"
       ],
       "enabled": true
-    }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^docker/.*\\.Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG OPENSSL_VERSION=(?<currentValue>[\\d.]+)"
-      ],
-      "depNameTemplate": "openssl/openssl",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^openssl-(?<version>.*)$"
     }
   ]
 }
