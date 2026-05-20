@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.0.4](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.3...lib-2.0.4) (2026-05-20)
+
+
+### Bug Fixes
+
+* do not recreate profiling guard, just reset the data ([#518](https://github.com/grafana/pyroscope-rs/issues/518)) ([b1fe114](https://github.com/grafana/pyroscope-rs/commit/b1fe1141ee0d86caa59db383298c818763f3fa95))
+* remove kindasafe CI leftovers ([#521](https://github.com/grafana/pyroscope-rs/issues/521)) ([f8bc0f3](https://github.com/grafana/pyroscope-rs/commit/f8bc0f31c3b775b9d0e97fb412af76059f0819ec))
+
+
+### Miscellaneous Chores
+
+* **deps:** bump openssl from 0.10.79 to 0.10.80 ([#548](https://github.com/grafana/pyroscope-rs/issues/548)) ([f3ed911](https://github.com/grafana/pyroscope-rs/commit/f3ed911e8b179d6fd63eacc2a793e884f126dfa0))
+* **deps:** lock file maintenance ([#535](https://github.com/grafana/pyroscope-rs/issues/535)) ([9554564](https://github.com/grafana/pyroscope-rs/commit/955456438ea768adfe0a89cd1ef7da22e7974bcd))
+* **deps:** lock file maintenance ([#541](https://github.com/grafana/pyroscope-rs/issues/541)) ([3abc7b6](https://github.com/grafana/pyroscope-rs/commit/3abc7b6d0c01f420a16cd2d08f44f10424c3ef3c))
+* **deps:** lock file maintenance ([#547](https://github.com/grafana/pyroscope-rs/issues/547)) ([cd30ebf](https://github.com/grafana/pyroscope-rs/commit/cd30ebfb07bfbf243125df53f051a2f2d1dd5d63))
+* **deps:** pin rust docker tag to a9cfb75 ([#544](https://github.com/grafana/pyroscope-rs/issues/544)) ([ea14091](https://github.com/grafana/pyroscope-rs/commit/ea140911e4b8bbabc8c42fbb2c7d43e0384ec4fe))
+* **deps:** remove names crate dependency ([#527](https://github.com/grafana/pyroscope-rs/issues/527)) ([5893aac](https://github.com/grafana/pyroscope-rs/commit/5893aacb5bc3660dcd269b2fee33847f1fe1ab82))
+* **deps:** update rust crate libc to v0.2.186 ([#533](https://github.com/grafana/pyroscope-rs/issues/533)) ([a7468c1](https://github.com/grafana/pyroscope-rs/commit/a7468c1db5d7955dfa0eb702a8b0371775ff2350))
+* **deps:** update rust crate reqwest to v0.13.3 ([#539](https://github.com/grafana/pyroscope-rs/issues/539)) ([b8c6fbb](https://github.com/grafana/pyroscope-rs/commit/b8c6fbb97cc5f3b22185be35c9e19e72237b912e))
+* **deps:** update rust:trixie docker digest to a9cfb75 ([#538](https://github.com/grafana/pyroscope-rs/issues/538)) ([bff1d5d](https://github.com/grafana/pyroscope-rs/commit/bff1d5d98f2a81d7a291c257bfb8291b41ffc8e5))
+* **renovate:** vulnerabilities-only with profiling deps allowlist ([#540](https://github.com/grafana/pyroscope-rs/issues/540)) ([4aa8e56](https://github.com/grafana/pyroscope-rs/commit/4aa8e5656472a08ddea21cb2128b85203920243b))
+
+
+### Continuous Integration
+
+* add ARM cross-compilation test job ([#536](https://github.com/grafana/pyroscope-rs/issues/536)) ([54bb03f](https://github.com/grafana/pyroscope-rs/commit/54bb03f6996a74ad98cc75bdd08d790bce61efa3))
+* auto-publish to crates.io after release-please PR merge ([#529](https://github.com/grafana/pyroscope-rs/issues/529)) ([a4f76b6](https://github.com/grafana/pyroscope-rs/commit/a4f76b6f9de6b6c35e4d947aba4dbfe49d8c019a))
+* Potential fix for code scanning alert no. 14: Workflow does not contain permissions ([#542](https://github.com/grafana/pyroscope-rs/issues/542)) ([51ac4b7](https://github.com/grafana/pyroscope-rs/commit/51ac4b78e4a8cc0c8130984b52181fce12e3589f))
+
 ## [2.0.3](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.2...lib-2.0.3) (2026-04-26)
 
 
