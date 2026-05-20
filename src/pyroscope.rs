@@ -61,10 +61,7 @@ impl Default for PyroscopeConfig {
     fn default() -> Self {
         Self {
             url: "http://localhost:4040".to_string(),
-            application_name: names::Generator::default()
-                .next()
-                .unwrap_or_else(|| "unassigned.app".to_string())
-                .replace('-', "."),
+            application_name: "undefined".to_string(),
             tags: HashMap::new(),
             sample_rate: 100u32,
             spy_name: PPROFRS_SPY_NAME.to_string(),
