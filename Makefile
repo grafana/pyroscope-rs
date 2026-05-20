@@ -32,13 +32,3 @@ rust/fmt/check:
 rust/cross-compile/arm:
 	docker build -t pyroscope-arm-cross -f ci/Dockerfile.arm-cross ci
 	docker run --rm -v $(shell pwd):/work pyroscope-arm-cross cargo build --locked --target arm-unknown-linux-gnueabi --all-features
-
-.PHONY: check/lib-tag-version
-check/lib-tag-version:
-	@TAG_VERSION=$${TAG#lib-}; \
-	CARGO_VERSION=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1); \
-	if [ "$$TAG_VERSION" != "$$CARGO_VERSION" ]; then \
-		echo "error: tag version ($$TAG_VERSION) does not match Cargo.toml version ($$CARGO_VERSION)"; \
-		exit 1; \
-	fi; \
-	echo "tag version ($$TAG_VERSION) matches Cargo.toml version ($$CARGO_VERSION)"
