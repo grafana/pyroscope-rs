@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.5](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.4...lib-2.0.5) (2026-05-27)
+
+
+### Miscellaneous Chores
+
+* **deps:** Remove unnecessary framehop dep ([#550](https://github.com/grafana/pyroscope-rs/issues/550)) ([d9c0e02](https://github.com/grafana/pyroscope-rs/commit/d9c0e02c7386b3a55e0270083c1135cac0e3ce0e))
+
 ## [2.0.4](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.3...lib-2.0.4) (2026-05-20)
 
 
