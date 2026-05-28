@@ -2,9 +2,9 @@ pub mod backend;
 #[cfg(feature = "backend-jemalloc")]
 pub mod jemalloc;
 #[cfg(feature = "backend-pprof-rs")]
-mod pprofrs;
-#[cfg(feature = "backend-pprof-rs")]
 pub mod pprof;
+#[cfg(feature = "backend-pprof-rs")]
+mod pprofrs;
 pub mod ruleset;
 pub mod tests;
 pub mod types;

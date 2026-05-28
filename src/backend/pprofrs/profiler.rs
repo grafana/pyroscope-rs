@@ -9,7 +9,6 @@ use once_cell::sync::Lazy;
 use smallvec::SmallVec;
 use spin::RwLock;
 
-
 use crate::backend::pprofrs::backtrace::{Trace, TraceImpl};
 use crate::backend::pprofrs::collector::Collector;
 use crate::backend::pprofrs::error::{Error, Result};
@@ -26,7 +25,6 @@ pub struct Profiler {
     sample_counter: i32,
 
     running: bool,
-
 
     #[cfg(any(
         target_arch = "x86_64",
@@ -55,7 +53,6 @@ impl Default for ProfilerGuardBuilder {
         ProfilerGuardBuilder {
             frequency: 99,
 
-
             #[cfg(any(
                 target_arch = "x86_64",
                 target_arch = "aarch64",
@@ -81,7 +78,6 @@ impl ProfilerGuardBuilder {
                 Err(Error::CreatingError)
             }
             Ok(profiler) => {
-
                 #[cfg(any(
                     target_arch = "x86_64",
                     target_arch = "aarch64",
@@ -117,12 +113,9 @@ fn trigger_lazy() {
 }
 
 impl ProfilerGuard<'_> {
-
     /// Generate a report
     pub fn report(&self) -> ReportBuilder<'_> {
-        ReportBuilder::new(
-            self.profiler
-        )
+        ReportBuilder::new(self.profiler)
     }
 }
 
@@ -305,7 +298,6 @@ extern "C" fn perf_signal_handler(
 
             let sample_timestamp: SystemTime = SystemTime::now();
             TraceImpl::trace(ucontext, |frame| {
-
                 if index < MAX_DEPTH {
                     bt.push(frame.clone());
                     index += 1;
@@ -333,7 +325,6 @@ impl Profiler {
             data: Collector::new()?,
             sample_counter: 0,
             running: false,
-
 
             #[cfg(any(
                 target_arch = "x86_64",

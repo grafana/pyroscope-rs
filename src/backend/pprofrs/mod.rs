@@ -29,7 +29,4 @@ mod timer;
 pub use self::error::{Error, Result};
 pub use self::frames::{Frames, Symbol};
 pub use self::profiler::{ProfilerGuard, ProfilerGuardBuilder};
-pub use self::report::{Report};
-
-
-
+pub use self::report::Report;

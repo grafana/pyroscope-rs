@@ -46,9 +46,6 @@ pub trait Trace {
         Self: Sized;
 }
 
-
-
-
 pub mod framehop_unwinder;
 
 pub use framehop_unwinder::Trace as TraceImpl;

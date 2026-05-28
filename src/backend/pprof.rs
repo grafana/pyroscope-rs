@@ -1,9 +1,9 @@
+use crate::backend::pprofrs::{ProfilerGuard, ProfilerGuardBuilder};
 use crate::backend::{
     Backend, BackendConfig, BackendImpl, BackendUninitialized, Report, ReportBatch, ReportData,
     StackBuffer, StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
 };
 use crate::error::{PyroscopeError, Result};
-use crate::backend::pprofrs::{ProfilerGuard, ProfilerGuardBuilder};
 use std::{
     collections::HashMap,
     ffi::OsStr,

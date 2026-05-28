@@ -11,8 +11,6 @@ use symbolic_demangle::demangle;
 use crate::backend::pprofrs::backtrace::{Frame, Trace, TraceImpl};
 use crate::backend::pprofrs::{MAX_DEPTH, MAX_THREAD_NAME};
 
-
-
 // #[cfg(not(feature = "perfmaps"))]
 fn resolve_in_perfmap(_ip: usize) -> Option<Symbol> {
     None
@@ -112,7 +110,6 @@ impl Symbol {
     pub fn name(&self) -> String {
         demangle(&String::from_utf8_lossy(self.raw_name())).into_owned()
     }
-
 }
 
 unsafe impl Send for Symbol {}
@@ -157,8 +154,6 @@ pub struct Frames {
     pub thread_id: u64,
     pub sample_timestamp: SystemTime,
 }
-
-
 
 impl From<UnresolvedFrames> for Frames {
     fn from(frames: UnresolvedFrames) -> Self {

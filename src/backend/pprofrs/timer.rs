@@ -23,8 +23,7 @@ extern "C" {
 
 const ITIMER_PROF: c_int = 2;
 
-pub struct Timer {
-}
+pub struct Timer {}
 
 impl Timer {
     pub fn new(frequency: c_int) -> Timer {
@@ -46,10 +45,8 @@ impl Timer {
             )
         };
 
-        Timer {
-        }
+        Timer {}
     }
-
 }
 
 impl Drop for Timer {
@@ -71,4 +68,3 @@ impl Drop for Timer {
         };
     }
 }
-

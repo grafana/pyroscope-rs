@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 
 use spin::RwLock;
 
-use crate::backend::pprofrs::frames::{Frames};
+use crate::backend::pprofrs::frames::Frames;
 use crate::backend::pprofrs::profiler::Profiler;
 
 use crate::backend::pprofrs::{Error, Result};
@@ -14,10 +14,7 @@ use crate::backend::pprofrs::{Error, Result};
 pub struct Report {
     /// Key is a backtrace captured by profiler and value is count of it.
     pub data: HashMap<Frames, isize>,
-
 }
-
-
 
 type FramesPostProcessor = Box<dyn Fn(&mut Frames)>;
 
@@ -35,7 +32,6 @@ impl<'a> ReportBuilder<'a> {
         }
     }
 
-    
     /// Build a `Report`. If `clear` is true, atomically clears the
     /// profiler's sample data under the same write lock.
     ///
@@ -83,9 +79,7 @@ impl<'a> ReportBuilder<'a> {
                     profiler.clear()?;
                 }
 
-                Ok(Report {
-                    data: hash_map,
-                })
+                Ok(Report { data: hash_map })
             }
         }
     }
