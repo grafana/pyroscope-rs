@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 pub trait Symbol: Sized {
     fn name(&self) -> Option<Vec<u8>>;
-    fn addr(&self) -> Option<*mut c_void>;
     fn lineno(&self) -> Option<u32>;
     fn filename(&self) -> Option<PathBuf>;
 }
@@ -13,10 +12,6 @@ pub trait Symbol: Sized {
 impl Symbol for backtrace::Symbol {
     fn name(&self) -> Option<Vec<u8>> {
         self.name().map(|name| name.as_bytes().to_vec())
-    }
-
-    fn addr(&self) -> Option<*mut libc::c_void> {
-        self.addr()
     }
 
     fn lineno(&self) -> Option<u32> {

@@ -3,7 +3,6 @@
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -99,9 +98,6 @@ pub struct Symbol {
     /// This name is raw name of a symbol (which hasn't been demangled).
     pub name: Option<Vec<u8>>,
 
-    /// The address of the function. It is not 100% trustworthy.
-    pub addr: Option<*mut c_void>,
-
     /// Line number of this symbol. If compiled with debug message, you can get it.
     pub lineno: Option<u32>,
 
@@ -143,7 +139,6 @@ where
     fn from(symbol: &T) -> Self {
         Symbol {
             name: symbol.name(),
-            addr: symbol.addr(),
             lineno: symbol.lineno(),
             filename: symbol.filename(),
         }
