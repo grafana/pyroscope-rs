@@ -3,7 +3,7 @@ use crate::backend::{
     StackBuffer, StackFrame, StackTrace, ThreadTag, ThreadTagsSet,
 };
 use crate::error::{PyroscopeError, Result};
-use pprof::{ProfilerGuard, ProfilerGuardBuilder};
+use crate::backend::pprofrs::{ProfilerGuard, ProfilerGuardBuilder};
 use std::{
     collections::HashMap,
     ffi::OsStr,
@@ -157,8 +157,8 @@ impl From<StackBufferWrapper> for StackBuffer {
     }
 }
 
-impl From<(pprof::Report, &BackendConfig)> for StackBufferWrapper {
-    fn from(arg: (pprof::Report, &BackendConfig)) -> Self {
+impl From<(crate::backend::pprofrs::Report, &BackendConfig)> for StackBufferWrapper {
+    fn from(arg: (crate::backend::pprofrs::Report, &BackendConfig)) -> Self {
         let (report, config) = arg;
         let buffer_data: HashMap<StackTrace, usize> = report
             .data
@@ -182,8 +182,8 @@ impl From<StackTraceWrapper> for StackTrace {
     }
 }
 
-impl From<(pprof::Frames, &BackendConfig)> for StackTraceWrapper {
-    fn from(arg: (pprof::Frames, &BackendConfig)) -> Self {
+impl From<(crate::backend::pprofrs::Frames, &BackendConfig)> for StackTraceWrapper {
+    fn from(arg: (crate::backend::pprofrs::Frames, &BackendConfig)) -> Self {
         let (frames, config) = arg;
         let thread_id = frames.thread_id as libc::pthread_t;
         StackTraceWrapper(StackTrace::new(
@@ -209,8 +209,8 @@ impl From<StackFrameWrapper> for StackFrame {
     }
 }
 
-impl From<pprof::Symbol> for StackFrameWrapper {
-    fn from(symbol: pprof::Symbol) -> Self {
+impl From<crate::backend::pprofrs::Symbol> for StackFrameWrapper {
+    fn from(symbol: crate::backend::pprofrs::Symbol) -> Self {
         StackFrameWrapper(StackFrame::new(
             None,
             Some(symbol.name()),
