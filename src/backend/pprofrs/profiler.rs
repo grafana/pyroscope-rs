@@ -416,12 +416,31 @@ impl Profiler {
         Ok(())
     }
 
+    // On macOS 26 ARM64 the kernel passes the handler address directly to
+    // _sigtramp even when the disposition is SIG_IGN (value 1). _sigtramp
+    // branches to it unconditionally, so address 0x1 is not instruction-aligned
+    // → SIGBUS (PC alignment fault). A real function pointer is always a valid
+    // aligned address.
+    // https://github.com/grafana/pyroscope-pprof-rs/pull/40/changes
+    #[cfg(target_os = "macos")]
     fn unregister_signal_handler(&mut self) -> Result<()> {
-        // Use SIG_IGN instead of restoring SIG_DFL to avoid a race where a
-        // pending SIGPROF delivered between unregister and re-register kills
-        // the process (SIG_DFL for SIGPROF = terminate).
-        // See https://github.com/tikv/pprof-rs/issues/288
-        //     https://github.com/grafana/pprof-rs/pull/8
+        extern "C" fn noop(_: c_int, _: *mut libc::siginfo_t, _: *mut libc::c_void) {}
+        let noop = signal::SigAction::new(
+            signal::SigHandler::SigAction(noop),
+            signal::SaFlags::SA_SIGINFO | signal::SaFlags::SA_RESTART,
+            signal::SigSet::empty(),
+        );
+        unsafe { signal::sigaction(signal::SIGPROF, &noop) }?;
+        Ok(())
+    }
+
+    // Never restore SIG_DFL: SIGPROF's default action terminates the process,
+    // so a pending signal delivered between unregister and re-register would be
+    // fatal. SIG_IGN safely discards those signals on non-macOS platforms.
+    // See https://github.com/tikv/pprof-rs/issues/288
+    //     https://github.com/grafana/pprof-rs/pull/8
+    #[cfg(not(target_os = "macos"))]
+    fn unregister_signal_handler(&mut self) -> Result<()> {
         let ignore = signal::SigAction::new(
             signal::SigHandler::SigIgn,
             signal::SaFlags::empty(),
