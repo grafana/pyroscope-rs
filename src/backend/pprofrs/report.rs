@@ -37,7 +37,7 @@ impl<'a> ReportBuilder<'a> {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::CreatingError`] if the profiler lock is poisoned.
+    /// Returns [`Error::Creating`] if the profiler lock is poisoned.
     /// Returns an I/O error if reading the overflow backing file or clearing the collector fails.
     ///
     /// NOTE: pyroscope patch — added to support periodic report collection
@@ -48,7 +48,7 @@ impl<'a> ReportBuilder<'a> {
         match self.profiler.write().as_mut() {
             Err(err) => {
                 log::error!("Error in creating profiler: {}", err);
-                Err(Error::CreatingError)
+                Err(Error::Creating)
             }
             Ok(profiler) => {
                 profiler.data.try_iter()?.for_each(|entry| {

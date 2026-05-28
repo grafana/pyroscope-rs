@@ -3,11 +3,11 @@
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
-    NixError(#[from] nix::Error),
+    Nix(#[from] nix::Error),
     #[error("{0}")]
-    IoError(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
     #[error("create profiler error")]
-    CreatingError,
+    Creating,
     #[error("start running cpu profiler error")]
     Running,
     #[error("stop running cpu profiler error")]

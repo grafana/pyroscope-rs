@@ -75,7 +75,7 @@ impl ProfilerGuardBuilder {
         match PROFILER.write().as_mut() {
             Err(err) => {
                 log::error!("Error in creating profiler: {}", err);
-                Err(Error::CreatingError)
+                Err(Error::Creating)
             }
             Ok(profiler) => {
                 #[cfg(any(
