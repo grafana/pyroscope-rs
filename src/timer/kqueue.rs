@@ -137,7 +137,7 @@ impl Timer {
         // add first event
         kevent(
             kqueue,
-            [initial_event].as_ptr() as *const libc::kevent,
+            [initial_event].as_ptr(),
             1,
             [].as_mut_ptr(),
             0,
@@ -161,7 +161,7 @@ impl Timer {
         // add loop event
         kevent(
             kqueue,
-            [loop_event].as_ptr() as *const libc::kevent,
+            [loop_event].as_ptr(),
             1,
             [].as_mut_ptr(),
             0,
