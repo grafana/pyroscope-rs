@@ -12,8 +12,7 @@ pub mod types;
 pub use backend::*;
 #[cfg(feature = "backend-jemalloc")]
 pub use jemalloc::*;
-pub use ruleset::*;
-pub use types::*;
-
 #[cfg(feature = "backend-pprof-rs")]
 pub use pprof::*;
+pub use ruleset::*;
+pub use types::*;
