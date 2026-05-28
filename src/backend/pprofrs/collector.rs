@@ -145,13 +145,7 @@ impl<T: Hash + Eq> HashCounter<T> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Entry<T>> {
-        let mut iter: Box<dyn Iterator<Item = &Entry<T>>> =
-            Box::new(self.buckets[0].iter().chain(std::iter::empty()));
-        for bucket in self.buckets[1..].iter() {
-            iter = Box::new(iter.chain(bucket.iter()));
-        }
-
-        iter
+        self.buckets.iter().flat_map(|bucket| bucket.iter())
     }
 }
 
