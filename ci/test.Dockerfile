@@ -9,3 +9,5 @@ WORKDIR /src
 COPY . .
 
 RUN cargo test --locked --lib --tests
+RUN cargo test --locked --lib --tests --features backend-pprof-rs
+RUN cargo test --locked --lib --tests --features backend-jemalloc
