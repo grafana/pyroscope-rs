@@ -1,6 +1,5 @@
 // Copyright 2019 TiKV Project Authors. Licensed under Apache-2.0.
 
-use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
@@ -114,20 +113,6 @@ impl Symbol {
         demangle(&String::from_utf8_lossy(self.raw_name())).into_owned()
     }
 
-    pub fn sys_name(&self) -> Cow<'_, str> {
-        String::from_utf8_lossy(self.raw_name())
-    }
-
-    pub fn filename(&self) -> Cow<'_, str> {
-        self.filename
-            .as_ref()
-            .map(|name| name.as_os_str().to_string_lossy())
-            .unwrap_or_else(|| Cow::Borrowed("Unknown"))
-    }
-
-    pub fn lineno(&self) -> u32 {
-        self.lineno.unwrap_or(0)
-    }
 }
 
 unsafe impl Send for Symbol {}
@@ -173,16 +158,7 @@ pub struct Frames {
     pub sample_timestamp: SystemTime,
 }
 
-impl Frames {
-    /// Returns a thread identifier (name or ID) as a string.
-    pub fn thread_name_or_id(&self) -> String {
-        if !self.thread_name.is_empty() {
-            self.thread_name.clone()
-        } else {
-            format!("{:?}", self.thread_id)
-        }
-    }
-}
+
 
 impl From<UnresolvedFrames> for Frames {
     fn from(frames: UnresolvedFrames) -> Self {
@@ -256,7 +232,6 @@ mod tests {
     fn demangle_rust() {
         let symbol = Symbol {
             name: Some(b"_ZN3foo3barE".to_vec()),
-            addr: None,
             lineno: None,
             filename: None,
         };
@@ -272,7 +247,6 @@ mod tests {
 
         let symbol = Symbol {
             name: Some(name),
-            addr: None,
             lineno: None,
             filename: None,
         };

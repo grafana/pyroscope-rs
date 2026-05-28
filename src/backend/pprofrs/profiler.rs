@@ -9,13 +9,6 @@ use once_cell::sync::Lazy;
 use smallvec::SmallVec;
 use spin::RwLock;
 
-#[cfg(any(
-    target_arch = "x86_64",
-    target_arch = "aarch64",
-    target_arch = "riscv64",
-    target_arch = "loongarch64"
-))]
-use findshlibs::{Segment, SharedLibrary, TargetSharedLibrary};
 
 use crate::backend::pprofrs::backtrace::{Trace, TraceImpl};
 use crate::backend::pprofrs::collector::Collector;
@@ -79,47 +72,6 @@ impl ProfilerGuardBuilder {
         Self { frequency, ..self }
     }
 
-    #[cfg(any(
-        target_arch = "x86_64",
-        target_arch = "aarch64",
-        target_arch = "riscv64",
-        target_arch = "loongarch64"
-    ))]
-    pub fn blocklist<T: AsRef<str>>(self, blocklist: &[T]) -> Self {
-        let blocklist_segments = {
-            let mut segments = Vec::new();
-            TargetSharedLibrary::each(|shlib| {
-                let in_blocklist = match shlib.name().to_str() {
-                    Some(name) => {
-                        let mut in_blocklist = false;
-                        for blocked_name in blocklist.iter() {
-                            if name.contains(blocked_name.as_ref()) {
-                                in_blocklist = true;
-                            }
-                        }
-
-                        in_blocklist
-                    }
-
-                    None => false,
-                };
-                if in_blocklist {
-                    for seg in shlib.segments() {
-                        let avam = seg.actual_virtual_memory_address(shlib);
-                        let start = avam.0;
-                        let end = start + seg.len();
-                        segments.push((start, end));
-                    }
-                }
-            });
-            segments
-        };
-
-        Self {
-            blocklist_segments,
-            ..self
-        }
-    }
     pub fn build(self) -> Result<ProfilerGuard<'static>> {
         trigger_lazy();
 
@@ -165,16 +117,11 @@ fn trigger_lazy() {
 }
 
 impl ProfilerGuard<'_> {
-    /// Start profiling with given sample frequency.
-    pub fn new(frequency: c_int) -> Result<ProfilerGuard<'static>> {
-        ProfilerGuardBuilder::default().frequency(frequency).build()
-    }
 
     /// Generate a report
     pub fn report(&self) -> ReportBuilder<'_> {
         ReportBuilder::new(
-            self.profiler,
-            self.timer.as_ref().map(Timer::timing).unwrap_or_default(),
+            self.profiler
         )
     }
 }
