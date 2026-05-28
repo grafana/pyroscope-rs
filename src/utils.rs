@@ -50,7 +50,7 @@ impl ThreadId {
 
 impl fmt::Display for ThreadId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.pthread as usize)
+        write!(f, "{}", { self.pthread })
     }
 }
 

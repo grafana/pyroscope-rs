@@ -164,7 +164,7 @@ impl From<UnresolvedFrames> for Frames {
         while let Some(frame) = frame_iter.next() {
             let mut symbols: Vec<Symbol> = Vec::new();
 
-            if let Some(perfmap_symbol) = resolve_in_perfmap(frame.ip() as usize) {
+            if let Some(perfmap_symbol) = resolve_in_perfmap(frame.ip()) {
                 symbols.push(perfmap_symbol);
             } else {
                 frame.resolve_symbol(|symbol| {
