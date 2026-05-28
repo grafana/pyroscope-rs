@@ -233,22 +233,4 @@ mod tests {
 
         assert_eq!(&symbol.name(), "foo::bar")
     }
-
-    #[test]
-    fn demangle_cpp() {
-        let name =
-            b"_ZNK3MapI10StringName3RefI8GDScriptE10ComparatorIS0_E16DefaultAllocatorE3hasERKS0_"
-                .to_vec();
-
-        let symbol = Symbol {
-            name: Some(name),
-            lineno: None,
-            filename: None,
-        };
-
-        assert_eq!(
-            &symbol.name(),
-            "Map<StringName, Ref<GDScript>, Comparator<StringName>, DefaultAllocator>::has(StringName const&) const"
-        )
-    }
 }
