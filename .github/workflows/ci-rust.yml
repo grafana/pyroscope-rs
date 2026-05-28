@@ -20,7 +20,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
-          toolchain: stable
+          toolchain: 1.95
           components: rustfmt
 
       - name: Run formatting check
@@ -36,7 +36,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
-          toolchain: stable
+          toolchain: 1.95
           components: clippy
 
       - name: Run clippy
@@ -52,7 +52,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
-          toolchain: stable
+          toolchain: 1.95
 
       - name: Run doc tests
         run: cargo test --doc --locked --all-features
@@ -70,9 +70,9 @@ jobs:
             runner: ${{ github.repository_owner == 'grafana' && 'ubuntu-arm64-large' || 'ubuntu-24.04-arm' }}
         libc:
           - name: glibc
-            base_image: "rust:trixie"
+            base_image: "rust:1.95-trixie"
           - name: musl
-            base_image: "rust:alpine"
+            base_image: "rust:1.95-alpine3.22"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -80,14 +80,3 @@ jobs:
 
       - name: Run tests
         run: docker build --progress=plain --build-arg BASE_IMAGE=${{ matrix.libc.base_image }} -f ci/test.Dockerfile .
-
-  cross-compile-arm:
-    name: cross-compile arm
-    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Cross-compile to ARM
-        run: make rust/cross-compile/arm

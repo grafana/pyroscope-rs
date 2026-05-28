@@ -9,3 +9,6 @@ WORKDIR /src
 COPY . .
 
 RUN cargo test --locked --lib --tests
+# Single thread required for global allocator test
+RUN cargo test --locked --lib --tests --features backend-pprof-rs -- --test-threads 1
+RUN cargo test --locked --lib --tests --features backend-jemalloc

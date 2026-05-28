@@ -49,8 +49,13 @@ impl ThreadId {
 }
 
 impl fmt::Display for ThreadId {
+    #[cfg(target_env = "musl")]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.pthread as usize)
+        write!(f, "{}", { self.pthread as libc::uintptr_t })
+    }
+    #[cfg(not(target_env = "musl"))]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", { self.pthread })
     }
 }
 

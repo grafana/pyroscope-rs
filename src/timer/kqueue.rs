@@ -58,7 +58,7 @@ impl Timer {
                 // Loop 10s
                 loop {
                     // Exit thread if there are no listeners
-                    if txs.lock()?.len() == 0 {
+                    if txs.lock()?.is_empty() {
                         // TODO: should close file descriptors?
                         log::info!(target: LOG_TAG, "Timer thread terminated");
                         return Ok(());
@@ -131,13 +131,13 @@ impl Timer {
             flags: libc::EV_ADD | libc::EV_ENABLE | libc::EV_ONESHOT,
             fflags: libc::NOTE_ABSOLUTE | libc::NOTE_SECONDS,
             data: first_fire as isize,
-            udata: 0 as *mut libc::c_void,
+            udata: std::ptr::null_mut::<libc::c_void>(),
         };
 
         // add first event
         kevent(
             kqueue,
-            [initial_event].as_ptr() as *const libc::kevent,
+            [initial_event].as_ptr(),
             1,
             [].as_mut_ptr(),
             0,
@@ -155,13 +155,13 @@ impl Timer {
             flags: libc::EV_ADD | libc::EV_ENABLE,
             fflags: 0,
             data: duration.as_millis() as isize,
-            udata: 0 as *mut libc::c_void,
+            udata: std::ptr::null_mut::<libc::c_void>(),
         };
 
         // add loop event
-        let _ke = kevent(
+        kevent(
             kqueue,
-            [loop_event].as_ptr() as *const libc::kevent,
+            [loop_event].as_ptr(),
             1,
             [].as_mut_ptr(),
             0,
@@ -174,7 +174,7 @@ impl Timer {
 
 /// libc::kqueue wrapper
 fn kqueue() -> Result<i32> {
-    check_err(unsafe { libc::kqueue() }).map(|kq| kq as i32)
+    check_err(unsafe { libc::kqueue() })
 }
 
 /// libc::kevent wrapper
