@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.6](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.5...lib-2.0.6) (2026-05-28)
+
+
+### Miscellaneous Chores
+
+* **deps:** vendor pprofrs ([#552](https://github.com/grafana/pyroscope-rs/issues/552)) ([6684026](https://github.com/grafana/pyroscope-rs/commit/6684026ba0ea4fc997e4869703d671f23ee377a7))
+
+
+### Continuous Integration
+
+* remove pr-title-check workflow ([#549](https://github.com/grafana/pyroscope-rs/issues/549)) ([e4739e4](https://github.com/grafana/pyroscope-rs/commit/e4739e4bfa280e771fbd932f39d53faa599718ba))
+
 ## [2.0.5](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.4...lib-2.0.5) (2026-05-27)
 
 
