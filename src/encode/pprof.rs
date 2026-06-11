@@ -22,6 +22,30 @@ pub struct FunctionMirror {
     pub filename: i64,
 }
 
+#[derive(Debug, Default, Copy, Clone)]
+pub enum ProfilingType {
+    #[default]
+    Cpu,
+    AllocSpace,
+}
+
+impl ProfilingType {
+    /// pprof profile types
+    fn value_type(&self) -> (&'static str, &'static str) {
+        match self {
+            ProfilingType::Cpu => ("cpu", "nanoseconds"),
+            ProfilingType::AllocSpace => ("alloc_space", "bytes"),
+        }
+    }
+
+    fn period(&self, sample_rate: u32) -> i64 {
+        match self {
+            ProfilingType::Cpu => 1_000_000_000 / sample_rate as i64,
+            ProfilingType::AllocSpace => 1,
+        }
+    }
+}
+
 impl PProfBuilder {
     fn add_string(&mut self, s: &String) -> i64 {
         let v = self.strings.get(s);
@@ -82,6 +106,7 @@ pub fn encode(
     sample_rate: u32,
     start_time_nanos: u64,
     duration_nanos: u64,
+    profiling_type: &ProfilingType,
 ) -> Profile {
     let mut b = PProfBuilder {
         strings: HashMap::new(),
@@ -106,17 +131,12 @@ pub fn encode(
     };
     b.add_string(&"".to_string());
     {
-        let cpu = b.add_string(&"cpu".to_string());
-        let nanoseconds = b.add_string(&"nanoseconds".to_string());
-        b.profile.sample_type.push(ValueType {
-            r#type: cpu,
-            unit: nanoseconds,
-        });
-        b.profile.period = 1_000_000_000 / sample_rate as i64;
-        b.profile.period_type = Some(ValueType {
-            r#type: cpu,
-            unit: nanoseconds,
-        });
+        let (type_name, unit_name) = profiling_type.value_type();
+        let st = b.add_string(&type_name.to_string());
+        let unit = b.add_string(&unit_name.to_string());
+        b.profile.sample_type.push(ValueType { r#type: st, unit });
+        b.profile.period = profiling_type.period(sample_rate);
+        b.profile.period_type = Some(ValueType { r#type: st, unit });
     }
     for report in reports {
         for (stacktrace, value) in &report.data {

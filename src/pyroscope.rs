@@ -11,6 +11,7 @@ use std::{
 
 use crate::{
     backend::{BackendReady, BackendUninitialized, Report, Tag},
+    encode::pprof::ProfilingType,
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
@@ -51,6 +52,7 @@ pub struct PyroscopeConfig {
     pub tenant_id: Option<String>,
     pub http_headers: HashMap<String, String>,
     pub upload_interval: Duration,
+    pub profiling_type: ProfilingType,
 }
 
 #[derive(Clone, Debug)]
@@ -73,6 +75,7 @@ impl Default for PyroscopeConfig {
             tenant_id: None,
             http_headers: HashMap::new(),
             upload_interval: Duration::from_secs(10),
+            profiling_type: ProfilingType::default(),
         }
     }
 }
@@ -104,6 +107,7 @@ impl PyroscopeConfig {
             tenant_id: None,
             http_headers: HashMap::new(),
             upload_interval: Duration::from_secs(10),
+            profiling_type: ProfilingType::default(),
         }
     }
 
@@ -170,6 +174,13 @@ impl PyroscopeConfig {
     pub fn upload_interval(self, upload_interval: Duration) -> Self {
         Self {
             upload_interval,
+            ..self
+        }
+    }
+
+    pub fn profiling_type(self, profiling_type: ProfilingType) -> Self {
+        Self {
+            profiling_type,
             ..self
         }
     }
@@ -323,6 +334,13 @@ impl PyroscopeAgentBuilder {
     pub fn upload_interval(self, upload_interval: Duration) -> Self {
         Self {
             config: self.config.upload_interval(upload_interval),
+            ..self
+        }
+    }
+
+    pub fn profiling_type(self, profiling_type: ProfilingType) -> Self {
+        Self {
+            config: self.config.profiling_type(profiling_type),
             ..self
         }
     }
