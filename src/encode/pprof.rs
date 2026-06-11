@@ -27,6 +27,9 @@ pub enum ProfilingType {
     #[default]
     Cpu,
     AllocSpace,
+    AllocObjects,
+    InuseSpace,
+    InuseObjects,
 }
 
 impl ProfilingType {
@@ -35,13 +38,19 @@ impl ProfilingType {
         match self {
             ProfilingType::Cpu => ("cpu", "nanoseconds"),
             ProfilingType::AllocSpace => ("alloc_space", "bytes"),
+            ProfilingType::AllocObjects => ("alloc_objects", "count"),
+            ProfilingType::InuseSpace => ("inuse_space", "bytes"),
+            ProfilingType::InuseObjects => ("inuse_objects", "count"),
         }
     }
 
     fn period(&self, sample_rate: u32) -> i64 {
         match self {
             ProfilingType::Cpu => 1_000_000_000 / sample_rate as i64,
-            ProfilingType::AllocSpace => 1,
+            ProfilingType::AllocSpace
+            | ProfilingType::AllocObjects
+            | ProfilingType::InuseSpace
+            | ProfilingType::InuseObjects => 1,
         }
     }
 }
