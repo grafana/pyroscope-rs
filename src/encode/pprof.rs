@@ -33,7 +33,7 @@ pub enum ProfilingType {
 }
 
 impl ProfilingType {
-    /// pprof profile types
+    /// pprof `sample_type`: what each sample value means.
     fn value_type(&self) -> (&'static str, &'static str) {
         match self {
             ProfilingType::Cpu => ("cpu", "nanoseconds"),
@@ -41,6 +41,18 @@ impl ProfilingType {
             ProfilingType::AllocObjects => ("alloc_objects", "count"),
             ProfilingType::InuseSpace => ("inuse_space", "bytes"),
             ProfilingType::InuseObjects => ("inuse_objects", "count"),
+        }
+    }
+
+    /// pprof `period_type`. Pyroscope builds the canonical profile type as
+    /// `<name>:<sample_type>:<unit>:<period_type>:<period_unit>`
+    fn period_type(&self) -> (&'static str, &'static str) {
+        match self {
+            ProfilingType::Cpu => ("cpu", "nanoseconds"),
+            ProfilingType::AllocSpace
+            | ProfilingType::AllocObjects
+            | ProfilingType::InuseSpace
+            | ProfilingType::InuseObjects => ("space", "bytes"),
         }
     }
 
@@ -145,7 +157,13 @@ pub fn encode(
         let unit = b.add_string(&unit_name.to_string());
         b.profile.sample_type.push(ValueType { r#type: st, unit });
         b.profile.period = profiling_type.period(sample_rate);
-        b.profile.period_type = Some(ValueType { r#type: st, unit });
+        let (period_name, period_unit_name) = profiling_type.period_type();
+        let period_type = b.add_string(&period_name.to_string());
+        let period_unit = b.add_string(&period_unit_name.to_string());
+        b.profile.period_type = Some(ValueType {
+            r#type: period_type,
+            unit: period_unit,
+        });
     }
     for report in reports {
         for (stacktrace, value) in &report.data {
