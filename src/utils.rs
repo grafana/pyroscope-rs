@@ -89,18 +89,25 @@ pub struct TimeRange {
 
 /// Return a range of timestamps in the form [start, end).
 /// The range is inclusive of start and exclusive of end.
-pub fn get_time_range(timestamp: u64) -> Result<TimeRange> {
+///
+/// `interval` is the bucket size in seconds: timestamps are aligned down to a
+/// multiple of `interval` and the returned window is `interval` seconds wide.
+pub fn get_time_range(timestamp: u64, interval: u64) -> Result<TimeRange> {
+    // Guard against a zero interval, which would divide by zero below.
+    let interval = interval.max(1);
+
     // if timestamp is 0, then get the current time
     if timestamp == 0 {
-        return get_time_range(get_current_time_secs()?);
+        return get_time_range(get_current_time_secs()?, interval);
     }
 
-    // Determine the start and end of the range
+    // Determine the start and end of the range. Profiles are bucketed into
+    // `interval`-second windows aligned to whole seconds.
     Ok(TimeRange {
-        from: timestamp / 10 * 10,
-        until: timestamp / 10 * 10 + 10,
+        from: timestamp / interval * interval,
+        until: timestamp / interval * interval + interval,
         current: timestamp,
-        rem: 10 - (timestamp % 10),
+        rem: interval - (timestamp % interval),
     })
 }
 
@@ -111,7 +118,7 @@ mod get_time_range_tests {
     #[test]
     fn get_time_range_verify() {
         assert_eq!(
-            get_time_range(1644194479).unwrap(),
+            get_time_range(1644194479, 10).unwrap(),
             TimeRange {
                 from: 1644194470,
                 until: 1644194480,
@@ -120,7 +127,7 @@ mod get_time_range_tests {
             }
         );
         assert_eq!(
-            get_time_range(1644194470).unwrap(),
+            get_time_range(1644194470, 10).unwrap(),
             TimeRange {
                 from: 1644194470,
                 until: 1644194480,
@@ -129,7 +136,7 @@ mod get_time_range_tests {
             }
         );
         assert_eq!(
-            get_time_range(1644194476).unwrap(),
+            get_time_range(1644194476, 10).unwrap(),
             TimeRange {
                 from: 1644194470,
                 until: 1644194480,
