@@ -166,8 +166,6 @@ impl PyroscopeConfig {
         }
     }
 
-    /// Set the upload interval, in seconds. Profiles are aggregated into windows
-    /// of this size and pushed to the server once per window. Defaults to 10.
     pub fn upload_interval(self, upload_interval: u64) -> Self {
         Self {
             upload_interval,
@@ -321,8 +319,6 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    /// Set the upload interval, in seconds. Profiles are aggregated into windows
-    /// of this size and pushed to the server once per window. Defaults to 10.
     pub fn upload_interval(self, upload_interval: u64) -> Self {
         Self {
             config: self.config.upload_interval(upload_interval),
