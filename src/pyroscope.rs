@@ -6,6 +6,7 @@ use std::{
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
+    time::Duration,
 };
 
 use crate::{
@@ -49,7 +50,7 @@ pub struct PyroscopeConfig {
     pub func: Option<fn(Report) -> Report>,
     pub tenant_id: Option<String>,
     pub http_headers: HashMap<String, String>,
-    pub upload_interval: u64,
+    pub upload_interval: Duration,
 }
 
 #[derive(Clone, Debug)]
@@ -71,7 +72,7 @@ impl Default for PyroscopeConfig {
             func: None,
             tenant_id: None,
             http_headers: HashMap::new(),
-            upload_interval: 10,
+            upload_interval: Duration::from_secs(10),
         }
     }
 }
@@ -102,7 +103,7 @@ impl PyroscopeConfig {
             func: None,
             tenant_id: None,
             http_headers: HashMap::new(),
-            upload_interval: 10,
+            upload_interval: Duration::from_secs(10),
         }
     }
 
@@ -166,11 +167,15 @@ impl PyroscopeConfig {
         }
     }
 
-    pub fn upload_interval(self, upload_interval: u64) -> Self {
+    pub fn upload_interval(self, upload_interval: Duration) -> Self {
         Self {
             upload_interval,
             ..self
         }
+    }
+
+    pub(crate) fn interval_secs(&self) -> u64 {
+        self.upload_interval.as_secs().max(1)
     }
 }
 
@@ -319,7 +324,7 @@ impl PyroscopeAgentBuilder {
         }
     }
 
-    pub fn upload_interval(self, upload_interval: u64) -> Self {
+    pub fn upload_interval(self, upload_interval: Duration) -> Self {
         Self {
             config: self.config.upload_interval(upload_interval),
             ..self
@@ -342,7 +347,7 @@ impl PyroscopeAgentBuilder {
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start the Timer
-        let timer = Timer::initialize(config.upload_interval)?;
+        let timer = Timer::initialize(config.interval_secs())?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
@@ -581,7 +586,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         if let Some(sender) = self.tx.take() {
             // Send last session
             sender.send(TimerSignal::NextSnapshot(
-                get_time_range(0, self.config.upload_interval)?.until,
+                get_time_range(0, self.config.interval_secs())?.until,
             ))?;
             // Terminate PyroscopeAgent internal thread
             sender.send(TimerSignal::Terminate)?;

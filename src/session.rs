@@ -110,7 +110,7 @@ impl Session {
 
         // get_time_range should be used with "from". We balance this by reducing
         // one upload interval (one bucket) from the returned range.
-        let interval = config.upload_interval;
+        let interval = config.interval_secs();
         let time_range = get_time_range(until, interval)?;
 
         Ok(Self {
