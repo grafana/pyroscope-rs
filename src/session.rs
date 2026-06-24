@@ -109,14 +109,15 @@ impl Session {
         log::info!(target: LOG_TAG, "Creating Session");
 
         // get_time_range should be used with "from". We balance this by reducing
-        // 10s from the returned range.
-        let time_range = get_time_range(until)?;
+        // one upload interval (one bucket) from the returned range.
+        let time_range = get_time_range(until, config.upload_interval)?;
+        let bucket = time_range.until - time_range.from;
 
         Ok(Self {
             config,
             batch,
-            from: time_range.from - 10,
-            until: time_range.until - 10,
+            from: time_range.from - bucket,
+            until: time_range.until - bucket,
         })
     }
 

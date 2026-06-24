@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, time::Duration};
 
 use crate::{error::Result, PyroscopeError};
 
@@ -89,29 +89,36 @@ pub struct TimeRange {
 
 /// Return a range of timestamps in the form [start, end).
 /// The range is inclusive of start and exclusive of end.
-pub fn get_time_range(timestamp: u64) -> Result<TimeRange> {
+///
+/// `interval` is the bucket size: timestamps are aligned down to a whole-second
+/// multiple of it and the returned window is one interval wide.
+pub fn get_time_range(timestamp: u64, interval: Duration) -> Result<TimeRange> {
     // if timestamp is 0, then get the current time
     if timestamp == 0 {
-        return get_time_range(get_current_time_secs()?);
+        return get_time_range(get_current_time_secs()?, interval);
     }
 
-    // Determine the start and end of the range
+    // Bucketing works in whole seconds; clamp to a 1s minimum to avoid a
+    // divide-by-zero below.
+    let interval = interval.as_secs().max(1);
+
     Ok(TimeRange {
-        from: timestamp / 10 * 10,
-        until: timestamp / 10 * 10 + 10,
+        from: timestamp / interval * interval,
+        until: timestamp / interval * interval + interval,
         current: timestamp,
-        rem: 10 - (timestamp % 10),
+        rem: interval - (timestamp % interval),
     })
 }
 
 #[cfg(test)]
 mod get_time_range_tests {
     use crate::utils::{get_time_range, TimeRange};
+    use std::time::Duration;
 
     #[test]
     fn get_time_range_verify() {
         assert_eq!(
-            get_time_range(1644194479).unwrap(),
+            get_time_range(1644194479, Duration::from_secs(10)).unwrap(),
             TimeRange {
                 from: 1644194470,
                 until: 1644194480,
@@ -120,7 +127,7 @@ mod get_time_range_tests {
             }
         );
         assert_eq!(
-            get_time_range(1644194470).unwrap(),
+            get_time_range(1644194470, Duration::from_secs(10)).unwrap(),
             TimeRange {
                 from: 1644194470,
                 until: 1644194480,
@@ -129,7 +136,7 @@ mod get_time_range_tests {
             }
         );
         assert_eq!(
-            get_time_range(1644194476).unwrap(),
+            get_time_range(1644194476, Duration::from_secs(10)).unwrap(),
             TimeRange {
                 from: 1644194470,
                 until: 1644194480,

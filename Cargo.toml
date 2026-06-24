@@ -29,7 +29,7 @@ libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
 lazy_static = "1.5.0"
-jemalloc_pprof = { version = "0.8", features = ["symbolize"], optional = true }
+jemalloc_pprof = { version = "0.9", features = ["symbolize"], optional = true }
 
 
 # pprofrs dependencies
@@ -51,7 +51,7 @@ symbolic-demangle = { version = "13.1.0", default-features = false, features = [
 [dev-dependencies]
 assert_matches = "=1.5.0"
 claims = "=0.8.0"
-tikv-jemallocator = { version = "=0.6.1", features = ["profiling"] }
+tikv-jemallocator = { version = "0.7", features = ["profiling"] }
 env_logger = "=0.11.10"
 
 [[example]]

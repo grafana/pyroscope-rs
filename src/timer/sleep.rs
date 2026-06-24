@@ -31,8 +31,12 @@ pub struct Timer {
 
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
-    pub fn initialize(cycle: Duration) -> Result<Self> {
+    /// `interval` is the cadence; snapshots are aligned to and fired once per
+    /// interval window (rounded down to whole seconds)
+    pub fn initialize(interval: Duration) -> Result<Self> {
         log::info!(target: LOG_TAG, "Initializing Timer");
+
+        let cycle = Duration::from_secs(interval.as_secs().max(1));
 
         let txs = Arc::new(Mutex::new(Vec::new()));
 
@@ -45,8 +49,8 @@ impl Timer {
             let txs = txs.clone();
 
             thread::spawn(move || {
-                // Get remaining time for 10th second fire event
-                let rem = get_time_range(0)?.rem;
+                // Get remaining time until the next interval boundary
+                let rem = get_time_range(0, cycle)?.rem;
 
                 // Sleep for rem seconds
                 thread::sleep(Duration::from_secs(rem));
@@ -60,7 +64,7 @@ impl Timer {
                     }
 
                     // Get current time
-                    let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
+                    let from = TimerSignal::NextSnapshot(get_time_range(0, cycle)?.from);
 
                     log::trace!(target: LOG_TAG, "Timer fired @ {}", from);
 

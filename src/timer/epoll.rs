@@ -34,8 +34,12 @@ pub struct Timer {
 
 impl Timer {
     /// Initialize Timer and run a thread to send events to attached listeners
-    pub fn initialize(cycle: Duration) -> Result<Self> {
+    /// `interval` is the cadence; snapshots are aligned to and fired once per
+    /// interval window (rounded down to whole seconds)
+    pub fn initialize(interval: Duration) -> Result<Self> {
         log::info!(target: LOG_TAG, "Initializing Timer");
+
+        let cycle = Duration::from_secs(interval.as_secs().max(1));
 
         let txs = Arc::new(Mutex::new(Vec::new()));
 
@@ -70,7 +74,7 @@ impl Timer {
                     res?;
 
                     // Get the current time range
-                    let from = TimerSignal::NextSnapshot(get_time_range(0)?.from);
+                    let from = TimerSignal::NextSnapshot(get_time_range(0, cycle)?.from);
 
                     log::trace!(target: LOG_TAG, "Timer fired @ {from}");
 
@@ -109,7 +113,7 @@ impl Timer {
         let tfd = timerfd_create(clockid, clock_flags)?;
 
         // Get the next event time
-        let first_fire = get_time_range(0)?.until;
+        let first_fire = get_time_range(0, cycle)?.until;
 
         // new_value sets the Timer
         let mut new_value = libc::itimerspec {
