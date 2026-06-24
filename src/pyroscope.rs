@@ -173,10 +173,6 @@ impl PyroscopeConfig {
             ..self
         }
     }
-
-    pub(crate) fn interval_secs(&self) -> u64 {
-        self.upload_interval.as_secs().max(1)
-    }
 }
 
 /// PyroscopeAgent Builder
@@ -347,7 +343,7 @@ impl PyroscopeAgentBuilder {
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start the Timer
-        let timer = Timer::initialize(config.interval_secs())?;
+        let timer = Timer::initialize(config.upload_interval)?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
@@ -586,7 +582,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         if let Some(sender) = self.tx.take() {
             // Send last session
             sender.send(TimerSignal::NextSnapshot(
-                get_time_range(0, self.config.interval_secs())?.until,
+                get_time_range(0, self.config.upload_interval)?.until,
             ))?;
             // Terminate PyroscopeAgent internal thread
             sender.send(TimerSignal::Terminate)?;

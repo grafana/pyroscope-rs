@@ -33,13 +33,13 @@ pub struct Timer {
 }
 
 impl Timer {
-    /// Initialize Timer and run a thread to send events to attached listeners
-    /// `interval` is the cadence in seconds; snapshots are aligned to and fired
-    /// once per `interval`-second window.
-    pub fn initialize(interval: u64) -> Result<Self> {
+    /// Initialize Timer and run a thread to send events to attached listeners.
+    /// `interval` is the cadence; snapshots are aligned to and fired once per
+    /// interval window (rounded down to whole seconds).
+    pub fn initialize(interval: Duration) -> Result<Self> {
         log::info!(target: LOG_TAG, "Initializing Timer");
 
-        let cycle = Duration::from_secs(interval);
+        let cycle = Duration::from_secs(interval.as_secs().max(1));
 
         let txs = Arc::new(Mutex::new(Vec::new()));
 
@@ -47,7 +47,7 @@ impl Timer {
         let (tx, _rx) = channel();
         txs.lock()?.push(tx);
 
-        let timer_fd = Timer::set_timerfd(cycle, interval)?;
+        let timer_fd = Timer::set_timerfd(cycle)?;
         let epoll_fd = Timer::create_epollfd(timer_fd)?;
 
         let handle = Some({
@@ -74,7 +74,7 @@ impl Timer {
                     res?;
 
                     // Get the current time range
-                    let from = TimerSignal::NextSnapshot(get_time_range(0, interval)?.from);
+                    let from = TimerSignal::NextSnapshot(get_time_range(0, cycle)?.from);
 
                     log::trace!(target: LOG_TAG, "Timer fired @ {from}");
 
@@ -103,7 +103,7 @@ impl Timer {
     }
 
     /// create and set a timer file descriptor
-    fn set_timerfd(cycle: Duration, interval: u64) -> Result<libc::c_int> {
+    fn set_timerfd(cycle: Duration) -> Result<libc::c_int> {
         // Set the timer to use the system time.
         let clockid: libc::clockid_t = libc::CLOCK_REALTIME;
         // Non-blocking file descriptor
@@ -113,7 +113,7 @@ impl Timer {
         let tfd = timerfd_create(clockid, clock_flags)?;
 
         // Get the next event time
-        let first_fire = get_time_range(0, interval)?.until;
+        let first_fire = get_time_range(0, cycle)?.until;
 
         // new_value sets the Timer
         let mut new_value = libc::itimerspec {

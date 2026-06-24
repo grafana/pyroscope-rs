@@ -33,13 +33,13 @@ pub struct Timer {
 }
 
 impl Timer {
-    /// Initialize Timer and run a thread to send events to attached listeners
-    /// `interval` is the cadence in seconds; snapshots are aligned to and fired
-    /// once per `interval`-second window.
-    pub fn initialize(interval: u64) -> Result<Self> {
+    /// Initialize Timer and run a thread to send events to attached listeners.
+    /// `interval` is the cadence; snapshots are aligned to and fired once per
+    /// interval window (rounded down to whole seconds).
+    pub fn initialize(interval: Duration) -> Result<Self> {
         log::info!(target: LOG_TAG, "Initializing Timer");
 
-        let cycle = Duration::from_secs(interval);
+        let cycle = Duration::from_secs(interval.as_secs().max(1));
 
         let txs = Arc::new(Mutex::new(Vec::new()));
 
@@ -53,13 +53,13 @@ impl Timer {
             let txs = txs.clone();
             thread::spawn(move || {
                 // Wait for initial expiration
-                let initial_event = Timer::register_initial_expiration(kqueue, interval)?;
+                let initial_event = Timer::register_initial_expiration(kqueue, cycle)?;
                 Timer::wait_event(kqueue, [initial_event].as_mut_ptr())?;
 
                 // Register loop event
                 let loop_event = Timer::register_loop_expiration(kqueue, cycle)?;
 
-                // Loop every `interval` seconds
+                // Loop every cycle
                 loop {
                     // Exit thread if there are no listeners
                     if txs.lock()?.is_empty() {
@@ -69,7 +69,7 @@ impl Timer {
                     }
 
                     // Get current time
-                    let from = TimerSignal::NextSnapshot(get_time_range(0, interval)?.from);
+                    let from = TimerSignal::NextSnapshot(get_time_range(0, cycle)?.from);
 
                     // Iterate through Senders
                     txs.lock()?.iter().for_each(|tx| {
@@ -125,9 +125,9 @@ impl Timer {
     }
 
     /// Register an initial expiration event
-    fn register_initial_expiration(kqueue: i32, interval: u64) -> Result<libc::kevent> {
+    fn register_initial_expiration(kqueue: i32, cycle: Duration) -> Result<libc::kevent> {
         // Get first event time
-        let first_fire = get_time_range(0, interval)?.until;
+        let first_fire = get_time_range(0, cycle)?.until;
 
         let initial_event = libc::kevent {
             ident: 1,
