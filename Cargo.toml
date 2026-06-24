@@ -45,8 +45,8 @@ memmap2 = { version = "0.9", optional = true }
 object = { version = "0.39", optional = true }
 aligned-vec = { version = "0.6", optional = true }
 symbolic-demangle = { version = "13.1.0", default-features = false, features = ["rust"], optional = true }
-kindasafe = "0.1.1"
-kindasafe_init = "0.1.1"
+kindasafe = { version = "0.1.1", optional = true }
+kindasafe_init = { version = "0.1.1", optional = true }
 
 
 
@@ -80,6 +80,8 @@ backend-pprof-rs = [
     "dep:object",
     "dep:aligned-vec",
     "dep:symbolic-demangle",
+    "dep:kindasafe",
+    "dep:kindasafe_init",
 ]
 backend-jemalloc = ["dep:jemalloc_pprof"]
 
