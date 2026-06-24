@@ -22,29 +22,29 @@ rust-version = "1.66"
 thiserror = "2.0"
 log = "0.4"
 reqwest = { version = "0.13", features = ["blocking", "query"], default-features = false }
-uuid = { version = "1.20.0", features = ["v4"] }
+uuid = { version = "1.23", features = ["v4"] }
 url = "2.2.2"
-libflate = "2.1.0"
-libc = "^0.2.124"
+libflate = "2.3.0"
+libc = "0.2"
 prost = "0.14"
-serde_json = "1.0.115"
+serde_json = "1.0"
 lazy_static = "1.5.0"
 jemalloc_pprof = { version = "0.9", features = ["symbolize"], optional = true }
 
 
 # pprofrs dependencies
 backtrace = { version = "0.3", optional = true }
-once_cell = { version = "1.9", optional = true }
-nix = { version = "0.26", default-features = false, features = ["signal", "fs"], optional = true }
+once_cell = { version = "1.21", optional = true }
+nix = { version = "0.31", default-features = false, features = ["signal", "fs"], optional = true }
 spin = { version = "0.12", optional = true }
-tempfile = { version = "3.1", optional = true }
+tempfile = { version = "3.27", optional = true }
 findshlibs = { version = "0.10", optional = true }
-smallvec = { version = "1.7", optional = true }
+smallvec = { version = "1.15", optional = true }
 framehop = { version = "0.16", optional = true }
 memmap2 = { version = "0.9", optional = true }
 object = { version = "0.39", optional = true }
 aligned-vec = { version = "0.6", optional = true }
-symbolic-demangle = { version = "13.1.0", default-features = false, features = ["rust"], optional = true }
+symbolic-demangle = { version = "13.4", default-features = false, features = ["rust"], optional = true }
 
 
 
