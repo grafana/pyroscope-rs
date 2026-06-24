@@ -92,10 +92,7 @@ impl FramehopUnwinder {
             unwinder.add_module(obj.clone());
         }
         let cache = CacheNative::default();
-        FramehopUnwinder {
-            unwinder,
-            cache,
-        }
+        FramehopUnwinder { unwinder, cache }
     }
 
     pub fn iter_frames<F: FnMut(&Frame) -> bool>(&mut self, ctx: *mut c_void, mut cb: F) {
