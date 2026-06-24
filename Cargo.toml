@@ -45,7 +45,8 @@ memmap2 = { version = "0.9", optional = true }
 object = { version = "0.39", optional = true }
 aligned-vec = { version = "0.6", optional = true }
 symbolic-demangle = { version = "13.1.0", default-features = false, features = ["rust"], optional = true }
-read-process-memory = { version = "0.1.6" }
+kindasafe = "0.1.1"
+kindasafe_init = "0.1.1"
 
 
 

@@ -971,6 +971,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "kindasafe"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46ccffcebe25cf8699373a15a75485766efa6968ae20af87e910e65276251fd5"
+
+[[package]]
+name = "kindasafe_init"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98ae7076cfbde82f1e3d114b1f661d157c72288415846b0287ed3fe06624a876"
+dependencies = [
+ "kindasafe",
+ "libc",
+ "spin 0.10.0",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1044,15 +1061,6 @@ name = "lru-slab"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
-
-[[package]]
-name = "mach"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
-dependencies = [
- "libc",
-]
 
 [[package]]
 name = "macho-unwind-info"
@@ -1448,6 +1456,8 @@ dependencies = [
  "findshlibs",
  "framehop",
  "jemalloc_pprof",
+ "kindasafe",
+ "kindasafe_init",
  "lazy_static",
  "libc",
  "libflate",
@@ -1457,11 +1467,10 @@ dependencies = [
  "object 0.39.1",
  "once_cell",
  "prost",
- "read-process-memory",
  "reqwest",
  "serde_json",
  "smallvec",
- "spin",
+ "spin 0.12.0",
  "symbolic-demangle",
  "tempfile",
  "thiserror",
@@ -1574,18 +1583,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
 dependencies = [
  "getrandom 0.3.4",
-]
-
-[[package]]
-name = "read-process-memory"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8497683b2f0b6887786f1928c118f26ecc6bb3d78bbb6ed23e8e7ba110af3bb0"
-dependencies = [
- "libc",
- "log",
- "mach",
- "winapi",
 ]
 
 [[package]]
@@ -1964,6 +1961,15 @@ checksum = "52d1cfed4120b4d927bf7c0f86d2087a4a7d6027c906d9f9d525a80573b9be51"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "spin"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
+dependencies = [
+ "lock_api",
 ]
 
 [[package]]
