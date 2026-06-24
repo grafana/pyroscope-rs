@@ -3,6 +3,7 @@ use framehop::{
 };
 use libc::{c_void, ucontext_t};
 use once_cell::sync::Lazy;
+use read_process_memory::{CopyAddress, Pid, ProcessHandle};
 use spin::RwLock;
 mod shlib;
 
@@ -83,6 +84,7 @@ fn get_regs_from_context(ucontext: *mut c_void) -> Option<(UnwindRegsNative, u64
 struct FramehopUnwinder {
     unwinder: UnwinderNative<Vec<u8>, MustNotAllocateDuringUnwind>,
     cache: CacheNative<MustNotAllocateDuringUnwind>,
+    mem: ProcessHandle,
 }
 
 impl FramehopUnwinder {
@@ -92,7 +94,14 @@ impl FramehopUnwinder {
             unwinder.add_module(obj.clone());
         }
         let cache = CacheNative::default();
-        FramehopUnwinder { unwinder, cache }
+        let mem: ProcessHandle = (unsafe { libc::getpid() } as Pid)
+            .try_into()
+            .expect("self pid always succeeds");
+        FramehopUnwinder {
+            unwinder,
+            cache,
+            mem,
+        }
     }
 
     pub fn iter_frames<F: FnMut(&Frame) -> bool>(&mut self, ctx: *mut c_void, mut cb: F) {
@@ -101,7 +110,7 @@ impl FramehopUnwinder {
             None => return,
         };
 
-        let mut closure = |addr| read_stack(addr);
+        let mut closure = |addr| read_stack(&self.mem, addr);
         let mut iter = self
             .unwinder
             .iter_frames(pc, regs, &mut self.cache, &mut closure);
@@ -115,13 +124,12 @@ impl FramehopUnwinder {
     }
 }
 
-fn read_stack(addr: u64) -> Result<u64, ()> {
+fn read_stack(h: &ProcessHandle, addr: u64) -> Result<u64, ()> {
     let aligned_addr = addr & !0b111;
-    if crate::backend::pprofrs::addr_validate::validate(aligned_addr as _) {
-        Ok(unsafe { (aligned_addr as *const u64).read() })
-    } else {
-        Err(())
-    }
+    let mut bytes = [0; std::mem::size_of::<u64>()];
+    h.copy_address(aligned_addr as usize, &mut bytes)
+        .map_err(|_| ())?;
+    Ok(u64::from_le_bytes(bytes))
 }
 
 static UNWINDER: Lazy<RwLock<FramehopUnwinder>> =
