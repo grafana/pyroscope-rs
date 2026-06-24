@@ -116,12 +116,7 @@ impl FramehopUnwinder {
 }
 
 fn read_stack(addr: u64) -> Result<u64, ()> {
-    let aligned_addr = addr & !0b111;
-    if crate::backend::pprofrs::addr_validate::validate(aligned_addr as _) {
-        Ok(unsafe { (aligned_addr as *const u64).read() })
-    } else {
-        Err(())
-    }
+    kindasafe::u64(addr as kindasafe::Ptr).map_err(|_| ())
 }
 
 static UNWINDER: Lazy<RwLock<FramehopUnwinder>> =
