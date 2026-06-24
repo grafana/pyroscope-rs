@@ -33,9 +33,9 @@ pub struct Timer {
 }
 
 impl Timer {
-    /// Initialize Timer and run a thread to send events to attached listeners.
+    /// Initialize Timer and run a thread to send events to attached listeners
     /// `interval` is the cadence; snapshots are aligned to and fired once per
-    /// interval window (rounded down to whole seconds).
+    /// interval window (rounded down to whole seconds)
     pub fn initialize(interval: Duration) -> Result<Self> {
         log::info!(target: LOG_TAG, "Initializing Timer");
 
