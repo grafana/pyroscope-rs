@@ -6,6 +6,7 @@ use std::{
         Arc, Condvar, Mutex,
     },
     thread::JoinHandle,
+    time::Duration,
 };
 
 use crate::{
@@ -49,6 +50,7 @@ pub struct PyroscopeConfig {
     pub func: Option<fn(Report) -> Report>,
     pub tenant_id: Option<String>,
     pub http_headers: HashMap<String, String>,
+    pub upload_interval: Duration,
 }
 
 #[derive(Clone, Debug)]
@@ -70,6 +72,7 @@ impl Default for PyroscopeConfig {
             func: None,
             tenant_id: None,
             http_headers: HashMap::new(),
+            upload_interval: Duration::from_secs(10),
         }
     }
 }
@@ -100,6 +103,7 @@ impl PyroscopeConfig {
             func: None,
             tenant_id: None,
             http_headers: HashMap::new(),
+            upload_interval: Duration::from_secs(10),
         }
     }
 
@@ -159,6 +163,13 @@ impl PyroscopeConfig {
     pub fn http_headers(self, http_headers: HashMap<String, String>) -> Self {
         Self {
             http_headers,
+            ..self
+        }
+    }
+
+    pub fn upload_interval(self, upload_interval: Duration) -> Self {
+        Self {
+            upload_interval,
             ..self
         }
     }
@@ -309,6 +320,13 @@ impl PyroscopeAgentBuilder {
         }
     }
 
+    pub fn upload_interval(self, upload_interval: Duration) -> Self {
+        Self {
+            config: self.config.upload_interval(upload_interval),
+            ..self
+        }
+    }
+
     /// Initialize the backend, timer and return a PyroscopeAgent with Ready
     /// state. While you can call this method, you should call it through the
     /// `PyroscopeAgent.build()` method.
@@ -325,7 +343,7 @@ impl PyroscopeAgentBuilder {
         log::trace!(target: LOG_TAG, "Backend initialized");
 
         // Start the Timer
-        let timer = Timer::initialize(std::time::Duration::from_secs(10))?;
+        let timer = Timer::initialize(config.upload_interval)?;
         log::trace!(target: LOG_TAG, "Timer initialized");
 
         // Start the SessionManager
@@ -461,7 +479,7 @@ impl<S: PyroscopeAgentState> PyroscopeAgent<S> {
 }
 
 impl PyroscopeAgent<PyroscopeAgentReady> {
-    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server every 10s seconds.
+    /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server once per `upload_interval` (10s by default).
     ///
     /// # Example
     /// ```no_run
@@ -563,7 +581,9 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
         // get tx and send termination signal
         if let Some(sender) = self.tx.take() {
             // Send last session
-            sender.send(TimerSignal::NextSnapshot(get_time_range(0)?.until))?;
+            sender.send(TimerSignal::NextSnapshot(
+                get_time_range(0, self.config.upload_interval)?.until,
+            ))?;
             // Terminate PyroscopeAgent internal thread
             sender.send(TimerSignal::Terminate)?;
         } else {
