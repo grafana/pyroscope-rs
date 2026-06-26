@@ -16,7 +16,7 @@ autobins = false
 autoexamples = true
 autotests = true
 autobenches = true
-rust-version = "1.85"
+rust-version = "1.88"
 
 [dependencies]
 thiserror = "2.0"
