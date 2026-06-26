@@ -96,7 +96,11 @@ impl FramehopUnwinder {
         }
         let cache = CacheNative::default();
         let pipes = Pipes::default();
-        FramehopUnwinder { unwinder, cache, pipes}
+        FramehopUnwinder {
+            unwinder,
+            cache,
+            pipes,
+        }
     }
 
     pub fn iter_frames<F: FnMut(&Frame) -> bool>(&mut self, ctx: *mut c_void, mut cb: F) {
