@@ -30,7 +30,7 @@ fn create_pipe() -> nix::Result<(i32, i32)> {
 #[inline]
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
 fn create_pipe() -> nix::Result<(i32, i32)> {
-    use nix::fcntl::{fcntl, FcntlArg, FdFlag, OFlag};
+    use nix::fcntl::{FcntlArg, FdFlag, OFlag, fcntl};
     use nix::unistd::pipe;
     use std::os::unix::io::RawFd;
 

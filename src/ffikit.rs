@@ -4,8 +4,8 @@ use crate::pyroscope::{PyroscopeAgentBuilder, PyroscopeAgentRunning};
 use crate::{PyroscopeAgent, ThreadId};
 use lazy_static::lazy_static;
 use std::sync::{
-    mpsc::{self, Receiver, Sender},
     Mutex,
+    mpsc::{self, Receiver, Sender},
 };
 
 #[derive(Debug, PartialEq, Clone)]
