@@ -216,7 +216,6 @@ impl Drop for ErrnoProtector {
     }
 }
 
-#[no_mangle]
 #[cfg_attr(
     not(all(any(
         target_arch = "x86_64",
@@ -226,7 +225,6 @@ impl Drop for ErrnoProtector {
     ))),
     allow(unused_variables)
 )]
-#[allow(clippy::unnecessary_cast)]
 extern "C" fn perf_signal_handler(
     _signal: c_int,
     _siginfo: *mut libc::siginfo_t,

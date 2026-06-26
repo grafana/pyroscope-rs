@@ -5,8 +5,8 @@ use std::{
     time::Duration,
 };
 
-use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
-use crate::encode::gen::types::LabelPair;
+use crate::encode::r#gen::push::{PushRequest, RawProfileSeries, RawSample};
+use crate::encode::r#gen::types::LabelPair;
 use crate::{
     backend::{Report, ReportBatch, ReportData},
     encode::pprof,
