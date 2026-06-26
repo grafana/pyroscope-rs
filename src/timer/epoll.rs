@@ -1,12 +1,12 @@
 use super::TimerSignal;
 use crate::{
-    utils::{check_err, get_time_range},
     PyroscopeError, Result,
+    utils::{check_err, get_time_range},
 };
 
 use std::sync::{
-    mpsc::{channel, Sender},
     Arc, Mutex,
+    mpsc::{Sender, channel},
 };
 use std::{
     thread::{self, JoinHandle},

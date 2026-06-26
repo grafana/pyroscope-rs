@@ -1,7 +1,7 @@
 use super::BackendConfig;
 use crate::error::Result;
 use std::{
-    collections::{hash_map::DefaultHasher, BTreeSet, HashMap},
+    collections::{BTreeSet, HashMap, hash_map::DefaultHasher},
     hash::{Hash, Hasher},
 };
 
