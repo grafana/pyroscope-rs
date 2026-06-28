@@ -147,6 +147,7 @@ impl Session {
                     self.config.sample_rate,
                     self.from * 1_000_000_000,
                     (self.until - self.from) * 1_000_000_000,
+                    &self.config.profiling_type,
                 )
                 .encode_to_vec()
             }
