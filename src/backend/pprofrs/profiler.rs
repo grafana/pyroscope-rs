@@ -1,6 +1,7 @@
 // Copyright 2019 TiKV Project Authors. Licensed under Apache-2.0.
 
 use std::convert::TryInto;
+use std::io::ErrorKind;
 use std::os::raw::c_int;
 use std::time::SystemTime;
 
@@ -70,6 +71,9 @@ impl ProfilerGuardBuilder {
     }
 
     pub fn build(self) -> Result<ProfilerGuard<'static>> {
+        kindasafe_init::init()
+            .map_err(|_| Error::Io(std::io::Error::new(ErrorKind::Other, "kindasafe_init")))?;
+
         trigger_lazy();
 
         match PROFILER.write().as_mut() {

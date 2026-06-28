@@ -1,3 +1,4 @@
+#[cfg(feature = "addr-validate")]
 use crate::backend::pprofrs::addr_validate::Pipes;
 use framehop::{
     CacheNative, MustNotAllocateDuringUnwind, UnwindRegsNative, Unwinder, UnwinderNative,
@@ -85,22 +86,32 @@ fn get_regs_from_context(ucontext: *mut c_void) -> Option<(UnwindRegsNative, u64
 struct FramehopUnwinder {
     unwinder: UnwinderNative<Vec<u8>, MustNotAllocateDuringUnwind>,
     cache: CacheNative<MustNotAllocateDuringUnwind>,
+    #[cfg(feature = "addr-validate")]
     pipes: Pipes,
 }
 
 impl FramehopUnwinder {
+    #[cfg(feature = "addr-validate")]
     pub fn new() -> Self {
         let mut unwinder = UnwinderNative::new();
         for obj in shlib::get_objects() {
             unwinder.add_module(obj.clone());
         }
         let cache = CacheNative::default();
-        let pipes = Pipes::default();
         FramehopUnwinder {
             unwinder,
             cache,
-            pipes,
+            pipes: Pipes::default(),
         }
+    }
+    #[cfg(not(feature = "addr-validate"))]
+    pub fn new() -> Self {
+        let mut unwinder = UnwinderNative::new();
+        for obj in shlib::get_objects() {
+            unwinder.add_module(obj.clone());
+        }
+        let cache = CacheNative::default();
+        FramehopUnwinder { unwinder, cache }
     }
 
     pub fn iter_frames<F: FnMut(&Frame) -> bool>(&mut self, ctx: *mut c_void, mut cb: F) {
@@ -109,7 +120,10 @@ impl FramehopUnwinder {
             None => return,
         };
 
+        #[cfg(feature = "addr-validate")]
         let mut closure = |addr| read_stack(&mut self.pipes, addr);
+        #[cfg(not(feature = "addr-validate"))]
+        let mut closure = |addr| read_stack(addr);
         let mut iter = self
             .unwinder
             .iter_frames(pc, regs, &mut self.cache, &mut closure);
@@ -123,6 +137,7 @@ impl FramehopUnwinder {
     }
 }
 
+#[cfg(feature = "addr-validate")]
 fn read_stack(pipes: &mut Pipes, addr: u64) -> Result<u64, ()> {
     let aligned_addr = addr & !0b111;
     if crate::backend::pprofrs::addr_validate::validate(pipes, aligned_addr as _) {
@@ -130,6 +145,11 @@ fn read_stack(pipes: &mut Pipes, addr: u64) -> Result<u64, ()> {
     } else {
         Err(())
     }
+}
+
+#[cfg(not(feature = "addr-validate"))]
+fn read_stack(addr: u64) -> Result<u64, ()> {
+    kindasafe::u64(addr as kindasafe::Ptr).map_err(|_| ())
 }
 
 static UNWINDER: Lazy<RwLock<FramehopUnwinder>> =
