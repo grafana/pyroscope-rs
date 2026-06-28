@@ -1,26 +1,18 @@
-use std::{
-    mem::size_of,
-    sync::atomic::{AtomicI32, Ordering},
-};
-
 use nix::{
     errno::Errno,
-    unistd::{close, read, write},
+    unistd::{read, write},
 };
+use std::mem::size_of;
+use std::os::fd::OwnedFd;
 
-struct Pipes {
-    read_fd: AtomicI32,
-    write_fd: AtomicI32,
+#[derive(Default)]
+pub(crate) struct Pipes {
+    read_fd: Option<OwnedFd>,
+    write_fd: Option<OwnedFd>,
 }
-
-static MEM_VALIDATE_PIPE: Pipes = Pipes {
-    read_fd: AtomicI32::new(-1),
-    write_fd: AtomicI32::new(-1),
-};
-
 #[inline]
 #[cfg(any(target_os = "android", target_os = "linux"))]
-fn create_pipe() -> nix::Result<(i32, i32)> {
+fn create_pipe() -> nix::Result<(OwnedFd, OwnedFd)> {
     use nix::fcntl::OFlag;
     use nix::unistd::pipe2;
 
@@ -29,12 +21,11 @@ fn create_pipe() -> nix::Result<(i32, i32)> {
 
 #[inline]
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
-fn create_pipe() -> nix::Result<(i32, i32)> {
+fn create_pipe() -> nix::Result<(OwnedFd, OwnedFd)> {
     use nix::fcntl::{fcntl, FcntlArg, FdFlag, OFlag};
     use nix::unistd::pipe;
-    use std::os::unix::io::RawFd;
 
-    fn set_flags(fd: RawFd) -> nix::Result<()> {
+    fn set_flags(fd: &OwnedFd) -> nix::Result<()> {
         let mut flags = FdFlag::from_bits(fcntl(fd, FcntlArg::F_GETFD)?).unwrap();
         flags |= FdFlag::FD_CLOEXEC;
         fcntl(fd, FcntlArg::F_SETFD(flags))?;
@@ -45,20 +36,19 @@ fn create_pipe() -> nix::Result<(i32, i32)> {
     }
 
     let (read_fd, write_fd) = pipe()?;
-    set_flags(read_fd)?;
-    set_flags(write_fd)?;
+    set_flags(&read_fd)?;
+    set_flags(&write_fd)?;
     Ok((read_fd, write_fd))
 }
 
-fn open_pipe() -> nix::Result<()> {
-    // ignore the result
-    let _ = close(MEM_VALIDATE_PIPE.read_fd.load(Ordering::SeqCst));
-    let _ = close(MEM_VALIDATE_PIPE.write_fd.load(Ordering::SeqCst));
+fn open_pipe(pipes: &mut Pipes) -> nix::Result<()> {
+    pipes.read_fd = None;
+    pipes.write_fd = None;
 
     let (read_fd, write_fd) = create_pipe()?;
 
-    MEM_VALIDATE_PIPE.read_fd.store(read_fd, Ordering::SeqCst);
-    MEM_VALIDATE_PIPE.write_fd.store(write_fd, Ordering::SeqCst);
+    pipes.read_fd = Some(read_fd);
+    pipes.write_fd = Some(write_fd);
 
     Ok(())
 }
@@ -68,7 +58,7 @@ fn open_pipe() -> nix::Result<()> {
 // if the second argument of `write(ptr, buf)` is not a valid address, the
 // `write()` will return an error the error number should be `EFAULT` in most
 // cases, but we regard all errors (except EINTR) as a failure of validation
-pub fn validate(addr: *const libc::c_void) -> bool {
+pub fn validate(pipes: &mut Pipes, addr: *const libc::c_void) -> bool {
     // it's a short circuit for null pointer, as it'll give an error in
     // `std::slice::from_raw_parts` if the pointer is null.
     if addr.is_null() {
@@ -78,23 +68,29 @@ pub fn validate(addr: *const libc::c_void) -> bool {
     const CHECK_LENGTH: usize = 2 * size_of::<*const libc::c_void>() / size_of::<u8>();
 
     // read data in the pipe
-    let read_fd = MEM_VALIDATE_PIPE.read_fd.load(Ordering::SeqCst);
     let valid_read = loop {
-        let mut buf = [0u8; CHECK_LENGTH];
+        match &pipes.read_fd {
+            None => break false,
+            Some(read_fd) => {
+                let mut buf = [0u8; CHECK_LENGTH];
 
-        match read(read_fd, &mut buf) {
-            Ok(bytes) => break bytes > 0,
-            Err(_err @ Errno::EINTR) => continue,
-            Err(_err @ Errno::EAGAIN) => break true,
-            Err(_) => break false,
+                match read(read_fd, &mut buf) {
+                    Ok(bytes) => break bytes > 0,
+                    Err(_err @ Errno::EINTR) => continue,
+                    Err(_err @ Errno::EAGAIN) => break true,
+                    Err(_) => break false,
+                }
+            }
         }
     };
 
-    if !valid_read && open_pipe().is_err() {
+    if !valid_read && open_pipe(pipes).is_err() {
         return false;
     }
 
-    let write_fd = MEM_VALIDATE_PIPE.write_fd.load(Ordering::SeqCst);
+    let Some(write_fd) = &pipes.write_fd else {
+        return false; // impossible
+    };
     loop {
         let buf = unsafe { std::slice::from_raw_parts(addr as *const u8, CHECK_LENGTH) };
 
@@ -109,26 +105,36 @@ pub fn validate(addr: *const libc::c_void) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
+    use claims::assert_some;
 
     #[test]
     fn validate_stack() {
+        let mut p = Pipes::default();
         let i = 0;
 
-        assert!(validate(&i as *const _ as *const libc::c_void));
+        assert!(validate(&mut p, &i as *const _ as *const libc::c_void));
+        assert_some!(p.read_fd);
+        assert_some!(p.write_fd);
     }
 
     #[test]
     fn validate_heap() {
+        let mut p = Pipes::default();
         let vec = vec![0; 1000];
 
         for i in vec.iter() {
-            assert!(validate(i as *const _ as *const libc::c_void));
+            assert!(validate(&mut p, i as *const _ as *const libc::c_void));
         }
+        assert_some!(p.read_fd);
+        assert_some!(p.write_fd);
     }
 
     #[test]
     fn failed_validate() {
-        assert!(!validate(std::ptr::null::<libc::c_void>()));
-        assert!(!validate(-1_i32 as usize as *const libc::c_void))
+        let mut p = Pipes::default();
+        assert!(!validate(&mut p, std::ptr::null::<libc::c_void>()));
+        assert!(!validate(&mut p, -1_i32 as usize as *const libc::c_void));
+        assert_some!(p.read_fd);
+        assert_some!(p.write_fd);
     }
 }
