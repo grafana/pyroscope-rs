@@ -351,6 +351,13 @@ TLS fixed ring buffer
 - `report()` 中进行 HashMap 聚合、符号化和 pprof 编码。
 - `report()` 每次最多 drain `report_drain_limit` 个样本，剩余样本继续留在 buffer。
 
+当前实现状态：
+
+- allocator hook 先写入固定容量 TLS sample ring。
+- TLS ring 满时通过 `try_lock` flush 到固定容量全局 buffer。
+- `report()` 会先 flush 当前线程 TLS ring，再按 `report_drain_limit` drain 全局 buffer。
+- 暂未实现跨线程主动 flush 注册表；其它线程的 TLS ring 通过满 ring 触发 handoff。
+
 ## pprof 编码语义
 
 新增 `src/encode/memory_pprof.rs`。

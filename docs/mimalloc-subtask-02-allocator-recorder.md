@@ -98,13 +98,14 @@ TLS fixed ring
 当前实现进展：
 
 - 已从 atomic counters 推进到固定容量全局 sample buffer。
-- 已实现 deterministic weighted byte interval sampling。
+- 已实现 weighted byte-based Poisson sampling。
+- 已实现固定容量 TLS sample ring；allocator hook 先写入 TLS ring，ring 满时 try-flush 到全局 buffer。
 - 已在采样命中时捕获 raw instruction pointer stack。
 - 已使用 `try_lock` 避免 allocator hook 阻塞等待。
 - 已在 `report()` 阶段 drain、聚合和符号解析。
 - 已兑现 `report_drain_limit`，避免单次 report 无上限 drain 全部样本。
 - 已通过 `mimalloc_stats()` 暴露 recorded、dropped 和 buffered recorder counters。
-- 待继续：TLS fixed ring、Poisson sampling、跨线程 flush 和性能 benchmark。
+- 待继续：跨线程主动 flush 注册表、无锁全局队列和 CI benchmark 报告归档。
 
 ## realloc 规则
 

@@ -1,6 +1,6 @@
 use std::{
     alloc::{GlobalAlloc, Layout},
-    cell::Cell,
+    cell::{Cell, RefCell},
     collections::HashMap,
     sync::{
         atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
@@ -21,6 +21,7 @@ const DEFAULT_MAX_DEPTH: usize = 64;
 const DEFAULT_RING_CAPACITY: usize = 512;
 const DEFAULT_REPORT_DRAIN_LIMIT: usize = 1_000_000;
 const MAX_CAPTURE_DEPTH: usize = 64;
+const TLS_SAMPLE_RING_CAPACITY: usize = 64;
 const SYNTHETIC_FRAME: &str = "[mimalloc] sampled allocations (stack capture pending)";
 const RNG_INCREMENT: u64 = 0x9e37_79b9_7f4a_7c15;
 const RNG_INITIAL_STATE: u64 = 0xa076_1d64_78bd_642f;
@@ -41,6 +42,7 @@ thread_local! {
     static REMAINING_BYTES: Cell<u64> = const { Cell::new(DEFAULT_SAMPLE_INTERVAL_BYTES) };
     static REMAINING_CONFIG_GENERATION: Cell<u64> = const { Cell::new(0) };
     static SAMPLE_RNG_STATE: Cell<u64> = const { Cell::new(0) };
+    static TLS_SAMPLE_BUFFER: RefCell<TlsSampleBuffer> = const { RefCell::new(TlsSampleBuffer::new()) };
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -79,6 +81,70 @@ struct RecordedAllocationSample {
     stack: StackKey,
     weighted_objects: u64,
     weighted_bytes: u64,
+}
+
+#[derive(Debug)]
+struct TlsSampleBuffer {
+    samples: [Option<RecordedAllocationSample>; TLS_SAMPLE_RING_CAPACITY],
+    len: usize,
+}
+
+impl TlsSampleBuffer {
+    const fn new() -> Self {
+        Self {
+            samples: [None; TLS_SAMPLE_RING_CAPACITY],
+            len: 0,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.len
+    }
+
+    fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    fn is_full(&self) -> bool {
+        self.len == TLS_SAMPLE_RING_CAPACITY
+    }
+
+    fn push(&mut self, sample: RecordedAllocationSample) -> bool {
+        if self.is_full() {
+            return false;
+        }
+
+        self.samples[self.len] = Some(sample);
+        self.len += 1;
+        true
+    }
+
+    fn clear(&mut self) {
+        for sample in &mut self.samples[..self.len] {
+            *sample = None;
+        }
+        self.len = 0;
+    }
+
+    fn drain_into(&mut self, out: &mut Vec<RecordedAllocationSample>, limit: usize) -> usize {
+        let drain_len = self.len.min(limit);
+        for index in 0..drain_len {
+            if let Some(sample) = self.samples[index].take() {
+                out.push(sample);
+            }
+        }
+
+        let remaining = self.len - drain_len;
+        for index in 0..remaining {
+            self.samples[index] = self.samples[drain_len + index].take();
+        }
+        for index in remaining..self.len {
+            self.samples[index] = None;
+        }
+        self.len = remaining;
+
+        drain_len
+    }
 }
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -281,6 +347,7 @@ impl Backend for Mimalloc {
             .map(|last_report| duration_to_i64_nanos(now.duration_since(last_report)))
             .unwrap_or_default();
 
+        flush_current_thread_samples();
         let recorded = drain_recorded_samples(self.config.report_drain_limit);
         let recorded_count = recorded.len();
         let dropped_count = DROPPED_SAMPLES.load(Ordering::Relaxed);
@@ -449,23 +516,67 @@ fn calculate_deterministic_sample_weight(size: u64, current: u64, interval: u64)
 
 fn record_sample(weight: SampleWeight) {
     let stack = StackKey::capture(MAX_CAPTURED_DEPTH.load(Ordering::Relaxed));
-    let max_samples = MAX_RECORDED_SAMPLES.load(Ordering::Relaxed);
-    let Ok(mut samples) = RECORDED_SAMPLES.try_lock() else {
-        DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
-        return;
-    };
-
-    if samples.len() >= max_samples {
-        DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
-        return;
-    }
-
-    samples.push(RecordedAllocationSample {
+    let sample = RecordedAllocationSample {
         stack,
         weighted_objects: weight.weighted_objects,
         weighted_bytes: weight.weighted_bytes,
+    };
+
+    TLS_SAMPLE_BUFFER.with(|buffer| {
+        let Ok(mut buffer) = buffer.try_borrow_mut() else {
+            DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
+            return;
+        };
+
+        if buffer.is_full() {
+            flush_tls_samples(&mut buffer);
+        }
+
+        if buffer.push(sample) {
+            RECORDED_SAMPLE_COUNT.fetch_add(1, Ordering::Relaxed);
+        } else {
+            DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
+        }
     });
-    RECORDED_SAMPLE_COUNT.fetch_add(1, Ordering::Relaxed);
+}
+
+fn flush_current_thread_samples() {
+    TLS_SAMPLE_BUFFER.with(|buffer| {
+        if let Ok(mut buffer) = buffer.try_borrow_mut() {
+            flush_tls_samples(&mut buffer);
+        }
+    });
+}
+
+fn flush_tls_samples(buffer: &mut TlsSampleBuffer) -> bool {
+    if buffer.is_empty() {
+        return true;
+    }
+
+    let Ok(mut samples) = RECORDED_SAMPLES.try_lock() else {
+        drop_tls_samples(buffer);
+        return false;
+    };
+
+    let max_samples = MAX_RECORDED_SAMPLES.load(Ordering::Relaxed);
+    let available = max_samples.saturating_sub(samples.len());
+    if available == 0 {
+        drop_tls_samples(buffer);
+        return false;
+    }
+
+    let flushed = buffer.drain_into(&mut samples, available);
+    if !buffer.is_empty() {
+        drop_tls_samples(buffer);
+        return false;
+    }
+
+    flushed > 0
+}
+
+fn drop_tls_samples(buffer: &mut TlsSampleBuffer) {
+    DROPPED_SAMPLES.fetch_add(buffer.len() as u64, Ordering::Relaxed);
+    buffer.clear();
 }
 
 fn prepare_sample_buffer(capacity: usize) {
@@ -556,6 +667,17 @@ fn duration_to_i64_nanos(duration: std::time::Duration) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex as TestMutex;
+
+    static TEST_LOCK: TestMutex<()> = TestMutex::new(());
+
+    fn test_sample(stack: StackKey) -> RecordedAllocationSample {
+        RecordedAllocationSample {
+            stack,
+            weighted_objects: 1,
+            weighted_bytes: 1024,
+        }
+    }
 
     #[test]
     fn mimalloc_config_default_is_valid() {
@@ -574,6 +696,7 @@ mod tests {
 
     #[test]
     fn mimalloc_stats_reports_global_recorder_counters() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
         RECORDED_SAMPLES.lock().expect("lock samples").clear();
         RECORDED_SAMPLE_COUNT.store(7, Ordering::Relaxed);
         DROPPED_SAMPLES.store(3, Ordering::Relaxed);
@@ -595,6 +718,7 @@ mod tests {
 
     #[test]
     fn drain_recorded_samples_respects_limit_and_keeps_remaining_samples() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
         let stack = StackKey {
             frames: [42; MAX_CAPTURE_DEPTH],
             depth: 1,
@@ -602,23 +726,7 @@ mod tests {
         {
             let mut samples = RECORDED_SAMPLES.lock().expect("lock samples");
             samples.clear();
-            samples.extend([
-                RecordedAllocationSample {
-                    stack,
-                    weighted_objects: 1,
-                    weighted_bytes: 1024,
-                },
-                RecordedAllocationSample {
-                    stack,
-                    weighted_objects: 1,
-                    weighted_bytes: 1024,
-                },
-                RecordedAllocationSample {
-                    stack,
-                    weighted_objects: 1,
-                    weighted_bytes: 1024,
-                },
-            ]);
+            samples.extend([test_sample(stack), test_sample(stack), test_sample(stack)]);
         }
 
         let drained = drain_recorded_samples(2);
@@ -627,6 +735,67 @@ mod tests {
         assert_eq!(mimalloc_stats().buffered_samples, Some(1));
 
         RECORDED_SAMPLES.lock().expect("lock samples").clear();
+    }
+
+    #[test]
+    fn tls_sample_buffer_drain_into_respects_limit() {
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        let mut buffer = TlsSampleBuffer::new();
+        assert!(buffer.push(test_sample(stack)));
+        assert!(buffer.push(test_sample(stack)));
+        assert!(buffer.push(test_sample(stack)));
+        let mut out = Vec::new();
+
+        let drained = buffer.drain_into(&mut out, 2);
+
+        assert_eq!(drained, 2);
+        assert_eq!(out.len(), 2);
+        assert_eq!(buffer.len(), 1);
+    }
+
+    #[test]
+    fn flush_tls_samples_moves_buffer_to_global_samples() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
+        let mut buffer = TlsSampleBuffer::new();
+        assert!(buffer.push(test_sample(stack)));
+        assert!(buffer.push(test_sample(stack)));
+
+        assert!(flush_tls_samples(&mut buffer));
+
+        assert_eq!(buffer.len(), 0);
+        assert_eq!(mimalloc_stats().buffered_samples, Some(2));
+        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
+    }
+
+    #[test]
+    fn flush_tls_samples_drops_when_global_capacity_is_full() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+        MAX_RECORDED_SAMPLES.store(0, Ordering::Relaxed);
+        let mut buffer = TlsSampleBuffer::new();
+        assert!(buffer.push(test_sample(stack)));
+        assert!(buffer.push(test_sample(stack)));
+
+        assert!(!flush_tls_samples(&mut buffer));
+
+        assert_eq!(buffer.len(), 0);
+        assert_eq!(DROPPED_SAMPLES.load(Ordering::Relaxed), 2);
+        MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
     }
 
     #[test]
