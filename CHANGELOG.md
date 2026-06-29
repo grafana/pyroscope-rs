@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### New Features
+
+- **Mimalloc memory profiling backend** — new `backend-mimalloc` feature flag enables allocation memory profiling with `SamplingMiMalloc`, sampled allocation call stacks, memory pprof output, recorder counters, overhead examples, benchmark artifacts, and optional release-validation stress tests.
+
 ## [2.0.6](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.5...lib-2.0.6) (2026-05-28)
 
 

@@ -129,7 +129,7 @@ impl Session {
         let raw_profile = match data {
             ReportData::RawPprof(pprof_bytes) => {
                 if self.config.func.is_some() {
-                    log::warn!(target: LOG_TAG, "report transform function is not supported with raw pprof backends (e.g. jemalloc)");
+                    log::warn!(target: LOG_TAG, "report transform function is not supported with raw pprof backends");
                 }
                 pprof_bytes
             }

@@ -110,12 +110,12 @@ impl Metadata {
 
 /// The payload of a report batch: either structured stack-trace reports
 /// (which will be encoded into pprof by the session layer) or pre-encoded
-/// pprof bytes produced directly by a backend (e.g. jemalloc).
+/// pprof bytes produced directly by a backend (e.g. allocator profilers).
 pub enum ReportData {
     /// Structured stack-trace reports that must be pprof-encoded before sending.
     Reports(Vec<Report>),
     /// Pre-encoded pprof bytes (may already be gzipped). Used by backends
-    /// like jemalloc that produce a complete pprof profile directly.
+    /// like allocator profilers that produce a complete pprof profile directly.
     RawPprof(Vec<u8>),
 }
 
