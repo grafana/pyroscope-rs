@@ -295,10 +295,12 @@ on_alloc(size):
 - 超大对象可以必采。
 - sample weight 按采样概率校正，避免低估大对象。
 
-当前 v1 先落地 deterministic weighted byte interval：
+当前 v1 已落地 weighted byte-based Poisson sampling：
 
-- allocation 跨过采样阈值时记录一次 sample。
-- `weighted_bytes = crossed_intervals * sample_interval_bytes`，大对象跨多个 interval 时合并为一次加权样本。
+- 每个线程持有独立 `splitmix64` PRNG state。
+- 线程初始化或 backend 配置代际变化时抽取第一个 exponential byte interval。
+- allocation 跨过采样阈值时记录一次 sample，并继续抽取后续随机 interval。
+- `weighted_bytes = crossed_intervals * sample_interval_bytes`，大对象跨多个随机 interval 时合并为一次加权样本。
 - `weighted_objects = max(1, weighted_bytes / allocation_size)`，作为 allocation count 的整数估算。
 - `remaining_bytes` 保存 overshoot 后进入下一个采样周期的剩余字节。
 - TLS `remaining_bytes` 使用 sampling config generation 避免 backend 重新初始化后沿用旧周期。

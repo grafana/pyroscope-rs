@@ -22,11 +22,14 @@ const DEFAULT_RING_CAPACITY: usize = 512;
 const DEFAULT_REPORT_DRAIN_LIMIT: usize = 1_000_000;
 const MAX_CAPTURE_DEPTH: usize = 64;
 const SYNTHETIC_FRAME: &str = "[mimalloc] sampled allocations (stack capture pending)";
+const RNG_INCREMENT: u64 = 0x9e37_79b9_7f4a_7c15;
+const RNG_INITIAL_STATE: u64 = 0xa076_1d64_78bd_642f;
 
 static RECORDER_ACTIVE: AtomicBool = AtomicBool::new(false);
 static ALLOCATOR_SEEN: AtomicBool = AtomicBool::new(false);
 static SAMPLE_INTERVAL_BYTES: AtomicU64 = AtomicU64::new(DEFAULT_SAMPLE_INTERVAL_BYTES);
 static SAMPLING_CONFIG_GENERATION: AtomicU64 = AtomicU64::new(0);
+static SAMPLING_RNG_SEED: AtomicU64 = AtomicU64::new(RNG_INITIAL_STATE);
 static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
 static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
@@ -37,6 +40,7 @@ thread_local! {
     static IN_ALLOC_PROFILER: Cell<bool> = const { Cell::new(false) };
     static REMAINING_BYTES: Cell<u64> = const { Cell::new(DEFAULT_SAMPLE_INTERVAL_BYTES) };
     static REMAINING_CONFIG_GENERATION: Cell<u64> = const { Cell::new(0) };
+    static SAMPLE_RNG_STATE: Cell<u64> = const { Cell::new(0) };
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -322,23 +326,26 @@ fn record_allocation(size: u64) {
         }
 
         in_profiler.set(true);
-        REMAINING_BYTES.with(|remaining| {
-            REMAINING_CONFIG_GENERATION.with(|remaining_generation| {
-                let interval = SAMPLE_INTERVAL_BYTES.load(Ordering::Relaxed).max(1);
-                let generation = SAMPLING_CONFIG_GENERATION.load(Ordering::Relaxed);
-                let mut current = remaining.get();
-                if remaining_generation.get() != generation || current == 0 || current > interval {
-                    current = interval;
-                    remaining_generation.set(generation);
-                }
+        SAMPLE_RNG_STATE.with(|rng_state| {
+            REMAINING_BYTES.with(|remaining| {
+                REMAINING_CONFIG_GENERATION.with(|remaining_generation| {
+                    let interval = SAMPLE_INTERVAL_BYTES.load(Ordering::Relaxed).max(1);
+                    let generation = SAMPLING_CONFIG_GENERATION.load(Ordering::Relaxed);
+                    let mut current = remaining.get();
+                    if remaining_generation.get() != generation || current == 0 {
+                        rng_state.set(next_thread_rng_seed());
+                        current = next_poisson_interval(interval, rng_state);
+                        remaining_generation.set(generation);
+                    }
 
-                if size < current {
-                    remaining.set(current - size);
-                } else {
-                    let weight = calculate_sample_weight(size, current, interval);
-                    remaining.set(weight.next_remaining);
-                    record_sample(weight);
-                }
+                    if size < current {
+                        remaining.set(current - size);
+                    } else {
+                        let weight = calculate_sample_weight(size, current, interval, rng_state);
+                        remaining.set(weight.next_remaining);
+                        record_sample(weight);
+                    }
+                });
             });
         });
         in_profiler.set(false);
@@ -352,7 +359,71 @@ struct SampleWeight {
     next_remaining: u64,
 }
 
-fn calculate_sample_weight(size: u64, current: u64, interval: u64) -> SampleWeight {
+fn calculate_sample_weight(
+    size: u64,
+    current: u64,
+    sample_interval: u64,
+    rng_state: &Cell<u64>,
+) -> SampleWeight {
+    let sample_interval = sample_interval.max(1);
+    let mut remaining_bytes = size.saturating_sub(current.max(1));
+    let mut crossed_intervals = 1_u64;
+    let mut next_remaining = next_poisson_interval(sample_interval, rng_state);
+
+    while remaining_bytes >= next_remaining {
+        remaining_bytes -= next_remaining;
+        crossed_intervals = crossed_intervals.saturating_add(1);
+        next_remaining = next_poisson_interval(sample_interval, rng_state);
+    }
+
+    let weighted_bytes = crossed_intervals.saturating_mul(sample_interval);
+    let weighted_objects = weighted_bytes.checked_div(size).unwrap_or_default().max(1);
+    next_remaining -= remaining_bytes;
+
+    SampleWeight {
+        weighted_objects,
+        weighted_bytes,
+        next_remaining,
+    }
+}
+
+fn next_poisson_interval(sample_interval: u64, rng_state: &Cell<u64>) -> u64 {
+    let sample_interval = sample_interval.max(1);
+    let random = next_random_u64(rng_state);
+    let mantissa = (random >> 11).max(1);
+    let uniform = mantissa as f64 * (1.0 / ((1_u64 << 53) as f64));
+    let interval = -(uniform.ln()) * sample_interval as f64;
+
+    if interval.is_finite() && interval < u64::MAX as f64 {
+        (interval.ceil() as u64).max(1)
+    } else {
+        u64::MAX
+    }
+}
+
+fn next_random_u64(rng_state: &Cell<u64>) -> u64 {
+    let mut state = rng_state.get();
+    if state == 0 {
+        state = next_thread_rng_seed();
+    }
+    state = state.wrapping_add(RNG_INCREMENT);
+    rng_state.set(state);
+    splitmix64(state)
+}
+
+fn next_thread_rng_seed() -> u64 {
+    let seed = SAMPLING_RNG_SEED.fetch_add(RNG_INCREMENT, Ordering::Relaxed);
+    splitmix64(seed.wrapping_add(RNG_INCREMENT))
+}
+
+fn splitmix64(mut value: u64) -> u64 {
+    value = (value ^ (value >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    value ^ (value >> 31)
+}
+
+#[cfg(test)]
+fn calculate_deterministic_sample_weight(size: u64, current: u64, interval: u64) -> SampleWeight {
     let interval = interval.max(1);
     let current = current.clamp(1, interval);
     let bytes_after_first_sample = size.saturating_sub(current);
@@ -587,29 +658,41 @@ mod tests {
 
     #[test]
     fn calculate_sample_weight_uses_interval_for_small_allocation() {
-        let weight = calculate_sample_weight(128, 128, 1024);
+        let rng_state = Cell::new(1);
+        let weight = calculate_sample_weight(128, 128, 1024, &rng_state);
 
-        assert_eq!(
-            weight,
-            SampleWeight {
-                weighted_objects: 8,
-                weighted_bytes: 1024,
-                next_remaining: 1024,
-            }
-        );
+        assert_eq!(weight.weighted_objects, 8);
+        assert_eq!(weight.weighted_bytes, 1024);
+        assert!(weight.next_remaining > 0);
     }
 
     #[test]
-    fn calculate_sample_weight_carries_large_allocation_overshoot() {
-        let weight = calculate_sample_weight(2500, 1000, 1000);
+    fn calculate_sample_weight_carries_large_allocation_overshoot_with_poisson_intervals() {
+        let rng_state = Cell::new(1);
+        let weight = calculate_sample_weight(2500, 1000, 1000, &rng_state);
 
-        assert_eq!(
-            weight,
-            SampleWeight {
-                weighted_objects: 1,
-                weighted_bytes: 2000,
-                next_remaining: 500,
-            }
-        );
+        assert!(weight.weighted_objects >= 1);
+        assert!(weight.weighted_bytes >= 1000);
+        assert!(weight.next_remaining > 0);
+    }
+
+    #[test]
+    fn deterministic_sample_weight_documents_previous_interval_semantics() {
+        let weight = calculate_deterministic_sample_weight(2500, 1000, 1000);
+
+        assert_eq!(weight.weighted_objects, 1);
+        assert_eq!(weight.weighted_bytes, 2000);
+        assert_eq!(weight.next_remaining, 500);
+    }
+
+    #[test]
+    fn next_poisson_interval_uses_thread_rng_state() {
+        let rng_state = Cell::new(1);
+        let first = next_poisson_interval(1024, &rng_state);
+        let second = next_poisson_interval(1024, &rng_state);
+
+        assert!(first > 0);
+        assert!(second > 0);
+        assert_ne!(first, second);
     }
 }

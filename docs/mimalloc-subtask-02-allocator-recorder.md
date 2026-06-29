@@ -62,14 +62,15 @@ if remaining_bytes <= 0:
     remaining_bytes = sample_interval_bytes - overshoot % sample_interval_bytes
 ```
 
-当前实现已经把第一阶段推进到 weighted byte interval sampling：
+当前实现已经把第一阶段推进到 weighted byte-based Poisson sampling：
 
 - 小对象命中采样点时，`weighted_bytes` 至少等于 `sample_interval_bytes`，避免只按当前 allocation size 累加导致系统性低估。
-- 大对象跨多个采样周期时，`weighted_bytes` 覆盖跨过的 interval，并把 overshoot 结转到下一次 `remaining_bytes`。
+- 每个线程持有独立 `splitmix64` PRNG state，采样命中后通过 `-ln(random) * sample_interval_bytes` 抽取下一次随机 byte interval。
+- 大对象跨多个随机采样周期时，`weighted_bytes` 覆盖跨过的 interval，并把 overshoot 结转到下一次 `remaining_bytes`。
 - `weighted_objects` 按 `weighted_bytes / allocation_size` 做整数估算，最小为 1。
 - TLS `remaining_bytes` 通过 config generation 感知 backend 重新初始化后的采样周期变化。
 
-后续升级为 Poisson sampling：
+Poisson interval：
 
 ```text
 next = -ln(random) * sample_interval_bytes

@@ -83,8 +83,7 @@ cargo test --locked --lib --tests --features backend-mimalloc memory_pprof
 
 ### Phase 3：采样器增强
 
-- 从简单 byte interval 采样升级为 weighted byte interval sampling。
-- 后续再升级为 Poisson sampling。
+- 从简单 byte interval 采样升级为 weighted byte-based Poisson sampling。
 - TLS ring buffer。
 - raw IP stack capture。
 - report 阶段聚合和符号化。
@@ -98,8 +97,9 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 
 当前进展：
 
-- 已实现 weighted byte interval sampling：采样命中记录 `weighted_objects` 和 `weighted_bytes`。
-- 已处理大对象跨多个 sample interval 时的 overshoot 和下一次剩余字节。
+- 已实现 weighted byte-based Poisson sampling：采样命中记录 `weighted_objects` 和 `weighted_bytes`。
+- 已使用每线程 `splitmix64` PRNG 生成 exponential byte interval，`sample_interval_bytes` 是平均采样间隔。
+- 已处理大对象跨多个随机 sample interval 时的 overshoot 和下一次剩余字节。
 - 已让 TLS `remaining_bytes` 随 backend 初始化的 sampling config generation 刷新。
 - 已实现固定容量全局 sample buffer。
 - 已实现 allocation 命中时捕获 raw instruction pointer stack。
@@ -107,7 +107,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已实现 `report_drain_limit`，单次 report 超出 limit 的样本会保留到下一轮。
 - 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`dropped_samples` 和当前 buffered samples。
 - 已新增 `mimalloc_baseline` 和 `mimalloc_overhead` examples，支持 baseline、inactive、active overhead 本地对比。
-- 待继续：Poisson sampling、TLS ring buffer、无锁/try-flush 全局队列、CI benchmark 报告归档。
+- 待继续：TLS ring buffer、无锁/try-flush 全局队列、CI benchmark 报告归档。
 
 ### Phase 4：性能和 CI
 
