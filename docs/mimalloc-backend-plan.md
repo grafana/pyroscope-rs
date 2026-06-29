@@ -359,7 +359,8 @@ TLS fixed ring buffer
 - `report()` 会推进 flush request generation，其它线程会在下一次 allocation 时 opportunistic flush 自己的 TLS ring。
 - `mimalloc_stats()` 会暴露 recorded、flushes、flushed、dropped 和 buffered counters。
 - `mimalloc_stats().buffered_samples` 会合并全局 buffer 和当前线程 TLS ring。
-- 暂未实现跨线程注册表驱动的同步 flush；其它线程的 TLS ring 通过满 ring 或下一次 allocation 触发 handoff。
+- 线程退出时会自动尝试 flush 本线程 TLS ring，减少短生命周期 worker 样本滞留。
+- 暂未实现跨线程注册表驱动的主动同步 flush；其它线程的 TLS ring 通过满 ring、下一次 allocation 或线程退出触发 handoff。
 
 ## pprof 编码语义
 

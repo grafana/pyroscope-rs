@@ -151,6 +151,14 @@ impl TlsSampleBuffer {
     }
 }
 
+impl Drop for TlsSampleBuffer {
+    fn drop(&mut self) {
+        if RECORDER_ACTIVE.load(Ordering::Acquire) {
+            flush_tls_samples(self);
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Default)]
 struct AggregatedAllocationSample {
     alloc_objects: u64,
@@ -926,6 +934,40 @@ mod tests {
         assert_eq!(mimalloc_stats().flushes, 1);
         assert_eq!(mimalloc_stats().flushed_samples, 2);
 
+        clear_test_buffers();
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
+    }
+
+    #[test]
+    fn tls_sample_buffer_flushes_on_thread_exit_when_recorder_is_active() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        RECORDER_ACTIVE.store(true, Ordering::Release);
+
+        std::thread::spawn(move || {
+            TLS_SAMPLE_BUFFER.with(|buffer| {
+                let mut buffer = buffer.borrow_mut();
+                assert!(buffer.push(test_sample(stack)));
+                assert!(buffer.push(test_sample(stack)));
+            });
+        })
+        .join()
+        .expect("join allocation thread");
+
+        assert_eq!(mimalloc_stats().buffered_samples, Some(2));
+        assert_eq!(mimalloc_stats().flushes, 1);
+        assert_eq!(mimalloc_stats().flushed_samples, 2);
+
+        RECORDER_ACTIVE.store(false, Ordering::Release);
         clear_test_buffers();
         FLUSH_COUNT.store(0, Ordering::Relaxed);
         FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);

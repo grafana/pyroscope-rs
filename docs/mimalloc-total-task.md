@@ -109,7 +109,17 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已实现 report 侧 flush request generation，其它线程会在下一次 allocation 时 opportunistic flush TLS ring。
 - 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`flushes`、`flushed_samples`、`dropped_samples`，并把当前线程 TLS ring 计入 buffered samples。
 - 已新增 `mimalloc_baseline` 和 `mimalloc_overhead` examples，支持 baseline、inactive、active overhead 本地对比。
-- 待继续：跨线程注册表驱动的同步 flush、无锁全局队列、CI benchmark 报告归档。
+- 已实现线程退出时自动尝试 flush 本线程 TLS sample ring，减少短生命周期 worker 线程的样本滞留。
+- 待继续：跨线程注册表驱动的主动同步 flush、无锁全局队列、CI benchmark 报告归档。
+
+当前剩余未实现功能：
+
+1. 跨线程注册表驱动的主动同步 flush：`report()` 当前只能 flush 当前线程，并通过 generation 让其它线程在下一次 allocation 时 opportunistic flush；还不能主动唤醒或遍历所有活跃线程 TLS ring。
+2. 无锁或低锁竞争全局 sample queue：当前全局 buffer 仍是固定容量 `Mutex<Vec<RecordedAllocationSample>>`，allocator hot path 使用 `try_lock` 避免阻塞，但高并发 flush 时仍可能 drop sample。
+3. CI benchmark 报告归档：已有 `mimalloc_baseline` / `mimalloc_overhead` examples，但尚未形成可重复的 CI artifact、阈值对比和历史报告。
+4. 更完整的多线程压力测试：已有集成 smoke 和 TLS flush 单测，但还缺 allocation churn、短生命周期线程、report 并发 drain 的组合压力测试。
+5. 发布文档同步：README / CHANGELOG / feature 文档还未整理成对用户可直接复制的使用说明。
+6. v2 live heap / inuse profile：仍保持默认不做，需单独评估 pointer tracking、dealloc/realloc metadata 成本和 opt-in API。
 
 ### Phase 4：性能和 CI
 
