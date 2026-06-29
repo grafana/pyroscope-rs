@@ -9,6 +9,8 @@ use std::{
     time::Instant,
 };
 
+use lazy_static::lazy_static;
+
 use crate::{
     backend::{Backend, BackendImpl, BackendUninitialized, ReportBatch, ReportData, ThreadTag},
     encode::memory_pprof::{self, AllocationSample},
@@ -22,6 +24,7 @@ const DEFAULT_RING_CAPACITY: usize = 512;
 const DEFAULT_REPORT_DRAIN_LIMIT: usize = 1_000_000;
 const MAX_CAPTURE_DEPTH: usize = 64;
 const TLS_SAMPLE_RING_CAPACITY: usize = 64;
+const RECORDED_SAMPLE_SHARD_COUNT: usize = 8;
 const SYNTHETIC_FRAME: &str = "[mimalloc] sampled allocations (stack capture pending)";
 const RNG_INCREMENT: u64 = 0x9e37_79b9_7f4a_7c15;
 const RNG_INITIAL_STATE: u64 = 0xa076_1d64_78bd_642f;
@@ -34,12 +37,20 @@ static SAMPLING_RNG_SEED: AtomicU64 = AtomicU64::new(RNG_INITIAL_STATE);
 static FLUSH_REQUEST_GENERATION: AtomicU64 = AtomicU64::new(0);
 static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
+static GLOBAL_BUFFERED_SAMPLE_COUNT: AtomicUsize = AtomicUsize::new(0);
+static NEXT_RECORDED_SAMPLE_SHARD: AtomicUsize = AtomicUsize::new(0);
 static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSH_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSHED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static DROPPED_SAMPLES: AtomicU64 = AtomicU64::new(0);
 static LAST_PPROF_ENCODE_ELAPSED_MICROS: AtomicU64 = AtomicU64::new(0);
-static RECORDED_SAMPLES: Mutex<Vec<RecordedAllocationSample>> = Mutex::new(Vec::new());
+
+lazy_static! {
+    static ref RECORDED_SAMPLE_SHARDS: Vec<Mutex<Vec<RecordedAllocationSample>>> = (0
+        ..RECORDED_SAMPLE_SHARD_COUNT)
+        .map(|_| Mutex::new(Vec::new()))
+        .collect();
+}
 
 thread_local! {
     static IN_ALLOC_PROFILER: Cell<bool> = const { Cell::new(false) };
@@ -229,10 +240,6 @@ pub struct MimallocStats {
 ///
 /// This is mainly intended for tests, diagnostics, and benchmark reports.
 pub fn mimalloc_stats() -> MimallocStats {
-    let global_buffered_samples = RECORDED_SAMPLES
-        .try_lock()
-        .ok()
-        .map(|samples| samples.len());
     let current_thread_buffered_samples = current_thread_buffered_samples();
 
     MimallocStats {
@@ -240,9 +247,11 @@ pub fn mimalloc_stats() -> MimallocStats {
         flushes: FLUSH_COUNT.load(Ordering::Relaxed),
         flushed_samples: FLUSHED_SAMPLE_COUNT.load(Ordering::Relaxed),
         dropped_samples: DROPPED_SAMPLES.load(Ordering::Relaxed),
-        buffered_samples: global_buffered_samples
-            .zip(current_thread_buffered_samples)
-            .map(|(global, current_thread)| global.saturating_add(current_thread)),
+        buffered_samples: current_thread_buffered_samples.map(|current_thread| {
+            GLOBAL_BUFFERED_SAMPLE_COUNT
+                .load(Ordering::Relaxed)
+                .saturating_add(current_thread)
+        }),
         last_pprof_encode_elapsed_micros: LAST_PPROF_ENCODE_ELAPSED_MICROS.load(Ordering::Relaxed),
     }
 }
@@ -408,6 +417,7 @@ impl Backend for Mimalloc {
         self.config.validate()?;
         SAMPLE_INTERVAL_BYTES.store(self.config.sample_interval_bytes, Ordering::Relaxed);
         SAMPLING_CONFIG_GENERATION.fetch_add(1, Ordering::Relaxed);
+        NEXT_RECORDED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
         MAX_CAPTURED_DEPTH.store(
             self.config.max_depth.min(MAX_CAPTURE_DEPTH),
             Ordering::Relaxed,
@@ -697,19 +707,24 @@ fn flush_tls_samples(buffer: &mut TlsSampleBuffer) -> bool {
         return true;
     }
 
-    let Ok(mut samples) = RECORDED_SAMPLES.try_lock() else {
+    let reserved_slots = reserve_global_sample_slots(buffer.len());
+    if reserved_slots == 0 {
         drop_tls_samples(buffer);
         return false;
     };
 
-    let max_samples = MAX_RECORDED_SAMPLES.load(Ordering::Relaxed);
-    let available = max_samples.saturating_sub(samples.len());
-    if available == 0 {
+    let shard_index =
+        NEXT_RECORDED_SAMPLE_SHARD.fetch_add(1, Ordering::Relaxed) % RECORDED_SAMPLE_SHARD_COUNT;
+    let Ok(mut samples) = RECORDED_SAMPLE_SHARDS[shard_index].try_lock() else {
+        release_global_sample_slots(reserved_slots);
         drop_tls_samples(buffer);
         return false;
-    }
+    };
 
-    let flushed = buffer.drain_into(&mut samples, available);
+    let flushed = buffer.drain_into(&mut samples, reserved_slots);
+    if flushed < reserved_slots {
+        release_global_sample_slots(reserved_slots - flushed);
+    }
     if flushed > 0 {
         FLUSH_COUNT.fetch_add(1, Ordering::Relaxed);
         FLUSHED_SAMPLE_COUNT.fetch_add(flushed as u64, Ordering::Relaxed);
@@ -722,28 +737,81 @@ fn flush_tls_samples(buffer: &mut TlsSampleBuffer) -> bool {
     flushed > 0
 }
 
+fn reserve_global_sample_slots(wanted: usize) -> usize {
+    let max_samples = MAX_RECORDED_SAMPLES.load(Ordering::Relaxed);
+    let mut current = GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed);
+
+    loop {
+        let available = max_samples.saturating_sub(current);
+        if available == 0 {
+            return 0;
+        }
+
+        let reserved = wanted.min(available);
+        match GLOBAL_BUFFERED_SAMPLE_COUNT.compare_exchange_weak(
+            current,
+            current + reserved,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => return reserved,
+            Err(observed) => current = observed,
+        }
+    }
+}
+
+fn release_global_sample_slots(slots: usize) {
+    GLOBAL_BUFFERED_SAMPLE_COUNT.fetch_sub(slots, Ordering::Relaxed);
+}
+
 fn drop_tls_samples(buffer: &mut TlsSampleBuffer) {
     DROPPED_SAMPLES.fetch_add(buffer.len() as u64, Ordering::Relaxed);
     buffer.clear();
 }
 
 fn prepare_sample_buffer(capacity: usize) {
-    if let Ok(mut samples) = RECORDED_SAMPLES.lock() {
+    GLOBAL_BUFFERED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+    for shard in RECORDED_SAMPLE_SHARDS.iter() {
+        let Ok(mut samples) = shard.lock() else {
+            DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
+            continue;
+        };
         samples.clear();
         let current_capacity = samples.capacity();
-        if current_capacity < capacity {
-            samples.reserve(capacity - current_capacity);
+        let shard_capacity = recorded_sample_shard_capacity(capacity);
+        if current_capacity < shard_capacity {
+            samples.reserve(shard_capacity - current_capacity);
         }
     }
 }
 
 fn drain_recorded_samples(limit: usize) -> Vec<RecordedAllocationSample> {
-    let Ok(mut samples) = RECORDED_SAMPLES.lock() else {
-        DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
-        return Vec::new();
-    };
-    let drain_len = samples.len().min(limit);
-    samples.drain(..drain_len).collect()
+    let mut drained = Vec::new();
+    let mut remaining = limit;
+
+    for shard in RECORDED_SAMPLE_SHARDS.iter() {
+        if remaining == 0 {
+            break;
+        }
+
+        let Ok(mut samples) = shard.lock() else {
+            DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
+            continue;
+        };
+        let drain_len = samples.len().min(remaining);
+        drained.extend(samples.drain(..drain_len));
+        remaining -= drain_len;
+    }
+
+    if !drained.is_empty() {
+        release_global_sample_slots(drained.len());
+    }
+
+    drained
+}
+
+fn recorded_sample_shard_capacity(total_capacity: usize) -> usize {
+    total_capacity.saturating_add(RECORDED_SAMPLE_SHARD_COUNT - 1) / RECORDED_SAMPLE_SHARD_COUNT
 }
 
 fn build_allocation_samples(
@@ -840,8 +908,19 @@ mod tests {
     }
 
     fn clear_test_buffers() {
-        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        for shard in RECORDED_SAMPLE_SHARDS.iter() {
+            shard.lock().expect("lock samples").clear();
+        }
+        GLOBAL_BUFFERED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        NEXT_RECORDED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
         clear_current_thread_samples();
+    }
+
+    fn push_global_test_samples(samples: impl IntoIterator<Item = RecordedAllocationSample>) {
+        let mut shard = RECORDED_SAMPLE_SHARDS[0].lock().expect("lock samples");
+        let initial_len = shard.len();
+        shard.extend(samples);
+        GLOBAL_BUFFERED_SAMPLE_COUNT.fetch_add(shard.len() - initial_len, Ordering::Relaxed);
     }
 
     #[test]
@@ -897,10 +976,7 @@ mod tests {
             depth: 1,
         };
         clear_test_buffers();
-        {
-            let mut global_samples = RECORDED_SAMPLES.lock().expect("lock samples");
-            global_samples.push(test_sample(stack));
-        }
+        push_global_test_samples([test_sample(stack)]);
         TLS_SAMPLE_BUFFER.with(|buffer| {
             let mut buffer = buffer.borrow_mut();
             assert!(buffer.push(test_sample(stack)));
@@ -920,10 +996,7 @@ mod tests {
             depth: 1,
         };
         clear_test_buffers();
-        {
-            let mut samples = RECORDED_SAMPLES.lock().expect("lock samples");
-            samples.extend([test_sample(stack), test_sample(stack), test_sample(stack)]);
-        }
+        push_global_test_samples([test_sample(stack), test_sample(stack), test_sample(stack)]);
 
         let drained = drain_recorded_samples(2);
 
