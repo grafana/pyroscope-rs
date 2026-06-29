@@ -971,6 +971,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "kindasafe"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46ccffcebe25cf8699373a15a75485766efa6968ae20af87e910e65276251fd5"
+
+[[package]]
+name = "kindasafe_init"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98ae7076cfbde82f1e3d114b1f661d157c72288415846b0287ed3fe06624a876"
+dependencies = [
+ "kindasafe",
+ "libc",
+ "spin 0.10.0",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1439,6 +1456,8 @@ dependencies = [
  "findshlibs",
  "framehop",
  "jemalloc_pprof",
+ "kindasafe",
+ "kindasafe_init",
  "lazy_static",
  "libc",
  "libflate",
@@ -1451,7 +1470,7 @@ dependencies = [
  "reqwest",
  "serde_json",
  "smallvec",
- "spin",
+ "spin 0.12.0",
  "symbolic-demangle",
  "tempfile",
  "thiserror",
@@ -1942,6 +1961,15 @@ checksum = "52d1cfed4120b4d927bf7c0f86d2087a4a7d6027c906d9f9d525a80573b9be51"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "spin"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
+dependencies = [
+ "lock_api",
 ]
 
 [[package]]
