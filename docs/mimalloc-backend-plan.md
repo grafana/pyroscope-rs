@@ -686,7 +686,7 @@ MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --relea
 - 已新增 `mimalloc_baseline` / `mimalloc_overhead` examples。
 - 已新增 README 使用示例，明确 `SamplingMiMalloc` global allocator、`backend-mimalloc` feature 和 allocation profile 语义。
 - 已新增 CHANGELOG Unreleased 条目。
-- 待继续：CI matrix、benchmark artifact 和阈值报告。
+- 已新增 CI `mimalloc benchmark report` job、Markdown artifact、raw env 输出、阈值报告和分支级历史趋势 CSV。
 
 验收：
 
@@ -697,15 +697,16 @@ MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --relea
 
 内容：
 
-- pointer tracking PoC。
-- dealloc/realloc live map。
-- `inuse_objects` / `inuse_space` pprof。
+- 已完成设计评估，不进入 v1 默认能力。
+- 推荐后续 v2 作为 opt-in 独立 PR。
+- 推荐技术路线：sampled pointer tracking + sharded live map。
+- 后续实现内容包括 dealloc/realloc live map、`inuse_objects` / `inuse_space` pprof、metadata 成本 benchmark。
 
 验收：
 
-- 明确额外内存成本。
-- 明确最大可接受 overhead。
-- 决定是否合入主线或作为 opt-in feature。
+- 已明确：不合入 v1 主线。
+- 已明确：如实现必须作为 opt-in feature/config。
+- 已明确：合入前必须量化额外内存成本、最大可接受 overhead、跨线程 dealloc/realloc 正确性。
 
 ## 风险清单
 
