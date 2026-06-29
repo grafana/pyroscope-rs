@@ -101,6 +101,7 @@ TLS fixed ring
 - 已在采样命中时捕获 raw instruction pointer stack。
 - 已使用 `try_lock` 避免 allocator hook 阻塞等待。
 - 已在 `report()` 阶段 drain、聚合和符号解析。
+- 已兑现 `report_drain_limit`，避免单次 report 无上限 drain 全部样本。
 - 已通过 `mimalloc_stats()` 暴露 recorded、dropped 和 buffered recorder counters。
 - 待继续：TLS fixed ring、Poisson sampling、跨线程 flush 和性能 benchmark。
 

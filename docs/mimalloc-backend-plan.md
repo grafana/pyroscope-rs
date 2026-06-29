@@ -192,6 +192,8 @@ ring_capacity = 512
 report_drain_limit = 1_000_000
 ```
 
+`report_drain_limit` 表示单次 `report()` 最多从 recorder buffer 取出的 sample 数量；超过 limit 的样本保留在 buffer 中，等待下一轮 report，避免一次 report 在极端流量下承担过长的聚合、符号化和编码成本。
+
 默认采样间隔选 1 MiB，理由：
 
 - 与 jemalloc `lg_prof_sample:19` 的 512 KiB 量级接近。
@@ -345,6 +347,7 @@ TLS fixed ring buffer
 - flush 失败直接丢弃本批或新样本，并增加 dropped counter。
 - 不在 allocation hook 内 HashMap 聚合。
 - `report()` 中进行 HashMap 聚合、符号化和 pprof 编码。
+- `report()` 每次最多 drain `report_drain_limit` 个样本，剩余样本继续留在 buffer。
 
 ## pprof 编码语义
 

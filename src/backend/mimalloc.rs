@@ -277,7 +277,7 @@ impl Backend for Mimalloc {
             .map(|last_report| duration_to_i64_nanos(now.duration_since(last_report)))
             .unwrap_or_default();
 
-        let recorded = drain_recorded_samples();
+        let recorded = drain_recorded_samples(self.config.report_drain_limit);
         let recorded_count = recorded.len();
         let dropped_count = DROPPED_SAMPLES.load(Ordering::Relaxed);
         if dropped_count > 0 {
@@ -407,12 +407,13 @@ fn prepare_sample_buffer(capacity: usize) {
     }
 }
 
-fn drain_recorded_samples() -> Vec<RecordedAllocationSample> {
+fn drain_recorded_samples(limit: usize) -> Vec<RecordedAllocationSample> {
     let Ok(mut samples) = RECORDED_SAMPLES.lock() else {
         DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
         return Vec::new();
     };
-    samples.drain(..).collect()
+    let drain_len = samples.len().min(limit);
+    samples.drain(..drain_len).collect()
 }
 
 fn build_allocation_samples(
@@ -519,6 +520,42 @@ mod tests {
 
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+    }
+
+    #[test]
+    fn drain_recorded_samples_respects_limit_and_keeps_remaining_samples() {
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        {
+            let mut samples = RECORDED_SAMPLES.lock().expect("lock samples");
+            samples.clear();
+            samples.extend([
+                RecordedAllocationSample {
+                    stack,
+                    weighted_objects: 1,
+                    weighted_bytes: 1024,
+                },
+                RecordedAllocationSample {
+                    stack,
+                    weighted_objects: 1,
+                    weighted_bytes: 1024,
+                },
+                RecordedAllocationSample {
+                    stack,
+                    weighted_objects: 1,
+                    weighted_bytes: 1024,
+                },
+            ]);
+        }
+
+        let drained = drain_recorded_samples(2);
+
+        assert_eq!(drained.len(), 2);
+        assert_eq!(mimalloc_stats().buffered_samples, Some(1));
+
+        RECORDED_SAMPLES.lock().expect("lock samples").clear();
     }
 
     #[test]
