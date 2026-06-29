@@ -1,9 +1,11 @@
+use crate::backend::pprofrs::addr_validate::Pipes;
 use framehop::{
     CacheNative, MustNotAllocateDuringUnwind, UnwindRegsNative, Unwinder, UnwinderNative,
 };
 use libc::{c_void, ucontext_t};
 use once_cell::sync::Lazy;
 use spin::RwLock;
+
 mod shlib;
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
@@ -83,6 +85,7 @@ fn get_regs_from_context(ucontext: *mut c_void) -> Option<(UnwindRegsNative, u64
 struct FramehopUnwinder {
     unwinder: UnwinderNative<Vec<u8>, MustNotAllocateDuringUnwind>,
     cache: CacheNative<MustNotAllocateDuringUnwind>,
+    pipes: Pipes,
 }
 
 impl FramehopUnwinder {
@@ -92,7 +95,12 @@ impl FramehopUnwinder {
             unwinder.add_module(obj.clone());
         }
         let cache = CacheNative::default();
-        FramehopUnwinder { unwinder, cache }
+        let pipes = Pipes::default();
+        FramehopUnwinder {
+            unwinder,
+            cache,
+            pipes,
+        }
     }
 
     pub fn iter_frames<F: FnMut(&Frame) -> bool>(&mut self, ctx: *mut c_void, mut cb: F) {
@@ -101,7 +109,7 @@ impl FramehopUnwinder {
             None => return,
         };
 
-        let mut closure = |addr| read_stack(addr);
+        let mut closure = |addr| read_stack(&mut self.pipes, addr);
         let mut iter = self
             .unwinder
             .iter_frames(pc, regs, &mut self.cache, &mut closure);
@@ -115,9 +123,9 @@ impl FramehopUnwinder {
     }
 }
 
-fn read_stack(addr: u64) -> Result<u64, ()> {
+fn read_stack(pipes: &mut Pipes, addr: u64) -> Result<u64, ()> {
     let aligned_addr = addr & !0b111;
-    if crate::backend::pprofrs::addr_validate::validate(aligned_addr as _) {
+    if crate::backend::pprofrs::addr_validate::validate(pipes, aligned_addr as _) {
         Ok(unsafe { (aligned_addr as *const u64).read() })
     } else {
         Err(())
