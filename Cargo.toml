@@ -63,6 +63,14 @@ required-features = ["backend-jemalloc"]
 name = "mimalloc"
 required-features = ["backend-mimalloc"]
 
+[[example]]
+name = "mimalloc_baseline"
+required-features = ["backend-mimalloc"]
+
+[[example]]
+name = "mimalloc_overhead"
+required-features = ["backend-mimalloc"]
+
 [features]
 default = ["rustls-tls"]
 rustls-tls = ["reqwest/rustls"]

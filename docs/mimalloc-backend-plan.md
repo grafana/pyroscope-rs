@@ -575,6 +575,15 @@ SamplingMiMalloc active, interval = 512 KiB
 SamplingMiMalloc active, interval = 4 KiB
 ```
 
+当前 benchmark examples：
+
+```bash
+cargo run --release --example mimalloc_baseline --features backend-mimalloc
+cargo run --release --example mimalloc_overhead --features backend-mimalloc
+MIMALLOC_BENCH_MODE=active cargo run --release --example mimalloc_overhead --features backend-mimalloc
+MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --release --example mimalloc_overhead --features backend-mimalloc
+```
+
 目标：
 
 - inactive 热路径开销小于 2%。

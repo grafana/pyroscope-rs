@@ -106,7 +106,8 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已实现 report 阶段按栈聚合和符号解析。
 - 已实现 `report_drain_limit`，单次 report 超出 limit 的样本会保留到下一轮。
 - 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`dropped_samples` 和当前 buffered samples。
-- 待继续：Poisson sampling、TLS ring buffer、无锁/try-flush 全局队列、性能 benchmark。
+- 已新增 `mimalloc_baseline` 和 `mimalloc_overhead` examples，支持 baseline、inactive、active overhead 本地对比。
+- 待继续：Poisson sampling、TLS ring buffer、无锁/try-flush 全局队列、CI benchmark 报告归档。
 
 ### Phase 4：性能和 CI
 

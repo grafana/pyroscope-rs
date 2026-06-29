@@ -77,6 +77,28 @@ SamplingMiMalloc active, interval = 512 KiB
 SamplingMiMalloc active, interval = 4 KiB
 ```
 
+当前已新增本地 benchmark examples：
+
+```bash
+cargo run --release --example mimalloc_baseline --features backend-mimalloc
+cargo run --release --example mimalloc_overhead --features backend-mimalloc
+MIMALLOC_BENCH_MODE=active cargo run --release --example mimalloc_overhead --features backend-mimalloc
+MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --release --example mimalloc_overhead --features backend-mimalloc
+```
+
+可调环境变量：
+
+```text
+MIMALLOC_BENCH_DURATION_MS
+MIMALLOC_BENCH_BATCH_SIZE
+MIMALLOC_BENCH_MIN_SIZE
+MIMALLOC_BENCH_MAX_SIZE
+MIMALLOC_BENCH_SIZE_STEP
+MIMALLOC_BENCH_SAMPLE_INTERVAL
+MIMALLOC_BENCH_RING_CAPACITY
+MIMALLOC_BENCH_REPORT_DRAIN_LIMIT
+```
+
 目标：
 
 - inactive overhead < 2%。
