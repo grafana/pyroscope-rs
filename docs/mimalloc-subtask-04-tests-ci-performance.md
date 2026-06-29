@@ -163,6 +163,7 @@ MIMALLOC_BENCH_REPORT_DRAIN_LIMIT
 - `flushes`。
 - `dropped_samples`。
 - report drain duration。
+- encoded pprof size。
 
 GitHub Actions 已通过 `mimalloc benchmark report` job 上传
 `mimalloc-benchmark-report` artifact，保留 14 天。
@@ -171,5 +172,4 @@ GitHub Actions 已通过 `mimalloc benchmark report` job 上传
 
 - p50/p95/p99 allocation latency。
 - pprof encode duration。
-- encoded pprof size。
 - 历史趋势归档。

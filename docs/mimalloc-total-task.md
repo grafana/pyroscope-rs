@@ -117,6 +117,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已新增 `scripts/mimalloc_benchmark_report.sh` 和 `make mimalloc/bench/report`，可生成 baseline / inactive / active 采样开销 Markdown report 与 raw key-value artifact，并支持阈值告警或 hard gate。
 - 已为 `MimallocConfig`、`SamplingMiMalloc` 和 `mimalloc_backend()` 补充 docs.rs API 示例，明确 allocation profile 语义、global allocator 要求和非 live heap 边界。
 - 已在 GitHub Actions 增加 `mimalloc benchmark report` job，生成并上传 `mimalloc-benchmark-report` artifact。
+- benchmark report 已覆盖 encoded pprof size，便于观察聚合和符号化输出规模。
 - 待继续：跨线程注册表驱动的主动同步 flush、无锁全局队列、benchmark 历史趋势归档。
 
 当前剩余未实现功能：

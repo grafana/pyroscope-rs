@@ -81,6 +81,7 @@ append_row() {
     local flushes
     local dropped_samples
     local report_elapsed_ms
+    local encoded_pprof_bytes
 
     sample_interval="$(metric_or_default "$file" sample_interval_bytes "-")"
     mib_per_sec="$(metric "$file" mib_per_sec)"
@@ -89,6 +90,7 @@ append_row() {
     flushes="$(metric_or_default "$file" flushes "-")"
     dropped_samples="$(metric_or_default "$file" dropped_samples "-")"
     report_elapsed_ms="$(metric_or_default "$file" report_elapsed_ms "-")"
+    encoded_pprof_bytes="$(metric_or_default "$file" encoded_pprof_bytes "-")"
 
     if [ "$scenario" = "baseline" ]; then
         overhead="0.00"
@@ -105,7 +107,7 @@ append_row() {
         fi
     fi
 
-    printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
+    printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
         "$scenario" \
         "$sample_interval" \
         "$mib_per_sec" \
@@ -115,6 +117,7 @@ append_row() {
         "$flushes" \
         "$dropped_samples" \
         "$report_elapsed_ms" \
+        "$encoded_pprof_bytes" \
         "$status" >> "$report_path"
 }
 
@@ -149,8 +152,8 @@ baseline_mib_per_sec="$(metric "${output_dir}/baseline.env" mib_per_sec)"
     echo
     echo "## Results"
     echo
-    echo "| scenario | sample_interval_bytes | MiB/s | allocations/s | overhead_vs_baseline_% | recorded_samples | flushes | dropped_samples | report_elapsed_ms | status |"
-    echo "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |"
+    echo "| scenario | sample_interval_bytes | MiB/s | allocations/s | overhead_vs_baseline_% | recorded_samples | flushes | dropped_samples | report_elapsed_ms | encoded_pprof_bytes | status |"
+    echo "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |"
 } > "$report_path"
 
 append_row "baseline" "${output_dir}/baseline.env" "$baseline_mib_per_sec" "" "BASELINE"

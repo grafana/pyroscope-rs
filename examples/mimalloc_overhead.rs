@@ -8,8 +8,9 @@
 #[path = "mimalloc_benchmark/support.rs"]
 mod support;
 
-use pyroscope::backend::mimalloc::{
-    mimalloc_backend, mimalloc_stats, MimallocConfig, SamplingMiMalloc,
+use pyroscope::backend::{
+    mimalloc::{mimalloc_backend, mimalloc_stats, MimallocConfig, SamplingMiMalloc},
+    ReportData,
 };
 use support::{print_workload, run_workload, WorkloadConfig};
 
@@ -41,8 +42,12 @@ fn run_active(config: WorkloadConfig) -> Result<(), Box<dyn std::error::Error>> 
 
     let result = run_workload(config);
     let report_start = std::time::Instant::now();
-    let _report = backend.report()?;
+    let report = backend.report()?;
     let report_elapsed = report_start.elapsed();
+    let encoded_pprof_bytes = match &report.data {
+        ReportData::RawPprof(bytes) => bytes.len(),
+        ReportData::Reports(_) => 0,
+    };
     let stats = mimalloc_stats();
 
     print_workload("sampling_mimalloc_active", config, result);
@@ -62,6 +67,7 @@ fn run_active(config: WorkloadConfig) -> Result<(), Box<dyn std::error::Error>> 
             .unwrap_or_else(|| "locked".to_string())
     );
     println!("report_elapsed_ms={}", report_elapsed.as_millis());
+    println!("encoded_pprof_bytes={encoded_pprof_bytes}");
 
     backend.shutdown()?;
     Ok(())
