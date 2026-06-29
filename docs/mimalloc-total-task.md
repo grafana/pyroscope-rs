@@ -106,9 +106,10 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已实现 allocation 命中时捕获 raw instruction pointer stack。
 - 已实现 report 阶段按栈聚合和符号解析。
 - 已实现 `report_drain_limit`，单次 report 超出 limit 的样本会保留到下一轮。
-- 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`dropped_samples` 和当前 buffered samples。
+- 已实现 report 侧 flush request generation，其它线程会在下一次 allocation 时 opportunistic flush TLS ring。
+- 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`dropped_samples`，并把当前线程 TLS ring 计入 buffered samples。
 - 已新增 `mimalloc_baseline` 和 `mimalloc_overhead` examples，支持 baseline、inactive、active overhead 本地对比。
-- 待继续：跨线程主动 flush 注册表、无锁全局队列、CI benchmark 报告归档。
+- 待继续：跨线程注册表驱动的同步 flush、无锁全局队列、CI benchmark 报告归档。
 
 ### Phase 4：性能和 CI
 

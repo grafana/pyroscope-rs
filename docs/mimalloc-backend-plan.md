@@ -356,7 +356,9 @@ TLS fixed ring buffer
 - allocator hook 先写入固定容量 TLS sample ring。
 - TLS ring 满时通过 `try_lock` flush 到固定容量全局 buffer。
 - `report()` 会先 flush 当前线程 TLS ring，再按 `report_drain_limit` drain 全局 buffer。
-- 暂未实现跨线程主动 flush 注册表；其它线程的 TLS ring 通过满 ring 触发 handoff。
+- `report()` 会推进 flush request generation，其它线程会在下一次 allocation 时 opportunistic flush 自己的 TLS ring。
+- `mimalloc_stats().buffered_samples` 会合并全局 buffer 和当前线程 TLS ring。
+- 暂未实现跨线程注册表驱动的同步 flush；其它线程的 TLS ring 通过满 ring 或下一次 allocation 触发 handoff。
 
 ## pprof 编码语义
 

@@ -31,6 +31,7 @@ static ALLOCATOR_SEEN: AtomicBool = AtomicBool::new(false);
 static SAMPLE_INTERVAL_BYTES: AtomicU64 = AtomicU64::new(DEFAULT_SAMPLE_INTERVAL_BYTES);
 static SAMPLING_CONFIG_GENERATION: AtomicU64 = AtomicU64::new(0);
 static SAMPLING_RNG_SEED: AtomicU64 = AtomicU64::new(RNG_INITIAL_STATE);
+static FLUSH_REQUEST_GENERATION: AtomicU64 = AtomicU64::new(0);
 static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
 static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
@@ -42,6 +43,7 @@ thread_local! {
     static REMAINING_BYTES: Cell<u64> = const { Cell::new(DEFAULT_SAMPLE_INTERVAL_BYTES) };
     static REMAINING_CONFIG_GENERATION: Cell<u64> = const { Cell::new(0) };
     static SAMPLE_RNG_STATE: Cell<u64> = const { Cell::new(0) };
+    static TLS_FLUSH_GENERATION: Cell<u64> = const { Cell::new(0) };
     static TLS_SAMPLE_BUFFER: RefCell<TlsSampleBuffer> = const { RefCell::new(TlsSampleBuffer::new()) };
 }
 
@@ -175,13 +177,18 @@ pub struct MimallocStats {
 
 /// Return current mimalloc backend recorder counters.
 pub fn mimalloc_stats() -> MimallocStats {
+    let global_buffered_samples = RECORDED_SAMPLES
+        .try_lock()
+        .ok()
+        .map(|samples| samples.len());
+    let current_thread_buffered_samples = current_thread_buffered_samples();
+
     MimallocStats {
         recorded_samples: RECORDED_SAMPLE_COUNT.load(Ordering::Relaxed),
         dropped_samples: DROPPED_SAMPLES.load(Ordering::Relaxed),
-        buffered_samples: RECORDED_SAMPLES
-            .try_lock()
-            .ok()
-            .map(|samples| samples.len()),
+        buffered_samples: global_buffered_samples
+            .zip(current_thread_buffered_samples)
+            .map(|(global, current_thread)| global.saturating_add(current_thread)),
     }
 }
 
@@ -318,6 +325,7 @@ impl Backend for Mimalloc {
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         prepare_sample_buffer(self.config.ring_capacity);
+        reset_current_thread_sample_buffer();
         warm_backtrace();
         RECORDER_ACTIVE.store(true, Ordering::Release);
         self.last_report = Some(Instant::now());
@@ -347,6 +355,7 @@ impl Backend for Mimalloc {
             .map(|last_report| duration_to_i64_nanos(now.duration_since(last_report)))
             .unwrap_or_default();
 
+        request_tls_sample_flush();
         flush_current_thread_samples();
         let recorded = drain_recorded_samples(self.config.report_drain_limit);
         let recorded_count = recorded.len();
@@ -393,6 +402,7 @@ fn record_allocation(size: u64) {
         }
 
         in_profiler.set(true);
+        flush_requested_tls_samples();
         SAMPLE_RNG_STATE.with(|rng_state| {
             REMAINING_BYTES.with(|remaining| {
                 REMAINING_CONFIG_GENERATION.with(|remaining_generation| {
@@ -400,6 +410,7 @@ fn record_allocation(size: u64) {
                     let generation = SAMPLING_CONFIG_GENERATION.load(Ordering::Relaxed);
                     let mut current = remaining.get();
                     if remaining_generation.get() != generation || current == 0 {
+                        clear_current_thread_samples();
                         rng_state.set(next_thread_rng_seed());
                         current = next_poisson_interval(interval, rng_state);
                         remaining_generation.set(generation);
@@ -548,6 +559,40 @@ fn flush_current_thread_samples() {
     });
 }
 
+fn request_tls_sample_flush() {
+    FLUSH_REQUEST_GENERATION.fetch_add(1, Ordering::Relaxed);
+}
+
+fn flush_requested_tls_samples() {
+    let requested_generation = FLUSH_REQUEST_GENERATION.load(Ordering::Relaxed);
+    TLS_FLUSH_GENERATION.with(|seen_generation| {
+        if seen_generation.get() == requested_generation {
+            return;
+        }
+
+        seen_generation.set(requested_generation);
+        flush_current_thread_samples();
+    });
+}
+
+fn current_thread_buffered_samples() -> Option<usize> {
+    TLS_SAMPLE_BUFFER.with(|buffer| buffer.try_borrow().ok().map(|buffer| buffer.len()))
+}
+
+fn reset_current_thread_sample_buffer() {
+    let generation = FLUSH_REQUEST_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
+    TLS_FLUSH_GENERATION.with(|seen_generation| seen_generation.set(generation));
+    clear_current_thread_samples();
+}
+
+fn clear_current_thread_samples() {
+    TLS_SAMPLE_BUFFER.with(|buffer| {
+        if let Ok(mut buffer) = buffer.try_borrow_mut() {
+            buffer.clear();
+        }
+    });
+}
+
 fn flush_tls_samples(buffer: &mut TlsSampleBuffer) -> bool {
     if buffer.is_empty() {
         return true;
@@ -679,6 +724,11 @@ mod tests {
         }
     }
 
+    fn clear_test_buffers() {
+        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        clear_current_thread_samples();
+    }
+
     #[test]
     fn mimalloc_config_default_is_valid() {
         assert!(MimallocConfig::default().validate().is_ok());
@@ -697,7 +747,7 @@ mod tests {
     #[test]
     fn mimalloc_stats_reports_global_recorder_counters() {
         let _guard = TEST_LOCK.lock().expect("lock test");
-        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        clear_test_buffers();
         RECORDED_SAMPLE_COUNT.store(7, Ordering::Relaxed);
         DROPPED_SAMPLES.store(3, Ordering::Relaxed);
 
@@ -714,6 +764,30 @@ mod tests {
 
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+        clear_test_buffers();
+    }
+
+    #[test]
+    fn mimalloc_stats_includes_current_thread_tls_samples() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        {
+            let mut global_samples = RECORDED_SAMPLES.lock().expect("lock samples");
+            global_samples.push(test_sample(stack));
+        }
+        TLS_SAMPLE_BUFFER.with(|buffer| {
+            let mut buffer = buffer.borrow_mut();
+            assert!(buffer.push(test_sample(stack)));
+            assert!(buffer.push(test_sample(stack)));
+        });
+
+        assert_eq!(mimalloc_stats().buffered_samples, Some(3));
+
+        clear_test_buffers();
     }
 
     #[test]
@@ -723,9 +797,9 @@ mod tests {
             frames: [42; MAX_CAPTURE_DEPTH],
             depth: 1,
         };
+        clear_test_buffers();
         {
             let mut samples = RECORDED_SAMPLES.lock().expect("lock samples");
-            samples.clear();
             samples.extend([test_sample(stack), test_sample(stack), test_sample(stack)]);
         }
 
@@ -734,7 +808,7 @@ mod tests {
         assert_eq!(drained.len(), 2);
         assert_eq!(mimalloc_stats().buffered_samples, Some(1));
 
-        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        clear_test_buffers();
     }
 
     #[test]
@@ -763,7 +837,7 @@ mod tests {
             frames: [42; MAX_CAPTURE_DEPTH],
             depth: 1,
         };
-        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        clear_test_buffers();
         MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
         let mut buffer = TlsSampleBuffer::new();
         assert!(buffer.push(test_sample(stack)));
@@ -773,7 +847,7 @@ mod tests {
 
         assert_eq!(buffer.len(), 0);
         assert_eq!(mimalloc_stats().buffered_samples, Some(2));
-        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        clear_test_buffers();
         MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
     }
 
@@ -784,7 +858,7 @@ mod tests {
             frames: [42; MAX_CAPTURE_DEPTH],
             depth: 1,
         };
-        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        clear_test_buffers();
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         MAX_RECORDED_SAMPLES.store(0, Ordering::Relaxed);
         let mut buffer = TlsSampleBuffer::new();
@@ -795,6 +869,34 @@ mod tests {
 
         assert_eq!(buffer.len(), 0);
         assert_eq!(DROPPED_SAMPLES.load(Ordering::Relaxed), 2);
+        MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
+        clear_test_buffers();
+    }
+
+    #[test]
+    fn flush_requested_tls_samples_flushes_current_thread_buffer_once() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
+        TLS_SAMPLE_BUFFER.with(|buffer| {
+            let mut buffer = buffer.borrow_mut();
+            assert!(buffer.push(test_sample(stack)));
+            assert!(buffer.push(test_sample(stack)));
+        });
+
+        request_tls_sample_flush();
+        flush_requested_tls_samples();
+
+        assert_eq!(mimalloc_stats().buffered_samples, Some(2));
+
+        flush_requested_tls_samples();
+        assert_eq!(mimalloc_stats().buffered_samples, Some(2));
+
+        clear_test_buffers();
         MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
     }
 
