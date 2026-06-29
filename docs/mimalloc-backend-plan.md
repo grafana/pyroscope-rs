@@ -357,6 +357,7 @@ TLS fixed ring buffer
 - TLS ring 满时通过 `try_lock` flush 到固定容量全局 buffer。
 - `report()` 会先 flush 当前线程 TLS ring，再按 `report_drain_limit` drain 全局 buffer。
 - `report()` 会推进 flush request generation，其它线程会在下一次 allocation 时 opportunistic flush 自己的 TLS ring。
+- `mimalloc_stats()` 会暴露 recorded、flushes、flushed、dropped 和 buffered counters。
 - `mimalloc_stats().buffered_samples` 会合并全局 buffer 和当前线程 TLS ring。
 - 暂未实现跨线程注册表驱动的同步 flush；其它线程的 TLS ring 通过满 ring 或下一次 allocation 触发 handoff。
 
@@ -607,8 +608,9 @@ MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --relea
 - allocation throughput。
 - p50/p95/p99 latency。
 - `mimalloc_stats().recorded_samples`。
+- `mimalloc_stats().flushes`。
+- `mimalloc_stats().flushed_samples`。
 - `mimalloc_stats().dropped_samples`。
-- ring flush count。
 - report drain duration。
 - symbolize duration。
 - encoded pprof size。

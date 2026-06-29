@@ -110,6 +110,8 @@ MIMALLOC_BENCH_REPORT_DRAIN_LIMIT
 - throughput。
 - p50/p95/p99 allocation latency。
 - `mimalloc_stats().recorded_samples`。
+- `mimalloc_stats().flushes`。
+- `mimalloc_stats().flushed_samples`。
 - `mimalloc_stats().dropped_samples`。
 - report drain duration。
 - pprof encode duration。

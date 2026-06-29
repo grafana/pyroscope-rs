@@ -51,6 +51,8 @@ fn run_active(config: WorkloadConfig) -> Result<(), Box<dyn std::error::Error>> 
         read_env_u64("MIMALLOC_BENCH_SAMPLE_INTERVAL", 1024 * 1024)
     );
     println!("recorded_samples={}", stats.recorded_samples);
+    println!("flushes={}", stats.flushes);
+    println!("flushed_samples={}", stats.flushed_samples);
     println!("dropped_samples={}", stats.dropped_samples);
     println!(
         "buffered_samples={}",

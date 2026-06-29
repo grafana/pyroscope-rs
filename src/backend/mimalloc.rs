@@ -35,6 +35,8 @@ static FLUSH_REQUEST_GENERATION: AtomicU64 = AtomicU64::new(0);
 static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
 static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
+static FLUSH_COUNT: AtomicU64 = AtomicU64::new(0);
+static FLUSHED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static DROPPED_SAMPLES: AtomicU64 = AtomicU64::new(0);
 static RECORDED_SAMPLES: Mutex<Vec<RecordedAllocationSample>> = Mutex::new(Vec::new());
 
@@ -169,6 +171,10 @@ pub struct MimallocConfig {
 pub struct MimallocStats {
     /// Number of samples accepted into the recorder since backend initialization.
     pub recorded_samples: u64,
+    /// Number of successful TLS-to-global sample flushes since backend initialization.
+    pub flushes: u64,
+    /// Number of samples moved from TLS rings into the global buffer.
+    pub flushed_samples: u64,
     /// Number of samples dropped because the recorder was re-entered, full, or locked.
     pub dropped_samples: u64,
     /// Number of samples currently buffered for the next report, if the buffer lock is available.
@@ -185,6 +191,8 @@ pub fn mimalloc_stats() -> MimallocStats {
 
     MimallocStats {
         recorded_samples: RECORDED_SAMPLE_COUNT.load(Ordering::Relaxed),
+        flushes: FLUSH_COUNT.load(Ordering::Relaxed),
+        flushed_samples: FLUSHED_SAMPLE_COUNT.load(Ordering::Relaxed),
         dropped_samples: DROPPED_SAMPLES.load(Ordering::Relaxed),
         buffered_samples: global_buffered_samples
             .zip(current_thread_buffered_samples)
@@ -323,6 +331,8 @@ impl Backend for Mimalloc {
         );
         MAX_RECORDED_SAMPLES.store(self.config.ring_capacity, Ordering::Relaxed);
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         prepare_sample_buffer(self.config.ring_capacity);
         reset_current_thread_sample_buffer();
@@ -611,6 +621,10 @@ fn flush_tls_samples(buffer: &mut TlsSampleBuffer) -> bool {
     }
 
     let flushed = buffer.drain_into(&mut samples, available);
+    if flushed > 0 {
+        FLUSH_COUNT.fetch_add(1, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.fetch_add(flushed as u64, Ordering::Relaxed);
+    }
     if !buffer.is_empty() {
         drop_tls_samples(buffer);
         return false;
@@ -757,12 +771,16 @@ mod tests {
             stats,
             MimallocStats {
                 recorded_samples: 7,
+                flushes: 0,
+                flushed_samples: 0,
                 dropped_samples: 3,
                 buffered_samples: Some(0),
             }
         );
 
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         clear_test_buffers();
     }
@@ -839,6 +857,8 @@ mod tests {
         };
         clear_test_buffers();
         MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         let mut buffer = TlsSampleBuffer::new();
         assert!(buffer.push(test_sample(stack)));
         assert!(buffer.push(test_sample(stack)));
@@ -846,8 +866,12 @@ mod tests {
         assert!(flush_tls_samples(&mut buffer));
 
         assert_eq!(buffer.len(), 0);
+        assert_eq!(mimalloc_stats().flushes, 1);
+        assert_eq!(mimalloc_stats().flushed_samples, 2);
         assert_eq!(mimalloc_stats().buffered_samples, Some(2));
         clear_test_buffers();
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
     }
 
@@ -882,6 +906,8 @@ mod tests {
         };
         clear_test_buffers();
         MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         TLS_SAMPLE_BUFFER.with(|buffer| {
             let mut buffer = buffer.borrow_mut();
             assert!(buffer.push(test_sample(stack)));
@@ -892,11 +918,17 @@ mod tests {
         flush_requested_tls_samples();
 
         assert_eq!(mimalloc_stats().buffered_samples, Some(2));
+        assert_eq!(mimalloc_stats().flushes, 1);
+        assert_eq!(mimalloc_stats().flushed_samples, 2);
 
         flush_requested_tls_samples();
         assert_eq!(mimalloc_stats().buffered_samples, Some(2));
+        assert_eq!(mimalloc_stats().flushes, 1);
+        assert_eq!(mimalloc_stats().flushed_samples, 2);
 
         clear_test_buffers();
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
     }
 

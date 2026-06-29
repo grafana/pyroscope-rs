@@ -105,7 +105,7 @@ TLS fixed ring
 - 已在 `report()` 阶段 drain、聚合和符号解析。
 - 已兑现 `report_drain_limit`，避免单次 report 无上限 drain 全部样本。
 - 已实现 flush request generation；其它线程在下一次 allocation 时 opportunistic flush 本线程 TLS ring。
-- 已通过 `mimalloc_stats()` 暴露 recorded、dropped 和包含当前线程 TLS ring 的 buffered recorder counters。
+- 已通过 `mimalloc_stats()` 暴露 recorded、flushes、flushed、dropped 和包含当前线程 TLS ring 的 buffered recorder counters。
 - 待继续：跨线程注册表驱动的同步 flush、无锁全局队列和 CI benchmark 报告归档。
 
 ## realloc 规则
