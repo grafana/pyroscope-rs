@@ -101,6 +101,7 @@ target/mimalloc-benchmark/inactive.env
 target/mimalloc-benchmark/active-1m.env
 target/mimalloc-benchmark/active-512k.env
 target/mimalloc-benchmark/active-4k.env
+target/mimalloc-benchmark/history/mimalloc-benchmark-history.csv
 ```
 
 CI 推荐配置：
@@ -170,8 +171,11 @@ MIMALLOC_BENCH_REPORT_DRAIN_LIMIT
 - p50/p95/p99 allocation latency。
 
 GitHub Actions 已通过 `mimalloc benchmark report` job 上传
-`mimalloc-benchmark-report` artifact，保留 14 天。
+`mimalloc-benchmark-report` artifact，保留 14 天。CI 同时使用
+`actions/cache` 按分支恢复并追加
+`target/mimalloc-benchmark/history/mimalloc-benchmark-history.csv`，
+让每次 artifact 都包含当前 run 和已缓存的历史趋势 CSV。
 
 仍待补齐：
 
-- 历史趋势归档。
+- 长期趋势展示或外部时序系统接入。

@@ -3,6 +3,8 @@ set -euo pipefail
 
 output_dir="${MIMALLOC_BENCH_OUTPUT_DIR:-target/mimalloc-benchmark}"
 report_path="${MIMALLOC_BENCH_REPORT:-${output_dir}/mimalloc-benchmark-report.md}"
+history_dir="${MIMALLOC_BENCH_HISTORY_DIR:-${output_dir}/history}"
+history_path="${MIMALLOC_BENCH_HISTORY:-${history_dir}/mimalloc-benchmark-history.csv}"
 enforce_thresholds="${MIMALLOC_BENCH_ENFORCE_THRESHOLDS:-0}"
 
 : "${MIMALLOC_BENCH_DURATION_MS:=3000}"
@@ -24,6 +26,20 @@ export MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL
 export MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT
 
 mkdir -p "$output_dir"
+mkdir -p "$history_dir"
+history_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+history_run_id="${GITHUB_RUN_ID:-local}"
+history_run_attempt="${GITHUB_RUN_ATTEMPT:-1}"
+history_commit="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+
+ensure_history_header() {
+    if [ -f "$history_path" ]; then
+        return
+    fi
+
+    echo "timestamp_utc,run_id,run_attempt,commit,scenario,sample_interval_bytes,mib_per_sec,allocations_per_sec,overhead_vs_baseline_pct,recorded_samples,flushes,dropped_samples,report_elapsed_ms,encoded_pprof_bytes,pprof_encode_elapsed_us,allocation_latency_p50_ns,allocation_latency_p95_ns,allocation_latency_p99_ns,status" \
+        > "$history_path"
+}
 
 metric() {
     awk -F= -v key="$2" '$1 == key { print $2; found = 1; exit } END { if (!found) exit 1 }' "$1"
@@ -135,6 +151,27 @@ append_row() {
         "$allocation_latency_p95_ns" \
         "$allocation_latency_p99_ns" \
         "$status" >> "$report_path"
+
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+        "$history_timestamp" \
+        "$history_run_id" \
+        "$history_run_attempt" \
+        "$history_commit" \
+        "$scenario" \
+        "$sample_interval" \
+        "$mib_per_sec" \
+        "$allocations_per_sec" \
+        "$overhead" \
+        "$recorded_samples" \
+        "$flushes" \
+        "$dropped_samples" \
+        "$report_elapsed_ms" \
+        "$encoded_pprof_bytes" \
+        "$pprof_encode_elapsed_us" \
+        "$allocation_latency_p50_ns" \
+        "$allocation_latency_p95_ns" \
+        "$allocation_latency_p99_ns" \
+        "$status" >> "$history_path"
 }
 
 run_baseline
@@ -145,6 +182,7 @@ run_active active-4k 4096
 
 failures=0
 baseline_mib_per_sec="$(metric "${output_dir}/baseline.env" mib_per_sec)"
+ensure_history_header
 
 {
     echo "# Mimalloc Benchmark Report"
@@ -191,6 +229,7 @@ append_row "active-4k" "${output_dir}/active-4k.env" "$baseline_mib_per_sec" "" 
     echo "- active-1m.env"
     echo "- active-512k.env"
     echo "- active-4k.env"
+    echo "- history/mimalloc-benchmark-history.csv"
 } >> "$report_path"
 
 cat "$report_path"
