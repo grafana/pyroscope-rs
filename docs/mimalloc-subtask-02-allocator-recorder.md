@@ -105,11 +105,12 @@ TLS fixed ring
 - 已在 `report()` 阶段 drain、聚合和符号解析。
 - 已兑现 `report_drain_limit`，避免单次 report 无上限 drain 全部样本。
 - 已实现 flush request generation；其它线程在下一次 allocation 时 opportunistic flush 本线程 TLS ring。
-- 已实现线程退出时自动尝试 flush 本线程 TLS ring，减少短生命周期线程退出后样本不可见的问题。
+- 已实现线程退出时先 flush 本线程 TLS ring、再注销 registry handle，减少短生命周期线程退出后样本不可见的问题。
 - 已通过 `mimalloc_stats()` 暴露 recorded、flushes、flushed、dropped 和包含当前线程 TLS ring 的 buffered recorder counters。
 - 已将全局 sample buffer 从单个 `Mutex<Vec<_>>` 改为原子总容量门控 + 8 个分片 `Mutex<Vec<_>>`，降低高并发 TLS flush 对单锁的竞争。
 - 已实现跨线程注册表驱动的主动同步 flush：线程首次使用 TLS ring 时注册 handle，`report()` 遍历所有活跃 handle 并主动 flush；如果 handle 正忙，则保留 opportunistic flush 和线程退出 flush 兜底。
-- 待继续：benchmark 历史趋势归档。
+- 已实现 benchmark 历史趋势归档：本地/CI report 追加 `history/mimalloc-benchmark-history.csv`，CI artifact 上传 Markdown、raw key-value 和历史 CSV。
+- 待继续：无 v1 必需 recorder 功能；长期增强可单独推进外部趋势展示和 v2 live heap opt-in。
 
 ## realloc 规则
 

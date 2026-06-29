@@ -187,12 +187,12 @@ impl RegisteredTlsSampleBuffer {
 
 impl Drop for RegisteredTlsSampleBuffer {
     fn drop(&mut self) {
-        deregister_tls_sample_buffer(self.id);
         if RECORDER_ACTIVE.load(Ordering::Acquire) {
             if let Some(mut buffer) = self.try_lock() {
-                flush_tls_samples(&mut buffer);
+                flush_tls_samples_for_report(&mut buffer);
             }
         }
+        deregister_tls_sample_buffer(self.id);
     }
 }
 
@@ -1281,6 +1281,7 @@ mod tests {
         assert!(matches!(stats.buffered_samples, Some(samples) if samples >= 2));
         assert!(stats.flushes >= 1);
         assert!(stats.flushed_samples >= 2);
+        assert_eq!(registered_tls_buffered_samples(), Some(0));
 
         clear_test_buffers();
         FLUSH_COUNT.store(0, Ordering::Relaxed);
