@@ -551,8 +551,8 @@ mod tests {
 测试场景：
 
 - 已覆盖 4 个短生命周期 worker 的 allocation churn、线程退出 handoff 和 RawPprof 输出。
+- 已覆盖并发 allocation 时调用 `report()`，验证 flush request generation 与 RawPprof 解码稳定性。
 - 待继续覆盖 1/2/4/8/16/32 threads allocation churn 矩阵。
-- 待继续覆盖并发 allocation 时调用 `report()`。
 - 待继续统计 sampled、dropped、flushes、report duration。
 
 该测试可放在 ignored test 或 benchmark，不作为默认 `cargo test` 长时间 gate。
