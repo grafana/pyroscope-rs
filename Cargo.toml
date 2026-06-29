@@ -30,6 +30,7 @@ prost = "0.14"
 serde_json = "1.0.115"
 lazy_static = "1.5.0"
 jemalloc_pprof = { version = "0.9", features = ["symbolize"], optional = true }
+mimalloc = { version = "0.1.52", optional = true }
 
 
 # pprofrs dependencies
@@ -58,6 +59,10 @@ env_logger = "=0.11.10"
 name = "jemalloc"
 required-features = ["backend-jemalloc"]
 
+[[example]]
+name = "mimalloc"
+required-features = ["backend-mimalloc"]
+
 [features]
 default = ["rustls-tls"]
 rustls-tls = ["reqwest/rustls"]
@@ -80,6 +85,7 @@ backend-pprof-rs = [
     "dep:symbolic-demangle",
 ]
 backend-jemalloc = ["dep:jemalloc_pprof"]
+backend-mimalloc = ["dep:backtrace", "dep:mimalloc"]
 
 [profile.dev]
 opt-level = 0
