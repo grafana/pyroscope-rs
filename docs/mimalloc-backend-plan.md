@@ -678,8 +678,15 @@ MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --relea
 
 - benchmark。
 - CI matrix 增加 `backend-mimalloc`。
-- docs 完整示例。
+- README 和 docs 完整示例。
 - CHANGELOG。
+
+当前进展：
+
+- 已新增 `mimalloc_baseline` / `mimalloc_overhead` examples。
+- 已新增 README 使用示例，明确 `SamplingMiMalloc` global allocator、`backend-mimalloc` feature 和 allocation profile 语义。
+- 已新增 CHANGELOG Unreleased 条目。
+- 待继续：CI matrix、benchmark artifact 和阈值报告。
 
 验收：
 

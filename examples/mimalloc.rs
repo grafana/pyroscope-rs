@@ -1,8 +1,8 @@
 //! Mimalloc memory profiling example.
 //!
-//! This example demonstrates the `backend-mimalloc` API shape. The first
-//! implementation phase records sampled allocation totals; later phases will
-//! replace the synthetic sample frame with captured allocation stacks.
+//! This example demonstrates `backend-mimalloc` with `SamplingMiMalloc` as the
+//! process global allocator. The backend records sampled allocation call stacks
+//! and sends memory pprof data through the normal Pyroscope agent pipeline.
 //!
 //! ```sh
 //! cargo run --example mimalloc --features backend-mimalloc
