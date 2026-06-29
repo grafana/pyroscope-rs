@@ -28,6 +28,7 @@ const RECORDED_SAMPLE_SHARD_COUNT: usize = 8;
 const SYNTHETIC_FRAME: &str = "[mimalloc] sampled allocations (stack capture pending)";
 const RNG_INCREMENT: u64 = 0x9e37_79b9_7f4a_7c15;
 const RNG_INITIAL_STATE: u64 = 0xa076_1d64_78bd_642f;
+const MAX_POISSON_INTERVALS_PER_ALLOCATION: u64 = 64;
 
 static RECORDER_ACTIVE: AtomicBool = AtomicBool::new(false);
 static ALLOCATOR_SEEN: AtomicBool = AtomicBool::new(false);
@@ -39,7 +40,6 @@ static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
 static GLOBAL_BUFFERED_SAMPLE_COUNT: AtomicUsize = AtomicUsize::new(0);
 static NEXT_RECORDED_SAMPLE_SHARD: AtomicUsize = AtomicUsize::new(0);
-static NEXT_TLS_SAMPLE_BUFFER_ID: AtomicUsize = AtomicUsize::new(0);
 static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSH_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSHED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
@@ -51,12 +51,13 @@ lazy_static! {
         ..RECORDED_SAMPLE_SHARD_COUNT)
         .map(|_| Mutex::new(Vec::new()))
         .collect();
-    static ref TLS_SAMPLE_BUFFER_REGISTRY: Mutex<Vec<Option<Arc<Mutex<TlsSampleBuffer>>>>> =
-        Mutex::new(Vec::new());
+    static ref TLS_SAMPLE_BUFFER_REGISTRY: Mutex<TlsSampleBufferRegistry> =
+        Mutex::new(TlsSampleBufferRegistry::new());
 }
 
 thread_local! {
     static IN_ALLOC_PROFILER: Cell<bool> = const { Cell::new(false) };
+    static PROFILER_SUPPRESSED: Cell<bool> = const { Cell::new(false) };
     static REMAINING_BYTES: Cell<u64> = const { Cell::new(DEFAULT_SAMPLE_INTERVAL_BYTES) };
     static REMAINING_CONFIG_GENERATION: Cell<u64> = const { Cell::new(0) };
     static SAMPLE_RNG_STATE: Cell<u64> = const { Cell::new(0) };
@@ -168,15 +169,14 @@ impl TlsSampleBuffer {
 
 #[derive(Debug)]
 struct RegisteredTlsSampleBuffer {
-    id: usize,
+    id: Option<usize>,
     buffer: Arc<Mutex<TlsSampleBuffer>>,
 }
 
 impl RegisteredTlsSampleBuffer {
     fn new() -> Self {
-        let id = NEXT_TLS_SAMPLE_BUFFER_ID.fetch_add(1, Ordering::Relaxed);
         let buffer = Arc::new(Mutex::new(TlsSampleBuffer::new()));
-        register_tls_sample_buffer(id, buffer.clone());
+        let id = register_tls_sample_buffer(buffer.clone());
         Self { id, buffer }
     }
 
@@ -192,7 +192,9 @@ impl Drop for RegisteredTlsSampleBuffer {
                 flush_tls_samples_for_report(&mut buffer);
             }
         }
-        deregister_tls_sample_buffer(self.id);
+        if let Some(id) = self.id {
+            deregister_tls_sample_buffer(id);
+        }
     }
 }
 
@@ -206,7 +208,8 @@ struct AggregatedAllocationSample {
 ///
 /// The backend records sampled allocation call stacks and reports memory pprof
 /// data with `alloc_objects/count` and `alloc_space/bytes` sample types. It does
-/// not track live allocations or emit `inuse_*` samples.
+/// not track live allocations or emit `inuse_*` samples. Samples whose frames
+/// cannot be resolved are grouped under a synthetic fallback frame.
 ///
 /// # Examples
 ///
@@ -356,7 +359,7 @@ impl Default for SamplingMiMalloc {
 
 unsafe impl GlobalAlloc for SamplingMiMalloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        ALLOCATOR_SEEN.store(true, Ordering::Relaxed);
+        mark_allocator_seen();
         let ptr = unsafe { self.inner.alloc(layout) };
         if !ptr.is_null() {
             record_allocation(layout.size() as u64);
@@ -365,7 +368,7 @@ unsafe impl GlobalAlloc for SamplingMiMalloc {
     }
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        ALLOCATOR_SEEN.store(true, Ordering::Relaxed);
+        mark_allocator_seen();
         let ptr = unsafe { self.inner.alloc_zeroed(layout) };
         if !ptr.is_null() {
             record_allocation(layout.size() as u64);
@@ -374,12 +377,11 @@ unsafe impl GlobalAlloc for SamplingMiMalloc {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        ALLOCATOR_SEEN.store(true, Ordering::Relaxed);
         unsafe { self.inner.dealloc(ptr, layout) };
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        ALLOCATOR_SEEN.store(true, Ordering::Relaxed);
+        mark_allocator_seen();
         let new_ptr = unsafe { self.inner.realloc(ptr, layout, new_size) };
         if !new_ptr.is_null() {
             record_allocation(new_size as u64);
@@ -454,6 +456,7 @@ impl Backend for Mimalloc {
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         LAST_PPROF_ENCODE_ELAPSED_MICROS.store(0, Ordering::Relaxed);
         prepare_sample_buffer(self.config.ring_capacity);
+        clear_registered_tls_samples();
         reset_current_thread_sample_buffer();
         warm_backtrace();
         RECORDER_ACTIVE.store(true, Ordering::Release);
@@ -472,46 +475,49 @@ impl Backend for Mimalloc {
 
     fn shutdown(self: Box<Self>) -> Result<()> {
         RECORDER_ACTIVE.store(false, Ordering::Release);
+        with_profiler_suppressed(clear_registered_tls_samples);
         log::trace!(target: LOG_TAG, "Shutting down mimalloc backend");
         Ok(())
     }
 
     fn report(&mut self) -> Result<ReportBatch> {
-        let now = Instant::now();
-        let duration_nanos = self
-            .last_report
-            .replace(now)
-            .map(|last_report| duration_to_i64_nanos(now.duration_since(last_report)))
-            .unwrap_or_default();
+        with_profiler_suppressed(|| {
+            let now = Instant::now();
+            let duration_nanos = self
+                .last_report
+                .replace(now)
+                .map(|last_report| duration_to_i64_nanos(now.duration_since(last_report)))
+                .unwrap_or_default();
 
-        request_tls_sample_flush();
-        flush_registered_tls_samples();
-        let recorded = drain_recorded_samples(self.config.report_drain_limit);
-        let recorded_count = recorded.len();
-        let dropped_count = DROPPED_SAMPLES.load(Ordering::Relaxed);
-        if dropped_count > 0 {
-            log::debug!(
-                target: LOG_TAG,
-                "Mimalloc report drained {recorded_count} samples; {dropped_count} samples have been dropped since initialization"
+            request_tls_sample_flush();
+            flush_registered_tls_samples();
+            let recorded = drain_recorded_samples(self.config.report_drain_limit);
+            let recorded_count = recorded.len();
+            let dropped_count = DROPPED_SAMPLES.load(Ordering::Relaxed);
+            if dropped_count > 0 {
+                log::debug!(
+                    target: LOG_TAG,
+                    "Mimalloc report drained {recorded_count} samples; {dropped_count} samples have been dropped since initialization"
+                );
+            }
+
+            let samples = build_allocation_samples(recorded, self.config.max_depth);
+
+            let encode_start = Instant::now();
+            let pprof_data = memory_pprof::encode_allocation_profile(
+                &samples,
+                self.config.sample_interval_bytes,
+                duration_nanos,
             );
-        }
+            LAST_PPROF_ENCODE_ELAPSED_MICROS.store(
+                duration_to_u64_micros(encode_start.elapsed()),
+                Ordering::Relaxed,
+            );
 
-        let samples = build_allocation_samples(recorded, self.config.max_depth);
-
-        let encode_start = Instant::now();
-        let pprof_data = memory_pprof::encode_allocation_profile(
-            &samples,
-            self.config.sample_interval_bytes,
-            duration_nanos,
-        );
-        LAST_PPROF_ENCODE_ELAPSED_MICROS.store(
-            duration_to_u64_micros(encode_start.elapsed()),
-            Ordering::Relaxed,
-        );
-
-        Ok(ReportBatch {
-            profile_type: "memory".into(),
-            data: ReportData::RawPprof(pprof_data),
+            Ok(ReportBatch {
+                profile_type: "memory".into(),
+                data: ReportData::RawPprof(pprof_data),
+            })
         })
     }
 
@@ -524,8 +530,40 @@ impl Backend for Mimalloc {
     }
 }
 
+fn mark_allocator_seen() {
+    if !ALLOCATOR_SEEN.load(Ordering::Relaxed) {
+        ALLOCATOR_SEEN.store(true, Ordering::Relaxed);
+    }
+}
+
+fn with_profiler_suppressed<R>(f: impl FnOnce() -> R) -> R {
+    struct SuppressionGuard<'a> {
+        suppressed: &'a Cell<bool>,
+        previous: bool,
+    }
+
+    impl Drop for SuppressionGuard<'_> {
+        fn drop(&mut self) {
+            self.suppressed.set(self.previous);
+        }
+    }
+
+    PROFILER_SUPPRESSED.with(|suppressed| {
+        let previous = suppressed.replace(true);
+        let _guard = SuppressionGuard {
+            suppressed,
+            previous,
+        };
+        f()
+    })
+}
+
 fn record_allocation(size: u64) {
     if size == 0 || !RECORDER_ACTIVE.load(Ordering::Acquire) {
+        return;
+    }
+
+    if PROFILER_SUPPRESSED.with(Cell::get) {
         return;
     }
 
@@ -582,15 +620,31 @@ fn calculate_sample_weight(
     let mut crossed_intervals = 1_u64;
     let mut next_remaining = next_poisson_interval(sample_interval, rng_state);
 
-    while remaining_bytes >= next_remaining {
+    while remaining_bytes >= next_remaining
+        && crossed_intervals < MAX_POISSON_INTERVALS_PER_ALLOCATION
+    {
         remaining_bytes -= next_remaining;
         crossed_intervals = crossed_intervals.saturating_add(1);
         next_remaining = next_poisson_interval(sample_interval, rng_state);
     }
 
+    if remaining_bytes >= next_remaining {
+        remaining_bytes -= next_remaining;
+        crossed_intervals = crossed_intervals.saturating_add(1);
+        let deterministic_intervals = remaining_bytes / sample_interval;
+        crossed_intervals = crossed_intervals.saturating_add(deterministic_intervals);
+        let bytes_into_next_interval = remaining_bytes % sample_interval;
+        next_remaining = if bytes_into_next_interval == 0 {
+            sample_interval
+        } else {
+            sample_interval - bytes_into_next_interval
+        };
+    } else {
+        next_remaining -= remaining_bytes;
+    }
+
     let weighted_bytes = crossed_intervals.saturating_mul(sample_interval);
     let weighted_objects = weighted_bytes.checked_div(size).unwrap_or_default().max(1);
-    next_remaining -= remaining_bytes;
 
     SampleWeight {
         weighted_objects,
@@ -723,23 +777,54 @@ fn clear_current_thread_samples() {
     });
 }
 
-fn register_tls_sample_buffer(id: usize, buffer: Arc<Mutex<TlsSampleBuffer>>) {
-    let Ok(mut registry) = TLS_SAMPLE_BUFFER_REGISTRY.lock() else {
+#[derive(Debug)]
+struct TlsSampleBufferRegistry {
+    buffers: Vec<Option<Arc<Mutex<TlsSampleBuffer>>>>,
+    free_ids: Vec<usize>,
+}
+
+impl TlsSampleBufferRegistry {
+    const fn new() -> Self {
+        Self {
+            buffers: Vec::new(),
+            free_ids: Vec::new(),
+        }
+    }
+
+    fn register(&mut self, buffer: Arc<Mutex<TlsSampleBuffer>>) -> usize {
+        if let Some(id) = self.free_ids.pop() {
+            self.buffers[id] = Some(buffer);
+            id
+        } else {
+            let id = self.buffers.len();
+            self.buffers.push(Some(buffer));
+            id
+        }
+    }
+
+    fn deregister(&mut self, id: usize) {
+        if id < self.buffers.len() && self.buffers[id].take().is_some() {
+            self.free_ids.push(id);
+        }
+    }
+
+    fn buffers(&self) -> Vec<Arc<Mutex<TlsSampleBuffer>>> {
+        self.buffers.iter().filter_map(Clone::clone).collect()
+    }
+}
+
+fn register_tls_sample_buffer(buffer: Arc<Mutex<TlsSampleBuffer>>) -> Option<usize> {
+    let Ok(mut registry) = TLS_SAMPLE_BUFFER_REGISTRY.try_lock() else {
         DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
-        return;
+        return None;
     };
 
-    if registry.len() <= id {
-        registry.resize_with(id + 1, || None);
-    }
-    registry[id] = Some(buffer);
+    Some(registry.register(buffer))
 }
 
 fn deregister_tls_sample_buffer(id: usize) {
     if let Ok(mut registry) = TLS_SAMPLE_BUFFER_REGISTRY.lock() {
-        if id < registry.len() {
-            registry[id] = None;
-        }
+        registry.deregister(id);
     }
 }
 
@@ -749,25 +834,35 @@ fn registered_tls_sample_buffers() -> Vec<Arc<Mutex<TlsSampleBuffer>>> {
         return Vec::new();
     };
 
-    registry.iter().filter_map(Clone::clone).collect()
+    registry.buffers()
 }
 
 fn registered_tls_buffered_samples() -> Option<usize> {
-    let buffers = registered_tls_sample_buffers();
-    let mut buffered_samples = 0_usize;
-    for buffer in buffers {
-        let Ok(buffer) = buffer.try_lock() else {
-            return None;
-        };
-        buffered_samples = buffered_samples.saturating_add(buffer.len());
-    }
-    Some(buffered_samples)
+    with_profiler_suppressed(|| {
+        let buffers = registered_tls_sample_buffers();
+        let mut buffered_samples = 0_usize;
+        for buffer in buffers {
+            let Ok(buffer) = buffer.try_lock() else {
+                return None;
+            };
+            buffered_samples = buffered_samples.saturating_add(buffer.len());
+        }
+        Some(buffered_samples)
+    })
 }
 
 fn flush_registered_tls_samples() {
     for buffer in registered_tls_sample_buffers() {
-        if let Ok(mut buffer) = buffer.try_lock() {
+        if let Ok(mut buffer) = buffer.lock() {
             flush_tls_samples_for_report(&mut buffer);
+        }
+    }
+}
+
+fn clear_registered_tls_samples() {
+    for buffer in registered_tls_sample_buffers() {
+        if let Ok(mut buffer) = buffer.lock() {
+            buffer.clear();
         }
     }
 }
@@ -1091,6 +1186,21 @@ mod tests {
     }
 
     #[test]
+    fn profiler_suppression_skips_internal_allocations_without_drop_count() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        clear_test_buffers();
+        RECORDER_ACTIVE.store(true, Ordering::Release);
+        let _active_guard = RecorderActiveGuard;
+        DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+        RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+
+        with_profiler_suppressed(|| record_allocation(1));
+
+        assert_eq!(RECORDED_SAMPLE_COUNT.load(Ordering::Relaxed), 0);
+        assert_eq!(DROPPED_SAMPLES.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
     fn drain_recorded_samples_respects_limit_and_keeps_remaining_samples() {
         let _guard = TEST_LOCK.lock().expect("lock test");
         let stack = StackKey {
@@ -1125,6 +1235,21 @@ mod tests {
         assert_eq!(drained, 2);
         assert_eq!(out.len(), 2);
         assert_eq!(buffer.len(), 1);
+    }
+
+    #[test]
+    fn tls_sample_buffer_registry_reuses_deregistered_slots() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+
+        let first_id = register_tls_sample_buffer(Arc::new(Mutex::new(TlsSampleBuffer::new())))
+            .expect("register first buffer");
+        deregister_tls_sample_buffer(first_id);
+
+        let second_id = register_tls_sample_buffer(Arc::new(Mutex::new(TlsSampleBuffer::new())))
+            .expect("register second buffer");
+
+        assert_eq!(second_id, first_id);
+        deregister_tls_sample_buffer(second_id);
     }
 
     #[test]
@@ -1290,6 +1415,38 @@ mod tests {
     }
 
     #[test]
+    fn clear_registered_tls_samples_drains_all_live_thread_buffers() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+
+        let worker = std::thread::spawn(move || {
+            TLS_SAMPLE_BUFFER.with(|buffer| {
+                let mut buffer = buffer.try_lock().expect("lock worker buffer");
+                assert!(buffer.push(test_sample(stack)));
+                assert!(buffer.push(test_sample(stack)));
+            });
+            ready_tx.send(()).expect("send ready");
+            release_rx.recv().expect("wait for release");
+        });
+
+        ready_rx.recv().expect("wait for worker buffer");
+        assert_eq!(registered_tls_buffered_samples(), Some(2));
+
+        clear_registered_tls_samples();
+
+        assert_eq!(registered_tls_buffered_samples(), Some(0));
+        release_tx.send(()).expect("release worker");
+        worker.join().expect("join worker");
+        clear_test_buffers();
+    }
+
+    #[test]
     fn build_allocation_samples_groups_matching_stacks() {
         let stack = StackKey {
             frames: [42; MAX_CAPTURE_DEPTH],
@@ -1333,6 +1490,17 @@ mod tests {
 
         assert!(weight.weighted_objects >= 1);
         assert!(weight.weighted_bytes >= 1000);
+        assert!(weight.next_remaining > 0);
+    }
+
+    #[test]
+    fn calculate_sample_weight_bounds_large_allocation_interval_work() {
+        let rng_state = Cell::new(1);
+        let size = (MAX_POISSON_INTERVALS_PER_ALLOCATION + 1024) * 1024;
+        let weight = calculate_sample_weight(size, 1, 1024, &rng_state);
+
+        assert!(weight.weighted_objects >= 1);
+        assert!(weight.weighted_bytes >= MAX_POISSON_INTERVALS_PER_ALLOCATION * 1024);
         assert!(weight.next_remaining > 0);
     }
 

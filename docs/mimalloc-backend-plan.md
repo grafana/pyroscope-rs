@@ -265,7 +265,7 @@ thread_local! {
 - 进入慢路径前设置 guard。
 - `Drop` 只重置 bool，不做任何可能分配的工作。
 - hook 内所有错误都吞掉，并增加 atomic dropped counter。
-- hook 内不使用 `log!`、`format!`、`Vec`、`HashMap`、`String`、`std::sync::Mutex`。
+- hook 内不使用 `log!`、`format!`、`Vec`、`HashMap`、`String`；共享 recorder 路径只允许 `try_lock`，竞争时降级或 drop sample，不能阻塞等待。
 
 ### 采样算法
 
@@ -355,12 +355,15 @@ TLS fixed ring buffer
 
 - allocator hook 先写入固定容量 TLS sample ring。
 - TLS ring 满时通过 `try_lock` flush 到固定容量全局 buffer。
-- `report()` 会先 flush 当前线程 TLS ring，再按 `report_drain_limit` drain 全局 buffer。
+- `report()` 会先主动 flush registered TLS ring，再按 `report_drain_limit` drain 全局 buffer。
 - `report()` 会推进 flush request generation，其它线程会在下一次 allocation 时 opportunistic flush 自己的 TLS ring。
 - `mimalloc_stats()` 会暴露 recorded、flushes、flushed、dropped 和 buffered counters。
-- `mimalloc_stats().buffered_samples` 会合并全局 buffer 和当前线程 TLS ring。
+- `mimalloc_stats().buffered_samples` 会合并全局 buffer 和可锁定的 registered TLS ring。
 - 线程退出时会自动尝试 flush 本线程 TLS ring，减少短生命周期 worker 样本滞留。
-- 暂未实现跨线程注册表驱动的主动同步 flush；其它线程的 TLS ring 通过满 ring、下一次 allocation 或线程退出触发 handoff。
+- 已实现跨线程注册表驱动的主动同步 flush；线程首次使用 TLS ring 时以 `try_lock` 注册，`report()` 会线程局部禁用 profiler 自采样、遍历活跃 TLS ring 并 blocking handoff，未注册或忙路径仍保留满 ring、下一次 allocation 或线程退出 flush 作为兜底。
+- TLS registry 使用可复用 slot，线程退出注销后下一次注册会复用空位，避免长期运行进程按历史线程数累积空洞并拖慢 `report()` 扫描。
+- initialize/shutdown 会清理所有可注册 TLS ring，避免 restart 后旧 session 样本污染下一轮 profile。
+- 单次 allocation 的 Poisson interval 迭代有上限，超大 allocation 退到 deterministic fallback，避免 allocator hook 无界循环。
 
 ## pprof 编码语义
 
@@ -433,7 +436,7 @@ duration_nanos = report 覆盖的采样窗口
 mimalloc = { version = "0.1.52", optional = true }
 
 [features]
-backend-mimalloc = ["dep:mimalloc"]
+backend-mimalloc = ["dep:backtrace", "dep:mimalloc"]
 ```
 
 如果需要直接调用 `libmimalloc-sys` 的扩展 API，再引入：
@@ -553,7 +556,8 @@ mod tests {
 - 已覆盖 4 个短生命周期 worker 的 allocation churn、线程退出 handoff 和 RawPprof 输出。
 - 已覆盖并发 allocation 时调用 `report()`，验证 flush request generation 与 RawPprof 解码稳定性。
 - 已新增 ignored stress test 覆盖 1/2/4/8/16/32 threads allocation churn 矩阵和受限 recorder 容量下的 dropped samples。
-- 待继续统计 sampled、dropped、flushes、report duration 并归档为 CI artifact。
+- 已统计 recorded、dropped、flushes、report duration、pprof size、encode duration 和 latency p50/p95/p99，并归档为本地/CI benchmark artifact 与 branch-scoped history CSV。
+- 常规 CI / `make test` 已接入 `backend-mimalloc` 普通测试；ignored stress test 保持为手动或 release-validation 命令。
 
 该测试可放在 ignored test 或 benchmark，不作为默认 `cargo test` 长时间 gate。
 
@@ -632,7 +636,7 @@ MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --relea
 - `SamplingMiMalloc` public type skeleton。
 - `mimalloc_backend()` skeleton。
 - `examples/mimalloc.rs`。
-- 明确文档说明：没有安装 `SamplingMiMalloc` 时 backend 初始化失败。
+- 明确文档说明：backend 无法强制校验下游 global allocator；未观察到 `SamplingMiMalloc` allocation 时初始化会记录 warning，普通 `mimalloc::MiMalloc` 不会产生 allocation hook 样本。
 
 验收：
 

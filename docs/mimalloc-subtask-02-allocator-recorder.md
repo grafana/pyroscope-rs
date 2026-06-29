@@ -98,7 +98,7 @@ TLS fixed ring
 当前实现进展：
 
 - 已从 atomic counters 推进到固定容量全局 sample buffer。
-- 已实现 weighted byte-based Poisson sampling。
+- 已实现 weighted byte-based Poisson sampling，并对超大 allocation 使用有界 Poisson 迭代 + deterministic fallback，避免 allocator hook 无界循环。
 - 已实现固定容量 TLS sample ring；allocator hook 先写入 TLS ring，ring 满时 try-flush 到全局 buffer。
 - 已在采样命中时捕获 raw instruction pointer stack。
 - 已使用 `try_lock` 避免 allocator hook 阻塞等待。
@@ -106,9 +106,11 @@ TLS fixed ring
 - 已兑现 `report_drain_limit`，避免单次 report 无上限 drain 全部样本。
 - 已实现 flush request generation；其它线程在下一次 allocation 时 opportunistic flush 本线程 TLS ring。
 - 已实现线程退出时先 flush 本线程 TLS ring、再注销 registry handle，减少短生命周期线程退出后样本不可见的问题。
-- 已通过 `mimalloc_stats()` 暴露 recorded、flushes、flushed、dropped 和包含当前线程 TLS ring 的 buffered recorder counters。
+- 已通过 `mimalloc_stats()` 暴露 recorded、flushes、flushed、dropped 和包含可锁定 registered TLS ring 的 buffered recorder counters。
 - 已将全局 sample buffer 从单个 `Mutex<Vec<_>>` 改为原子总容量门控 + 8 个分片 `Mutex<Vec<_>>`，降低高并发 TLS flush 对单锁的竞争。
-- 已实现跨线程注册表驱动的主动同步 flush：线程首次使用 TLS ring 时注册 handle，`report()` 遍历所有活跃 handle 并主动 flush；如果 handle 正忙，则保留 opportunistic flush 和线程退出 flush 兜底。
+- 已实现跨线程注册表驱动的主动同步 flush：线程首次使用 TLS ring 时以 `try_lock` 注册 handle，`report()` 在线程局部禁用 profiler 自采样后遍历所有活跃 handle 并 blocking flush；未注册线程仍保留 opportunistic flush 和线程退出 flush 兜底。
+- 已将 TLS registry 调整为可复用 slot，线程退出注销后复用空位，避免 report/stats 扫描历史线程空洞。
+- 已实现 initialize/shutdown 清理所有可注册 TLS ring，避免 restart 后旧 session 样本被下一轮 report 接收。
 - 已实现 benchmark 历史趋势归档：本地/CI report 追加 `history/mimalloc-benchmark-history.csv`，CI artifact 上传 Markdown、raw key-value 和历史 CSV。
 - 待继续：无 v1 必需 recorder 功能；长期增强可单独推进外部趋势展示和 v2 live heap opt-in。
 

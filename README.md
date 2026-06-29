@@ -12,7 +12,9 @@ Enable the optional `backend-mimalloc` feature and install
 
 ```toml
 [dependencies]
-pyroscope = { version = "2.0.6", features = ["backend-mimalloc"] }
+# Before the next crates.io release, use the branch or a local path that
+# contains `backend-mimalloc`.
+pyroscope = { git = "https://github.com/grafana/pyroscope-rs", features = ["backend-mimalloc"] }
 ```
 
 ```rust
@@ -46,7 +48,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 The mimalloc backend records allocation samples and emits memory pprof data
 through the normal Pyroscope upload path. It is an allocation profile, not a
 live heap/in-use profile, and it requires `SamplingMiMalloc`; using
-`mimalloc::MiMalloc` directly will not capture allocation call stacks.
+`mimalloc::MiMalloc` directly will not capture allocation call stacks. Samples
+with unresolved frames may be grouped under a synthetic fallback frame.
 
 Useful local checks:
 

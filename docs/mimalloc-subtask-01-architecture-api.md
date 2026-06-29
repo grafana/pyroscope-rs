@@ -17,7 +17,7 @@ mimalloc = { version = "0.1.52", optional = true }
 新增 feature：
 
 ```toml
-backend-mimalloc = ["dep:mimalloc"]
+backend-mimalloc = ["dep:backtrace", "dep:mimalloc"]
 ```
 
 原则：
@@ -101,6 +101,5 @@ cargo test --locked --lib --tests --features backend-mimalloc
 ## 风险
 
 - 如果 crate 内定义 `#[global_allocator]`，`--all-features` 会非常容易冲突。
-- 如果 backend 使用普通 `mimalloc::MiMalloc` 而不是 `SamplingMiMalloc`，无法采样调用栈。
+- 如果应用使用普通 `mimalloc::MiMalloc` 而不是 `SamplingMiMalloc`，backend 无法记录 allocation hook 样本；初始化阶段只能在尚未观察到 `SamplingMiMalloc` allocation 时记录 warning，无法对下游 global allocator 做强制校验。
 - 如果初始化时不检查 recorder，用户误配后会以为 profiling 生效。
-

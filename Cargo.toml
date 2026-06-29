@@ -18,6 +18,10 @@ autotests = true
 autobenches = true
 rust-version = "1.66"
 
+[package.metadata.docs.rs]
+features = ["rustls-tls", "backend-pprof-rs", "backend-jemalloc", "backend-mimalloc"]
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 thiserror = "2.0"
 log = "0.4"

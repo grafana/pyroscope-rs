@@ -107,7 +107,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已实现 report 阶段按栈聚合和符号解析。
 - 已实现 `report_drain_limit`，单次 report 超出 limit 的样本会保留到下一轮。
 - 已实现 report 侧 flush request generation，其它线程会在下一次 allocation 时 opportunistic flush TLS ring。
-- 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`flushes`、`flushed_samples`、`dropped_samples`，并把当前线程 TLS ring 计入 buffered samples。
+- 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`flushes`、`flushed_samples`、`dropped_samples`，并把可锁定的 registered TLS ring 计入 buffered samples。
 - 已新增 `mimalloc_baseline` 和 `mimalloc_overhead` examples，支持 baseline、inactive、active overhead 本地对比。
 - 已实现线程退出时自动尝试 flush 本线程 TLS sample ring，减少短生命周期 worker 线程的样本滞留。
 - 已新增 mimalloc integration 多线程 allocation churn 测试，覆盖短生命周期 worker 线程退出后的 sample handoff 和 RawPprof 输出。
@@ -121,7 +121,10 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - benchmark report 已覆盖 pprof encode duration 和抽样 p50/p95/p99 allocation latency。
 - README 已补充 `make mimalloc/bench/report`、CI artifact 名称和 artifact 指标说明。
 - 已将全局 sample buffer 从单个 `Mutex<Vec<RecordedAllocationSample>>` 改为原子总容量门控 + 8 个分片 `Mutex<Vec<_>>`，allocator hot path 仍只使用 `try_lock`，降低高并发 TLS flush 竞争。
-- 已实现跨线程注册表驱动的主动同步 flush：每个采样线程注册自己的 TLS ring，`report()` 遍历活跃 ring 并主动 flush；线程 ring 正忙时跳过并保留 generation opportunistic flush 作为补偿路径。
+- 已实现跨线程注册表驱动的主动同步 flush：每个采样线程尽量通过 `try_lock` 注册自己的 TLS ring，`report()` 在线程局部禁用 profiler 自采样后遍历活跃 ring 并 blocking flush；未注册或 busy fallback 仍保留 generation opportunistic flush 和线程退出 flush。
+- 已实现 TLS registry slot 复用：线程退出注销后回收 slot，避免长期运行进程按历史线程数累积空洞并拖慢 report/stats 扫描。
+- 已实现 session 边界清理：initialize/shutdown 会清空所有可注册 TLS ring，避免跨 restart 残留样本污染下一轮 profile。
+- 已实现大 allocation bounded sampling：单次 allocation 最多执行固定数量 Poisson interval 迭代，之后退到确定性间隔，避免 allocator hook 无界循环。
 - 已实现 benchmark 历史趋势归档：report 脚本追加 `history/mimalloc-benchmark-history.csv`，CI 用 branch-scoped cache 恢复历史并随 artifact 上传。
 - 已完成 v2 live heap / inuse profile 单独评估：当前 v1 不实现 `inuse_*`，v2 推荐作为后续 opt-in 独立 PR，采用 sampled pointer tracking + sharded live map。
 - 待继续：无 v1 必需功能；长期增强可包括外部趋势展示和 v2 live heap opt-in 实现。
@@ -129,7 +132,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 当前实现状态与后续增强：
 
 1. 跨线程注册表驱动的主动同步 flush：已实现。`report()` 会遍历活跃线程 TLS ring 并主动 flush；如果目标线程正在写 ring，当前 report 跳过该 ring，后续 report、下一次 allocation generation flush 或线程退出 flush 会继续兜底。
-2. 无锁或低锁竞争全局 sample queue：已实现低锁分片全局 sample buffer。当前仍不是完全 lock-free；高并发下单 shard `try_lock` 失败仍会 drop 当前 TLS ring；`report()` 主动 flush 和线程退出 flush 使用 blocking shard handoff，降低非热路径样本丢失。
+2. 低锁竞争全局 sample queue：已实现低锁分片全局 sample buffer。当前不是完全 lock-free；allocator hot path 只使用 `try_lock`，竞争时降级/drop，`report()` 主动 flush 和线程退出 flush 使用 blocking shard handoff，降低非热路径样本丢失。
 3. CI benchmark 报告归档：已有 `mimalloc_baseline` / `mimalloc_overhead` examples，已形成可重复的本地/CI Markdown artifact、阈值对比、GitHub Actions artifact 上传和分支级历史趋势 CSV；长期趋势展示或外部时序系统接入仍可后续增强。
 4. 更完整的多线程压力测试：已有集成 smoke、TLS flush 单测、短生命周期 worker allocation churn、并发 allocation/report 测试和 ignored 线程矩阵/drop-pressure stress test；已沉淀为 CI artifact 的核心指标和历史 CSV。
 5. 发布文档同步：README / CHANGELOG / example 注释和 docs.rs API 示例已覆盖可复制使用说明，并已补充 CI benchmark artifact 说明。
