@@ -1,3 +1,11 @@
+//! Allocation profiling backend for applications that install
+//! [`SamplingMiMalloc`] as their global allocator.
+//!
+//! The allocator hot path records sampled allocation events into fixed TLS
+//! rings with best-effort, non-blocking handoff to sharded global buffers.
+//! `report()` is the non-hot path: it may block briefly to drain registered TLS
+//! rings, aggregate samples, resolve symbols, and encode memory pprof data.
+
 use std::{
     alloc::{GlobalAlloc, Layout},
     cell::Cell,
@@ -28,6 +36,9 @@ const RECORDED_SAMPLE_SHARD_COUNT: usize = 8;
 const SYNTHETIC_FRAME: &str = "[mimalloc] sampled allocations (stack capture pending)";
 const RNG_INCREMENT: u64 = 0x9e37_79b9_7f4a_7c15;
 const RNG_INITIAL_STATE: u64 = 0xa076_1d64_78bd_642f;
+// Keep worst-case work bounded inside the allocator hook. Very large
+// allocations keep the first intervals stochastic, then fall back to a
+// deterministic approximation instead of looping once per sampled interval.
 const MAX_POISSON_INTERVALS_PER_ALLOCATION: u64 = 64;
 
 static RECORDER_ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -57,6 +68,8 @@ lazy_static! {
 
 thread_local! {
     static IN_ALLOC_PROFILER: Cell<bool> = const { Cell::new(false) };
+    // Suppresses allocations made by the profiler itself while it is reporting,
+    // resolving symbols, or inspecting recorder state on this thread.
     static PROFILER_SUPPRESSED: Cell<bool> = const { Cell::new(false) };
     static REMAINING_BYTES: Cell<u64> = const { Cell::new(DEFAULT_SAMPLE_INTERVAL_BYTES) };
     static REMAINING_CONFIG_GENERATION: Cell<u64> = const { Cell::new(0) };
@@ -192,6 +205,8 @@ impl Drop for RegisteredTlsSampleBuffer {
                 flush_tls_samples_for_report(&mut buffer);
             }
         }
+        // Deregister only after the final handoff attempt so a concurrent
+        // report can still see this thread's ring until thread teardown.
         if let Some(id) = self.id {
             deregister_tls_sample_buffer(id);
         }
@@ -360,6 +375,9 @@ impl Default for SamplingMiMalloc {
 unsafe impl GlobalAlloc for SamplingMiMalloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         mark_allocator_seen();
+        // SAFETY: `SamplingMiMalloc` preserves the caller's `GlobalAlloc`
+        // contract and forwards the exact layout to the wrapped mimalloc
+        // allocator.
         let ptr = unsafe { self.inner.alloc(layout) };
         if !ptr.is_null() {
             record_allocation(layout.size() as u64);
@@ -369,6 +387,8 @@ unsafe impl GlobalAlloc for SamplingMiMalloc {
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
         mark_allocator_seen();
+        // SAFETY: The caller provided a valid `GlobalAlloc` layout; this wrapper
+        // only forwards it to mimalloc and records after successful allocation.
         let ptr = unsafe { self.inner.alloc_zeroed(layout) };
         if !ptr.is_null() {
             record_allocation(layout.size() as u64);
@@ -377,11 +397,15 @@ unsafe impl GlobalAlloc for SamplingMiMalloc {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        // SAFETY: Deallocation is forwarded unchanged; callers must pass a
+        // pointer and layout that satisfy the `GlobalAlloc::dealloc` contract.
         unsafe { self.inner.dealloc(ptr, layout) };
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         mark_allocator_seen();
+        // SAFETY: Reallocation is forwarded unchanged to mimalloc with the
+        // caller-provided pointer, old layout, and requested new size.
         let new_ptr = unsafe { self.inner.realloc(ptr, layout, new_size) };
         if !new_ptr.is_null() {
             record_allocation(new_size as u64);
@@ -456,6 +480,9 @@ impl Backend for Mimalloc {
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         LAST_PPROF_ENCODE_ELAPSED_MICROS.store(0, Ordering::Relaxed);
         prepare_sample_buffer(self.config.ring_capacity);
+        // A backend can be stopped and started again while worker threads keep
+        // their TLS rings alive. Clear registered rings at the session boundary
+        // so old samples cannot be flushed into the next profile interval.
         clear_registered_tls_samples();
         reset_current_thread_sample_buffer();
         warm_backtrace();
@@ -475,12 +502,17 @@ impl Backend for Mimalloc {
 
     fn shutdown(self: Box<Self>) -> Result<()> {
         RECORDER_ACTIVE.store(false, Ordering::Release);
+        // Stop new sampling first, then clear any registered TLS rings that
+        // might otherwise survive until a later backend initialization.
         with_profiler_suppressed(clear_registered_tls_samples);
         log::trace!(target: LOG_TAG, "Shutting down mimalloc backend");
         Ok(())
     }
 
     fn report(&mut self) -> Result<ReportBatch> {
+        // Reporting allocates for registry snapshots, aggregation, symbol
+        // resolution, and pprof encoding. Suppressing this thread avoids
+        // profiler self-sampling without disabling worker-thread sampling.
         with_profiler_suppressed(|| {
             let now = Instant::now();
             let duration_nanos = self
@@ -631,6 +663,9 @@ fn calculate_sample_weight(
     if remaining_bytes >= next_remaining {
         remaining_bytes -= next_remaining;
         crossed_intervals = crossed_intervals.saturating_add(1);
+        // Past the bounded stochastic prefix, approximate the rest of an
+        // unusually large allocation with fixed-size intervals. This preserves
+        // proportional weighting while keeping hook latency predictable.
         let deterministic_intervals = remaining_bytes / sample_interval;
         crossed_intervals = crossed_intervals.saturating_add(deterministic_intervals);
         let bytes_into_next_interval = remaining_bytes % sample_interval;
@@ -814,6 +849,9 @@ impl TlsSampleBufferRegistry {
 }
 
 fn register_tls_sample_buffer(buffer: Arc<Mutex<TlsSampleBuffer>>) -> Option<usize> {
+    // TLS registration can happen from the allocator hook on first use. Do not
+    // wait for the global registry lock there; unregistered threads still keep
+    // local TLS buffering and can flush on ring pressure or thread exit.
     let Ok(mut registry) = TLS_SAMPLE_BUFFER_REGISTRY.try_lock() else {
         DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
         return None;
@@ -852,6 +890,8 @@ fn registered_tls_buffered_samples() -> Option<usize> {
 }
 
 fn flush_registered_tls_samples() {
+    // `report()` is outside the allocation hot path, so it can block briefly to
+    // make the profile interval deterministic instead of best-effort.
     for buffer in registered_tls_sample_buffers() {
         if let Ok(mut buffer) = buffer.lock() {
             flush_tls_samples_for_report(&mut buffer);
@@ -860,6 +900,8 @@ fn flush_registered_tls_samples() {
 }
 
 fn clear_registered_tls_samples() {
+    // Used only at backend lifecycle boundaries; clear rather than flush so
+    // stale samples from a previous session cannot leak into a new report.
     for buffer in registered_tls_sample_buffers() {
         if let Ok(mut buffer) = buffer.lock() {
             buffer.clear();
