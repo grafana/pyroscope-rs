@@ -123,4 +123,5 @@ TLS fixed ring
 - `realloc` 失败路径不破坏旧指针。
 - 已通过 integration test 覆盖多线程短生命周期 worker allocation churn 和线程退出 handoff。
 - 已通过 integration test 覆盖并发 allocation 期间执行 `report()`。
-- 后续压力测试继续覆盖更多线程矩阵和高压 drop-rate。
+- 已新增 ignored stress test 覆盖 1/2/4/8/16/32 线程矩阵和高压 drop-rate。
+- 后续压力测试继续沉淀为 CI artifact 和阈值报告。

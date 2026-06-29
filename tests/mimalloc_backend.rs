@@ -131,6 +131,30 @@ mod tests {
         backend.shutdown().expect("shutdown mimalloc backend");
     }
 
+    #[test]
+    #[ignore = "stress test for release validation; run with --ignored when validating mimalloc pressure"]
+    fn mimalloc_backend_stress_tests_thread_matrix_and_drop_pressure() {
+        let _guard = TEST_LOCK.lock().expect("lock mimalloc backend stress test");
+
+        for worker_count in [1, 2, 4, 8, 16, 32] {
+            let stats = run_thread_matrix_case(worker_count);
+            assert!(
+                stats.recorded_samples > 0,
+                "expected samples for {worker_count} worker threads, got {stats:?}"
+            );
+            assert!(
+                stats.flushes > 0,
+                "expected flushes for {worker_count} worker threads, got {stats:?}"
+            );
+        }
+
+        let drop_pressure_stats = run_drop_pressure_case();
+        assert!(
+            drop_pressure_stats.dropped_samples > 0,
+            "expected dropped samples under constrained recorder capacity, got {drop_pressure_stats:?}"
+        );
+    }
+
     fn report_profile(
         backend: &mut pyroscope::backend::BackendImpl<pyroscope::backend::BackendReady>,
     ) -> Profile {
@@ -148,5 +172,70 @@ mod tests {
             .sample
             .iter()
             .any(|sample| matches!(sample.value.get(1), Some(value) if *value > 0))
+    }
+
+    fn run_thread_matrix_case(worker_count: usize) -> pyroscope::backend::mimalloc::MimallocStats {
+        let mut backend = mimalloc_backend(MimallocConfig {
+            sample_interval_bytes: 2048,
+            ring_capacity: 65_536,
+            report_drain_limit: 65_536,
+            ..MimallocConfig::default()
+        })
+        .initialize()
+        .expect("initialize mimalloc backend");
+
+        run_allocation_workers(worker_count, 128, 64);
+
+        let profile = report_profile(&mut backend);
+        assert!(
+            profile_has_alloc_space_sample(&profile),
+            "expected alloc_space sample for {worker_count} worker threads"
+        );
+        let stats = mimalloc_stats();
+        backend.shutdown().expect("shutdown mimalloc backend");
+        stats
+    }
+
+    fn run_drop_pressure_case() -> pyroscope::backend::mimalloc::MimallocStats {
+        let mut backend = mimalloc_backend(MimallocConfig {
+            sample_interval_bytes: 1,
+            ring_capacity: 8,
+            report_drain_limit: 8,
+            ..MimallocConfig::default()
+        })
+        .initialize()
+        .expect("initialize mimalloc backend");
+
+        run_allocation_workers(4, 16, 128);
+
+        let profile = report_profile(&mut backend);
+        assert!(
+            profile_has_alloc_space_sample(&profile),
+            "expected alloc_space sample under drop pressure"
+        );
+        let stats = mimalloc_stats();
+        backend.shutdown().expect("shutdown mimalloc backend");
+        stats
+    }
+
+    fn run_allocation_workers(worker_count: usize, rounds: usize, allocations_per_round: usize) {
+        let workers: Vec<_> = (0..worker_count)
+            .map(|worker| {
+                std::thread::spawn(move || {
+                    for round in 0..rounds {
+                        let allocations: Vec<Vec<u8>> = (0..allocations_per_round)
+                            .map(|iteration| {
+                                vec![worker as u8; 256 + ((round + iteration) % 8) * 64]
+                            })
+                            .collect();
+                        std::hint::black_box(&allocations);
+                    }
+                })
+            })
+            .collect();
+
+        for worker in workers {
+            worker.join().expect("join allocation worker");
+        }
     }
 }
