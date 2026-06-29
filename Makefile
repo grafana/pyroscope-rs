@@ -32,3 +32,7 @@ rust/fmt/check:
 rust/cross-compile/arm:
 	docker build -t pyroscope-arm-cross -f ci/Dockerfile.arm-cross ci
 	docker run --rm -v $(shell pwd):/work pyroscope-arm-cross cargo build --locked --target arm-unknown-linux-gnueabi --all-features
+
+.PHONY: mimalloc/bench/report
+mimalloc/bench/report:
+	bash scripts/mimalloc_benchmark_report.sh

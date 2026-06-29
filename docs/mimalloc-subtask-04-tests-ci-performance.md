@@ -86,6 +86,42 @@ MIMALLOC_BENCH_MODE=active cargo run --release --example mimalloc_overhead --fea
 MIMALLOC_BENCH_MODE=active MIMALLOC_BENCH_SAMPLE_INTERVAL=4096 cargo run --release --example mimalloc_overhead --features backend-mimalloc
 ```
 
+也可生成可归档的 benchmark report artifact：
+
+```bash
+make mimalloc/bench/report
+```
+
+默认产物：
+
+```text
+target/mimalloc-benchmark/mimalloc-benchmark-report.md
+target/mimalloc-benchmark/baseline.env
+target/mimalloc-benchmark/inactive.env
+target/mimalloc-benchmark/active-1m.env
+target/mimalloc-benchmark/active-512k.env
+target/mimalloc-benchmark/active-4k.env
+```
+
+CI 推荐配置：
+
+```bash
+MIMALLOC_BENCH_DURATION_MS=1000 make mimalloc/bench/report
+```
+
+如果要把阈值从报告告警升级为 CI hard gate：
+
+```bash
+MIMALLOC_BENCH_ENFORCE_THRESHOLDS=1 make mimalloc/bench/report
+```
+
+阈值环境变量：
+
+```text
+MIMALLOC_BENCH_INACTIVE_MAX_OVERHEAD_PCT
+MIMALLOC_BENCH_ACTIVE_1M_MAX_OVERHEAD_PCT
+```
+
 可调环境变量：
 
 ```text
@@ -116,3 +152,21 @@ MIMALLOC_BENCH_REPORT_DRAIN_LIMIT
 - report drain duration。
 - pprof encode duration。
 - encoded pprof size。
+
+当前 report artifact 已覆盖：
+
+- baseline / inactive / active 1 MiB / active 512 KiB / active 4 KiB。
+- throughput。
+- allocations/sec。
+- inactive 与 active 1 MiB 阈值对比。
+- `recorded_samples`。
+- `flushes`。
+- `dropped_samples`。
+- report drain duration。
+
+仍待补齐：
+
+- p50/p95/p99 allocation latency。
+- pprof encode duration。
+- encoded pprof size。
+- GitHub Actions artifact 上传和历史趋势归档。
