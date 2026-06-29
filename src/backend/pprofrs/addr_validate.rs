@@ -22,7 +22,7 @@ fn create_pipe() -> nix::Result<(OwnedFd, OwnedFd)> {
 #[inline]
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
 fn create_pipe() -> nix::Result<(OwnedFd, OwnedFd)> {
-    use nix::fcntl::{fcntl, FcntlArg, FdFlag, OFlag};
+    use nix::fcntl::{FcntlArg, FdFlag, OFlag, fcntl};
     use nix::unistd::pipe;
 
     fn set_flags(fd: &OwnedFd) -> nix::Result<()> {
