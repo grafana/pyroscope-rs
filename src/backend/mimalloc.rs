@@ -165,12 +165,45 @@ struct AggregatedAllocationSample {
     alloc_space: u64,
 }
 
-/// Configuration for the mimalloc memory profiling backend.
+/// Configuration for the mimalloc allocation memory profiling backend.
+///
+/// The backend records sampled allocation call stacks and reports memory pprof
+/// data with `alloc_objects/count` and `alloc_space/bytes` sample types. It does
+/// not track live allocations or emit `inuse_*` samples.
+///
+/// # Examples
+///
+/// ```rust
+/// use pyroscope::backend::mimalloc::MimallocConfig;
+///
+/// let config = MimallocConfig {
+///     sample_interval_bytes: 512 * 1024,
+///     max_depth: 48,
+///     ..MimallocConfig::default()
+/// };
+///
+/// assert_eq!(config.sample_interval_bytes, 512 * 1024);
+/// assert_eq!(config.max_depth, 48);
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MimallocConfig {
+    /// Average number of allocated bytes between sampled allocation events.
+    ///
+    /// The sampler uses a byte-based Poisson process, so this value is the mean
+    /// interval rather than a fixed every-N-bytes trigger. Lower values increase
+    /// profile detail and hot-path overhead.
     pub sample_interval_bytes: u64,
+    /// Maximum number of stack frames captured for each sampled allocation.
     pub max_depth: usize,
+    /// Maximum number of samples retained in the global recorder between reports.
+    ///
+    /// If the recorder is full or contended, new samples are dropped rather than
+    /// blocking the allocator hot path.
     pub ring_capacity: usize,
+    /// Maximum number of global samples drained by one `report()` call.
+    ///
+    /// A bounded drain keeps large bursts from making a single report interval do
+    /// unbounded aggregation and pprof encoding work.
     pub report_drain_limit: usize,
 }
 
@@ -190,6 +223,8 @@ pub struct MimallocStats {
 }
 
 /// Return current mimalloc backend recorder counters.
+///
+/// This is mainly intended for tests, diagnostics, and benchmark reports.
 pub fn mimalloc_stats() -> MimallocStats {
     let global_buffered_samples = RECORDED_SAMPLES
         .try_lock()
@@ -250,17 +285,24 @@ impl MimallocConfig {
 /// Use this type as the application's global allocator when enabling
 /// `backend-mimalloc`:
 ///
-/// ```ignore
+/// ```rust
 /// use pyroscope::backend::mimalloc::SamplingMiMalloc;
 ///
 /// #[global_allocator]
 /// static ALLOC: SamplingMiMalloc = SamplingMiMalloc::new();
 /// ```
+///
+/// The backend cannot record allocation call stacks when an application uses
+/// `mimalloc::MiMalloc` directly.
 pub struct SamplingMiMalloc {
     inner: mimalloc::MiMalloc,
 }
 
 impl SamplingMiMalloc {
+    /// Create a `SamplingMiMalloc` allocator.
+    ///
+    /// The allocator is always safe to install, but it only records samples while
+    /// a `backend-mimalloc` backend is initialized.
     pub const fn new() -> Self {
         Self {
             inner: mimalloc::MiMalloc,
@@ -308,7 +350,36 @@ unsafe impl GlobalAlloc for SamplingMiMalloc {
     }
 }
 
-/// Create a mimalloc memory profiling backend.
+/// Create a mimalloc allocation memory profiling backend.
+///
+/// The returned backend should be passed to `PyroscopeAgentBuilder::new`, and
+/// the process must install [`SamplingMiMalloc`] as its global allocator.
+///
+/// # Examples
+///
+/// ```no_run
+/// use pyroscope::backend::mimalloc::{
+///     mimalloc_backend, MimallocConfig, SamplingMiMalloc,
+/// };
+/// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+///
+/// #[global_allocator]
+/// static ALLOC: SamplingMiMalloc = SamplingMiMalloc::new();
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let agent = PyroscopeAgentBuilder::new(
+///     "http://localhost:4040",
+///     "example.mimalloc",
+///     100,
+///     "pyroscope-rs",
+///     env!("CARGO_PKG_VERSION"),
+///     mimalloc_backend(MimallocConfig::default()),
+/// )
+/// .build()?;
+/// # let _ = agent;
+/// # Ok(())
+/// # }
+/// ```
 pub fn mimalloc_backend(config: MimallocConfig) -> BackendImpl<BackendUninitialized> {
     BackendImpl::new(Box::new(Mimalloc::new(config)))
 }
