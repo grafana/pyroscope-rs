@@ -293,6 +293,14 @@ on_alloc(size):
 - 超大对象可以必采。
 - sample weight 按采样概率校正，避免低估大对象。
 
+当前 v1 先落地 deterministic weighted byte interval：
+
+- allocation 跨过采样阈值时记录一次 sample。
+- `weighted_bytes = crossed_intervals * sample_interval_bytes`，大对象跨多个 interval 时合并为一次加权样本。
+- `weighted_objects = max(1, weighted_bytes / allocation_size)`，作为 allocation count 的整数估算。
+- `remaining_bytes` 保存 overshoot 后进入下一个采样周期的剩余字节。
+- TLS `remaining_bytes` 使用 sampling config generation 避免 backend 重新初始化后沿用旧周期。
+
 ### 栈采样
 
 v1 应记录 raw instruction pointers，不在 allocator hook 内符号化。

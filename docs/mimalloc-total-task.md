@@ -83,7 +83,8 @@ cargo test --locked --lib --tests --features backend-mimalloc memory_pprof
 
 ### Phase 3：采样器增强
 
-- 从简单 byte interval 采样升级为 Poisson sampling。
+- 从简单 byte interval 采样升级为 weighted byte interval sampling。
+- 后续再升级为 Poisson sampling。
 - TLS ring buffer。
 - raw IP stack capture。
 - report 阶段聚合和符号化。
@@ -97,7 +98,9 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 
 当前进展：
 
-- 已实现 byte interval sampling。
+- 已实现 weighted byte interval sampling：采样命中记录 `weighted_objects` 和 `weighted_bytes`。
+- 已处理大对象跨多个 sample interval 时的 overshoot 和下一次剩余字节。
+- 已让 TLS `remaining_bytes` 随 backend 初始化的 sampling config generation 刷新。
 - 已实现固定容量全局 sample buffer。
 - 已实现 allocation 命中时捕获 raw instruction pointer stack。
 - 已实现 report 阶段按栈聚合和符号解析。

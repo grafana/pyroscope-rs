@@ -26,6 +26,7 @@ const SYNTHETIC_FRAME: &str = "[mimalloc] sampled allocations (stack capture pen
 static RECORDER_ACTIVE: AtomicBool = AtomicBool::new(false);
 static ALLOCATOR_SEEN: AtomicBool = AtomicBool::new(false);
 static SAMPLE_INTERVAL_BYTES: AtomicU64 = AtomicU64::new(DEFAULT_SAMPLE_INTERVAL_BYTES);
+static SAMPLING_CONFIG_GENERATION: AtomicU64 = AtomicU64::new(0);
 static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
 static DROPPED_SAMPLES: AtomicU64 = AtomicU64::new(0);
@@ -34,6 +35,7 @@ static RECORDED_SAMPLES: Mutex<Vec<RecordedAllocationSample>> = Mutex::new(Vec::
 thread_local! {
     static IN_ALLOC_PROFILER: Cell<bool> = const { Cell::new(false) };
     static REMAINING_BYTES: Cell<u64> = const { Cell::new(DEFAULT_SAMPLE_INTERVAL_BYTES) };
+    static REMAINING_CONFIG_GENERATION: Cell<u64> = const { Cell::new(0) };
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -70,7 +72,8 @@ impl StackKey {
 #[derive(Debug, Copy, Clone)]
 struct RecordedAllocationSample {
     stack: StackKey,
-    size: u64,
+    weighted_objects: u64,
+    weighted_bytes: u64,
 }
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -212,6 +215,7 @@ impl Backend for Mimalloc {
     fn initialize(&mut self) -> Result<()> {
         self.config.validate()?;
         SAMPLE_INTERVAL_BYTES.store(self.config.sample_interval_bytes, Ordering::Relaxed);
+        SAMPLING_CONFIG_GENERATION.fetch_add(1, Ordering::Relaxed);
         MAX_CAPTURED_DEPTH.store(
             self.config.max_depth.min(MAX_CAPTURE_DEPTH),
             Ordering::Relaxed,
@@ -284,20 +288,60 @@ fn record_allocation(size: u64) {
 
         in_profiler.set(true);
         REMAINING_BYTES.with(|remaining| {
-            let interval = SAMPLE_INTERVAL_BYTES.load(Ordering::Relaxed).max(1);
-            let current = remaining.get();
-            if size < current {
-                remaining.set(current - size);
-            } else {
-                remaining.set(interval);
-                record_sample(size);
-            }
+            REMAINING_CONFIG_GENERATION.with(|remaining_generation| {
+                let interval = SAMPLE_INTERVAL_BYTES.load(Ordering::Relaxed).max(1);
+                let generation = SAMPLING_CONFIG_GENERATION.load(Ordering::Relaxed);
+                let mut current = remaining.get();
+                if remaining_generation.get() != generation || current == 0 || current > interval {
+                    current = interval;
+                    remaining_generation.set(generation);
+                }
+
+                if size < current {
+                    remaining.set(current - size);
+                } else {
+                    let weight = calculate_sample_weight(size, current, interval);
+                    remaining.set(weight.next_remaining);
+                    record_sample(weight);
+                }
+            });
         });
         in_profiler.set(false);
     });
 }
 
-fn record_sample(size: u64) {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct SampleWeight {
+    weighted_objects: u64,
+    weighted_bytes: u64,
+    next_remaining: u64,
+}
+
+fn calculate_sample_weight(size: u64, current: u64, interval: u64) -> SampleWeight {
+    let interval = interval.max(1);
+    let current = current.clamp(1, interval);
+    let bytes_after_first_sample = size.saturating_sub(current);
+    let crossed_intervals = bytes_after_first_sample
+        .checked_div(interval)
+        .unwrap_or_default()
+        .saturating_add(1);
+    let weighted_bytes = crossed_intervals.saturating_mul(interval);
+    let weighted_objects = weighted_bytes.checked_div(size).unwrap_or_default().max(1);
+    let bytes_into_next_interval = bytes_after_first_sample % interval;
+    let next_remaining = if bytes_into_next_interval == 0 {
+        interval
+    } else {
+        interval - bytes_into_next_interval
+    };
+
+    SampleWeight {
+        weighted_objects,
+        weighted_bytes,
+        next_remaining,
+    }
+}
+
+fn record_sample(weight: SampleWeight) {
     let stack = StackKey::capture(MAX_CAPTURED_DEPTH.load(Ordering::Relaxed));
     let max_samples = MAX_RECORDED_SAMPLES.load(Ordering::Relaxed);
     let Ok(mut samples) = RECORDED_SAMPLES.try_lock() else {
@@ -310,7 +354,11 @@ fn record_sample(size: u64) {
         return;
     }
 
-    samples.push(RecordedAllocationSample { stack, size });
+    samples.push(RecordedAllocationSample {
+        stack,
+        weighted_objects: weight.weighted_objects,
+        weighted_bytes: weight.weighted_bytes,
+    });
 }
 
 fn prepare_sample_buffer(capacity: usize) {
@@ -338,8 +386,8 @@ fn build_allocation_samples(
     let mut aggregated: HashMap<StackKey, AggregatedAllocationSample> = HashMap::new();
     for sample in recorded {
         let entry = aggregated.entry(sample.stack).or_default();
-        entry.alloc_objects = entry.alloc_objects.saturating_add(1);
-        entry.alloc_space = entry.alloc_space.saturating_add(sample.size);
+        entry.alloc_objects = entry.alloc_objects.saturating_add(sample.weighted_objects);
+        entry.alloc_space = entry.alloc_space.saturating_add(sample.weighted_bytes);
     }
 
     aggregated
@@ -424,14 +472,50 @@ mod tests {
         };
         let samples = build_allocation_samples(
             vec![
-                RecordedAllocationSample { stack, size: 128 },
-                RecordedAllocationSample { stack, size: 256 },
+                RecordedAllocationSample {
+                    stack,
+                    weighted_objects: 8,
+                    weighted_bytes: 1024,
+                },
+                RecordedAllocationSample {
+                    stack,
+                    weighted_objects: 4,
+                    weighted_bytes: 1024,
+                },
             ],
             DEFAULT_MAX_DEPTH,
         );
 
         assert_eq!(samples.len(), 1);
-        assert_eq!(samples[0].alloc_objects, 2);
-        assert_eq!(samples[0].alloc_space, 384);
+        assert_eq!(samples[0].alloc_objects, 12);
+        assert_eq!(samples[0].alloc_space, 2048);
+    }
+
+    #[test]
+    fn calculate_sample_weight_uses_interval_for_small_allocation() {
+        let weight = calculate_sample_weight(128, 128, 1024);
+
+        assert_eq!(
+            weight,
+            SampleWeight {
+                weighted_objects: 8,
+                weighted_bytes: 1024,
+                next_remaining: 1024,
+            }
+        );
+    }
+
+    #[test]
+    fn calculate_sample_weight_carries_large_allocation_overshoot() {
+        let weight = calculate_sample_weight(2500, 1000, 1000);
+
+        assert_eq!(
+            weight,
+            SampleWeight {
+                weighted_objects: 1,
+                weighted_bytes: 2000,
+                next_remaining: 500,
+            }
+        );
     }
 }

@@ -91,6 +91,7 @@ inuse_space   / bytes
 
 - 已新增 `src/encode/memory_pprof.rs`。
 - 已输出 `alloc_objects/count` 和 `alloc_space/bytes`。
+- 已由 mimalloc backend 传入 weighted allocation samples，而不是直接使用单次 allocation size。
 - 已由 backend 通过 `ReportData::RawPprof` 返回。
 - 已有解码测试确认不是 CPU `nanoseconds` 语义。
 - 当前样本来自 allocation sampling；live heap `inuse_*` 尚未实现。
