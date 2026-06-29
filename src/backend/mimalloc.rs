@@ -29,6 +29,7 @@ static SAMPLE_INTERVAL_BYTES: AtomicU64 = AtomicU64::new(DEFAULT_SAMPLE_INTERVAL
 static SAMPLING_CONFIG_GENERATION: AtomicU64 = AtomicU64::new(0);
 static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
+static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static DROPPED_SAMPLES: AtomicU64 = AtomicU64::new(0);
 static RECORDED_SAMPLES: Mutex<Vec<RecordedAllocationSample>> = Mutex::new(Vec::new());
 
@@ -89,6 +90,29 @@ pub struct MimallocConfig {
     pub max_depth: usize,
     pub ring_capacity: usize,
     pub report_drain_limit: usize,
+}
+
+/// Runtime counters for the mimalloc memory profiling backend.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct MimallocStats {
+    /// Number of samples accepted into the recorder since backend initialization.
+    pub recorded_samples: u64,
+    /// Number of samples dropped because the recorder was re-entered, full, or locked.
+    pub dropped_samples: u64,
+    /// Number of samples currently buffered for the next report, if the buffer lock is available.
+    pub buffered_samples: Option<usize>,
+}
+
+/// Return current mimalloc backend recorder counters.
+pub fn mimalloc_stats() -> MimallocStats {
+    MimallocStats {
+        recorded_samples: RECORDED_SAMPLE_COUNT.load(Ordering::Relaxed),
+        dropped_samples: DROPPED_SAMPLES.load(Ordering::Relaxed),
+        buffered_samples: RECORDED_SAMPLES
+            .try_lock()
+            .ok()
+            .map(|samples| samples.len()),
+    }
 }
 
 impl Default for MimallocConfig {
@@ -221,6 +245,7 @@ impl Backend for Mimalloc {
             Ordering::Relaxed,
         );
         MAX_RECORDED_SAMPLES.store(self.config.ring_capacity, Ordering::Relaxed);
+        RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         prepare_sample_buffer(self.config.ring_capacity);
         warm_backtrace();
@@ -252,7 +277,17 @@ impl Backend for Mimalloc {
             .map(|last_report| duration_to_i64_nanos(now.duration_since(last_report)))
             .unwrap_or_default();
 
-        let samples = build_allocation_samples(drain_recorded_samples(), self.config.max_depth);
+        let recorded = drain_recorded_samples();
+        let recorded_count = recorded.len();
+        let dropped_count = DROPPED_SAMPLES.load(Ordering::Relaxed);
+        if dropped_count > 0 {
+            log::debug!(
+                target: LOG_TAG,
+                "Mimalloc report drained {recorded_count} samples; {dropped_count} samples have been dropped since initialization"
+            );
+        }
+
+        let samples = build_allocation_samples(recorded, self.config.max_depth);
 
         let pprof_data = memory_pprof::encode_allocation_profile(
             &samples,
@@ -359,6 +394,7 @@ fn record_sample(weight: SampleWeight) {
         weighted_objects: weight.weighted_objects,
         weighted_bytes: weight.weighted_bytes,
     });
+    RECORDED_SAMPLE_COUNT.fetch_add(1, Ordering::Relaxed);
 }
 
 fn prepare_sample_buffer(capacity: usize) {
@@ -462,6 +498,27 @@ mod tests {
         };
 
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn mimalloc_stats_reports_global_recorder_counters() {
+        RECORDED_SAMPLES.lock().expect("lock samples").clear();
+        RECORDED_SAMPLE_COUNT.store(7, Ordering::Relaxed);
+        DROPPED_SAMPLES.store(3, Ordering::Relaxed);
+
+        let stats = mimalloc_stats();
+
+        assert_eq!(
+            stats,
+            MimallocStats {
+                recorded_samples: 7,
+                dropped_samples: 3,
+                buffered_samples: Some(0),
+            }
+        );
+
+        RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        DROPPED_SAMPLES.store(0, Ordering::Relaxed);
     }
 
     #[test]

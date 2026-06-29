@@ -87,9 +87,8 @@ SamplingMiMalloc active, interval = 4 KiB
 
 - throughput。
 - p50/p95/p99 allocation latency。
-- sampled count。
-- dropped count。
+- `mimalloc_stats().recorded_samples`。
+- `mimalloc_stats().dropped_samples`。
 - report drain duration。
 - pprof encode duration。
 - encoded pprof size。
-

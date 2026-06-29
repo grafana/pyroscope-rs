@@ -583,8 +583,8 @@ SamplingMiMalloc active, interval = 4 KiB
 
 - allocation throughput。
 - p50/p95/p99 latency。
-- sampled count。
-- dropped count。
+- `mimalloc_stats().recorded_samples`。
+- `mimalloc_stats().dropped_samples`。
 - ring flush count。
 - report drain duration。
 - symbolize duration。

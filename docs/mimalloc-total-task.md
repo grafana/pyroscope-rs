@@ -88,7 +88,7 @@ cargo test --locked --lib --tests --features backend-mimalloc memory_pprof
 - TLS ring buffer。
 - raw IP stack capture。
 - report 阶段聚合和符号化。
-- dropped counters。
+- recorder counters。
 
 验收：
 
@@ -104,6 +104,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已实现固定容量全局 sample buffer。
 - 已实现 allocation 命中时捕获 raw instruction pointer stack。
 - 已实现 report 阶段按栈聚合和符号解析。
+- 已通过 `mimalloc_stats()` 暴露 `recorded_samples`、`dropped_samples` 和当前 buffered samples。
 - 待继续：Poisson sampling、TLS ring buffer、无锁/try-flush 全局队列、性能 benchmark。
 
 ### Phase 4：性能和 CI
