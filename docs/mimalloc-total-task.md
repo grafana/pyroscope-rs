@@ -119,6 +119,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已在 GitHub Actions 增加 `mimalloc benchmark report` job，生成并上传 `mimalloc-benchmark-report` artifact。
 - benchmark report 已覆盖 encoded pprof size，便于观察聚合和符号化输出规模。
 - benchmark report 已覆盖 pprof encode duration 和抽样 p50/p95/p99 allocation latency。
+- README 已补充 `make mimalloc/bench/report`、CI artifact 名称和 artifact 指标说明。
 - 待继续：跨线程注册表驱动的主动同步 flush、无锁全局队列、benchmark 历史趋势归档。
 
 当前剩余未实现功能：
@@ -127,7 +128,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 2. 无锁或低锁竞争全局 sample queue：当前全局 buffer 仍是固定容量 `Mutex<Vec<RecordedAllocationSample>>`，allocator hot path 使用 `try_lock` 避免阻塞，但高并发 flush 时仍可能 drop sample。
 3. CI benchmark 报告归档：已有 `mimalloc_baseline` / `mimalloc_overhead` examples，已形成可重复的本地/CI Markdown artifact 和阈值对比，并已接入 GitHub Actions artifact 上传；尚未做历史趋势归档。
 4. 更完整的多线程压力测试：已有集成 smoke、TLS flush 单测、短生命周期 worker allocation churn、并发 allocation/report 测试和 ignored 线程矩阵/drop-pressure stress test；已沉淀为 CI artifact 的核心指标，待继续扩展历史趋势归档。
-5. 发布文档同步：README / CHANGELOG / example 注释和 docs.rs API 示例已覆盖可复制使用说明；待继续补充 CI benchmark artifact 链接。
+5. 发布文档同步：README / CHANGELOG / example 注释和 docs.rs API 示例已覆盖可复制使用说明，并已补充 CI benchmark artifact 说明。
 6. v2 live heap / inuse profile：仍保持默认不做，需单独评估 pointer tracking、dealloc/realloc metadata 成本和 opt-in API。
 
 ### Phase 4：性能和 CI

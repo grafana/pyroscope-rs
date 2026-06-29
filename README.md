@@ -53,8 +53,16 @@ Useful local checks:
 ```bash
 cargo run --example mimalloc --features backend-mimalloc
 cargo run --release --example mimalloc_overhead --features backend-mimalloc
+make mimalloc/bench/report
 cargo test --locked --test mimalloc_backend --features backend-mimalloc -- --ignored
 ```
+
+`make mimalloc/bench/report` writes a Markdown report and raw key-value
+outputs under `target/mimalloc-benchmark/`. The GitHub Actions
+`mimalloc benchmark report` job uploads the same directory as the
+`mimalloc-benchmark-report` artifact, including throughput, overhead,
+recorder counters, report latency, encoded pprof size, pprof encode time, and
+sampled allocation latency percentiles.
 
 ### Major Contributors
 
