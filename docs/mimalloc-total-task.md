@@ -116,13 +116,14 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 已同步 README、CHANGELOG 和 `examples/mimalloc.rs` 用户说明，明确 `SamplingMiMalloc`、`backend-mimalloc`、allocation profile 语义和本地验证命令。
 - 已新增 `scripts/mimalloc_benchmark_report.sh` 和 `make mimalloc/bench/report`，可生成 baseline / inactive / active 采样开销 Markdown report 与 raw key-value artifact，并支持阈值告警或 hard gate。
 - 已为 `MimallocConfig`、`SamplingMiMalloc` 和 `mimalloc_backend()` 补充 docs.rs API 示例，明确 allocation profile 语义、global allocator 要求和非 live heap 边界。
-- 待继续：跨线程注册表驱动的主动同步 flush、无锁全局队列、GitHub Actions artifact 上传和历史趋势归档。
+- 已在 GitHub Actions 增加 `mimalloc benchmark report` job，生成并上传 `mimalloc-benchmark-report` artifact。
+- 待继续：跨线程注册表驱动的主动同步 flush、无锁全局队列、benchmark 历史趋势归档。
 
 当前剩余未实现功能：
 
 1. 跨线程注册表驱动的主动同步 flush：`report()` 当前只能 flush 当前线程，并通过 generation 让其它线程在下一次 allocation 时 opportunistic flush；还不能主动唤醒或遍历所有活跃线程 TLS ring。
 2. 无锁或低锁竞争全局 sample queue：当前全局 buffer 仍是固定容量 `Mutex<Vec<RecordedAllocationSample>>`，allocator hot path 使用 `try_lock` 避免阻塞，但高并发 flush 时仍可能 drop sample。
-3. CI benchmark 报告归档：已有 `mimalloc_baseline` / `mimalloc_overhead` examples，已形成可重复的本地/CI Markdown artifact 和阈值对比；尚未接入 GitHub Actions artifact 上传和历史趋势归档。
+3. CI benchmark 报告归档：已有 `mimalloc_baseline` / `mimalloc_overhead` examples，已形成可重复的本地/CI Markdown artifact 和阈值对比，并已接入 GitHub Actions artifact 上传；尚未做历史趋势归档。
 4. 更完整的多线程压力测试：已有集成 smoke、TLS flush 单测、短生命周期 worker allocation churn、并发 allocation/report 测试和 ignored 线程矩阵/drop-pressure stress test；待继续沉淀为 CI artifact 和阈值报告。
 5. 发布文档同步：README / CHANGELOG / example 注释和 docs.rs API 示例已覆盖可复制使用说明；待继续补充 CI benchmark artifact 链接。
 6. v2 live heap / inuse profile：仍保持默认不做，需单独评估 pointer tracking、dealloc/realloc metadata 成本和 opt-in API。
@@ -133,6 +134,7 @@ cargo test --locked --lib --tests --features backend-mimalloc -- --test-threads 
 - 验证 inactive overhead、默认采样 overhead、report drain latency。
 - 生成可归档 benchmark report artifact。
 - 更新 CI matrix 并上传 artifact。
+- 沉淀历史趋势归档。
 
 验收：
 
