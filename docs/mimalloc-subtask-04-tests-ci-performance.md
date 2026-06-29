@@ -130,6 +130,8 @@ MIMALLOC_BENCH_BATCH_SIZE
 MIMALLOC_BENCH_MIN_SIZE
 MIMALLOC_BENCH_MAX_SIZE
 MIMALLOC_BENCH_SIZE_STEP
+MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL
+MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT
 MIMALLOC_BENCH_SAMPLE_INTERVAL
 MIMALLOC_BENCH_RING_CAPACITY
 MIMALLOC_BENCH_REPORT_DRAIN_LIMIT
@@ -164,12 +166,12 @@ MIMALLOC_BENCH_REPORT_DRAIN_LIMIT
 - `dropped_samples`。
 - report drain duration。
 - encoded pprof size。
+- pprof encode duration。
+- p50/p95/p99 allocation latency。
 
 GitHub Actions 已通过 `mimalloc benchmark report` job 上传
 `mimalloc-benchmark-report` artifact，保留 14 天。
 
 仍待补齐：
 
-- p50/p95/p99 allocation latency。
-- pprof encode duration。
 - 历史趋势归档。

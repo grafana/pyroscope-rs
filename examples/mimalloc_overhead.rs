@@ -68,6 +68,10 @@ fn run_active(config: WorkloadConfig) -> Result<(), Box<dyn std::error::Error>> 
     );
     println!("report_elapsed_ms={}", report_elapsed.as_millis());
     println!("encoded_pprof_bytes={encoded_pprof_bytes}");
+    println!(
+        "pprof_encode_elapsed_us={}",
+        stats.last_pprof_encode_elapsed_micros
+    );
 
     backend.shutdown()?;
     Ok(())

@@ -38,6 +38,7 @@ static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSH_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSHED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static DROPPED_SAMPLES: AtomicU64 = AtomicU64::new(0);
+static LAST_PPROF_ENCODE_ELAPSED_MICROS: AtomicU64 = AtomicU64::new(0);
 static RECORDED_SAMPLES: Mutex<Vec<RecordedAllocationSample>> = Mutex::new(Vec::new());
 
 thread_local! {
@@ -220,6 +221,8 @@ pub struct MimallocStats {
     pub dropped_samples: u64,
     /// Number of samples currently buffered for the next report, if the buffer lock is available.
     pub buffered_samples: Option<usize>,
+    /// Duration of the most recent pprof encoding step in microseconds.
+    pub last_pprof_encode_elapsed_micros: u64,
 }
 
 /// Return current mimalloc backend recorder counters.
@@ -240,6 +243,7 @@ pub fn mimalloc_stats() -> MimallocStats {
         buffered_samples: global_buffered_samples
             .zip(current_thread_buffered_samples)
             .map(|(global, current_thread)| global.saturating_add(current_thread)),
+        last_pprof_encode_elapsed_micros: LAST_PPROF_ENCODE_ELAPSED_MICROS.load(Ordering::Relaxed),
     }
 }
 
@@ -413,6 +417,7 @@ impl Backend for Mimalloc {
         FLUSH_COUNT.store(0, Ordering::Relaxed);
         FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+        LAST_PPROF_ENCODE_ELAPSED_MICROS.store(0, Ordering::Relaxed);
         prepare_sample_buffer(self.config.ring_capacity);
         reset_current_thread_sample_buffer();
         warm_backtrace();
@@ -458,10 +463,15 @@ impl Backend for Mimalloc {
 
         let samples = build_allocation_samples(recorded, self.config.max_depth);
 
+        let encode_start = Instant::now();
         let pprof_data = memory_pprof::encode_allocation_profile(
             &samples,
             self.config.sample_interval_bytes,
             duration_nanos,
+        );
+        LAST_PPROF_ENCODE_ELAPSED_MICROS.store(
+            duration_to_u64_micros(encode_start.elapsed()),
+            Ordering::Relaxed,
         );
 
         Ok(ReportBatch {
@@ -802,6 +812,10 @@ fn duration_to_i64_nanos(duration: std::time::Duration) -> i64 {
     i64::try_from(duration.as_nanos()).unwrap_or(i64::MAX)
 }
 
+fn duration_to_u64_micros(duration: std::time::Duration) -> u64 {
+    u64::try_from(duration.as_micros()).unwrap_or(u64::MAX)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -851,6 +865,7 @@ mod tests {
         clear_test_buffers();
         RECORDED_SAMPLE_COUNT.store(7, Ordering::Relaxed);
         DROPPED_SAMPLES.store(3, Ordering::Relaxed);
+        LAST_PPROF_ENCODE_ELAPSED_MICROS.store(11, Ordering::Relaxed);
 
         let stats = mimalloc_stats();
 
@@ -862,6 +877,7 @@ mod tests {
                 flushed_samples: 0,
                 dropped_samples: 3,
                 buffered_samples: Some(0),
+                last_pprof_encode_elapsed_micros: 11,
             }
         );
 
@@ -869,6 +885,7 @@ mod tests {
         FLUSH_COUNT.store(0, Ordering::Relaxed);
         FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+        LAST_PPROF_ENCODE_ELAPSED_MICROS.store(0, Ordering::Relaxed);
         clear_test_buffers();
     }
 

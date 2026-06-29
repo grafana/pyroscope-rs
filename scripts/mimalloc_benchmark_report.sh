@@ -10,6 +10,8 @@ enforce_thresholds="${MIMALLOC_BENCH_ENFORCE_THRESHOLDS:-0}"
 : "${MIMALLOC_BENCH_MIN_SIZE:=64}"
 : "${MIMALLOC_BENCH_MAX_SIZE:=65536}"
 : "${MIMALLOC_BENCH_SIZE_STEP:=64}"
+: "${MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL:=1024}"
+: "${MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT:=4096}"
 : "${MIMALLOC_BENCH_INACTIVE_MAX_OVERHEAD_PCT:=2}"
 : "${MIMALLOC_BENCH_ACTIVE_1M_MAX_OVERHEAD_PCT:=5}"
 
@@ -18,6 +20,8 @@ export MIMALLOC_BENCH_BATCH_SIZE
 export MIMALLOC_BENCH_MIN_SIZE
 export MIMALLOC_BENCH_MAX_SIZE
 export MIMALLOC_BENCH_SIZE_STEP
+export MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL
+export MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT
 
 mkdir -p "$output_dir"
 
@@ -82,6 +86,10 @@ append_row() {
     local dropped_samples
     local report_elapsed_ms
     local encoded_pprof_bytes
+    local pprof_encode_elapsed_us
+    local allocation_latency_p50_ns
+    local allocation_latency_p95_ns
+    local allocation_latency_p99_ns
 
     sample_interval="$(metric_or_default "$file" sample_interval_bytes "-")"
     mib_per_sec="$(metric "$file" mib_per_sec)"
@@ -91,6 +99,10 @@ append_row() {
     dropped_samples="$(metric_or_default "$file" dropped_samples "-")"
     report_elapsed_ms="$(metric_or_default "$file" report_elapsed_ms "-")"
     encoded_pprof_bytes="$(metric_or_default "$file" encoded_pprof_bytes "-")"
+    pprof_encode_elapsed_us="$(metric_or_default "$file" pprof_encode_elapsed_us "-")"
+    allocation_latency_p50_ns="$(metric_or_default "$file" allocation_latency_p50_ns "-")"
+    allocation_latency_p95_ns="$(metric_or_default "$file" allocation_latency_p95_ns "-")"
+    allocation_latency_p99_ns="$(metric_or_default "$file" allocation_latency_p99_ns "-")"
 
     if [ "$scenario" = "baseline" ]; then
         overhead="0.00"
@@ -107,7 +119,7 @@ append_row() {
         fi
     fi
 
-    printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
+    printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
         "$scenario" \
         "$sample_interval" \
         "$mib_per_sec" \
@@ -118,6 +130,10 @@ append_row() {
         "$dropped_samples" \
         "$report_elapsed_ms" \
         "$encoded_pprof_bytes" \
+        "$pprof_encode_elapsed_us" \
+        "$allocation_latency_p50_ns" \
+        "$allocation_latency_p95_ns" \
+        "$allocation_latency_p99_ns" \
         "$status" >> "$report_path"
 }
 
@@ -142,6 +158,8 @@ baseline_mib_per_sec="$(metric "${output_dir}/baseline.env" mib_per_sec)"
     echo "- min_size: ${MIMALLOC_BENCH_MIN_SIZE}"
     echo "- max_size: ${MIMALLOC_BENCH_MAX_SIZE}"
     echo "- size_step: ${MIMALLOC_BENCH_SIZE_STEP}"
+    echo "- latency_sample_interval: ${MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL}"
+    echo "- latency_sample_limit: ${MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT}"
     echo "- enforce_thresholds: ${enforce_thresholds}"
     echo
     echo "## Thresholds"
@@ -152,8 +170,8 @@ baseline_mib_per_sec="$(metric "${output_dir}/baseline.env" mib_per_sec)"
     echo
     echo "## Results"
     echo
-    echo "| scenario | sample_interval_bytes | MiB/s | allocations/s | overhead_vs_baseline_% | recorded_samples | flushes | dropped_samples | report_elapsed_ms | encoded_pprof_bytes | status |"
-    echo "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |"
+    echo "| scenario | sample_interval_bytes | MiB/s | allocations/s | overhead_vs_baseline_% | recorded_samples | flushes | dropped_samples | report_elapsed_ms | encoded_pprof_bytes | pprof_encode_elapsed_us | allocation_latency_p50_ns | allocation_latency_p95_ns | allocation_latency_p99_ns | status |"
+    echo "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |"
 } > "$report_path"
 
 append_row "baseline" "${output_dir}/baseline.env" "$baseline_mib_per_sec" "" "BASELINE"
