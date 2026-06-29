@@ -121,4 +121,5 @@ TLS fixed ring
 - inactive 时 allocation 正常。
 - active 时 allocation 不 panic。
 - `realloc` 失败路径不破坏旧指针。
-- 后续压力测试覆盖多线程 allocation churn。
+- 已通过 integration test 覆盖多线程短生命周期 worker allocation churn 和线程退出 handoff。
+- 后续压力测试继续覆盖 report 并发 drain、更多线程矩阵和高压 drop-rate。
