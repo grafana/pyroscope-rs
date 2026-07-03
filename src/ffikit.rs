@@ -2,7 +2,6 @@ use crate::backend::Tag;
 use crate::error::{PyroscopeError, Result};
 use crate::pyroscope::{PyroscopeAgentBuilder, PyroscopeAgentRunning};
 use crate::{PyroscopeAgent, ThreadId};
-use lazy_static::lazy_static;
 use std::sync::{
     mpsc::{self, Receiver, Sender},
     Mutex,
@@ -17,9 +16,8 @@ pub enum Signal {
 
 const TAG: &str = "pyroscope::ffikit";
 
-lazy_static! {
-    static ref SENDER: Mutex<Option<Sender<Signal>>> = Mutex::new(None);
-}
+static SENDER: Mutex<Option<Sender<Signal>>> = Mutex::new(None);
+
 pub fn run(agent: PyroscopeAgentBuilder) -> Result<()> {
     let mut sender_holder = SENDER.lock()?;
     if (*sender_holder).is_some() {
