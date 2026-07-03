@@ -1,18 +1,18 @@
 use std::{
     io::Write,
-    sync::mpsc::{sync_channel, Receiver, SyncSender},
+    sync::mpsc::{Receiver, SyncSender, sync_channel},
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
-use crate::encode::gen::types::LabelPair;
+use crate::encode::r#gen::push::{PushRequest, RawProfileSeries, RawSample};
+use crate::encode::r#gen::types::LabelPair;
 use crate::{
+    Result,
     backend::{Report, ReportBatch, ReportData},
     encode::pprof,
     pyroscope::PyroscopeConfig,
     utils::get_time_range,
-    Result,
 };
 use libflate::gzip::Encoder;
 use prost::Message;

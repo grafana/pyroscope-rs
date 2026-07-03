@@ -139,9 +139,8 @@ pub struct Frame {
     pub ip: usize,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn _Unwind_FindEnclosingFunction(pc: *mut c_void) -> *mut c_void;
-
 }
 
 impl super::Frame for Frame {

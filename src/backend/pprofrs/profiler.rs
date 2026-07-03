@@ -74,7 +74,7 @@ impl ProfilerGuardBuilder {
 
         match PROFILER.write().as_mut() {
             Err(err) => {
-                log::error!("Error in creating profiler: {}", err);
+                log::error!("Error in creating profiler: {err}");
                 Err(Error::Creating)
             }
             Ok(profiler) => {
@@ -127,7 +127,7 @@ impl<'a> Drop for ProfilerGuard<'a> {
             Err(_) => {}
             Ok(profiler) => match profiler.stop() {
                 Ok(()) => {}
-                Err(err) => log::error!("error while stopping profiler {}", err),
+                Err(err) => log::error!("error while stopping profiler {err}"),
             },
         }
     }
@@ -216,7 +216,6 @@ impl Drop for ErrnoProtector {
     }
 }
 
-#[no_mangle]
 #[cfg_attr(
     not(all(any(
         target_arch = "x86_64",
@@ -226,7 +225,6 @@ impl Drop for ErrnoProtector {
     ))),
     allow(unused_variables)
 )]
-#[allow(clippy::unnecessary_cast)]
 extern "C" fn perf_signal_handler(
     _signal: c_int,
     _siginfo: *mut libc::siginfo_t,

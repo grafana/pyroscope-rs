@@ -47,7 +47,7 @@ impl<'a> ReportBuilder<'a> {
 
         match self.profiler.write().as_mut() {
             Err(err) => {
-                log::error!("Error in creating profiler: {}", err);
+                log::error!("Error in creating profiler: {err}");
                 Err(Error::Creating)
             }
             Ok(profiler) => {
