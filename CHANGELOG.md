@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.1.0](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.6...lib-2.1.0) (2026-07-07)
+
+
+### Features
+
+* add a method to set the timer's ticker in PyroscopeAgent ([#557](https://github.com/grafana/pyroscope-rs/issues/557)) ([cc13d38](https://github.com/grafana/pyroscope-rs/commit/cc13d38cb5e84017a4f5e229648457b790bd6a1a))
+* add otel.scope.name, otel.scope.version, process.runtime.name, process.runtime.version labels ([#562](https://github.com/grafana/pyroscope-rs/issues/562)) ([32f076e](https://github.com/grafana/pyroscope-rs/commit/32f076efd45aa2f3f203eb0bf8b03f222cb40648))
+
+
+### Bug Fixes
+
+* **security/unknown/:** update security memmap2 to v0.9.11 [security] ([#558](https://github.com/grafana/pyroscope-rs/issues/558)) ([d4d83f8](https://github.com/grafana/pyroscope-rs/commit/d4d83f8d350d927739c79a53bcfd7cd0115c77a4))
+
+
+### Miscellaneous Chores
+
+* bump nix ([#566](https://github.com/grafana/pyroscope-rs/issues/566)) ([1c02f30](https://github.com/grafana/pyroscope-rs/commit/1c02f3058135d1db06262ca57ead33fdc1593e6f))
+* **deps:** lock file maintenance ([#555](https://github.com/grafana/pyroscope-rs/issues/555)) ([3917b99](https://github.com/grafana/pyroscope-rs/commit/3917b99d6de4f4d6cec078aba2ec7b6f4e7044c7))
+
 ## [2.0.6](https://github.com/grafana/pyroscope-rs/compare/lib-2.0.5...lib-2.0.6) (2026-05-28)
 
 
