@@ -47,7 +47,6 @@ static SAMPLE_INTERVAL_BYTES: AtomicU64 = AtomicU64::new(DEFAULT_SAMPLE_INTERVAL
 static SAMPLING_CONFIG_GENERATION: AtomicU64 = AtomicU64::new(0);
 static SAMPLING_RNG_SEED: AtomicU64 = AtomicU64::new(RNG_INITIAL_STATE);
 static FLUSH_REQUEST_GENERATION: AtomicU64 = AtomicU64::new(0);
-static MAX_CAPTURED_DEPTH: AtomicUsize = AtomicUsize::new(DEFAULT_MAX_DEPTH);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
 static GLOBAL_BUFFERED_SAMPLE_COUNT: AtomicUsize = AtomicUsize::new(0);
 static NEXT_RECORDED_SAMPLE_SHARD: AtomicUsize = AtomicUsize::new(0);
@@ -499,10 +498,6 @@ impl Backend for Mimalloc {
         SAMPLE_INTERVAL_BYTES.store(self.config.sample_interval_bytes, Ordering::Relaxed);
         SAMPLING_CONFIG_GENERATION.fetch_add(1, Ordering::Relaxed);
         NEXT_RECORDED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
-        MAX_CAPTURED_DEPTH.store(
-            self.config.max_depth.min(MAX_CAPTURE_DEPTH),
-            Ordering::Relaxed,
-        );
         MAX_RECORDED_SAMPLES.store(self.config.ring_capacity, Ordering::Relaxed);
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         FLUSH_COUNT.store(0, Ordering::Relaxed);
@@ -807,7 +802,7 @@ fn calculate_deterministic_sample_weight(size: u64, current: u64, interval: u64)
 }
 
 fn record_sample(weight: SampleWeight) {
-    let stack = StackKey::capture(MAX_CAPTURED_DEPTH.load(Ordering::Relaxed));
+    let stack = StackKey::capture(MAX_CAPTURE_DEPTH);
     let sample = RecordedAllocationSample {
         stack,
         weighted_objects: weight.weighted_objects,
@@ -1014,7 +1009,6 @@ fn flush_tls_samples_to_global(
 
     let reserved_slots = reserve_global_sample_slots(buffer.len());
     if reserved_slots == 0 {
-        drop_tls_samples(buffer);
         return false;
     };
 
@@ -1024,7 +1018,6 @@ fn flush_tls_samples_to_global(
         GlobalSampleShardLock::Try => {
             let Ok(samples) = RECORDED_SAMPLE_SHARDS[shard_index].try_lock() else {
                 release_global_sample_slots(reserved_slots);
-                drop_tls_samples(buffer);
                 return false;
             };
             samples
@@ -1032,7 +1025,6 @@ fn flush_tls_samples_to_global(
         GlobalSampleShardLock::Blocking => {
             let Ok(samples) = RECORDED_SAMPLE_SHARDS[shard_index].lock() else {
                 release_global_sample_slots(reserved_slots);
-                drop_tls_samples(buffer);
                 return false;
             };
             samples
@@ -1048,7 +1040,6 @@ fn flush_tls_samples_to_global(
         FLUSHED_SAMPLE_COUNT.fetch_add(flushed as u64, Ordering::Relaxed);
     }
     if !buffer.is_empty() {
-        drop_tls_samples(buffer);
         return false;
     }
 
@@ -1100,11 +1091,6 @@ fn release_global_sample_slots(slots: usize) {
             Err(observed) => current = observed,
         }
     }
-}
-
-fn drop_tls_samples(buffer: &mut TlsSampleBuffer) {
-    DROPPED_SAMPLES.fetch_add(buffer.len() as u64, Ordering::Relaxed);
-    buffer.clear();
 }
 
 fn prepare_sample_buffer(capacity: usize) {
@@ -1176,11 +1162,19 @@ fn build_allocation_samples(
 }
 
 fn resolve_stack(stack: &StackKey, max_depth: usize) -> Vec<String> {
+    resolve_stack_with(stack, max_depth, resolve_frame)
+}
+
+fn resolve_stack_with(
+    stack: &StackKey,
+    max_depth: usize,
+    resolve: impl FnMut(usize) -> Option<String>,
+) -> Vec<String> {
     let frames: Vec<String> = stack
         .iter()
-        .take(max_depth)
-        .filter_map(resolve_frame)
+        .filter_map(resolve)
         .filter(|name| !is_mimalloc_profiler_frame(name))
+        .take(max_depth)
         .collect();
 
     if frames.is_empty() {
@@ -1517,7 +1511,7 @@ mod tests {
     }
 
     #[test]
-    fn flush_tls_samples_drops_when_global_capacity_is_full() {
+    fn flush_tls_samples_keeps_tls_samples_when_global_capacity_is_full() {
         let _guard = TEST_LOCK.lock().expect("lock test");
         let stack = StackKey {
             frames: [42; MAX_CAPTURE_DEPTH],
@@ -1532,9 +1526,37 @@ mod tests {
 
         assert!(!flush_tls_samples(&mut buffer));
 
-        assert_eq!(buffer.len(), 0);
-        assert_eq!(DROPPED_SAMPLES.load(Ordering::Relaxed), 2);
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(DROPPED_SAMPLES.load(Ordering::Relaxed), 0);
         MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
+        clear_test_buffers();
+    }
+
+    #[test]
+    fn flush_tls_samples_keeps_unflushed_tls_samples_after_partial_flush() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        MAX_RECORDED_SAMPLES.store(1, Ordering::Relaxed);
+        let mut buffer = TlsSampleBuffer::new();
+        assert!(buffer.push(test_sample(stack)));
+        assert!(buffer.push(test_sample(stack)));
+
+        assert!(!flush_tls_samples(&mut buffer));
+
+        assert_eq!(buffer.len(), 1);
+        assert_eq!(count_recorded_samples(), 1);
+        assert_eq!(GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed), 1);
+        assert_eq!(DROPPED_SAMPLES.load(Ordering::Relaxed), 0);
+        MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         clear_test_buffers();
     }
 
@@ -1711,6 +1733,23 @@ mod tests {
         assert_eq!(samples.len(), 1);
         assert_eq!(samples[0].alloc_objects, 12);
         assert_eq!(samples[0].alloc_space, 2048);
+    }
+
+    #[test]
+    fn resolve_stack_applies_depth_after_profiler_frame_filtering() {
+        let mut frames = [0; MAX_CAPTURE_DEPTH];
+        frames[..4].copy_from_slice(&[1, 2, 3, 4]);
+        let stack = StackKey { frames, depth: 4 };
+
+        let resolved = resolve_stack_with(&stack, 1, |ip| match ip {
+            1 => Some("pyroscope::backend::mimalloc::record_sample".to_string()),
+            2 => Some("backtrace::trace_unsynchronized".to_string()),
+            3 => Some("example::allocate".to_string()),
+            4 => Some("example::caller".to_string()),
+            _ => None,
+        });
+
+        assert_eq!(resolved, vec!["example::allocate"]);
     }
 
     #[test]
