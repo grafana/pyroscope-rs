@@ -227,18 +227,18 @@ impl RegisteredTlsSampleBuffer {
 
 impl Drop for RegisteredTlsSampleBuffer {
     fn drop(&mut self) {
-        if RECORDER_ACTIVE.load(Ordering::Acquire) {
-            with_profiler_suppressed(|| {
+        with_profiler_suppressed(|| {
+            if RECORDER_ACTIVE.load(Ordering::Acquire) {
                 if let Some(mut buffer) = self.try_lock() {
                     flush_tls_samples_for_report(&mut buffer);
                 }
-            });
-        }
-        // Deregister only after the final handoff attempt so a concurrent
-        // report can still see this thread's ring until thread teardown.
-        if let Some(id) = self.id.get() {
-            deregister_tls_sample_buffer(id);
-        }
+            }
+            // Deregister only after the final handoff attempt so a concurrent
+            // report can still see this thread's ring until thread teardown.
+            if let Some(id) = self.id.get() {
+                deregister_tls_sample_buffer(id);
+            }
+        });
     }
 }
 
@@ -957,6 +957,19 @@ fn registered_tls_buffered_samples() -> Option<usize> {
     })
 }
 
+fn count_recorded_samples() -> usize {
+    RECORDED_SAMPLE_SHARDS
+        .iter()
+        .filter_map(|shard| match shard.lock() {
+            Ok(samples) => Some(samples.len()),
+            Err(_) => {
+                DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
+                None
+            }
+        })
+        .sum()
+}
+
 fn flush_registered_tls_samples() {
     // `report()` is outside the allocation hot path, so it can block briefly to
     // make the profile interval deterministic instead of best-effort.
@@ -1066,7 +1079,27 @@ fn reserve_global_sample_slots(wanted: usize) -> usize {
 }
 
 fn release_global_sample_slots(slots: usize) {
-    GLOBAL_BUFFERED_SAMPLE_COUNT.fetch_sub(slots, Ordering::Relaxed);
+    if slots == 0 {
+        return;
+    }
+
+    let mut current = GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed);
+    loop {
+        let release = slots.min(current);
+        if release == 0 {
+            return;
+        }
+
+        match GLOBAL_BUFFERED_SAMPLE_COUNT.compare_exchange_weak(
+            current,
+            current - release,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => return,
+            Err(observed) => current = observed,
+        }
+    }
 }
 
 fn drop_tls_samples(buffer: &mut TlsSampleBuffer) {
@@ -1075,7 +1108,6 @@ fn drop_tls_samples(buffer: &mut TlsSampleBuffer) {
 }
 
 fn prepare_sample_buffer(capacity: usize) {
-    GLOBAL_BUFFERED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
     for shard in RECORDED_SAMPLE_SHARDS.iter() {
         let Ok(mut samples) = shard.lock() else {
             DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
@@ -1088,6 +1120,7 @@ fn prepare_sample_buffer(capacity: usize) {
             samples.reserve(shard_capacity - current_capacity);
         }
     }
+    GLOBAL_BUFFERED_SAMPLE_COUNT.store(count_recorded_samples(), Ordering::Relaxed);
 }
 
 fn drain_recorded_samples(limit: usize) -> Vec<RecordedAllocationSample> {
@@ -1362,6 +1395,44 @@ mod tests {
 
         assert_eq!(drained.len(), 2);
         assert_eq!(mimalloc_stats().buffered_samples, Some(1));
+
+        clear_test_buffers();
+    }
+
+    #[test]
+    fn release_global_sample_slots_saturates_at_zero() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        GLOBAL_BUFFERED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+
+        release_global_sample_slots(3);
+        assert_eq!(GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed), 0);
+
+        GLOBAL_BUFFERED_SAMPLE_COUNT.store(2, Ordering::Relaxed);
+        release_global_sample_slots(5);
+        assert_eq!(GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed), 0);
+
+        GLOBAL_BUFFERED_SAMPLE_COUNT.store(5, Ordering::Relaxed);
+        release_global_sample_slots(3);
+        assert_eq!(GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed), 2);
+
+        GLOBAL_BUFFERED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+    }
+
+    #[test]
+    fn prepare_sample_buffer_recounts_global_sample_slots_after_clear() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        push_global_test_samples([test_sample(stack), test_sample(stack)]);
+        GLOBAL_BUFFERED_SAMPLE_COUNT.store(usize::MAX, Ordering::Relaxed);
+
+        prepare_sample_buffer(10);
+
+        assert_eq!(count_recorded_samples(), 0);
+        assert_eq!(GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed), 0);
 
         clear_test_buffers();
     }
