@@ -17,7 +17,7 @@ use std::{
     time::Instant,
 };
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 use crate::{
     backend::{Backend, BackendImpl, BackendUninitialized, ReportBatch, ReportData, ThreadTag},
@@ -57,14 +57,13 @@ static FLUSHED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static DROPPED_SAMPLES: AtomicU64 = AtomicU64::new(0);
 static LAST_PPROF_ENCODE_ELAPSED_MICROS: AtomicU64 = AtomicU64::new(0);
 
-lazy_static! {
-    static ref RECORDED_SAMPLE_SHARDS: Vec<Mutex<Vec<RecordedAllocationSample>>> = (0
-        ..RECORDED_SAMPLE_SHARD_COUNT)
+static RECORDED_SAMPLE_SHARDS: Lazy<Vec<Mutex<Vec<RecordedAllocationSample>>>> = Lazy::new(|| {
+    (0..RECORDED_SAMPLE_SHARD_COUNT)
         .map(|_| Mutex::new(Vec::new()))
-        .collect();
-    static ref TLS_SAMPLE_BUFFER_REGISTRY: Mutex<TlsSampleBufferRegistry> =
-        Mutex::new(TlsSampleBufferRegistry::new());
-}
+        .collect()
+});
+static TLS_SAMPLE_BUFFER_REGISTRY: Lazy<Mutex<TlsSampleBufferRegistry>> =
+    Lazy::new(|| Mutex::new(TlsSampleBufferRegistry::new()));
 
 thread_local! {
     static IN_ALLOC_PROFILER: Cell<bool> = const { Cell::new(false) };
@@ -182,7 +181,7 @@ impl TlsSampleBuffer {
 
 #[derive(Debug)]
 struct RegisteredTlsSampleBuffer {
-    id: Option<usize>,
+    id: Cell<Option<usize>>,
     buffer: Arc<Mutex<TlsSampleBuffer>>,
 }
 
@@ -190,10 +189,20 @@ impl RegisteredTlsSampleBuffer {
     fn new() -> Self {
         let buffer = Arc::new(Mutex::new(TlsSampleBuffer::new()));
         let id = register_tls_sample_buffer(buffer.clone());
-        Self { id, buffer }
+        Self {
+            id: Cell::new(id),
+            buffer,
+        }
+    }
+
+    fn ensure_registered(&self) {
+        if self.id.get().is_none() {
+            self.id.set(register_tls_sample_buffer(self.buffer.clone()));
+        }
     }
 
     fn try_lock(&self) -> Option<std::sync::MutexGuard<'_, TlsSampleBuffer>> {
+        self.ensure_registered();
         self.buffer.try_lock().ok()
     }
 }
@@ -207,7 +216,7 @@ impl Drop for RegisteredTlsSampleBuffer {
         }
         // Deregister only after the final handoff attempt so a concurrent
         // report can still see this thread's ring until thread teardown.
-        if let Some(id) = self.id {
+        if let Some(id) = self.id.get() {
             deregister_tls_sample_buffer(id);
         }
     }
@@ -271,7 +280,7 @@ pub struct MimallocStats {
     pub flushes: u64,
     /// Number of samples moved from TLS rings into the global buffer.
     pub flushed_samples: u64,
-    /// Number of samples dropped because the recorder was re-entered, full, or locked.
+    /// Number of sample records dropped because the recorder was full or locked.
     pub dropped_samples: u64,
     /// Number of samples currently buffered for the next report, if the buffer lock is available.
     pub buffered_samples: Option<usize>,
@@ -601,7 +610,6 @@ fn record_allocation(size: u64) {
 
     IN_ALLOC_PROFILER.with(|in_profiler| {
         if in_profiler.get() {
-            DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
             return;
         }
 
@@ -853,7 +861,6 @@ fn register_tls_sample_buffer(buffer: Arc<Mutex<TlsSampleBuffer>>) -> Option<usi
     // wait for the global registry lock there; unregistered threads still keep
     // local TLS buffering and can flush on ring pressure or thread exit.
     let Ok(mut registry) = TLS_SAMPLE_BUFFER_REGISTRY.try_lock() else {
-        DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
         return None;
     };
 
@@ -1243,6 +1250,25 @@ mod tests {
     }
 
     #[test]
+    fn reentrant_allocation_is_ignored_without_drop_count() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        clear_test_buffers();
+        RECORDER_ACTIVE.store(true, Ordering::Release);
+        let _active_guard = RecorderActiveGuard;
+        DROPPED_SAMPLES.store(0, Ordering::Relaxed);
+        RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+
+        IN_ALLOC_PROFILER.with(|in_profiler| {
+            let previous = in_profiler.replace(true);
+            record_allocation(1);
+            in_profiler.set(previous);
+        });
+
+        assert_eq!(RECORDED_SAMPLE_COUNT.load(Ordering::Relaxed), 0);
+        assert_eq!(DROPPED_SAMPLES.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
     fn drain_recorded_samples_respects_limit_and_keeps_remaining_samples() {
         let _guard = TEST_LOCK.lock().expect("lock test");
         let stack = StackKey {
@@ -1292,6 +1318,24 @@ mod tests {
 
         assert_eq!(second_id, first_id);
         deregister_tls_sample_buffer(second_id);
+    }
+
+    #[test]
+    fn tls_sample_buffer_retries_registration_after_initial_contention() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let registry_guard = TLS_SAMPLE_BUFFER_REGISTRY.lock().expect("lock registry");
+
+        let buffer = RegisteredTlsSampleBuffer::new();
+        assert_eq!(buffer.id.get(), None);
+        drop(buffer.try_lock().expect("lock local buffer"));
+        assert_eq!(buffer.id.get(), None);
+
+        drop(registry_guard);
+        drop(buffer.try_lock().expect("lock local buffer after retry"));
+
+        let id = buffer.id.get().expect("registration retried");
+        deregister_tls_sample_buffer(id);
+        buffer.id.set(None);
     }
 
     #[test]

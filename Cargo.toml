@@ -96,7 +96,7 @@ backend-pprof-rs = [
     "dep:symbolic-demangle",
 ]
 backend-jemalloc = ["dep:jemalloc_pprof"]
-backend-mimalloc = ["dep:backtrace", "dep:mimalloc"]
+backend-mimalloc = ["dep:backtrace", "dep:mimalloc", "dep:once_cell"]
 
 [profile.dev]
 opt-level = 0
