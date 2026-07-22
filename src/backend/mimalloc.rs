@@ -827,12 +827,13 @@ fn record_sample(weight: SampleWeight) {
     });
 }
 
-fn flush_current_thread_samples() {
+fn flush_current_thread_samples() -> bool {
     TLS_SAMPLE_BUFFER.with(|buffer| {
-        if let Some(mut buffer) = buffer.try_lock() {
-            flush_tls_samples(&mut buffer);
-        }
-    });
+        let Some(mut buffer) = buffer.try_lock() else {
+            return false;
+        };
+        flush_tls_samples(&mut buffer)
+    })
 }
 
 fn request_tls_sample_flush() {
@@ -854,8 +855,9 @@ fn flush_requested_tls_samples_with_state(state: &mut SamplerState) {
         return;
     }
 
-    state.flush_generation = requested_generation;
-    flush_current_thread_samples();
+    if flush_current_thread_samples() {
+        state.flush_generation = requested_generation;
+    }
 }
 
 fn reset_current_thread_sample_buffer() {
@@ -1162,17 +1164,17 @@ fn build_allocation_samples(
 }
 
 fn resolve_stack(stack: &StackKey, max_depth: usize) -> Vec<String> {
-    resolve_stack_with(stack, max_depth, resolve_frame)
+    resolve_stack_with(stack, max_depth, resolve_frame_names)
 }
 
 fn resolve_stack_with(
     stack: &StackKey,
     max_depth: usize,
-    resolve: impl FnMut(usize) -> Option<String>,
+    resolve: impl FnMut(usize) -> Vec<String>,
 ) -> Vec<String> {
     let frames: Vec<String> = stack
         .iter()
-        .filter_map(resolve)
+        .flat_map(resolve)
         .filter(|name| !is_mimalloc_profiler_frame(name))
         .take(max_depth)
         .collect();
@@ -1184,14 +1186,17 @@ fn resolve_stack_with(
     }
 }
 
-fn resolve_frame(ip: usize) -> Option<String> {
-    let mut resolved = None;
+fn resolve_frame_names(ip: usize) -> Vec<String> {
+    let mut resolved = Vec::new();
     backtrace::resolve(ip as *mut std::ffi::c_void, |symbol| {
         if let Some(name) = symbol.name() {
-            resolved = Some(name.to_string());
+            resolved.push(name.to_string());
         }
     });
-    resolved.or_else(|| Some(format!("0x{ip:x}")))
+    if resolved.is_empty() {
+        resolved.push(format!("0x{ip:x}"));
+    }
+    resolved
 }
 
 fn is_mimalloc_profiler_frame(name: &str) -> bool {
@@ -1596,6 +1601,39 @@ mod tests {
     }
 
     #[test]
+    fn flush_requested_tls_samples_retries_after_lock_failure() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let stack = StackKey {
+            frames: [42; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+
+        TLS_SAMPLE_BUFFER.with(|buffer| {
+            let mut locked_buffer = buffer.try_lock().expect("lock current thread buffer");
+            assert!(locked_buffer.push(test_sample(stack)));
+
+            request_tls_sample_flush();
+            flush_requested_tls_samples();
+            assert_eq!(mimalloc_stats().flushes, 0);
+            assert_eq!(locked_buffer.len(), 1);
+        });
+
+        flush_requested_tls_samples();
+
+        assert_eq!(mimalloc_stats().flushes, 1);
+        assert_eq!(mimalloc_stats().flushed_samples, 1);
+
+        clear_test_buffers();
+        FLUSH_COUNT.store(0, Ordering::Relaxed);
+        FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
+    }
+
+    #[test]
     fn flush_registered_tls_samples_drains_live_worker_thread_buffer() {
         let _guard = TEST_LOCK.lock().expect("lock test");
         let stack = StackKey {
@@ -1742,14 +1780,35 @@ mod tests {
         let stack = StackKey { frames, depth: 4 };
 
         let resolved = resolve_stack_with(&stack, 1, |ip| match ip {
-            1 => Some("pyroscope::backend::mimalloc::record_sample".to_string()),
-            2 => Some("backtrace::trace_unsynchronized".to_string()),
-            3 => Some("example::allocate".to_string()),
-            4 => Some("example::caller".to_string()),
-            _ => None,
+            1 => vec!["pyroscope::backend::mimalloc::record_sample".to_string()],
+            2 => vec!["backtrace::trace_unsynchronized".to_string()],
+            3 => vec!["example::allocate".to_string()],
+            4 => vec!["example::caller".to_string()],
+            _ => Vec::new(),
         });
 
         assert_eq!(resolved, vec!["example::allocate"]);
+    }
+
+    #[test]
+    fn resolve_stack_expands_inline_symbols_before_filtering() {
+        let mut frames = [0; MAX_CAPTURE_DEPTH];
+        frames[0] = 1;
+        let stack = StackKey { frames, depth: 1 };
+
+        let resolved = resolve_stack_with(&stack, 2, |ip| match ip {
+            1 => vec![
+                "pyroscope::backend::mimalloc::record_sample".to_string(),
+                "example::inline_allocate".to_string(),
+                "example::caller".to_string(),
+            ],
+            _ => Vec::new(),
+        });
+
+        assert_eq!(
+            resolved,
+            vec!["example::inline_allocate", "example::caller"]
+        );
     }
 
     #[test]
