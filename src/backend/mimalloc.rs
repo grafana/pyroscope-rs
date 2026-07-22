@@ -50,6 +50,7 @@ static FLUSH_REQUEST_GENERATION: AtomicU64 = AtomicU64::new(0);
 static MAX_RECORDED_SAMPLES: AtomicUsize = AtomicUsize::new(DEFAULT_RING_CAPACITY);
 static GLOBAL_BUFFERED_SAMPLE_COUNT: AtomicUsize = AtomicUsize::new(0);
 static NEXT_RECORDED_SAMPLE_SHARD: AtomicUsize = AtomicUsize::new(0);
+static NEXT_DRAINED_SAMPLE_SHARD: AtomicUsize = AtomicUsize::new(0);
 static RECORDED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSH_COUNT: AtomicU64 = AtomicU64::new(0);
 static FLUSHED_SAMPLE_COUNT: AtomicU64 = AtomicU64::new(0);
@@ -498,6 +499,7 @@ impl Backend for Mimalloc {
         SAMPLE_INTERVAL_BYTES.store(self.config.sample_interval_bytes, Ordering::Relaxed);
         SAMPLING_CONFIG_GENERATION.fetch_add(1, Ordering::Relaxed);
         NEXT_RECORDED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
+        NEXT_DRAINED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
         MAX_RECORDED_SAMPLES.store(self.config.ring_capacity, Ordering::Relaxed);
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         FLUSH_COUNT.store(0, Ordering::Relaxed);
@@ -1114,12 +1116,19 @@ fn prepare_sample_buffer(capacity: usize) {
 fn drain_recorded_samples(limit: usize) -> Vec<RecordedAllocationSample> {
     let mut drained = Vec::new();
     let mut remaining = limit;
+    if remaining == 0 {
+        return drained;
+    }
 
-    for shard in RECORDED_SAMPLE_SHARDS.iter() {
+    let start_shard =
+        NEXT_DRAINED_SAMPLE_SHARD.fetch_add(1, Ordering::Relaxed) % RECORDED_SAMPLE_SHARD_COUNT;
+    for offset in 0..RECORDED_SAMPLE_SHARD_COUNT {
         if remaining == 0 {
             break;
         }
 
+        let shard_index = (start_shard + offset) % RECORDED_SAMPLE_SHARD_COUNT;
+        let shard = &RECORDED_SAMPLE_SHARDS[shard_index];
         let Ok(mut samples) = shard.lock() else {
             DROPPED_SAMPLES.fetch_add(1, Ordering::Relaxed);
             continue;
@@ -1250,6 +1259,7 @@ mod tests {
         }
         GLOBAL_BUFFERED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         NEXT_RECORDED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
+        NEXT_DRAINED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
         SAMPLER_STATE.with(|sampler| sampler.set(SamplerState::new()));
         for buffer in registered_tls_sample_buffers() {
             buffer.lock().expect("lock tls samples").clear();
@@ -1257,7 +1267,16 @@ mod tests {
     }
 
     fn push_global_test_samples(samples: impl IntoIterator<Item = RecordedAllocationSample>) {
-        let mut shard = RECORDED_SAMPLE_SHARDS[0].lock().expect("lock samples");
+        push_global_test_samples_to_shard(0, samples);
+    }
+
+    fn push_global_test_samples_to_shard(
+        shard_index: usize,
+        samples: impl IntoIterator<Item = RecordedAllocationSample>,
+    ) {
+        let mut shard = RECORDED_SAMPLE_SHARDS[shard_index]
+            .lock()
+            .expect("lock samples");
         let initial_len = shard.len();
         shard.extend(samples);
         GLOBAL_BUFFERED_SAMPLE_COUNT.fetch_add(shard.len() - initial_len, Ordering::Relaxed);
@@ -1394,6 +1413,34 @@ mod tests {
 
         assert_eq!(drained.len(), 2);
         assert_eq!(mimalloc_stats().buffered_samples, Some(1));
+
+        clear_test_buffers();
+    }
+
+    #[test]
+    fn drain_recorded_samples_rotates_starting_shard() {
+        let _guard = TEST_LOCK.lock().expect("lock test");
+        let low_stack = StackKey {
+            frames: [1; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        let high_stack = StackKey {
+            frames: [2; MAX_CAPTURE_DEPTH],
+            depth: 1,
+        };
+        clear_test_buffers();
+        push_global_test_samples_to_shard(0, [test_sample(low_stack)]);
+        push_global_test_samples_to_shard(1, [test_sample(high_stack)]);
+        NEXT_DRAINED_SAMPLE_SHARD.store(1, Ordering::Relaxed);
+
+        let first = drain_recorded_samples(1);
+        let second = drain_recorded_samples(1);
+
+        assert_eq!(first.len(), 1);
+        assert_eq!(first[0].stack, high_stack);
+        assert_eq!(second.len(), 1);
+        assert_eq!(second[0].stack, low_stack);
+        assert_eq!(GLOBAL_BUFFERED_SAMPLE_COUNT.load(Ordering::Relaxed), 0);
 
         clear_test_buffers();
     }
