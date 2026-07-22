@@ -228,9 +228,11 @@ impl RegisteredTlsSampleBuffer {
 impl Drop for RegisteredTlsSampleBuffer {
     fn drop(&mut self) {
         if RECORDER_ACTIVE.load(Ordering::Acquire) {
-            if let Some(mut buffer) = self.try_lock() {
-                flush_tls_samples_for_report(&mut buffer);
-            }
+            with_profiler_suppressed(|| {
+                if let Some(mut buffer) = self.try_lock() {
+                    flush_tls_samples_for_report(&mut buffer);
+                }
+            });
         }
         // Deregister only after the final handoff attempt so a concurrent
         // report can still see this thread's ring until thread teardown.
@@ -435,7 +437,8 @@ unsafe impl GlobalAlloc for SamplingMiMalloc {
         // caller-provided pointer, old layout, and requested new size.
         let new_ptr = unsafe { self.inner.realloc(ptr, layout, new_size) };
         if !new_ptr.is_null() {
-            record_allocation(new_size as u64);
+            let recorded_size = realloc_recorded_size(ptr, new_ptr, layout.size(), new_size) as u64;
+            record_allocation(recorded_size);
         }
         new_ptr
     }
@@ -609,15 +612,34 @@ fn with_profiler_suppressed<R>(f: impl FnOnce() -> R) -> R {
         }
     }
 
-    SAMPLER_STATE.with(|sampler| {
+    let mut f = Some(f);
+    match SAMPLER_STATE.try_with(|sampler| {
         let mut state = sampler.get();
         let previous = state.profiler_suppressed;
         state.profiler_suppressed = true;
         sampler.set(state);
 
         let _guard = SuppressionGuard { sampler, previous };
-        f()
-    })
+        f.take().expect("suppression closure was already taken")()
+    }) {
+        Ok(result) => result,
+        Err(_) => f
+            .take()
+            .expect("suppression fallback closure was already taken")(),
+    }
+}
+
+fn realloc_recorded_size(
+    old_ptr: *mut u8,
+    new_ptr: *mut u8,
+    old_size: usize,
+    new_size: usize,
+) -> usize {
+    if old_ptr == new_ptr {
+        new_size.saturating_sub(old_size)
+    } else {
+        new_size
+    }
 }
 
 fn record_allocation(size: u64) {
@@ -637,7 +659,7 @@ fn record_allocation(size: u64) {
         }
     }
 
-    SAMPLER_STATE.with(|sampler| {
+    let _ = SAMPLER_STATE.try_with(|sampler| {
         let mut state = sampler.get();
         if state.profiler_suppressed || state.in_profiler {
             return;
@@ -1314,6 +1336,19 @@ mod tests {
     }
 
     #[test]
+    fn realloc_recorded_size_tracks_newly_allocated_bytes() {
+        let mut old_byte = 0_u8;
+        let mut new_byte = 0_u8;
+        let old_ptr = &mut old_byte as *mut u8;
+        let new_ptr = &mut new_byte as *mut u8;
+
+        assert_eq!(realloc_recorded_size(old_ptr, old_ptr, 1024, 1536), 512);
+        assert_eq!(realloc_recorded_size(old_ptr, old_ptr, 1536, 1024), 0);
+        assert_eq!(realloc_recorded_size(old_ptr, new_ptr, 1024, 1536), 1536);
+        assert_eq!(realloc_recorded_size(old_ptr, new_ptr, 1536, 1024), 1024);
+    }
+
+    #[test]
     fn drain_recorded_samples_respects_limit_and_keeps_remaining_samples() {
         let _guard = TEST_LOCK.lock().expect("lock test");
         let stack = StackKey {
@@ -1520,6 +1555,7 @@ mod tests {
         MAX_RECORDED_SAMPLES.store(10, Ordering::Relaxed);
         FLUSH_COUNT.store(0, Ordering::Relaxed);
         FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         RECORDER_ACTIVE.store(true, Ordering::Release);
         let _active_guard = RecorderActiveGuard;
 
@@ -1537,11 +1573,13 @@ mod tests {
         assert!(matches!(stats.buffered_samples, Some(samples) if samples >= 2));
         assert!(stats.flushes >= 1);
         assert!(stats.flushed_samples >= 2);
+        assert_eq!(stats.dropped_samples, 0);
         assert_eq!(registered_tls_buffered_samples(), Some(0));
 
         clear_test_buffers();
         FLUSH_COUNT.store(0, Ordering::Relaxed);
         FLUSHED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
+        DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         MAX_RECORDED_SAMPLES.store(DEFAULT_RING_CAPACITY, Ordering::Relaxed);
     }
 
