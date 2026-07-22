@@ -1,9 +1,6 @@
-use nix::{
-    errno::Errno,
-    unistd::{read, write},
-};
+use nix::{errno::Errno, unistd::read};
 use std::mem::size_of;
-use std::os::fd::OwnedFd;
+use std::os::fd::{AsRawFd, OwnedFd};
 
 #[derive(Default)]
 pub(crate) struct Pipes {
@@ -55,12 +52,11 @@ fn open_pipe(pipes: &mut Pipes) -> nix::Result<()> {
 
 // validate whether the address `addr` is readable through `write()` to a pipe
 //
-// if the second argument of `write(ptr, buf)` is not a valid address, the
+// if the second argument of `write(fd, buf, count)` is not a valid address, the
 // `write()` will return an error the error number should be `EFAULT` in most
 // cases, but we regard all errors (except EINTR) as a failure of validation
 pub fn validate(pipes: &mut Pipes, addr: *const libc::c_void) -> bool {
-    // it's a short circuit for null pointer, as it'll give an error in
-    // `std::slice::from_raw_parts` if the pointer is null.
+    // Short-circuit null pointers without asking the kernel to validate them.
     if addr.is_null() {
         return false;
     }
@@ -92,9 +88,13 @@ pub fn validate(pipes: &mut Pipes, addr: *const libc::c_void) -> bool {
         return false; // impossible
     };
     loop {
-        let buf = unsafe { std::slice::from_raw_parts(addr as *const u8, CHECK_LENGTH) };
-
-        match write(write_fd, buf) {
+        let res = unsafe { libc::write(write_fd.as_raw_fd(), addr, CHECK_LENGTH) };
+        let res = if res == -1 {
+            Err(Errno::last())
+        } else {
+            Ok(res)
+        };
+        match res {
             Ok(bytes) => break bytes > 0,
             Err(_err @ Errno::EINTR) => continue,
             Err(_) => break false,
