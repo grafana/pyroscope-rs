@@ -65,15 +65,33 @@ static RECORDED_SAMPLE_SHARDS: Lazy<Vec<Mutex<Vec<RecordedAllocationSample>>>> =
 static TLS_SAMPLE_BUFFER_REGISTRY: Lazy<Mutex<TlsSampleBufferRegistry>> =
     Lazy::new(|| Mutex::new(TlsSampleBufferRegistry::new()));
 
+#[derive(Debug, Copy, Clone)]
+struct SamplerState {
+    in_profiler: bool,
+    profiler_suppressed: bool,
+    remaining_bytes: u64,
+    remaining_config_generation: u64,
+    rng_state: u64,
+    flush_generation: u64,
+}
+
+impl SamplerState {
+    const fn new() -> Self {
+        Self {
+            in_profiler: false,
+            profiler_suppressed: false,
+            remaining_bytes: DEFAULT_SAMPLE_INTERVAL_BYTES,
+            remaining_config_generation: 0,
+            rng_state: 0,
+            flush_generation: 0,
+        }
+    }
+}
+
 thread_local! {
-    static IN_ALLOC_PROFILER: Cell<bool> = const { Cell::new(false) };
-    // Suppresses allocations made by the profiler itself while it is reporting,
-    // resolving symbols, or inspecting recorder state on this thread.
-    static PROFILER_SUPPRESSED: Cell<bool> = const { Cell::new(false) };
-    static REMAINING_BYTES: Cell<u64> = const { Cell::new(DEFAULT_SAMPLE_INTERVAL_BYTES) };
-    static REMAINING_CONFIG_GENERATION: Cell<u64> = const { Cell::new(0) };
-    static SAMPLE_RNG_STATE: Cell<u64> = const { Cell::new(0) };
-    static TLS_FLUSH_GENERATION: Cell<u64> = const { Cell::new(0) };
+    // Keep all allocation-hook state in one TLS cell so the hot path pays one
+    // state lookup instead of one lookup per guard, sampler, RNG, and flush flag.
+    static SAMPLER_STATE: Cell<SamplerState> = const { Cell::new(SamplerState::new()) };
     static TLS_SAMPLE_BUFFER: RegisteredTlsSampleBuffer = RegisteredTlsSampleBuffer::new();
 }
 
@@ -579,22 +597,25 @@ fn mark_allocator_seen() {
 
 fn with_profiler_suppressed<R>(f: impl FnOnce() -> R) -> R {
     struct SuppressionGuard<'a> {
-        suppressed: &'a Cell<bool>,
+        sampler: &'a Cell<SamplerState>,
         previous: bool,
     }
 
     impl Drop for SuppressionGuard<'_> {
         fn drop(&mut self) {
-            self.suppressed.set(self.previous);
+            let mut state = self.sampler.get();
+            state.profiler_suppressed = self.previous;
+            self.sampler.set(state);
         }
     }
 
-    PROFILER_SUPPRESSED.with(|suppressed| {
-        let previous = suppressed.replace(true);
-        let _guard = SuppressionGuard {
-            suppressed,
-            previous,
-        };
+    SAMPLER_STATE.with(|sampler| {
+        let mut state = sampler.get();
+        let previous = state.profiler_suppressed;
+        state.profiler_suppressed = true;
+        sampler.set(state);
+
+        let _guard = SuppressionGuard { sampler, previous };
         f()
     })
 }
@@ -604,41 +625,50 @@ fn record_allocation(size: u64) {
         return;
     }
 
-    if PROFILER_SUPPRESSED.with(Cell::get) {
-        return;
+    struct ProfilerReentryGuard<'a> {
+        sampler: &'a Cell<SamplerState>,
     }
 
-    IN_ALLOC_PROFILER.with(|in_profiler| {
-        if in_profiler.get() {
+    impl Drop for ProfilerReentryGuard<'_> {
+        fn drop(&mut self) {
+            let mut state = self.sampler.get();
+            state.in_profiler = false;
+            self.sampler.set(state);
+        }
+    }
+
+    SAMPLER_STATE.with(|sampler| {
+        let mut state = sampler.get();
+        if state.profiler_suppressed || state.in_profiler {
             return;
         }
 
-        in_profiler.set(true);
-        flush_requested_tls_samples();
-        SAMPLE_RNG_STATE.with(|rng_state| {
-            REMAINING_BYTES.with(|remaining| {
-                REMAINING_CONFIG_GENERATION.with(|remaining_generation| {
-                    let interval = SAMPLE_INTERVAL_BYTES.load(Ordering::Relaxed).max(1);
-                    let generation = SAMPLING_CONFIG_GENERATION.load(Ordering::Relaxed);
-                    let mut current = remaining.get();
-                    if remaining_generation.get() != generation || current == 0 {
-                        clear_current_thread_samples();
-                        rng_state.set(next_thread_rng_seed());
-                        current = next_poisson_interval(interval, rng_state);
-                        remaining_generation.set(generation);
-                    }
+        state.in_profiler = true;
+        sampler.set(state);
+        let _guard = ProfilerReentryGuard { sampler };
 
-                    if size < current {
-                        remaining.set(current - size);
-                    } else {
-                        let weight = calculate_sample_weight(size, current, interval, rng_state);
-                        remaining.set(weight.next_remaining);
-                        record_sample(weight);
-                    }
-                });
-            });
-        });
-        in_profiler.set(false);
+        let mut state = sampler.get();
+        flush_requested_tls_samples_with_state(&mut state);
+
+        let interval = SAMPLE_INTERVAL_BYTES.load(Ordering::Relaxed).max(1);
+        let generation = SAMPLING_CONFIG_GENERATION.load(Ordering::Relaxed);
+        let mut current = state.remaining_bytes;
+        if state.remaining_config_generation != generation || current == 0 {
+            clear_current_thread_samples();
+            state.rng_state = next_thread_rng_seed();
+            current = next_poisson_interval(interval, &mut state.rng_state);
+            state.remaining_config_generation = generation;
+        }
+
+        if size < current {
+            state.remaining_bytes = current - size;
+            sampler.set(state);
+        } else {
+            let weight = calculate_sample_weight(size, current, interval, &mut state.rng_state);
+            state.remaining_bytes = weight.next_remaining;
+            sampler.set(state);
+            record_sample(weight);
+        }
     });
 }
 
@@ -653,7 +683,7 @@ fn calculate_sample_weight(
     size: u64,
     current: u64,
     sample_interval: u64,
-    rng_state: &Cell<u64>,
+    rng_state: &mut u64,
 ) -> SampleWeight {
     let sample_interval = sample_interval.max(1);
     let mut remaining_bytes = size.saturating_sub(current.max(1));
@@ -696,7 +726,7 @@ fn calculate_sample_weight(
     }
 }
 
-fn next_poisson_interval(sample_interval: u64, rng_state: &Cell<u64>) -> u64 {
+fn next_poisson_interval(sample_interval: u64, rng_state: &mut u64) -> u64 {
     let sample_interval = sample_interval.max(1);
     let random = next_random_u64(rng_state);
     let mantissa = (random >> 11).max(1);
@@ -710,14 +740,12 @@ fn next_poisson_interval(sample_interval: u64, rng_state: &Cell<u64>) -> u64 {
     }
 }
 
-fn next_random_u64(rng_state: &Cell<u64>) -> u64 {
-    let mut state = rng_state.get();
-    if state == 0 {
-        state = next_thread_rng_seed();
+fn next_random_u64(rng_state: &mut u64) -> u64 {
+    if *rng_state == 0 {
+        *rng_state = next_thread_rng_seed();
     }
-    state = state.wrapping_add(RNG_INCREMENT);
-    rng_state.set(state);
-    splitmix64(state)
+    *rng_state = (*rng_state).wrapping_add(RNG_INCREMENT);
+    splitmix64(*rng_state)
 }
 
 fn next_thread_rng_seed() -> u64 {
@@ -794,21 +822,32 @@ fn request_tls_sample_flush() {
     FLUSH_REQUEST_GENERATION.fetch_add(1, Ordering::Relaxed);
 }
 
+#[cfg(test)]
 fn flush_requested_tls_samples() {
-    let requested_generation = FLUSH_REQUEST_GENERATION.load(Ordering::Relaxed);
-    TLS_FLUSH_GENERATION.with(|seen_generation| {
-        if seen_generation.get() == requested_generation {
-            return;
-        }
-
-        seen_generation.set(requested_generation);
-        flush_current_thread_samples();
+    SAMPLER_STATE.with(|sampler| {
+        let mut state = sampler.get();
+        flush_requested_tls_samples_with_state(&mut state);
+        sampler.set(state);
     });
+}
+
+fn flush_requested_tls_samples_with_state(state: &mut SamplerState) {
+    let requested_generation = FLUSH_REQUEST_GENERATION.load(Ordering::Relaxed);
+    if state.flush_generation == requested_generation {
+        return;
+    }
+
+    state.flush_generation = requested_generation;
+    flush_current_thread_samples();
 }
 
 fn reset_current_thread_sample_buffer() {
     let generation = FLUSH_REQUEST_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
-    TLS_FLUSH_GENERATION.with(|seen_generation| seen_generation.set(generation));
+    SAMPLER_STATE.with(|sampler| {
+        let mut state = sampler.get();
+        state.flush_generation = generation;
+        sampler.set(state);
+    });
     clear_current_thread_samples();
 }
 
@@ -1157,6 +1196,7 @@ mod tests {
         }
         GLOBAL_BUFFERED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
         NEXT_RECORDED_SAMPLE_SHARD.store(0, Ordering::Relaxed);
+        SAMPLER_STATE.with(|sampler| sampler.set(SamplerState::new()));
         for buffer in registered_tls_sample_buffers() {
             buffer.lock().expect("lock tls samples").clear();
         }
@@ -1258,10 +1298,15 @@ mod tests {
         DROPPED_SAMPLES.store(0, Ordering::Relaxed);
         RECORDED_SAMPLE_COUNT.store(0, Ordering::Relaxed);
 
-        IN_ALLOC_PROFILER.with(|in_profiler| {
-            let previous = in_profiler.replace(true);
+        SAMPLER_STATE.with(|sampler| {
+            let mut state = sampler.get();
+            let previous = state.in_profiler;
+            state.in_profiler = true;
+            sampler.set(state);
             record_allocation(1);
-            in_profiler.set(previous);
+            let mut state = sampler.get();
+            state.in_profiler = previous;
+            sampler.set(state);
         });
 
         assert_eq!(RECORDED_SAMPLE_COUNT.load(Ordering::Relaxed), 0);
@@ -1561,8 +1606,8 @@ mod tests {
 
     #[test]
     fn calculate_sample_weight_uses_interval_for_small_allocation() {
-        let rng_state = Cell::new(1);
-        let weight = calculate_sample_weight(128, 128, 1024, &rng_state);
+        let mut rng_state = 1;
+        let weight = calculate_sample_weight(128, 128, 1024, &mut rng_state);
 
         assert_eq!(weight.weighted_objects, 8);
         assert_eq!(weight.weighted_bytes, 1024);
@@ -1571,8 +1616,8 @@ mod tests {
 
     #[test]
     fn calculate_sample_weight_carries_large_allocation_overshoot_with_poisson_intervals() {
-        let rng_state = Cell::new(1);
-        let weight = calculate_sample_weight(2500, 1000, 1000, &rng_state);
+        let mut rng_state = 1;
+        let weight = calculate_sample_weight(2500, 1000, 1000, &mut rng_state);
 
         assert!(weight.weighted_objects >= 1);
         assert!(weight.weighted_bytes >= 1000);
@@ -1581,9 +1626,9 @@ mod tests {
 
     #[test]
     fn calculate_sample_weight_bounds_large_allocation_interval_work() {
-        let rng_state = Cell::new(1);
+        let mut rng_state = 1;
         let size = (MAX_POISSON_INTERVALS_PER_ALLOCATION + 1024) * 1024;
-        let weight = calculate_sample_weight(size, 1, 1024, &rng_state);
+        let weight = calculate_sample_weight(size, 1, 1024, &mut rng_state);
 
         assert!(weight.weighted_objects >= 1);
         assert!(weight.weighted_bytes >= MAX_POISSON_INTERVALS_PER_ALLOCATION * 1024);
@@ -1601,9 +1646,9 @@ mod tests {
 
     #[test]
     fn next_poisson_interval_uses_thread_rng_state() {
-        let rng_state = Cell::new(1);
-        let first = next_poisson_interval(1024, &rng_state);
-        let second = next_poisson_interval(1024, &rng_state);
+        let mut rng_state = 1;
+        let first = next_poisson_interval(1024, &mut rng_state);
+        let second = next_poisson_interval(1024, &mut rng_state);
 
         assert!(first > 0);
         assert!(second > 0);
