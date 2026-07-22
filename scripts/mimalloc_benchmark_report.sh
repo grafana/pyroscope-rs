@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+output_dir="${MIMALLOC_BENCH_OUTPUT_DIR:-target/mimalloc-benchmark}"
+report_path="${MIMALLOC_BENCH_REPORT:-${output_dir}/mimalloc-benchmark-report.md}"
+history_dir="${MIMALLOC_BENCH_HISTORY_DIR:-${output_dir}/history}"
+history_path="${MIMALLOC_BENCH_HISTORY:-${history_dir}/mimalloc-benchmark-history.csv}"
+enforce_thresholds="${MIMALLOC_BENCH_ENFORCE_THRESHOLDS:-0}"
+
+: "${MIMALLOC_BENCH_DURATION_MS:=3000}"
+: "${MIMALLOC_BENCH_BATCH_SIZE:=1024}"
+: "${MIMALLOC_BENCH_MIN_SIZE:=64}"
+: "${MIMALLOC_BENCH_MAX_SIZE:=65536}"
+: "${MIMALLOC_BENCH_SIZE_STEP:=64}"
+: "${MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL:=1024}"
+: "${MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT:=4096}"
+: "${MIMALLOC_BENCH_INACTIVE_MAX_OVERHEAD_PCT:=2}"
+: "${MIMALLOC_BENCH_ACTIVE_1M_MAX_OVERHEAD_PCT:=5}"
+
+export MIMALLOC_BENCH_DURATION_MS
+export MIMALLOC_BENCH_BATCH_SIZE
+export MIMALLOC_BENCH_MIN_SIZE
+export MIMALLOC_BENCH_MAX_SIZE
+export MIMALLOC_BENCH_SIZE_STEP
+export MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL
+export MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT
+
+mkdir -p "$output_dir"
+mkdir -p "$history_dir"
+history_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+history_run_id="${GITHUB_RUN_ID:-local}"
+history_run_attempt="${GITHUB_RUN_ATTEMPT:-1}"
+history_commit="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+
+ensure_history_header() {
+    if [ -f "$history_path" ]; then
+        return
+    fi
+
+    echo "timestamp_utc,run_id,run_attempt,commit,scenario,sample_interval_bytes,mib_per_sec,allocations_per_sec,overhead_vs_baseline_pct,recorded_samples,flushes,dropped_samples,report_elapsed_ms,encoded_pprof_bytes,pprof_encode_elapsed_us,allocation_latency_p50_ns,allocation_latency_p95_ns,allocation_latency_p99_ns,status" \
+        > "$history_path"
+}
+
+metric() {
+    awk -F= -v key="$2" '$1 == key { print $2; found = 1; exit } END { if (!found) exit 1 }' "$1"
+}
+
+metric_or_default() {
+    awk -F= -v key="$2" -v default_value="$3" \
+        '$1 == key { print $2; found = 1; exit } END { if (!found) print default_value }' "$1"
+}
+
+overhead_percent() {
+    awk -v baseline="$1" -v current="$2" 'BEGIN {
+        if (baseline <= 0) {
+            print "nan";
+        } else {
+            printf "%.2f", ((baseline - current) / baseline) * 100.0;
+        }
+    }'
+}
+
+is_over_threshold() {
+    awk -v value="$1" -v threshold="$2" 'BEGIN {
+        if (value == "nan") exit 1;
+        exit !(value > threshold);
+    }'
+}
+
+run_baseline() {
+    cargo run --locked --release --quiet --example mimalloc_baseline --features backend-mimalloc \
+        > "${output_dir}/baseline.env"
+}
+
+run_inactive() {
+    cargo run --locked --release --quiet --example mimalloc_overhead --features backend-mimalloc \
+        > "${output_dir}/inactive.env"
+}
+
+run_active() {
+    local name="$1"
+    local interval_bytes="$2"
+
+    MIMALLOC_BENCH_MODE=active \
+    MIMALLOC_BENCH_SAMPLE_INTERVAL="$interval_bytes" \
+        cargo run --locked --release --quiet --example mimalloc_overhead --features backend-mimalloc \
+        > "${output_dir}/${name}.env"
+}
+
+append_row() {
+    local scenario="$1"
+    local file="$2"
+    local baseline_mib_per_sec="$3"
+    local threshold="$4"
+    local status="$5"
+    local sample_interval
+    local mib_per_sec
+    local allocations_per_sec
+    local overhead
+    local recorded_samples
+    local flushes
+    local dropped_samples
+    local report_elapsed_ms
+    local encoded_pprof_bytes
+    local pprof_encode_elapsed_us
+    local allocation_latency_p50_ns
+    local allocation_latency_p95_ns
+    local allocation_latency_p99_ns
+
+    sample_interval="$(metric_or_default "$file" sample_interval_bytes "-")"
+    mib_per_sec="$(metric "$file" mib_per_sec)"
+    allocations_per_sec="$(metric "$file" allocations_per_sec)"
+    recorded_samples="$(metric_or_default "$file" recorded_samples "-")"
+    flushes="$(metric_or_default "$file" flushes "-")"
+    dropped_samples="$(metric_or_default "$file" dropped_samples "-")"
+    report_elapsed_ms="$(metric_or_default "$file" report_elapsed_ms "-")"
+    encoded_pprof_bytes="$(metric_or_default "$file" encoded_pprof_bytes "-")"
+    pprof_encode_elapsed_us="$(metric_or_default "$file" pprof_encode_elapsed_us "-")"
+    allocation_latency_p50_ns="$(metric_or_default "$file" allocation_latency_p50_ns "-")"
+    allocation_latency_p95_ns="$(metric_or_default "$file" allocation_latency_p95_ns "-")"
+    allocation_latency_p99_ns="$(metric_or_default "$file" allocation_latency_p99_ns "-")"
+
+    if [ "$scenario" = "baseline" ]; then
+        overhead="0.00"
+    else
+        overhead="$(overhead_percent "$baseline_mib_per_sec" "$mib_per_sec")"
+    fi
+
+    if [ -n "$threshold" ] && is_over_threshold "$overhead" "$threshold"; then
+        if [ "$enforce_thresholds" = "1" ]; then
+            status="FAIL"
+            failures=$((failures + 1))
+        else
+            status="WARN"
+        fi
+    fi
+
+    printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
+        "$scenario" \
+        "$sample_interval" \
+        "$mib_per_sec" \
+        "$allocations_per_sec" \
+        "$overhead" \
+        "$recorded_samples" \
+        "$flushes" \
+        "$dropped_samples" \
+        "$report_elapsed_ms" \
+        "$encoded_pprof_bytes" \
+        "$pprof_encode_elapsed_us" \
+        "$allocation_latency_p50_ns" \
+        "$allocation_latency_p95_ns" \
+        "$allocation_latency_p99_ns" \
+        "$status" >> "$report_path"
+
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+        "$history_timestamp" \
+        "$history_run_id" \
+        "$history_run_attempt" \
+        "$history_commit" \
+        "$scenario" \
+        "$sample_interval" \
+        "$mib_per_sec" \
+        "$allocations_per_sec" \
+        "$overhead" \
+        "$recorded_samples" \
+        "$flushes" \
+        "$dropped_samples" \
+        "$report_elapsed_ms" \
+        "$encoded_pprof_bytes" \
+        "$pprof_encode_elapsed_us" \
+        "$allocation_latency_p50_ns" \
+        "$allocation_latency_p95_ns" \
+        "$allocation_latency_p99_ns" \
+        "$status" >> "$history_path"
+}
+
+run_baseline
+run_inactive
+run_active active-1m 1048576
+run_active active-512k 524288
+run_active active-4k 4096
+
+failures=0
+baseline_mib_per_sec="$(metric "${output_dir}/baseline.env" mib_per_sec)"
+ensure_history_header
+
+{
+    echo "# Mimalloc Benchmark Report"
+    echo
+    echo "Generated by \`scripts/mimalloc_benchmark_report.sh\`."
+    echo
+    echo "## Workload"
+    echo
+    echo "- duration_ms: ${MIMALLOC_BENCH_DURATION_MS}"
+    echo "- batch_size: ${MIMALLOC_BENCH_BATCH_SIZE}"
+    echo "- min_size: ${MIMALLOC_BENCH_MIN_SIZE}"
+    echo "- max_size: ${MIMALLOC_BENCH_MAX_SIZE}"
+    echo "- size_step: ${MIMALLOC_BENCH_SIZE_STEP}"
+    echo "- latency_sample_interval: ${MIMALLOC_BENCH_LATENCY_SAMPLE_INTERVAL}"
+    echo "- latency_sample_limit: ${MIMALLOC_BENCH_LATENCY_SAMPLE_LIMIT}"
+    echo "- enforce_thresholds: ${enforce_thresholds}"
+    echo
+    echo "## Thresholds"
+    echo
+    echo "- inactive overhead <= ${MIMALLOC_BENCH_INACTIVE_MAX_OVERHEAD_PCT}%"
+    echo "- active 1 MiB overhead <= ${MIMALLOC_BENCH_ACTIVE_1M_MAX_OVERHEAD_PCT}%"
+    echo "- active 512 KiB and 4 KiB are diagnostic rows by default."
+    echo
+    echo "## Results"
+    echo
+    echo "| scenario | sample_interval_bytes | MiB/s | allocations/s | overhead_vs_baseline_% | recorded_samples | flushes | dropped_samples | report_elapsed_ms | encoded_pprof_bytes | pprof_encode_elapsed_us | allocation_latency_p50_ns | allocation_latency_p95_ns | allocation_latency_p99_ns | status |"
+    echo "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |"
+} > "$report_path"
+
+append_row "baseline" "${output_dir}/baseline.env" "$baseline_mib_per_sec" "" "BASELINE"
+append_row "inactive" "${output_dir}/inactive.env" "$baseline_mib_per_sec" "$MIMALLOC_BENCH_INACTIVE_MAX_OVERHEAD_PCT" "PASS"
+append_row "active-1m" "${output_dir}/active-1m.env" "$baseline_mib_per_sec" "$MIMALLOC_BENCH_ACTIVE_1M_MAX_OVERHEAD_PCT" "PASS"
+append_row "active-512k" "${output_dir}/active-512k.env" "$baseline_mib_per_sec" "" "INFO"
+append_row "active-4k" "${output_dir}/active-4k.env" "$baseline_mib_per_sec" "" "DIAGNOSTIC"
+
+{
+    echo
+    echo "## Raw Output"
+    echo
+    echo "Raw key-value outputs are saved next to this report:"
+    echo
+    echo "- baseline.env"
+    echo "- inactive.env"
+    echo "- active-1m.env"
+    echo "- active-512k.env"
+    echo "- active-4k.env"
+    echo "- history/mimalloc-benchmark-history.csv"
+} >> "$report_path"
+
+cat "$report_path"
+
+if [ "$failures" -gt 0 ]; then
+    echo "mimalloc benchmark threshold failures: ${failures}" >&2
+    exit 1
+fi
