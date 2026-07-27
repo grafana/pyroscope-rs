@@ -216,6 +216,7 @@ impl Drop for ErrnoProtector {
     }
 }
 
+#[unsafe(no_mangle)]
 #[cfg_attr(
     not(all(any(
         target_arch = "x86_64",
