@@ -146,3 +146,22 @@ mod get_time_range_tests {
         );
     }
 }
+
+pub(crate) fn rustc_version() -> Option<&'static str> {
+    option_env!("PYROSCOPE__RUSTC_VERSION")
+}
+
+#[cfg(test)]
+mod rustc_version_tests {
+
+    #[test]
+    fn get_time_range_verify() {
+        let version = super::rustc_version().expect("build.rs provided COMPILER_VERSION");
+        // println!("{}", version); // "rustc 1.96.0 (ac68faa20 2026-05-25)"
+        let fields: Vec<_> = version.split(" ").collect();
+        let compiler = fields[0];
+        let version = fields[1];
+        assert_eq!("rustc", compiler);
+        assert_eq!(3, version.split(".").count());
+    }
+}
