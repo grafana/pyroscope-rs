@@ -216,7 +216,8 @@ impl Drop for ErrnoProtector {
     }
 }
 
-// Frame filtering matches this exact symbol to omit the signal handler and trampoline.
+// Profile frame filtering in frames.rs matches this exact symbol to omit the signal handler
+// and trampoline from captured profiles.
 #[unsafe(no_mangle)]
 #[cfg_attr(
     not(all(any(
