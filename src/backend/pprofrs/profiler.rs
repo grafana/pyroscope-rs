@@ -216,6 +216,7 @@ impl Drop for ErrnoProtector {
     }
 }
 
+// Frame filtering matches this exact symbol to omit the signal handler and trampoline.
 #[unsafe(no_mangle)]
 #[cfg_attr(
     not(all(any(
