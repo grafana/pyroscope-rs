@@ -1,6 +1,8 @@
 pub mod backend;
 #[cfg(feature = "backend-jemalloc")]
 pub mod jemalloc;
+#[cfg(feature = "backend-mimalloc")]
+pub mod mimalloc;
 #[cfg(all(
     feature = "backend-pprof-rs",
     any(
@@ -67,5 +69,7 @@ pub mod types;
 pub use backend::*;
 #[cfg(feature = "backend-jemalloc")]
 pub use jemalloc::*;
+#[cfg(feature = "backend-mimalloc")]
+pub use mimalloc::*;
 pub use ruleset::*;
 pub use types::*;

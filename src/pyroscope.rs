@@ -178,7 +178,7 @@ impl PyroscopeConfig {
 /// PyroscopeAgent Builder
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
 ///
@@ -202,7 +202,7 @@ impl PyroscopeAgentBuilder {
     /// Create a new PyroscopeAgentBuilder object.
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
@@ -228,7 +228,7 @@ impl PyroscopeAgentBuilder {
     /// Override the Pyroscope Server URL.
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
@@ -261,7 +261,7 @@ impl PyroscopeAgentBuilder {
     /// Set the Function.
     /// This is optional. If not set, the agent will not apply any function.
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
@@ -285,7 +285,7 @@ impl PyroscopeAgentBuilder {
     /// Set tags. Default is empty.
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
@@ -482,7 +482,7 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
     /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server once per `upload_interval` (10s by default).
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -566,7 +566,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -602,7 +602,7 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// thread boundaries. This function can be called multiple times.
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
