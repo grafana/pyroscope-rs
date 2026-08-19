@@ -2,20 +2,20 @@ use std::{
     collections::HashMap,
     marker::PhantomData,
     sync::{
-        mpsc::{self, Sender},
         Arc, Condvar, Mutex,
+        mpsc::{self, Sender},
     },
     thread::JoinHandle,
     time::Duration,
 };
 
 use crate::{
+    PyroscopeError,
     backend::{BackendReady, BackendUninitialized, Report, Tag},
     error::Result,
     session::{Session, SessionManager, SessionSignal},
     timer::{Timer, TimerSignal},
     utils::get_time_range,
-    PyroscopeError,
 };
 
 use crate::backend::{BackendImpl, ThreadTag};

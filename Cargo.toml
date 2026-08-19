@@ -6,7 +6,6 @@ Pyroscope Profiler Agent for continuous profiling of Rust, Python and Ruby appli
 keywords = ["pyroscope", "profiler", "profiling", "pprof"]
 authors = ["Abid Omar <contact@omarabid.com>"]
 version = "2.1.1"
-edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafana.com/docs/pyroscope/latest/configure-client/language-sdks/rust/"
 documentation = "https://docs.rs/pyroscope"
@@ -16,7 +15,8 @@ autobins = false
 autoexamples = true
 autotests = true
 autobenches = true
-rust-version = "1.66"
+rust-version = "1.88"
+edition = "2024"
 
 [dependencies]
 thiserror = "2.0"

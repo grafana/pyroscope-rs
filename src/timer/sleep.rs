@@ -1,10 +1,10 @@
 use super::TimerSignal;
-use crate::{utils::get_time_range, Result};
+use crate::{Result, utils::get_time_range};
 
 use std::{
     sync::{
-        mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
+        mpsc::{Receiver, Sender, channel},
     },
     thread::{self, JoinHandle},
     time::Duration,
