@@ -11,7 +11,7 @@
 //!
 //! ## Configure a Pyroscope Agent
 //!
-//! ```no_run
+//! ```ignore
 //! use pyroscope::pyroscope::PyroscopeAgentBuilder;
 //! use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
 //!

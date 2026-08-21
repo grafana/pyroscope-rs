@@ -13,3 +13,4 @@ dist/
 flamegraph.svg
 perf.data
 perf.data.*
+docs
