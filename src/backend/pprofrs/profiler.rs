@@ -383,7 +383,7 @@ impl Profiler {
     /// Returns an I/O error if truncating the overflow backing file fails.
     ///
     /// NOTE: pyroscope patch — added to support periodic report collection
-    /// without recreating the ProfilerGuard. See https://github.com/grafana/pyroscope-rs/issues/399
+    /// without recreating the ProfilerGuard. See <https://github.com/grafana/pyroscope-rs/issues/399>
     pub fn clear(&mut self) -> Result<()> {
         if self.running {
             self.sample_counter = 0;
