@@ -10,8 +10,15 @@ const LOG_TAG: &str = "Pyroscope::Jemalloc";
 /// # Example
 ///
 /// ```no_run
-/// use pyroscope::pyroscope::PyroscopeAgentBuilder;
-/// use pyroscope::backend::jemalloc::jemalloc_backend;
+/// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
+/// # use pyroscope::backend::jemalloc::jemalloc_backend;
+/// # use std::ffi::CStr;
+/// // jemalloc must be configured as the global allocator
+/// #[global_allocator]
+/// static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+/// // This can also be provided via the MALLOC_CONF or _RJEM_MALLOC_CONF environment variable
+/// #[export_name = "_rjem_malloc_conf"]
+/// static MALLOC_CONF: &CStr = c"prof:true,prof_active:true,lg_prof_sample:19";
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let agent = PyroscopeAgentBuilder::new(
