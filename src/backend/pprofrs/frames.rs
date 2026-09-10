@@ -223,14 +223,63 @@ impl Debug for Frames {
 mod tests {
     use super::*;
 
+    fn symbol(raw_name: &[u8]) -> Symbol {
+        Symbol {
+            name: Some(raw_name.to_vec()),
+            lineno: None,
+            filename: None,
+        }
+    }
+
     #[test]
     fn demangle_rust() {
+        assert_eq!(&symbol(b"_ZN3foo3barE").name(), "foo::bar")
+    }
+
+    /// Rust symbols are demangled regardless of the `demangle-cpp` feature, so
+    /// enabling C++ demangling must not regress them.
+    #[test]
+    fn demangle_rust_v0() {
+        assert_eq!(
+            &symbol(b"_RNvNtCs1234_7mycrate3foo3bar").name(),
+            "mycrate::foo::bar"
+        )
+    }
+
+    /// A symbol that resolves to no name at all must stay stable.
+    #[test]
+    fn unknown_symbol_name() {
         let symbol = Symbol {
-            name: Some(b"_ZN3foo3barE".to_vec()),
+            name: None,
             lineno: None,
             filename: None,
         };
 
-        assert_eq!(&symbol.name(), "foo::bar")
+        assert_eq!(&symbol.name(), "Unknown")
+    }
+
+    /// The exact symbols reported in
+    /// https://github.com/grafana/pyroscope-rs/issues/580: statically linked
+    /// DuckDB frames, in both the ELF (`_Z`) and Mach-O (`__Z`) spellings.
+    #[cfg(feature = "demangle-cpp")]
+    #[test]
+    fn demangle_cpp() {
+        assert_eq!(
+            &symbol(b"_ZN6duckdb13TaskScheduler14ExecuteForeverEPNSt3__16atomicIbEE").name(),
+            "duckdb::TaskScheduler::ExecuteForever(std::__1::atomic<bool>*)"
+        );
+        assert_eq!(
+            &symbol(b"__ZN17duckdb_moodycamel20LightweightSemaphore4waitEv").name(),
+            "duckdb_moodycamel::LightweightSemaphore::wait()"
+        );
+    }
+
+    /// Without the feature the C++ symbol is passed through untouched. This is
+    /// the 2.1.x behaviour reported in #580 and is what the feature opts out of.
+    #[cfg(not(feature = "demangle-cpp"))]
+    #[test]
+    fn cpp_left_mangled_without_feature() {
+        let raw = "__ZN17duckdb_moodycamel20LightweightSemaphore4waitEv";
+        assert_eq!(&symbol(raw.as_bytes()).name(), raw);
     }
 }

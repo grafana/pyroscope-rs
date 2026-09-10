@@ -80,6 +80,14 @@ backend-pprof-rs = [
 ]
 backend-jemalloc = ["dep:jemalloc_pprof"]
 
+# Opt-in C++ (Itanium/MSVC) symbol demangling for the pprof-rs backend.
+#
+# Rust symbols are always demangled. C++ symbols are left mangled unless this
+# feature is enabled, because it pulls in the `cpp_demangle` parser and adds
+# extra parsing work on the symbol-resolution path. See
+# https://github.com/grafana/pyroscope-rs/issues/580.
+demangle-cpp = ["symbolic-demangle/cpp", "symbolic-demangle/msvc"]
+
 [profile.dev]
 opt-level = 0
 debug = true
