@@ -54,7 +54,7 @@ impl BackendAccessible for BackendReady {}
 /// Precursor Backend Implementation
 /// This struct is used to implement the Backend trait. It serves two purposes:
 /// 1. It enforces state transitions using the Type System.
-/// 2. It manages the lifetime of the backend through an Arc<Mutex<T>>.
+/// 2. It manages the lifetime of the backend through an `Arc<Mutex<T>>`.
 pub struct BackendImpl<S: BackendState + ?Sized> {
     /// Backend
     pub backend: Arc<Mutex<Option<Box<dyn Backend>>>>,

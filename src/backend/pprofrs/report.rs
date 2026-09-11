@@ -41,7 +41,7 @@ impl<'a> ReportBuilder<'a> {
     /// Returns an I/O error if reading the overflow backing file or clearing the collector fails.
     ///
     /// NOTE: pyroscope patch — added to support periodic report collection
-    /// without recreating the ProfilerGuard. See https://github.com/grafana/pyroscope-rs/issues/399
+    /// without recreating the ProfilerGuard. See <https://github.com/grafana/pyroscope-rs/issues/399>
     pub fn build_and_clear(&self, clear: bool) -> Result<Report> {
         let mut hash_map = HashMap::new();
 

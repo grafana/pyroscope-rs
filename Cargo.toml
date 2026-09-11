@@ -18,6 +18,9 @@ autotests = true
 autobenches = true
 rust-version = "1.66"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 thiserror = "2.0"
 log = "0.4"

@@ -43,6 +43,7 @@ mod pprofrs;
         )
     )
 ))]
+#[doc(inline)]
 pub use pprof::*;
 
 #[cfg(all(
@@ -64,8 +65,12 @@ pub mod ruleset;
 pub mod tests;
 pub mod types;
 
+#[doc(inline)]
 pub use backend::*;
 #[cfg(feature = "backend-jemalloc")]
+#[doc(inline)]
 pub use jemalloc::*;
+#[doc(inline)]
 pub use ruleset::*;
+#[doc(inline)]
 pub use types::*;
