@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.2](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.1...lib-2.1.2) (2026-09-14)
+
+
+### Miscellaneous Chores
+
+* **deps:** lock file maintenance ([#575](https://github.com/grafana/pyroscope-rs/issues/575)) ([36997b8](https://github.com/grafana/pyroscope-rs/commit/36997b80fc981ff97d46b405c5be4cc99056d2c6))
+
+
+### Continuous Integration
+
+* check documentation build with cargo doc ([#582](https://github.com/grafana/pyroscope-rs/issues/582)) ([e199a22](https://github.com/grafana/pyroscope-rs/commit/e199a22cc85105a57dadc6a1429e593f36627b06))
+
 ## [2.1.1](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.0...lib-2.1.1) (2026-07-21)
 
 
