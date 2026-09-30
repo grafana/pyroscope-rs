@@ -515,9 +515,34 @@ pub mod tests {
         alloc_count: std::sync::atomic::AtomicUsize::new(0),
     };
 
+    // Run only this test in a fresh process so unrelated allocations cannot enter the counter.
+    fn run_in_child_process() -> bool {
+        let thread = std::thread::current();
+        let test_name = thread.name().unwrap();
+        if std::env::var("PYROSCOPE_ALLOC_TEST").as_deref() == Ok(test_name) {
+            return false;
+        }
+
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([test_name, "--exact", "--test-threads=1", "--nocapture"])
+            .env("PYROSCOPE_ALLOC_TEST", test_name)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{test_name} failed in the child process:\n{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+        true
+    }
+
     #[test]
     fn test_stop_clears_samples_without_allocating() {
-        // Like the unwind test, run with --test-threads 1 for allocation counting.
+        if run_in_child_process() {
+            return;
+        }
+
         let mut profiler = Profiler::new().unwrap();
         profiler.start().unwrap();
         profiler.sample(SmallVec::new(), b"old", 1, SystemTime::now());
@@ -547,8 +572,9 @@ pub mod tests {
 
     #[test]
     fn test_no_alloc_during_unwind() {
-        // This test cannot run parallelly because it requires the global allocator to
-        // record the allocation count.
+        if run_in_child_process() {
+            return;
+        }
 
         trigger_lazy();
         PROFILER.write().as_mut().unwrap().start().unwrap();
