@@ -106,6 +106,37 @@ jobs:
           MIMALLOC_TEST_EXPECT_SOURCE: ${{ matrix.profile.expect_source }}
         run: cargo test --release --locked --no-default-features --features backend-mimalloc --test mimalloc_release
 
+  mimalloc-server:
+    name: mimalloc server (${{ matrix.write-path }})
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        write-path: [ingester, segment-writer]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: 1.96
+
+      - name: Verify memory profile ingestion and query round trip
+        env:
+          PYROSCOPE_TEST_WRITE_PATH: ${{ matrix.write-path }}
+        run: bash scripts/test_mimalloc_server.sh
+
+      - name: Upload server round-trip evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mimalloc-server-${{ matrix.write-path }}
+          path: target/mimalloc-server-e2e
+          if-no-files-found: warn
+          retention-days: 7
+
   mimalloc-benchmark:
     name: mimalloc benchmark report
     runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}

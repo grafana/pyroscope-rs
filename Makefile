@@ -18,6 +18,10 @@ pprofrs/test:
 mimalloc/test:
 	cargo  test --manifest-path Cargo.toml --features backend-mimalloc -- --test-threads 1
 
+.PHONY: mimalloc/test/server
+mimalloc/test/server:
+	bash scripts/test_mimalloc_server.sh
+
 .PHONY: test
 test: pprofrs/test mimalloc/test lib/test
 

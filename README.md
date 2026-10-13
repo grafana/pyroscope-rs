@@ -125,6 +125,29 @@ The upload path is covered by loopback HTTP integration tests
 for memory profiles, gzip payloads, authentication, tenant headers, and labels;
 these tests do not replace validation against a deployed Pyroscope server.
 
+Mimalloc interval samples carry `__delta__="false"` as a pprof sample label.
+Pyroscope promotes it to the series so `alloc_*` values are not differenced a
+second time as cumulative counters. Live values remain heap snapshots. Do not
+override `__delta__` in agent tags; it is a transport control, not a business tag.
+
+For a real server round trip, Docker-based checks pin Pyroscope 2.4.0 by digest
+and pair the selected storage write/read paths explicitly:
+
+```bash
+make mimalloc/test/server
+PYROSCOPE_TEST_WRITE_PATH=segment-writer \
+  PYROSCOPE_TEST_ARTIFACT_DIR=target/mimalloc-server-v2-e2e \
+  bash scripts/test_mimalloc_server.sh
+```
+
+The checks cover all four memory sample types, first and decreasing allocation
+intervals, application flamegraph frames, queried pprof source metadata, and
+cross-thread release with an ingested positive control. Uploaded/query profiles,
+flamegraph JSON, logs, and revision provenance are saved as CI artifacts. The
+container uses temporary storage, binds only loopback, disables telemetry and
+self-profiling, and is removed on exit. These are protocol/data checks, not a
+Grafana UI interaction or external symbol-service deployment test.
+
 For offline inspection, the overhead example can export a gzipped memory profile
 after shutdown, outside the timed workload:
 

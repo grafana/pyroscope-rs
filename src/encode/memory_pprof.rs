@@ -6,7 +6,9 @@ use std::{
 
 use prost::Message;
 
-use crate::encode::gen::google::{Function, Line, Location, Mapping, Profile, Sample, ValueType};
+use crate::encode::gen::google::{
+    Function, Label, Line, Location, Mapping, Profile, Sample, ValueType,
+};
 
 /// A verified executable segment in the process's runtime address space.
 pub(crate) struct MemoryMapping {
@@ -97,6 +99,7 @@ struct PprofMemoryBuilder<'a> {
     // Sorted independently from the pprof mappings, whose first entry is the main binary.
     mapping_ranges: Vec<(u64, u64, usize)>,
     mapping_seen: Vec<bool>,
+    delta_label: Label,
     live_heap: bool,
 }
 
@@ -120,6 +123,7 @@ impl<'a> PprofMemoryBuilder<'a> {
                 default_sample_type: 0,
             },
             strings: HashMap::new(),
+            delta_label: Label::default(),
             functions: HashMap::new(),
             locations: HashMap::new(),
             frames: HashMap::new(),
@@ -130,6 +134,14 @@ impl<'a> PprofMemoryBuilder<'a> {
 
         builder.add_string("");
         let alloc_objects = builder.add_string("alloc_objects");
+        // Pyroscope promotes this sample label to the series. "false" means
+        // do not difference alloc_* again: these samples are already intervals.
+        builder.delta_label = Label {
+            key: builder.add_string("__delta__"),
+            str: builder.add_string("false"),
+            num: 0,
+            num_unit: 0,
+        };
         let alloc_space = builder.add_string("alloc_space");
         let count = builder.add_string("count");
         let bytes = builder.add_string("bytes");
@@ -320,7 +332,7 @@ impl<'a> PprofMemoryBuilder<'a> {
         self.profile.sample.push(Sample {
             location_id,
             value,
-            label: vec![],
+            label: vec![self.delta_label],
         });
     }
 }
@@ -407,6 +419,23 @@ mod tests {
         assert_eq!(profile.sample.len(), 0);
         assert_eq!(profile.sample_type.len(), 2);
         assert_eq!(profile.period, 1024 * 1024);
+    }
+
+    #[test]
+    fn interval_memory_samples_disable_server_cumulative_differencing() {
+        for live_heap in [false, true] {
+            let mut allocation =
+                AllocationSample::new(vec!["application::allocate".into()], 1, 4096);
+            allocation.inuse_objects = 1;
+            allocation.inuse_space = 4096;
+            let bytes = encode_memory_profile(&[allocation], 1024, 10_000, live_heap);
+            let profile = Profile::decode(bytes.as_slice()).unwrap();
+            assert_eq!(profile.sample.len(), 1);
+            let labels = &profile.sample[0].label;
+            assert_eq!(labels.len(), 1);
+            assert_eq!(profile.string_table[labels[0].key as usize], "__delta__");
+            assert_eq!(profile.string_table[labels[0].str as usize], "false");
+        }
     }
 
     #[test]
