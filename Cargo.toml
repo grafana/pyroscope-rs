@@ -5,7 +5,7 @@ Pyroscope Profiler Agent for continuous profiling of Rust, Python and Ruby appli
 """
 keywords = ["pyroscope", "profiler", "profiling", "pprof"]
 authors = ["Abid Omar <contact@omarabid.com>"]
-version = "2.1.1"
+version = "2.1.2"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafana.com/docs/pyroscope/latest/configure-client/language-sdks/rust/"
@@ -45,7 +45,9 @@ findshlibs = { version = "0.10", optional = true }
 smallvec = { version = "1.7", optional = true }
 framehop = { version = "0.16", optional = true }
 memmap2 = { version = "0.9", optional = true }
-object = { version = "0.39", optional = true }
+object = { version = "0.40", optional = true }
+# Keep the transitive decoder above the RUSTSEC-2026-0344 vulnerable range.
+ruzstd = { version = "0.9.1", optional = true }
 aligned-vec = { version = "0.6", optional = true }
 symbolic-demangle = { version = "13.1.0", default-features = false, features = ["rust"], optional = true }
 
@@ -92,11 +94,12 @@ backend-pprof-rs = [
     "dep:framehop",
     "dep:memmap2",
     "dep:object",
+    "dep:ruzstd",
     "dep:aligned-vec",
     "dep:symbolic-demangle",
 ]
 backend-jemalloc = ["dep:jemalloc_pprof"]
-backend-mimalloc = ["dep:backtrace", "dep:rustfs-mimalloc", "dep:findshlibs", "dep:object"]
+backend-mimalloc = ["dep:backtrace", "dep:rustfs-mimalloc", "dep:findshlibs", "dep:object", "dep:ruzstd"]
 
 [profile.dev]
 opt-level = 0

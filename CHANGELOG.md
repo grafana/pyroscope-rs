@@ -15,6 +15,23 @@
 - Mark mimalloc interval samples with the standard `__delta__="false"` pprof label so Pyroscope does not drop the first allocation report or subtract subsequent interval values as cumulative counters. Add pinned real-server ingestion/query regressions and CI evidence for ingester and segment-writer paths, including source metadata and live heap release.
 
 
+## [2.1.2](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.1...lib-2.1.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* **deps:** address ruzstd decompression advisory ([#586](https://github.com/grafana/pyroscope-rs/issues/586)) ([0c8fa18](https://github.com/grafana/pyroscope-rs/commit/0c8fa182ac848c779bc8a9be5de210eedf84ee69))
+
+
+### Miscellaneous Chores
+
+* **deps:** lock file maintenance ([#575](https://github.com/grafana/pyroscope-rs/issues/575)) ([36997b8](https://github.com/grafana/pyroscope-rs/commit/36997b80fc981ff97d46b405c5be4cc99056d2c6))
+
+
+### Continuous Integration
+
+* check documentation build with cargo doc ([#582](https://github.com/grafana/pyroscope-rs/issues/582)) ([e199a22](https://github.com/grafana/pyroscope-rs/commit/e199a22cc85105a57dadc6a1429e593f36627b06))
+
 ## [2.1.1](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.0...lib-2.1.1) (2026-07-21)
 
 
