@@ -17,7 +17,7 @@ struct Itimerval {
     pub it_value: Timeval,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn setitimer(which: c_int, new_value: *mut Itimerval, old_value: *mut Itimerval) -> c_int;
 }
 

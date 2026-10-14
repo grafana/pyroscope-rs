@@ -3,8 +3,8 @@ use crate::error::{PyroscopeError, Result};
 use crate::pyroscope::{PyroscopeAgentBuilder, PyroscopeAgentRunning};
 use crate::{PyroscopeAgent, ThreadId};
 use std::sync::{
-    mpsc::{self, Receiver, Sender},
     Mutex,
+    mpsc::{self, Receiver, Sender},
 };
 
 #[derive(Debug, PartialEq, Clone)]

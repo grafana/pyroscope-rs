@@ -1,12 +1,12 @@
 use super::TimerSignal;
 use crate::{
-    utils::{check_err, get_time_range},
     PyroscopeError, Result,
+    utils::{check_err, get_time_range},
 };
 
 use std::sync::{
-    mpsc::{channel, Sender},
     Arc, Mutex,
+    mpsc::{Sender, channel},
 };
 use std::{
     thread::{self, JoinHandle},
@@ -258,7 +258,7 @@ pub unsafe fn epoll_wait(
     maxevents: libc::c_int,
     timeout: libc::c_int,
 ) -> Result<()> {
-    check_err(libc::epoll_wait(epoll_fd, events, maxevents, timeout))?;
+    check_err(unsafe { libc::epoll_wait(epoll_fd, events, maxevents, timeout) })?;
     Ok(())
 }
 
@@ -267,6 +267,6 @@ pub unsafe fn epoll_wait(
 /// # Safety
 /// This function is a wrapper for libc::read.
 pub unsafe fn read(timer_fd: i32, bufptr: *mut libc::c_void, count: libc::size_t) -> Result<()> {
-    check_err(libc::read(timer_fd, bufptr, count))?;
+    check_err(unsafe { libc::read(timer_fd, bufptr, count) })?;
     Ok(())
 }

@@ -1,10 +1,10 @@
 #[cfg(feature = "backend-pprof-rs")]
 mod tests {
-    use pyroscope::backend::{pprof_backend, BackendConfig, PprofConfig};
+    use pyroscope::backend::{BackendConfig, PprofConfig, pprof_backend};
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::{Duration, Instant};
 
     fn next_size(hasher: &mut DefaultHasher) -> usize {
