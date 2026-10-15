@@ -48,6 +48,23 @@
 //! ```ignore
 //! agent_ready.shutdown();
 //! ```
+//!
+//! # Demangling native symbols
+//!
+//! The `backend-pprof-rs` backend demangles Rust symbols out of the box. C++
+//! symbols are reported mangled (for example
+//! `_ZN6duckdb13TaskScheduler14ExecuteForeverE...`) unless the opt-in
+//! `demangle-cpp` feature is enabled:
+//!
+//! ```toml
+//! [dependencies]
+//! pyroscope = { version = "2.1", features = ["backend-pprof-rs", "demangle-cpp"] }
+//! ```
+//!
+//! This is off by default because it pulls in the `cpp_demangle` parser and
+//! adds extra parsing work on the symbol-resolution path. Enable it when
+//! profiling an application that links native C++ code and you want readable
+//! frame names.
 
 extern crate core;
 
