@@ -1422,6 +1422,7 @@ dependencies = [
  "claims",
  "env_logger",
  "findshlibs",
+ "flate2",
  "framehop",
  "httparse",
  "jemalloc_pprof",

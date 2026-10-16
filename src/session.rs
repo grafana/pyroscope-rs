@@ -15,7 +15,7 @@ use crate::{
     utils::get_time_range,
     Result,
 };
-use libflate::gzip::Encoder;
+use flate2::{write::GzEncoder, Compression};
 use prost::Message;
 use reqwest::Url;
 use uuid::Uuid;
@@ -142,16 +142,12 @@ impl Session {
                 pprof_bytes
             }
             ReportData::Reports(reports) => {
-                let transformed: Vec<Report>;
-                let encode_input = match self.config.func {
-                    None => &reports,
-                    Some(f) => {
-                        transformed = reports.iter().map(|r| f(r.to_owned())).collect();
-                        &transformed
-                    }
+                let reports: Vec<Report> = match self.config.func {
+                    None => reports,
+                    Some(f) => reports.into_iter().map(f).collect(),
                 };
                 pprof::encode(
-                    encode_input,
+                    &reports,
                     self.config.sample_rate,
                     self.from * 1_000_000_000,
                     (self.until - self.from) * 1_000_000_000,
@@ -226,10 +222,11 @@ impl Session {
     }
 
     fn gzip(report: &[u8]) -> Result<Vec<u8>> {
-        let mut encoder = Encoder::new(Vec::new())?;
+        // Favor upload CPU cost over maximum compression. Large profiles can
+        // make the default compression level substantially more expensive.
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::fast());
         encoder.write_all(report)?;
-        let compressed_data = encoder.finish().into_result()?;
-        Ok(compressed_data)
+        Ok(encoder.finish()?)
     }
 }
 

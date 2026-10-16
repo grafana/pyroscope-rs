@@ -69,7 +69,8 @@ fn raw_memory_upload_preserves_pprof_auth_tenant_and_agent_labels() {
     use pyroscope::encode::gen::google::{Profile, Sample, ValueType};
     use std::io::{Read, Write};
 
-    for gzipped_profile in [false, true] {
+    for (gzipped_profile, sample_count) in [(false, 1), (true, 1), (false, 32_768), (true, 32_768)]
+    {
         let receiver = push_receiver::PushReceiver::start();
         let mut config = PyroscopeConfig::new(
             format!("{}/sdk", receiver.url),
@@ -104,10 +105,12 @@ fn raw_memory_upload_preserves_pprof_auth_tenant_and_agent_labels() {
                 ValueType { r#type: 5, unit: 2 },
                 ValueType { r#type: 6, unit: 4 },
             ],
-            sample: vec![Sample {
-                value: vec![2, 8192, 1, 4096],
-                ..Sample::default()
-            }],
+            sample: (0..sample_count)
+                .map(|i| Sample {
+                    value: vec![i + 2, (i + 1) * 8192, i + 1, (i + 1) * 4096],
+                    ..Sample::default()
+                })
+                .collect(),
             default_sample_type: 6,
             time_nanos: 1_000_000,
             duration_nanos: 10_000,
@@ -168,5 +171,83 @@ fn raw_memory_upload_preserves_pprof_auth_tenant_and_agent_labels() {
             payload
         };
         assert_eq!(Profile::decode(restored.as_slice()).unwrap(), expected);
+    }
+}
+
+#[test]
+fn structured_upload_preserves_transform_samples_tags_and_timestamps() {
+    use prost::Message;
+    use pyroscope::{
+        backend::{StackFrame, StackTrace, Tag},
+        encode::gen::google::Profile,
+    };
+
+    for transform in [false, true] {
+        let receiver = push_receiver::PushReceiver::start();
+        let mut config = PyroscopeConfig::new(&receiver.url, "cpu-service", 100, "test-rs", "1");
+        if transform {
+            config.func = Some(|mut report| {
+                for count in report.data.values_mut() {
+                    *count *= 3;
+                }
+                report
+                    .metadata
+                    .add_tag(Tag::new("transformed".into(), "true".into()));
+                report
+            });
+        }
+        let mut report = Report::default();
+        report.record_with_count(
+            StackTrace {
+                frames: vec![StackFrame {
+                    name: Some("cpu_work".into()),
+                    filename: Some("work.rs".into()),
+                    line: Some(42),
+                    ..StackFrame::default()
+                }],
+                ..StackTrace::default()
+            },
+            2,
+        );
+        let session = Session::new(
+            1950,
+            config,
+            ReportBatch {
+                profile_type: "process_cpu".into(),
+                data: ReportData::Reports(vec![report]),
+            },
+        )
+        .unwrap();
+        let manager = SessionManager::new().unwrap();
+        manager
+            .push(SessionSignal::Session(Box::new(session)))
+            .unwrap();
+        manager.push(SessionSignal::Kill).unwrap();
+        manager.handle.unwrap().join().unwrap().unwrap();
+        let captured = receiver.finish();
+        let series = &captured.request.series[0];
+        assert!(series
+            .labels
+            .iter()
+            .any(|label| { label.name == "__name__" && label.value == "process_cpu" }));
+        let profile = Profile::decode(series.samples[0].raw_profile.as_slice()).unwrap();
+        assert_eq!(profile.time_nanos, 1940 * 1_000_000_000);
+        assert_eq!(profile.duration_nanos, 10 * 1_000_000_000);
+        assert_eq!(profile.period, 10_000_000);
+        assert_eq!(profile.sample.len(), 1);
+        assert_eq!(
+            profile.sample[0].value,
+            vec![if transform { 60_000_000 } else { 20_000_000 }]
+        );
+        assert_eq!(profile.sample[0].label.len(), usize::from(transform));
+        if transform {
+            let label = &profile.sample[0].label[0];
+            assert_eq!(profile.string_table[label.key as usize], "transformed");
+            assert_eq!(profile.string_table[label.str as usize], "true");
+        }
+        let function = &profile.function[0];
+        assert_eq!(profile.string_table[function.name as usize], "cpu_work");
+        assert_eq!(profile.string_table[function.filename as usize], "work.rs");
+        assert_eq!(profile.location[0].line[0].line, 42);
     }
 }
