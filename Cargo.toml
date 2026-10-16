@@ -32,7 +32,7 @@ libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
 jemalloc_pprof = { version = "0.9", features = ["symbolize"], optional = true }
-rustfs-mimalloc-profiling = { version = "0.6.0", optional = true }
+rustfs-mimalloc-profiling = { version = "0.6.1", optional = true }
 
 
 # pprofrs dependencies
