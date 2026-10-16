@@ -1660,7 +1660,8 @@ dependencies = [
 [[package]]
 name = "rustfs-mimalloc"
 version = "0.6.0"
-source = "git+https://github.com/houseme/rustfs-mimalloc?rev=7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8#7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15b37c4b1aa340d0e372f84472c6d833e7b00cf83f4da64acc1a5390a1d439fe"
 dependencies = [
  "rustfs-mimalloc-sys",
 ]
@@ -1668,7 +1669,8 @@ dependencies = [
 [[package]]
 name = "rustfs-mimalloc-profiling"
 version = "0.6.0"
-source = "git+https://github.com/houseme/rustfs-mimalloc?rev=7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8#7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06e01c8a7a2947ee8aecf44c62bb29583b1339dc1c01929a5379f284186a9ae0"
 dependencies = [
  "backtrace",
  "findshlibs",
@@ -1683,7 +1685,8 @@ dependencies = [
 [[package]]
 name = "rustfs-mimalloc-sys"
 version = "0.6.0"
-source = "git+https://github.com/houseme/rustfs-mimalloc?rev=7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8#7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3df37d6389e32503b2eebe5f12cd7ebdc28c16624895455e398c4db74f7c47a1"
 dependencies = [
  "cc",
 ]
