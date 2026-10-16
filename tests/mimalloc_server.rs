@@ -225,7 +225,7 @@ fn mimalloc_reports_round_trip_through_pyroscope_server() {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|name| { name.as_str().is_some_and(|name| name.contains(marker)) }),
+                .any(|name| matches!(name.as_str(), Some(name) if name.contains(marker))),
             "application marker missing from {phase}/{kind} flamegraph"
         );
         write_artifact(
@@ -285,9 +285,7 @@ fn mimalloc_reports_round_trip_through_pyroscope_server() {
                 .unwrap()
                 .iter()
                 .any(|entry| {
-                    entry["ID"]
-                        .as_str()
-                        .is_some_and(|id| id.starts_with(&format!("memory:{kind}:")))
+                    matches!(entry["ID"].as_str(), Some(id) if id.starts_with(&format!("memory:{kind}:")))
                 }),
             "profile type {kind} not advertised by server"
         );

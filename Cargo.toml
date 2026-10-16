@@ -16,7 +16,7 @@ autobins = false
 autoexamples = true
 autotests = true
 autobenches = true
-rust-version = "1.96"
+rust-version = "1.66"
 
 [package.metadata.docs.rs]
 all-features = true

@@ -19,7 +19,7 @@ static ALLOC: SamplingMiMalloc = SamplingMiMalloc::new();
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let live_heap = std::env::var("MIMALLOC_LIVE_HEAP").is_ok_and(|value| value == "1");
+    let live_heap = matches!(std::env::var("MIMALLOC_LIVE_HEAP").as_deref(), Ok("1"));
 
     let agent = PyroscopeAgentBuilder::new(
         "http://localhost:4040",
