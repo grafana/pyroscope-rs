@@ -8,7 +8,7 @@ mod tests {
     use pyroscope::backend::mimalloc::{
         mimalloc_backend, mimalloc_stats, MimallocConfig, SamplingMiMalloc,
     };
-    use pyroscope::backend::ReportData;
+    use pyroscope::backend::{ReportData, Tag, ThreadTag};
     use pyroscope::encode::gen::google::Profile;
     use std::sync::Mutex;
 
@@ -21,6 +21,16 @@ mod tests {
         use rustfs_mimalloc_profiling::{Error, Profiler};
         let _guard = TEST_LOCK.lock().unwrap();
         let backend = live_backend();
+        let tag = ThreadTag::new(
+            pyroscope::ThreadId::pthread_self(),
+            Tag::new("request".into(), "test".into()),
+        );
+        backend.add_tag(tag.clone()).unwrap();
+        backend.remove_tag(tag).unwrap();
+        // Exposing both factories does not install a second global allocator
+        // or acquire another recording session.
+        #[cfg(feature = "backend-jemalloc")]
+        drop(pyroscope::backend::jemalloc_backend());
         assert!(matches!(
             Profiler::start(MimallocConfig::default()),
             Err(Error::AlreadyActive)
@@ -37,6 +47,9 @@ mod tests {
             ReportData::RawPprof(_)
         ));
         restarted.shutdown().unwrap();
+        // Explicit shutdown also releases ownership without waiting for a
+        // later backend to be dropped by the test harness.
+        let _standalone = Profiler::start(MimallocConfig::default()).unwrap();
     }
 
     #[test]

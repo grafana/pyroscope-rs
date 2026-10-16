@@ -1,3 +1,10 @@
+//! Profiling backend APIs.
+//!
+//! Backend features are additive: enabling jemalloc and mimalloc together makes
+//! both factories available without installing either allocator. Applications
+//! select one Rust `#[global_allocator]` and pass the matching memory backend
+//! to the agent. Enabling a CPU backend feature does not select an allocator.
+
 pub mod backend;
 #[cfg(feature = "backend-jemalloc")]
 pub mod jemalloc;

@@ -10,7 +10,7 @@ pub use rustfs_mimalloc_profiling::{
 };
 
 use crate::{
-    backend::{Backend, BackendImpl, BackendUninitialized, ReportBatch, ReportData, ThreadTag},
+    backend::{Backend, BackendImpl, BackendUninitialized, ReportBatch, ReportData},
     error::{PyroscopeError, Result},
 };
 
@@ -69,8 +69,7 @@ impl Backend for Mimalloc {
     }
 
     fn shutdown(self: Box<Self>) -> Result<()> {
-        // Profiler::drop stops recording and releases recorder ownership.
-        drop(self);
+        // Returning drops self and its Profiler, releasing recorder ownership.
         Ok(())
     }
 
@@ -86,13 +85,5 @@ impl Backend for Mimalloc {
             profile_type: "memory".into(),
             data: ReportData::RawPprof(bytes),
         })
-    }
-
-    fn add_tag(&self, _tag: ThreadTag) -> Result<()> {
-        Ok(())
-    }
-
-    fn remove_tag(&self, _tag: ThreadTag) -> Result<()> {
-        Ok(())
     }
 }

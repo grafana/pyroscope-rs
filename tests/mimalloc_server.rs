@@ -24,7 +24,7 @@ const FREED_CONTROL_MARKER: &str = "allocate_server_freed_control_marker";
 const RETAINED_SIZE: usize = 2 * 1024 * 1024;
 
 #[test]
-#[ignore = "requires PYROSCOPE_TEST_URL; run scripts/test_mimalloc_server.sh"]
+#[ignore = "requires PYROSCOPE_TEST_URL; run make mimalloc/test/server"]
 fn mimalloc_reports_round_trip_through_pyroscope_server() {
     let _ = env_logger::builder()
         .filter_level(log::LevelFilter::Info)

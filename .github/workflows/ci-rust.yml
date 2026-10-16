@@ -75,13 +75,9 @@ jobs:
         run: cargo doc --lib --no-deps --locked --all-features
 
   mimalloc-server:
-    name: mimalloc server (${{ matrix.write-path }})
+    name: mimalloc server (v2)
     runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        write-path: [ingester, segment-writer]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -91,16 +87,25 @@ jobs:
         with:
           toolchain: 1.96
 
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Check Go harness
+        working-directory: e2e
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+
       - name: Verify memory profile ingestion and query round trip
-        env:
-          PYROSCOPE_TEST_WRITE_PATH: ${{ matrix.write-path }}
-        run: bash scripts/test_mimalloc_server.sh
+        run: go -C e2e test -count=1 -v -timeout=12m ./...
 
       - name: Upload server round-trip evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: mimalloc-server-${{ matrix.write-path }}
+          name: mimalloc-server-v2
           path: target/mimalloc-server-e2e
           if-no-files-found: warn
           retention-days: 7

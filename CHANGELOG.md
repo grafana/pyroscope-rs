@@ -1,17 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### New Features
-
-- Add an optional `backend-mimalloc` adapter backed by the standalone
-  `rustfs-mimalloc-profiling` crate. Re-export its sampling allocator,
-  configuration and diagnostics, and upload allocation/live heap pprof through
-  the existing Pyroscope pipeline.
-- Verify recorder ownership across standalone and agent sessions, raw profile
-  preservation, authentication, tenant/agent labels, and digest-pinned real
-  server round trips for allocation intervals and live heap lifecycle.
-
 ## [2.1.2](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.1...lib-2.1.2) (2026-10-14)
 
 
