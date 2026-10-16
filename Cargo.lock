@@ -197,9 +197,9 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cc"
-version = "1.6.0"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f74872d07caf508b30a21f6836e7d7016a2eaf7d9ff4f48deaa58cd8a0407630"
+checksum = "6651c9ed80effdc7db0ff72512157f901af5e3549e341e24b1dd4887d836d838"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1434,7 +1434,7 @@ dependencies = [
  "once_cell",
  "prost",
  "reqwest",
- "rustfs-mimalloc",
+ "rustfs-mimalloc-profiling",
  "ruzstd",
  "serde_json",
  "smallvec",
@@ -1659,18 +1659,31 @@ dependencies = [
 
 [[package]]
 name = "rustfs-mimalloc"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95bb29aa7aee255a84d956b4f5309a3f98993ae6e10836ae5e4e8519e960780f"
+version = "0.6.0"
+source = "git+https://github.com/houseme/rustfs-mimalloc?rev=63b53f28e70fe596634187dcd25d508708a0699f#63b53f28e70fe596634187dcd25d508708a0699f"
 dependencies = [
  "rustfs-mimalloc-sys",
 ]
 
 [[package]]
+name = "rustfs-mimalloc-profiling"
+version = "0.6.0"
+source = "git+https://github.com/houseme/rustfs-mimalloc?rev=63b53f28e70fe596634187dcd25d508708a0699f#63b53f28e70fe596634187dcd25d508708a0699f"
+dependencies = [
+ "backtrace",
+ "findshlibs",
+ "libc",
+ "log",
+ "object 0.40.0",
+ "prost",
+ "rustfs-mimalloc",
+ "ruzstd",
+]
+
+[[package]]
 name = "rustfs-mimalloc-sys"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e6571957abe93757f0c6dd99182589054ace7da4102af4296ffcc8297eb3524"
+version = "0.6.0"
+source = "git+https://github.com/houseme/rustfs-mimalloc?rev=63b53f28e70fe596634187dcd25d508708a0699f#63b53f28e70fe596634187dcd25d508708a0699f"
 dependencies = [
  "cc",
 ]

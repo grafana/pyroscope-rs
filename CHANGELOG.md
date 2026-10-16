@@ -4,16 +4,13 @@
 
 ### New Features
 
-- **Mimalloc memory profiling backend** — new `backend-mimalloc` feature flag enables allocation memory profiling with `SamplingMiMalloc`, sampled allocation call stacks, memory pprof output, recorder counters, overhead examples, benchmark artifacts, and optional release-validation stress tests.
-- Add opt-in mimalloc live heap profiles (`inuse_objects` / `inuse_space`) with bounded sampled-pointer tracking, cross-thread deallocation, realloc failure rollback, and live metadata diagnostics. Reject missing sampling allocators and concurrent mimalloc backend instances. Skip stack capture when the allocation recorder is full, cache repeated frame resolution per report, and drain preallocated FIFO shards without moving the remaining backlog.
-- Preserve instruction addresses, inline symbol chains, filenames, and source lines in mimalloc memory pprof. Share resolved frames across stacks and validate memory uploads through loopback HTTP, including gzip profiles, authentication, tenant headers, and agent labels.
-- Include executable mappings and build IDs in mimalloc reports on Linux and Apple platforms, with verified ELF file offsets and conservative symbolization flags. Collect metadata only during reporting and use indexed address lookup without adding allocator-hook work.
-- Normalize Rust symbol display names before removing profiler frames, preserve original pprof system names, and share filtered inline frames across stacks. Keep unresolved addresses eligible for downstream symbolization instead of creating fake address-named functions.
-- Expose completed mimalloc report and drained allocation-record counters. Add concurrent periodic-report benchmark scenarios, record-drop quality gates, replay classification regressions, and versioned v3 history without treating pressure-drop throughput as lossless profiling overhead.
-- Add opt-in Linux glibc native raw stack capture, warmed before sampling, without the backtrace-rs shared lock. Keep portable capture as the default and reject unsupported targets. Add synchronized multi-worker comparisons and v4 history identifying capture engines and worker counts.
-- Keep stripped Apple allocation frames unresolved when the resolver returns a Mach-O image-header symbol, preserving addresses and mappings for offline symbolization. Add Linux/macOS optimized profile regressions for stripped and source-enabled builds, including live retention and cross-thread release.
-- Mark mimalloc interval samples with the standard `__delta__="false"` pprof label so Pyroscope does not drop the first allocation report or subtract subsequent interval values as cumulative counters. Add pinned real-server ingestion/query regressions and CI evidence for ingester and segment-writer paths, including source metadata and live heap release.
-
+- Add an optional `backend-mimalloc` adapter backed by the standalone
+  `rustfs-mimalloc-profiling` crate. Re-export its sampling allocator,
+  configuration and diagnostics, and upload allocation/live heap pprof through
+  the existing Pyroscope pipeline.
+- Verify recorder ownership across standalone and agent sessions, raw profile
+  preservation, authentication, tenant/agent labels, and digest-pinned real
+  server round trips for allocation intervals and live heap lifecycle.
 
 ## [2.1.2](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.1...lib-2.1.2) (2026-10-14)
 

@@ -66,10 +66,7 @@ fn test_session_send_error() {
 #[test]
 fn raw_memory_upload_preserves_pprof_auth_tenant_and_agent_labels() {
     use prost::Message;
-    use pyroscope::encode::{
-        gen::google::Profile,
-        memory_pprof::{encode_memory_profile, AllocationSample},
-    };
+    use pyroscope::encode::gen::google::{Profile, Sample, ValueType};
     use std::io::{Read, Write};
 
     for gzipped_profile in [false, true] {
@@ -88,10 +85,35 @@ fn raw_memory_upload_preserves_pprof_auth_tenant_and_agent_labels() {
             .http_headers
             .insert("X-Test-Header".into(), "upload-test".into());
         config.func = Some(|_| panic!("raw profile must bypass structured report transforms"));
-        let mut sample = AllocationSample::new(vec!["retained_allocation".into()], 2, 8192);
-        sample.inuse_objects = 1;
-        sample.inuse_space = 4096;
-        let pprof = encode_memory_profile(&[sample], 4096, 10_000, true);
+        let pprof = Profile {
+            string_table: [
+                "",
+                "alloc_objects",
+                "count",
+                "alloc_space",
+                "bytes",
+                "inuse_objects",
+                "inuse_space",
+            ]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
+            sample_type: vec![
+                ValueType { r#type: 1, unit: 2 },
+                ValueType { r#type: 3, unit: 4 },
+                ValueType { r#type: 5, unit: 2 },
+                ValueType { r#type: 6, unit: 4 },
+            ],
+            sample: vec![Sample {
+                value: vec![2, 8192, 1, 4096],
+                ..Sample::default()
+            }],
+            default_sample_type: 6,
+            time_nanos: 1_000_000,
+            duration_nanos: 10_000,
+            ..Profile::default()
+        }
+        .encode_to_vec();
         let expected = Profile::decode(pprof.as_slice()).unwrap();
         let payload = if gzipped_profile {
             let mut encoder = libflate::gzip::Encoder::new(Vec::new()).unwrap();
