@@ -52,16 +52,14 @@ func TestMimallocServer(t *testing.T) {
 	started := false
 	// Register before starting Docker so a partially failed start is cleaned up.
 	t.Cleanup(func() {
-		cleanup, done := context.WithTimeout(context.Background(), 30*time.Second)
-		defer done()
-		logs, logErr := exec.CommandContext(cleanup, "docker", "logs", container).CombinedOutput()
+		logs, logErr := cleanupDocker("logs", container)
 		if err := os.WriteFile(filepath.Join(artifacts, "server.log"), logs, 0o644); err != nil {
 			t.Errorf("save server logs: %v", err)
 		}
 		if logErr != nil && started {
 			t.Errorf("collect server logs: %v", logErr)
 		}
-		if result, err := exec.CommandContext(cleanup, "docker", "rm", "--force", container).CombinedOutput(); err != nil && started {
+		if result, err := cleanupDocker("rm", "--force", container); err != nil && started {
 			t.Errorf("remove server: %v: %s", err, result)
 		}
 	})
@@ -115,6 +113,13 @@ func TestMimallocServer(t *testing.T) {
 	if err := command.Run(); err != nil {
 		t.Fatalf("Rust server round trip: %v; see test.log and server.log", err)
 	}
+}
+
+// Log collection must not consume the timeout needed to remove the container.
+func cleanupDocker(args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return exec.CommandContext(ctx, "docker", args...).CombinedOutput()
 }
 
 func output(t *testing.T, ctx context.Context, directory, program string, args ...string) string {
