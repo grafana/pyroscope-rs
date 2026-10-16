@@ -1660,7 +1660,7 @@ dependencies = [
 [[package]]
 name = "rustfs-mimalloc"
 version = "0.6.0"
-source = "git+https://github.com/houseme/rustfs-mimalloc?rev=63b53f28e70fe596634187dcd25d508708a0699f#63b53f28e70fe596634187dcd25d508708a0699f"
+source = "git+https://github.com/houseme/rustfs-mimalloc?rev=7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8#7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8"
 dependencies = [
  "rustfs-mimalloc-sys",
 ]
@@ -1668,7 +1668,7 @@ dependencies = [
 [[package]]
 name = "rustfs-mimalloc-profiling"
 version = "0.6.0"
-source = "git+https://github.com/houseme/rustfs-mimalloc?rev=63b53f28e70fe596634187dcd25d508708a0699f#63b53f28e70fe596634187dcd25d508708a0699f"
+source = "git+https://github.com/houseme/rustfs-mimalloc?rev=7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8#7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8"
 dependencies = [
  "backtrace",
  "findshlibs",
@@ -1683,7 +1683,7 @@ dependencies = [
 [[package]]
 name = "rustfs-mimalloc-sys"
 version = "0.6.0"
-source = "git+https://github.com/houseme/rustfs-mimalloc?rev=63b53f28e70fe596634187dcd25d508708a0699f#63b53f28e70fe596634187dcd25d508708a0699f"
+source = "git+https://github.com/houseme/rustfs-mimalloc?rev=7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8#7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8"
 dependencies = [
  "cc",
 ]

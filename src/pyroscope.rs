@@ -178,11 +178,12 @@ impl PyroscopeConfig {
 /// PyroscopeAgent Builder
 ///
 /// # Example
-/// ```ignore
+/// ```no_run
+/// # #[cfg(feature = "backend-pprof-rs")]
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
 ///
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let agent = PyroscopeAgentBuilder::new(
 ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
 ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -190,6 +191,8 @@ impl PyroscopeConfig {
 /// .build()?;
 /// # Ok(())
 /// # }
+/// # #[cfg(not(feature = "backend-pprof-rs"))]
+/// # fn main() {}
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
@@ -202,7 +205,9 @@ impl PyroscopeAgentBuilder {
     /// Create a new PyroscopeAgentBuilder object.
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
@@ -210,6 +215,10 @@ impl PyroscopeAgentBuilder {
     ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
     /// );
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn new(
         url: impl AsRef<str>,
@@ -228,11 +237,12 @@ impl PyroscopeAgentBuilder {
     /// Override the Pyroscope Server URL.
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let agent = PyroscopeAgentBuilder::new(
     ///     "http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -241,6 +251,8 @@ impl PyroscopeAgentBuilder {
     /// .build()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn url(self, url: impl AsRef<str>) -> Self {
         Self {
@@ -261,11 +273,12 @@ impl PyroscopeAgentBuilder {
     /// Set the Function.
     /// This is optional. If not set, the agent will not apply any function.
     /// # Example
-    /// ```ignore
+    /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let agent = PyroscopeAgentBuilder::new(
     ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -274,6 +287,8 @@ impl PyroscopeAgentBuilder {
     /// .build()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn func(self, func: fn(Report) -> Report) -> Self {
         Self {
@@ -285,11 +300,12 @@ impl PyroscopeAgentBuilder {
     /// Set tags. Default is empty.
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let agent = PyroscopeAgentBuilder::new(
     ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -298,6 +314,8 @@ impl PyroscopeAgentBuilder {
     /// .build()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
@@ -482,14 +500,17 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
     /// Start profiling and sending data. The agent will keep running until stopped. The agent will send data to the server once per `upload_interval` (10s by default).
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// let agent_running = agent.start()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn start(mut self) -> Result<PyroscopeAgent<PyroscopeAgentRunning>> {
         log::debug!(target: LOG_TAG, "Starting");
@@ -566,15 +587,18 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// Stop the agent. The agent will stop profiling and send a last report to the server.
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// # let agent_running = agent.start()?;
     /// let agent_ready = agent_running.stop()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn stop(mut self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
         log::debug!(target: LOG_TAG, "Stopping");
@@ -602,25 +626,24 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// thread boundaries. This function can be called multiple times.
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// # let agent_running = agent.start()?;
     /// let (add_tag, remove_tag) = agent_running.tag_wrapper();
+    /// add_tag("key".to_string(), "value".to_string())?;
+    /// // Run the tagged computation.
+    /// remove_tag("key".to_string(), "value".to_string())?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     ///
-    /// The functions can be later called from any thread.
-    ///
-    /// # Example
-    /// ```ignore
-    /// add_tag("key".to_string(), "value".to_string());
-    /// // some computation
-    /// remove_tag("key".to_string(), "value".to_string());
-    /// ```
+    /// The functions can be called from any thread.
     #[allow(clippy::type_complexity)]
     pub fn tag_wrapper(
         &self,

@@ -75,7 +75,7 @@ at a time, so concurrent heap snapshots are approximate rather than atomic.
 
 The backend delegates sampling, live tracking, symbolization and pprof
 generation to the standalone
-[`rustfs-mimalloc-profiling`](https://github.com/houseme/rustfs-mimalloc/tree/63b53f28e70fe596634187dcd25d508708a0699f/rustfs-mimalloc-profiling)
+[`rustfs-mimalloc-profiling`](https://github.com/houseme/rustfs-mimalloc/tree/7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8/rustfs-mimalloc-profiling)
 crate. Its allocator, config and diagnostic types are re-exported through
 `pyroscope::backend::mimalloc`. The backend requires Rust 1.96 or newer.
 

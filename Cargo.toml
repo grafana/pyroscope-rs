@@ -33,7 +33,7 @@ prost = "0.14"
 serde_json = "1.0.115"
 jemalloc_pprof = { version = "0.9", features = ["symbolize"], optional = true }
 # Use a reproducible revision until the standalone profiling crate is published.
-rustfs-mimalloc-profiling = { git = "https://github.com/houseme/rustfs-mimalloc", rev = "63b53f28e70fe596634187dcd25d508708a0699f", version = "0.6.0", optional = true }
+rustfs-mimalloc-profiling = { git = "https://github.com/houseme/rustfs-mimalloc", rev = "7c9dc7d013d63a3ea40b08ef9111fcf8d9c52bd8", version = "0.6.0", optional = true }
 
 
 # pprofrs dependencies
