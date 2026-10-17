@@ -17,8 +17,8 @@ import (
 
 const pyroscopeImage = "grafana/pyroscope:2.4.0@sha256:b7e62699a27463aa3533efe3f88c320da594da495731fd6eabca6f44f92cdd7b"
 
-// Go owns the container lifecycle; the Rust test exercises the actual allocator,
-// uploader, and queried profiles, including symbols and cross-thread frees.
+// Go owns the container lifecycle and all E2E assertions. Rust only produces
+// allocator samples and uploads them through the SDK.
 func TestMimallocServer(t *testing.T) {
 	signals, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -38,6 +38,12 @@ func TestMimallocServer(t *testing.T) {
 	if err := os.MkdirAll(artifacts, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// Each run gets fresh inputs, so stale artifacts cannot hide a broken fixture.
+	artifacts, err = os.MkdirTemp(artifacts, "run-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("artifacts: %s", artifacts)
 	image := os.Getenv("PYROSCOPE_TEST_IMAGE")
 	if image == "" {
 		image = pyroscopeImage
@@ -105,14 +111,16 @@ func TestMimallocServer(t *testing.T) {
 	}
 	defer log.Close()
 	command := exec.CommandContext(ctx, "cargo", "test", "--locked", "--features", "backend-mimalloc",
-		"--test", "mimalloc_server", "--", "--ignored", "--nocapture")
+		"--test", "mimalloc_server", "--", "--ignored", "--exact", "upload_mimalloc_fixture", "--nocapture")
 	command.Dir = root
-	command.Env = append(os.Environ(), "PYROSCOPE_TEST_URL="+url, "PYROSCOPE_TEST_ARTIFACT_DIR="+artifacts)
+	command.Env = append(os.Environ(), "PYROSCOPE_TEST_URL="+url,
+		"PYROSCOPE_TEST_SERVICE="+container, "PYROSCOPE_TEST_ARTIFACT_DIR="+artifacts)
 	command.Stdout = io.MultiWriter(os.Stdout, log)
 	command.Stderr = command.Stdout
 	if err := command.Run(); err != nil {
-		t.Fatalf("Rust server round trip: %v; see test.log and server.log", err)
+		t.Fatalf("Rust upload fixture: %v; see test.log and server.log", err)
 	}
+	verifyMimallocProfiles(t, ctx, url, container, artifacts)
 }
 
 // Log collection must not consume the timeout needed to remove the container.

@@ -31,5 +31,6 @@ change demonstrably requires raising them. A backend's edition and dependency
 requirements alone do not justify an unrelated package-wide toolchain bump.
 
 Container orchestration for server integration tests belongs in the `e2e` Go
-module. Test Pyroscope v2 mode; keep Rust allocator and profile assertions in
-the Rust tests rather than adding shell scripts for orchestration.
+module. Test Pyroscope v2 mode. Keep Rust fixtures limited to producing real
+allocator samples and uploading through the SDK. Put E2E profile, query and
+flamegraph assertions in Go, reusing the official API and pprof packages.
