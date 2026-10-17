@@ -10,7 +10,7 @@ use pyroscope::backend::mimalloc::{mimalloc_backend, MimallocConfig};
 fn initialization_rejects_a_missing_sampling_allocator() {
     let result = mimalloc_backend(MimallocConfig::default()).initialize();
     let Err(error) = result else {
-        panic!("missing SamplingMiMalloc must fail initialization");
+        panic!("missing SamplingAllocator must fail initialization");
     };
     assert_eq!(
         error.source().and_then(|source| source.downcast_ref()),

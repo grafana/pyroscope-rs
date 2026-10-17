@@ -1,15 +1,15 @@
 //! Pyroscope adapter for the standalone `rustfs-mimalloc-profiling` crate.
 //!
-//! Install [`SamplingMiMalloc`] as the global allocator, then pass
+//! Install [`SamplingAllocator`] as the global allocator, then pass
 //! [`mimalloc_backend`] to the agent builder. Sampling, live heap tracking,
 //! symbolization and pprof generation are owned by the profiling crate.
 //!
-//! The published wrapper uses `rustfs_mimalloc::MiMalloc`. Installing the bare
-//! allocator from either mimalloc crate does not enable sampling.
+//! Applications select the provider, such as `mimalloc::MiMalloc` or
+//! `rustfs_mimalloc::MiMalloc`. Install the sampling wrapper to observe allocations.
 
 use rustfs_mimalloc_profiling::Profiler;
 pub use rustfs_mimalloc_profiling::{
-    mimalloc_stats, MimallocConfig, MimallocStackCapture, MimallocStats, SamplingMiMalloc,
+    mimalloc_stats, MimallocConfig, MimallocStackCapture, MimallocStats, SamplingAllocator,
 };
 
 use crate::{
@@ -20,18 +20,19 @@ use crate::{
 /// Create a mimalloc allocation memory profiling backend.
 ///
 /// The returned backend should be passed to `PyroscopeAgentBuilder::new`, and
-/// the process must install [`SamplingMiMalloc`] as its global allocator.
+/// the process must install [`SamplingAllocator`] as its global allocator.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// use pyroscope::backend::mimalloc::{
-///     mimalloc_backend, MimallocConfig, SamplingMiMalloc,
+///     mimalloc_backend, MimallocConfig, SamplingAllocator,
 /// };
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 ///
 /// #[global_allocator]
-/// static ALLOC: SamplingMiMalloc = SamplingMiMalloc::new();
+/// static ALLOC: SamplingAllocator<mimalloc::MiMalloc> =
+///     SamplingAllocator::with_allocator(mimalloc::MiMalloc);
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let agent = PyroscopeAgentBuilder::new(

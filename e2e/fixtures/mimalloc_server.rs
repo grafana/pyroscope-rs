@@ -1,18 +1,13 @@
-#![cfg(feature = "backend-mimalloc")]
-
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use pyroscope::{
     backend::{
-        mimalloc::{mimalloc_backend, MimallocConfig, SamplingMiMalloc},
+        mimalloc::{mimalloc_backend, MimallocConfig},
         ReportData,
     },
     pyroscope::PyroscopeConfig,
     session::{Session, SessionManager, SessionSignal},
 };
-
-#[global_allocator]
-static ALLOC: SamplingMiMalloc = SamplingMiMalloc::new();
 
 const RETAINED_SIZE: usize = 2 * 1024 * 1024;
 
@@ -21,10 +16,6 @@ const RETAINED_SIZE: usize = 2 * 1024 * 1024;
 #[test]
 #[ignore = "requires the Go harness; run make mimalloc/test/server"]
 fn upload_mimalloc_fixture() {
-    let _ = env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
-        .is_test(true)
-        .try_init();
     let url = std::env::var("PYROSCOPE_TEST_URL").expect("test server URL");
     let service = std::env::var("PYROSCOPE_TEST_SERVICE").expect("unique test service");
     let artifacts = std::env::var_os("PYROSCOPE_TEST_ARTIFACT_DIR").expect("artifact directory");

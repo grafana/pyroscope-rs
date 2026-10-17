@@ -1,6 +1,6 @@
 //! Mimalloc memory profiling example.
 //!
-//! This example demonstrates `backend-mimalloc` with `SamplingMiMalloc` as the
+//! This example demonstrates `backend-mimalloc` with `SamplingAllocator` as the
 //! process global allocator. The backend records sampled allocation stacks where
 //! frames can be resolved and sends memory pprof data through the normal
 //! Pyroscope agent pipeline.
@@ -10,12 +10,13 @@
 //! MIMALLOC_LIVE_HEAP=1 cargo run --example mimalloc --features backend-mimalloc
 //! ```
 
-use pyroscope::backend::mimalloc::{mimalloc_backend, MimallocConfig, SamplingMiMalloc};
+use pyroscope::backend::mimalloc::{mimalloc_backend, MimallocConfig, SamplingAllocator};
 use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use std::time::Duration;
 
 #[global_allocator]
-static ALLOC: SamplingMiMalloc = SamplingMiMalloc::new();
+static ALLOC: SamplingAllocator<mimalloc::MiMalloc> =
+    SamplingAllocator::with_allocator(mimalloc::MiMalloc);
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();

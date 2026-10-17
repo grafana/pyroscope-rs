@@ -5,13 +5,14 @@ mod push_receiver;
 #[cfg(feature = "backend-mimalloc")]
 mod tests {
     use pyroscope::backend::mimalloc::{
-        mimalloc_backend, mimalloc_stats, MimallocConfig, SamplingMiMalloc,
+        mimalloc_backend, mimalloc_stats, MimallocConfig, SamplingAllocator,
     };
     use pyroscope::backend::{ReportData, Tag, ThreadTag};
     use std::sync::Mutex;
 
     #[global_allocator]
-    static ALLOC: SamplingMiMalloc = SamplingMiMalloc::new();
+    static ALLOC: SamplingAllocator<mimalloc::MiMalloc> =
+        SamplingAllocator::with_allocator(mimalloc::MiMalloc);
     static TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]

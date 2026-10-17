@@ -20,6 +20,14 @@ const pyroscopeImage = "grafana/pyroscope:2.4.0@sha256:b7e62699a27463aa3533efe3f
 // Go owns the container lifecycle and all E2E assertions. Rust only produces
 // allocator samples and uploads them through the SDK.
 func TestMimallocServer(t *testing.T) {
+	for _, provider := range []string{"upstream", "rustfs"} {
+		t.Run(provider, func(t *testing.T) {
+			testMimallocServer(t, provider)
+		})
+	}
+}
+
+func testMimallocServer(t *testing.T, provider string) {
 	signals, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	ctx, cancel := context.WithTimeout(signals, 10*time.Minute)
@@ -39,7 +47,7 @@ func TestMimallocServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Each run gets fresh inputs, so stale artifacts cannot hide a broken fixture.
-	artifacts, err = os.MkdirTemp(artifacts, "run-")
+	artifacts, err = os.MkdirTemp(artifacts, provider+"-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,11 +58,11 @@ func TestMimallocServer(t *testing.T) {
 	}
 	revision := output(t, ctx, root, "git", "rev-parse", "HEAD")
 	dirty := output(t, ctx, root, "git", "status", "--porcelain") != ""
-	metadata := fmt.Sprintf("image=%s\nwrite_path=segment-writer\nsource_revision=%s\nworktree_dirty=%t\n", image, revision, dirty)
+	metadata := fmt.Sprintf("image=%s\nwrite_path=segment-writer\nsource_revision=%s\nworktree_dirty=%t\nallocator_provider=%s\n", image, revision, dirty, provider)
 	if err := os.WriteFile(filepath.Join(artifacts, "server.env"), []byte(metadata), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	container := fmt.Sprintf("pyroscope-mimalloc-e2e-%d-%d", os.Getpid(), time.Now().UnixNano())
+	container := fmt.Sprintf("pyroscope-mimalloc-%s-e2e-%d-%d", provider, os.Getpid(), time.Now().UnixNano())
 	started := false
 	// Register before starting Docker so a partially failed start is cleaned up.
 	t.Cleanup(func() {
@@ -110,11 +118,16 @@ func TestMimallocServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer log.Close()
-	command := exec.CommandContext(ctx, "cargo", "test", "--locked", "--features", "backend-mimalloc",
-		"--test", "mimalloc_server", "--", "--ignored", "--exact", "upload_mimalloc_fixture", "--nocapture")
+	args := []string{"test", "--locked", "--manifest-path",
+		filepath.Join(root, "e2e", "fixtures", provider, "Cargo.toml"),
+		"--test", "mimalloc_server", "--", "--ignored", "--exact", "fixture::upload_mimalloc_fixture", "--nocapture"}
+	command := exec.CommandContext(ctx, "cargo", args...)
 	command.Dir = root
 	command.Env = append(os.Environ(), "PYROSCOPE_TEST_URL="+url,
 		"PYROSCOPE_TEST_SERVICE="+container, "PYROSCOPE_TEST_ARTIFACT_DIR="+artifacts)
+	if _, configured := os.LookupEnv("CARGO_TARGET_DIR"); !configured {
+		command.Env = append(command.Env, "CARGO_TARGET_DIR="+filepath.Join(root, "target"))
+	}
 	command.Stdout = io.MultiWriter(os.Stdout, log)
 	command.Stderr = command.Stdout
 	if err := command.Run(); err != nil {

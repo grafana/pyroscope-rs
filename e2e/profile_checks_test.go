@@ -101,7 +101,8 @@ func TestApplicationFramesDistinguishesOwnersFromGenericArguments(t *testing.T) 
 		internal bool
 	}{
 		{"rustfs_mimalloc_profiling::profiler::record_sample", true},
-		{"<rustfs_mimalloc_profiling::profiler::SamplingMiMalloc as core::alloc::global::GlobalAlloc>::alloc", true},
+		{"<rustfs_mimalloc_profiling::profiler::SamplingAllocator<mimalloc::MiMalloc> as core::alloc::global::GlobalAlloc>::alloc", true},
+		{"<rustfs_mimalloc_profiling::profiler::SamplingAllocator<rustfs_mimalloc::MiMalloc> as core::alloc::global::GlobalAlloc>::alloc", true},
 		{"pyroscope::backend::mimalloc::report", false},
 		{"pyroscope[abc]::backend::mimalloc::report", false},
 		{"<pyroscope::backend::mimalloc::Mimalloc as pyroscope::backend::backend::Backend>::initialize", false},
@@ -110,7 +111,7 @@ func TestApplicationFramesDistinguishesOwnersFromGenericArguments(t *testing.T) 
 		{"<std::thread::local::LocalKey<core::cell::Cell<rustfs_mimalloc_profiling::profiler::SamplerState>>>::try_with", true},
 		{"<std::thread::local::LocalKey<rustfs_mimalloc_profiling::profiler::RegisteredTlsSampleBuffer>>::try_with", true},
 		{"application::store::<rustfs_mimalloc_profiling::MimallocConfig>", false},
-		{"<application::Store<rustfs_mimalloc_profiling::SamplingMiMalloc> as application::Trait>::reserve", false},
+		{"<application::Store<rustfs_mimalloc_profiling::SamplingAllocator<mimalloc::MiMalloc>> as application::Trait>::reserve", false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			p := &profile.Profile{Function: []*profile.Function{{Name: test.name}}}

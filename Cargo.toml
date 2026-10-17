@@ -32,7 +32,7 @@ libc = "^0.2.124"
 prost = "0.14"
 serde_json = "1.0.115"
 jemalloc_pprof = { version = "0.9", features = ["symbolize"], optional = true }
-rustfs-mimalloc-profiling = { version = "0.6.1", optional = true }
+rustfs-mimalloc-profiling = { version = "0.7.0", default-features = false, optional = true }
 
 
 # pprofrs dependencies
@@ -54,6 +54,7 @@ symbolic-demangle = { version = "13.1.0", default-features = false, features = [
 
 
 [dev-dependencies]
+mimalloc = "0.1.52"
 libflate = "2.1.0"
 httparse = "1"
 criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
