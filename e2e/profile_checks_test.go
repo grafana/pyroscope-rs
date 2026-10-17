@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -37,12 +38,29 @@ func TestMarkerValueCountsEachSampleOnce(t *testing.T) {
 func TestSourceMetadataChecksUploadsAndNormalizedQueries(t *testing.T) {
 	f := &profile.Function{Name: liveMarker, SystemName: "mangled", Filename: "mimalloc_server.rs"}
 	l := &profile.Location{
-		Address: 42, Mapping: &profile.Mapping{BuildID: "test-build"},
+		Address: 42, Mapping: &profile.Mapping{Start: 40, Limit: 100, File: "fixture-executable", BuildID: "test-build"},
 		Line: []profile.Line{{Function: f, Line: 12}},
 	}
 	p := &profile.Profile{Location: []*profile.Location{l}}
 	if err := sourceMetadata(p, liveMarker, true); err != nil {
 		t.Fatal(err)
+	}
+	if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+		l.Mapping.Start = 43
+		if err := sourceMetadata(p, liveMarker, true); err == nil {
+			t.Fatal("uploaded address below executable mapping was accepted")
+		}
+		l.Mapping.Start = 40
+		l.Mapping.Limit = l.Address
+		if err := sourceMetadata(p, liveMarker, true); err == nil {
+			t.Fatal("uploaded address at executable mapping limit was accepted")
+		}
+		l.Mapping.Limit = 100
+		l.Mapping.File = ""
+		if err := sourceMetadata(p, liveMarker, true); err == nil {
+			t.Fatal("uploaded mapping without a filename was accepted")
+		}
+		l.Mapping.File = "fixture-executable"
 	}
 	l.Address = 0
 	if err := sourceMetadata(p, liveMarker, true); err == nil {

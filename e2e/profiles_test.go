@@ -284,8 +284,12 @@ func sourceMetadata(p *profile.Profile, marker string, uploaded bool) error {
 				return fmt.Errorf("missing source metadata for %s", marker)
 			}
 			if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
-				if location.Mapping == nil || location.Mapping.BuildID == "" {
+				mapping := location.Mapping
+				if mapping == nil || mapping.BuildID == "" {
 					return fmt.Errorf("missing executable build ID for %s", marker)
+				}
+				if uploaded && (mapping.File == "" || location.Address < mapping.Start || location.Address >= mapping.Limit) {
+					return fmt.Errorf("invalid uploaded executable mapping for %s", marker)
 				}
 			}
 			// The server clears addresses for fully symbolized mappings.
