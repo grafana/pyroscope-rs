@@ -84,6 +84,12 @@ fn raw_pprof_upload_preserves_bytes_and_http_contract() {
         };
         let profile = Profile::decode(decoded.as_slice()).unwrap();
         assert_eq!(profile.string_table[0], "");
+        if profile.default_sample_type != 0 {
+            assert!(profile
+                .sample_type
+                .iter()
+                .any(|ty| ty.r#type == profile.default_sample_type));
+        }
     }
 }
 

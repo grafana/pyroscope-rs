@@ -26,6 +26,7 @@ pub fn profiles() -> Vec<Fixture> {
         unit: 11,
     });
     cpu.period = 10_000_000;
+    cpu.default_sample_type = 10;
     for sample in &mut cpu.sample {
         sample.value = vec![sample.value[0] * cpu.period];
     }
