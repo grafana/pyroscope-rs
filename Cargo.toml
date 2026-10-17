@@ -55,7 +55,7 @@ symbolic-demangle = { version = "13.1.0", default-features = false, features = [
 [dev-dependencies]
 libflate = "2.1.0"
 httparse = "1"
-criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support"] }
+criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
 assert_matches = "=1.5.0"
 claims = "=0.8.0"
 tikv-jemallocator = { version = "0.7", features = ["profiling"] }

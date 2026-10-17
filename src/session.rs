@@ -8,8 +8,7 @@ use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::utils::rustc_version;
 use crate::{
-    backend::{Report, ReportBatch, ReportData},
-    encode::pprof,
+    backend::{ReportBatch, ReportData},
     pyroscope::PyroscopeConfig,
     utils::get_time_range,
     Result,
@@ -18,7 +17,7 @@ use prost::Message;
 use reqwest::Url;
 use uuid::Uuid;
 
-mod compression;
+mod encoding;
 
 const LOG_TAG: &str = "Pyroscope::Session";
 const LABEL_SCOPE_NAME: &str = "otel.scope.name";
@@ -141,23 +140,17 @@ impl Session {
                 }
                 pprof_bytes
             }
-            ReportData::Reports(reports) => {
-                let reports: Vec<Report> = match self.config.func {
-                    None => reports,
-                    Some(f) => reports.into_iter().map(f).collect(),
-                };
-                pprof::encode(
-                    &reports,
-                    self.config.sample_rate,
-                    self.from * 1_000_000_000,
-                    (self.until - self.from) * 1_000_000_000,
-                )
-                .encode_to_vec()
-            }
+            ReportData::Reports(reports) => encoding::encode_reports(
+                reports,
+                self.config.func,
+                self.config.sample_rate,
+                self.from * 1_000_000_000,
+                (self.until - self.from) * 1_000_000_000,
+            ),
         };
 
         let labels = labels_for_profile(&self.config, profile_type);
-        let req = PushRequest {
+        let request = PushRequest {
             series: vec![RawProfileSeries {
                 labels,
                 samples: vec![RawSample {
@@ -167,7 +160,12 @@ impl Session {
             }],
         };
 
-        let req = compression::gzip(&req.encode_to_vec())?;
+        // Release both source buffers before waiting for the HTTP response.
+        let body = {
+            let protobuf = request.encode_to_vec();
+            drop(request);
+            encoding::gzip(&protobuf)?
+        };
 
         let mut url = Url::parse(&self.config.url)?;
         url.path_segments_mut()
@@ -201,7 +199,7 @@ impl Session {
         }
 
         let mut response = req_builder
-            .body(req)
+            .body(body)
             .timeout(Duration::from_secs(10))
             .send()?;
 

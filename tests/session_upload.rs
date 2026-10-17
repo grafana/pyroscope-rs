@@ -13,6 +13,21 @@ mod profile_fixture;
 #[path = "support/push_receiver.rs"]
 mod push_receiver;
 
+fn upload(
+    receiver: push_receiver::PushReceiver,
+    config: PyroscopeConfig,
+    batch: ReportBatch,
+) -> push_receiver::CapturedPush {
+    let manager = SessionManager::new().unwrap();
+    let session = Session::new(1950, config, batch).unwrap();
+    manager
+        .push(SessionSignal::Session(Box::new(session)))
+        .unwrap();
+    manager.push(SessionSignal::Kill).unwrap();
+    manager.handle.unwrap().join().unwrap().unwrap();
+    receiver.finish()
+}
+
 #[test]
 fn raw_pprof_upload_preserves_bytes_and_http_contract() {
     for fixture in profile_fixture::profiles() {
@@ -32,22 +47,14 @@ fn raw_pprof_upload_preserves_bytes_and_http_contract() {
             .insert("X-Test-Header".into(), "upload-test".into());
         config.func = Some(|_| panic!("raw pprof must bypass structured transforms"));
         let expected = fixture.bytes;
-        let session = Session::new(
-            1950,
+        let captured = upload(
+            receiver,
             config,
             ReportBatch {
                 profile_type: fixture.profile_type.into(),
                 data: ReportData::RawPprof(expected.clone()),
             },
-        )
-        .unwrap();
-        let manager = SessionManager::new().unwrap();
-        manager
-            .push(SessionSignal::Session(Box::new(session)))
-            .unwrap();
-        manager.push(SessionSignal::Kill).unwrap();
-        manager.handle.unwrap().join().unwrap().unwrap();
-        let captured = receiver.finish();
+        );
         assert_eq!(captured.path, "/sdk/push.v1.PusherService/Push");
         assert_eq!(captured.headers["content-type"], "application/proto");
         assert_eq!(captured.headers["content-encoding"], "gzip");
@@ -111,22 +118,14 @@ fn structured_upload_preserves_transform_counts_tags_and_metadata() {
         }
         let reports = profile_fixture::structured_reports(64);
         let count: usize = reports.iter().flat_map(|report| report.data.values()).sum();
-        let session = Session::new(
-            1950,
+        let captured = upload(
+            receiver,
             config,
             ReportBatch {
                 profile_type: "process_cpu".into(),
                 data: ReportData::Reports(reports),
             },
-        )
-        .unwrap();
-        let manager = SessionManager::new().unwrap();
-        manager
-            .push(SessionSignal::Session(Box::new(session)))
-            .unwrap();
-        manager.push(SessionSignal::Kill).unwrap();
-        manager.handle.unwrap().join().unwrap().unwrap();
-        let captured = receiver.finish();
+        );
         let p =
             Profile::decode(captured.request.series[0].samples[0].raw_profile.as_slice()).unwrap();
         assert_eq!(p.sample.len(), 64);
