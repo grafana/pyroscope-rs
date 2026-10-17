@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.3](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.2...lib-2.1.3) (2026-10-17)
+
+
+### Performance Improvements
+
+* **session:** reduce profile upload CPU and allocation overhead ([#603](https://github.com/grafana/pyroscope-rs/issues/603)) ([e8fe051](https://github.com/grafana/pyroscope-rs/commit/e8fe0513bcdbb09b28445b1e70e857e07146bf7b))
+
+
+### Miscellaneous Chores
+
+* **deps:** lock file maintenance ([#577](https://github.com/grafana/pyroscope-rs/issues/577)) ([9c25166](https://github.com/grafana/pyroscope-rs/commit/9c25166f9195a7076024bdbaf7b410a1c79788f7))
+
 ## [2.1.2](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.1...lib-2.1.2) (2026-10-14)
 
 
