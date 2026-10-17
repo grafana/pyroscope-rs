@@ -1,5 +1,7 @@
 #![cfg(feature = "backend-mimalloc")]
 
+use std::error::Error as _;
+
 use pyroscope::backend::mimalloc::{mimalloc_backend, MimallocConfig};
 
 // This binary intentionally uses the default allocator. Keep it separate from
@@ -10,5 +12,8 @@ fn initialization_rejects_a_missing_sampling_allocator() {
     let Err(error) = result else {
         panic!("missing SamplingMiMalloc must fail initialization");
     };
-    assert!(error.to_string().contains("SamplingMiMalloc"));
+    assert_eq!(
+        error.source().and_then(|source| source.downcast_ref()),
+        Some(&rustfs_mimalloc_profiling::Error::AllocatorNotObserved)
+    );
 }

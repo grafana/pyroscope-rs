@@ -3,6 +3,9 @@
 //! Install [`SamplingMiMalloc`] as the global allocator, then pass
 //! [`mimalloc_backend`] to the agent builder. Sampling, live heap tracking,
 //! symbolization and pprof generation are owned by the profiling crate.
+//!
+//! The published wrapper uses `rustfs_mimalloc::MiMalloc`. Installing the bare
+//! allocator from either mimalloc crate does not enable sampling.
 
 use rustfs_mimalloc_profiling::Profiler;
 pub use rustfs_mimalloc_profiling::{

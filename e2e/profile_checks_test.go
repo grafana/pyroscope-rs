@@ -76,3 +76,29 @@ func TestQueryRejectsHTTPFailureAndHonorsCancellation(t *testing.T) {
 		t.Fatalf("expected context cancellation, got %v", err)
 	}
 }
+
+func TestApplicationFramesDistinguishesOwnersFromGenericArguments(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		internal bool
+	}{
+		{"rustfs_mimalloc_profiling::profiler::record_sample", true},
+		{"<rustfs_mimalloc_profiling::profiler::SamplingMiMalloc as core::alloc::global::GlobalAlloc>::alloc", true},
+		{"pyroscope::backend::mimalloc::report", false},
+		{"pyroscope[abc]::backend::mimalloc::report", false},
+		{"<pyroscope::backend::mimalloc::Mimalloc as pyroscope::backend::backend::Backend>::initialize", false},
+		{"rustfs_mimalloc_profiling::memory_pprof::encode", true},
+		{"backtrace::trace", true},
+		{"<std::thread::local::LocalKey<core::cell::Cell<rustfs_mimalloc_profiling::profiler::SamplerState>>>::try_with", true},
+		{"<std::thread::local::LocalKey<rustfs_mimalloc_profiling::profiler::RegisteredTlsSampleBuffer>>::try_with", true},
+		{"application::store::<rustfs_mimalloc_profiling::MimallocConfig>", false},
+		{"<application::Store<rustfs_mimalloc_profiling::SamplingMiMalloc> as application::Trait>::reserve", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			p := &profile.Profile{Function: []*profile.Function{{Name: test.name}}}
+			if err := applicationFrames(p); (err != nil) != test.internal {
+				t.Fatalf("internal=%t: %v", test.internal, err)
+			}
+		})
+	}
+}

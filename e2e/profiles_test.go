@@ -44,6 +44,9 @@ func verifyMimallocProfiles(t *testing.T, ctx context.Context, url, service, art
 		if err != nil {
 			t.Fatalf("decode %s input: %v", input.name, err)
 		}
+		if err := applicationFrames(p); err != nil {
+			t.Fatalf("%s input: %v", input.name, err)
+		}
 		if err := sourceMetadata(p, input.marker, true); err != nil {
 			t.Fatalf("%s input: %v", input.name, err)
 		}
@@ -253,6 +256,21 @@ func sampleHasMarker(sample *profile.Sample, marker string) bool {
 		}
 	}
 	return false
+}
+
+// Exclude recorder scaffolding, while keeping callers and their generic arguments.
+func applicationFrames(p *profile.Profile) error {
+	for _, f := range p.Function {
+		owner := strings.TrimPrefix(f.Name, "<")
+		if strings.HasPrefix(owner, "rustfs_mimalloc_profiling::profiler::") ||
+			strings.HasPrefix(owner, "rustfs_mimalloc_profiling::memory_pprof::") ||
+			strings.HasPrefix(owner, "backtrace::") ||
+			strings.Contains(f.Name, "rustfs_mimalloc_profiling::profiler::SamplerState>") ||
+			strings.Contains(f.Name, "rustfs_mimalloc_profiling::profiler::RegisteredTlsSampleBuffer>") {
+			return fmt.Errorf("unexpected profiler frame %q", f.Name)
+		}
+	}
+	return nil
 }
 
 func sourceMetadata(p *profile.Profile, marker string, uploaded bool) error {

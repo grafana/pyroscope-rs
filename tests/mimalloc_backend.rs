@@ -4,12 +4,10 @@ mod push_receiver;
 
 #[cfg(feature = "backend-mimalloc")]
 mod tests {
-    use prost::Message;
     use pyroscope::backend::mimalloc::{
         mimalloc_backend, mimalloc_stats, MimallocConfig, SamplingMiMalloc,
     };
     use pyroscope::backend::{ReportData, Tag, ThreadTag};
-    use pyroscope::encode::gen::google::Profile;
     use std::sync::Mutex;
 
     #[global_allocator]
@@ -37,9 +35,13 @@ mod tests {
         ));
         drop(backend);
         let standalone = Profiler::start(MimallocConfig::default()).unwrap();
-        assert!(mimalloc_backend(MimallocConfig::default())
-            .initialize()
-            .is_err());
+        let Err(error) = mimalloc_backend(MimallocConfig::default()).initialize() else {
+            panic!("adapter must reject an active standalone profiler");
+        };
+        assert_eq!(
+            std::error::Error::source(&error).and_then(|source| source.downcast_ref()),
+            Some(&Error::AlreadyActive)
+        );
         drop(standalone);
         let mut restarted = live_backend();
         assert!(matches!(
@@ -53,14 +55,14 @@ mod tests {
     }
 
     #[test]
-    fn live_heap_report_preserves_source_metadata_through_http_upload() {
+    fn adapter_uploads_the_profiler_payload_without_reencoding() {
         use pyroscope::{
             pyroscope::PyroscopeConfig,
             session::{Session, SessionManager, SessionSignal},
         };
         let _guard = TEST_LOCK.lock().expect("lock upload test");
         let mut backend = live_backend();
-        let retained = allocate_retained_live_test(2 * 1024 * 1024);
+        let retained = std::hint::black_box(vec![0_u8; 2 * 1024 * 1024]);
         let batch = backend.report().expect("collect live heap profile");
         let report_stats = mimalloc_stats();
         assert_eq!(report_stats.reports, 1);
@@ -69,71 +71,6 @@ mod tests {
             panic!("raw memory profile expected");
         };
         let expected_bytes = bytes.clone();
-        let expected = Profile::decode(bytes.as_slice()).unwrap();
-        let function = expected
-            .function
-            .iter()
-            .find(|function| {
-                expected.string_table[function.name as usize]
-                    .contains("allocate_retained_live_test")
-            })
-            .expect("retained allocation symbol");
-        assert!(expected.string_table[function.filename as usize].ends_with("mimalloc_backend.rs"));
-        assert!(!expected.string_table[function.system_name as usize].is_empty());
-        let profiler_frames: Vec<_> = expected
-            .function
-            .iter()
-            .map(|function| &expected.string_table[function.name as usize])
-            .filter(|name| {
-                let owner = name.strip_prefix('<').unwrap_or(name);
-                owner.starts_with("rustfs_mimalloc_profiling::")
-                    || owner.starts_with("pyroscope::backend::mimalloc::")
-                    || owner.starts_with("backtrace::")
-                    || name.contains("rustfs_mimalloc_profiling::profiler::SamplerState>")
-                    || name
-                        .contains("rustfs_mimalloc_profiling::profiler::RegisteredTlsSampleBuffer>")
-                    || name.contains("pyroscope[")
-            })
-            .collect();
-        assert!(
-            profiler_frames.is_empty(),
-            "unexpected profiler frames: {profiler_frames:?}"
-        );
-        assert!(expected.location.iter().any(|location| {
-            location.address != 0
-                && location
-                    .line
-                    .iter()
-                    .any(|line| line.function_id == function.id && line.line > 0)
-        }));
-        #[cfg(any(target_os = "linux", target_os = "macos", target_os = "ios"))]
-        {
-            let location = expected
-                .location
-                .iter()
-                .find(|location| {
-                    location
-                        .line
-                        .iter()
-                        .any(|line| line.function_id == function.id)
-                })
-                .unwrap();
-            let mapping = expected
-                .mapping
-                .iter()
-                .find(|mapping| mapping.id == location.mapping_id)
-                .expect("retained allocation executable mapping");
-            assert_eq!(mapping.id, expected.mapping[0].id);
-            assert!(
-                mapping.memory_start <= location.address && location.address < mapping.memory_limit
-            );
-            assert!(!expected.string_table[mapping.filename as usize].is_empty());
-            assert!(!expected.string_table[mapping.build_id as usize].is_empty());
-        }
-        assert_eq!(
-            sample_value_for_frame(&expected, "allocate_retained_live_test", "inuse_space"),
-            retained.len() as i64
-        );
         backend.shutdown().unwrap();
 
         let receiver = super::push_receiver::PushReceiver::start();
@@ -143,8 +80,7 @@ mod tests {
             100,
             "pyroscope-rs",
             env!("CARGO_PKG_VERSION"),
-        )
-        .tags(vec![("env", "integration")]);
+        );
         let session = Session::new(1950, config, batch).unwrap();
         let manager = SessionManager::new().unwrap();
         manager
@@ -161,10 +97,6 @@ mod tests {
             .iter()
             .any(|label| label.name == "__name__" && label.value == "memory"));
         assert_eq!(series.samples[0].raw_profile, expected_bytes);
-        assert_eq!(
-            Profile::decode(series.samples[0].raw_profile.as_slice()).unwrap(),
-            expected
-        );
         std::hint::black_box(&retained);
     }
 
@@ -178,42 +110,5 @@ mod tests {
         })
         .initialize()
         .expect("initialize live heap backend")
-    }
-
-    #[inline(never)]
-    fn allocate_retained_live_test(size: usize) -> Vec<u8> {
-        std::hint::black_box(vec![0; size])
-    }
-
-    fn sample_value_for_frame(profile: &Profile, frame: &str, sample_type: &str) -> i64 {
-        let value_index = profile
-            .sample_type
-            .iter()
-            .position(|ty| profile.string_table[ty.r#type as usize] == sample_type)
-            .expect("profile includes requested sample type");
-        profile
-            .sample
-            .iter()
-            .filter(|sample| {
-                sample.location_id.iter().any(|id| {
-                    profile
-                        .location
-                        .iter()
-                        .filter(|location| location.id == *id)
-                        .any(|location| {
-                            location.line.iter().any(|line| {
-                                profile
-                                    .function
-                                    .iter()
-                                    .filter(|function| function.id == line.function_id)
-                                    .any(|function| {
-                                        profile.string_table[function.name as usize].contains(frame)
-                                    })
-                            })
-                        })
-                })
-            })
-            .map(|sample| sample.value[value_index])
-            .sum()
     }
 }
