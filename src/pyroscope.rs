@@ -179,10 +179,11 @@ impl PyroscopeConfig {
 ///
 /// # Example
 /// ```no_run
+/// # #[cfg(feature = "backend-pprof-rs")]
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
 /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
 ///
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let agent = PyroscopeAgentBuilder::new(
 ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
 ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -190,6 +191,8 @@ impl PyroscopeConfig {
 /// .build()?;
 /// # Ok(())
 /// # }
+/// # #[cfg(not(feature = "backend-pprof-rs"))]
+/// # fn main() {}
 /// ```
 pub struct PyroscopeAgentBuilder {
     /// Profiler backend
@@ -203,6 +206,8 @@ impl PyroscopeAgentBuilder {
     ///
     /// # Example
     /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
@@ -210,6 +215,10 @@ impl PyroscopeAgentBuilder {
     ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
     /// );
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn new(
         url: impl AsRef<str>,
@@ -229,10 +238,11 @@ impl PyroscopeAgentBuilder {
     ///
     /// # Example
     /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let agent = PyroscopeAgentBuilder::new(
     ///     "http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -241,6 +251,8 @@ impl PyroscopeAgentBuilder {
     /// .build()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn url(self, url: impl AsRef<str>) -> Self {
         Self {
@@ -262,10 +274,11 @@ impl PyroscopeAgentBuilder {
     /// This is optional. If not set, the agent will not apply any function.
     /// # Example
     /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let agent = PyroscopeAgentBuilder::new(
     ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -274,6 +287,8 @@ impl PyroscopeAgentBuilder {
     /// .build()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn func(self, func: fn(Report) -> Report) -> Self {
         Self {
@@ -286,10 +301,11 @@ impl PyroscopeAgentBuilder {
     ///
     /// # Example
     /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let agent = PyroscopeAgentBuilder::new(
     ///     "http://localhost:8080", "my-app", 100, "pyroscope-rs", "0.1.0",
     ///     pprof_backend(PprofConfig::default(), BackendConfig::default()),
@@ -298,6 +314,8 @@ impl PyroscopeAgentBuilder {
     /// .build()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn tags(self, tags: Vec<(&str, &str)>) -> Self {
         Self {
@@ -483,13 +501,16 @@ impl PyroscopeAgent<PyroscopeAgentReady> {
     ///
     /// # Example
     /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// let agent_running = agent.start()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn start(mut self) -> Result<PyroscopeAgent<PyroscopeAgentRunning>> {
         log::debug!(target: LOG_TAG, "Starting");
@@ -567,14 +588,17 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     ///
     /// # Example
     /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// # let agent_running = agent.start()?;
     /// let agent_ready = agent_running.stop()?;
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     pub fn stop(mut self) -> Result<PyroscopeAgent<PyroscopeAgentReady>> {
         log::debug!(target: LOG_TAG, "Stopping");
@@ -603,14 +627,17 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     ///
     /// # Example
     /// ```no_run
+    /// # #[cfg(feature = "backend-pprof-rs")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # use pyroscope::pyroscope::PyroscopeAgentBuilder;
     /// # use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// # let agent_running = agent.start()?;
     /// let (add_tag, remove_tag) = agent_running.tag_wrapper();
     /// # Ok(())
     /// # }
+    /// # #[cfg(not(feature = "backend-pprof-rs"))]
+    /// # fn main() {}
     /// ```
     ///
     /// The functions can be later called from any thread.
