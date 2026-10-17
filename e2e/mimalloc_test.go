@@ -19,6 +19,7 @@ const pyroscopeImage = "grafana/pyroscope:2.4.0@sha256:b7e62699a27463aa3533efe3f
 
 // Go owns the container lifecycle and all E2E assertions. Rust only produces
 // allocator samples and uploads them through the SDK.
+// CI selects one provider subtest per job; make mimalloc/test/server runs both.
 func TestMimallocServer(t *testing.T) {
 	for _, provider := range []string{"upstream", "rustfs"} {
 		t.Run(provider, func(t *testing.T) {

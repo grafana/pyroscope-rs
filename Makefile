@@ -20,7 +20,7 @@ mimalloc/test:
 
 .PHONY: mimalloc/test/server
 mimalloc/test/server:
-	go -C e2e test -count=1 -v -timeout=12m ./...
+	go -C e2e test -count=1 -v -timeout=25m ./...
 
 .PHONY: test
 test: pprofrs/test mimalloc/test lib/test
