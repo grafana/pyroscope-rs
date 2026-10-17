@@ -367,7 +367,7 @@ impl Profiler {
 
     fn init(&mut self) -> Result<()> {
         self.sample_counter = 0;
-        self.data = Collector::new()?;
+        self.data.clear()?;
         self.running = false;
 
         Ok(())
@@ -493,6 +493,8 @@ pub mod tests {
     }
     impl AllocDetector {
         fn enable_count_alloc(&self) {
+            self.alloc_count
+                .store(0, std::sync::atomic::Ordering::SeqCst);
             self.should_count_alloc
                 .store(true, std::sync::atomic::Ordering::SeqCst);
         }
@@ -513,10 +515,66 @@ pub mod tests {
         alloc_count: std::sync::atomic::AtomicUsize::new(0),
     };
 
+    // Run only this test in a fresh process so unrelated allocations cannot enter the counter.
+    fn run_in_child_process() -> bool {
+        let thread = std::thread::current();
+        let test_name = thread.name().unwrap();
+        if std::env::var("PYROSCOPE_ALLOC_TEST").as_deref() == Ok(test_name) {
+            return false;
+        }
+
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([test_name, "--exact", "--test-threads=1", "--nocapture"])
+            .env("PYROSCOPE_ALLOC_TEST", test_name)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{test_name} failed in the child process:\n{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+        true
+    }
+
+    #[test]
+    fn test_stop_clears_samples_without_allocating() {
+        if run_in_child_process() {
+            return;
+        }
+
+        let mut profiler = Profiler::new().unwrap();
+        profiler.start().unwrap();
+        profiler.sample(SmallVec::new(), b"old", 1, SystemTime::now());
+
+        ALLOC.enable_count_alloc();
+        let result = profiler.stop();
+        ALLOC.disable_count_alloc();
+
+        result.unwrap();
+        assert_eq!(ALLOC.alloc_count(), 0);
+        assert!(!profiler.running);
+        assert_eq!(profiler.sample_counter, 0);
+        assert_eq!(profiler.data.try_iter().unwrap().count(), 0);
+
+        profiler.start().unwrap();
+        profiler.sample(SmallVec::new(), b"new", 2, SystemTime::now());
+        assert_eq!(profiler.sample_counter, 1);
+        {
+            let mut samples = profiler.data.try_iter().unwrap();
+            let sample = samples.next().unwrap();
+            assert_eq!(sample.item.thread_id, 2);
+            assert_eq!(sample.count, 1);
+            assert!(samples.next().is_none());
+        }
+        profiler.stop().unwrap();
+    }
+
     #[test]
     fn test_no_alloc_during_unwind() {
-        // This test cannot run parallelly because it requires the global allocator to
-        // record the allocation count.
+        if run_in_child_process() {
+            return;
+        }
 
         trigger_lazy();
         PROFILER.write().as_mut().unwrap().start().unwrap();
