@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
@@ -122,7 +121,7 @@ func testMimallocServer(t *testing.T, provider string) {
 	args := []string{"test", "--locked", "--manifest-path",
 		filepath.Join(root, "e2e", "fixtures", provider, "Cargo.toml"),
 		"--test", "mimalloc_server", "--", "--ignored", "--exact", "fixture::upload_mimalloc_fixture", "--nocapture"}
-	command := exec.CommandContext(ctx, "cargo", args...)
+	command := commandContext(ctx, "cargo", args...)
 	command.Dir = root
 	command.Env = append(os.Environ(), "PYROSCOPE_TEST_URL="+url,
 		"PYROSCOPE_TEST_SERVICE="+container, "PYROSCOPE_TEST_ARTIFACT_DIR="+artifacts)
@@ -141,12 +140,12 @@ func testMimallocServer(t *testing.T, provider string) {
 func cleanupDocker(args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	return exec.CommandContext(ctx, "docker", args...).CombinedOutput()
+	return commandContext(ctx, "docker", args...).CombinedOutput()
 }
 
 func output(t *testing.T, ctx context.Context, directory, program string, args ...string) string {
 	t.Helper()
-	command := exec.CommandContext(ctx, program, args...)
+	command := commandContext(ctx, program, args...)
 	command.Dir = directory
 	result, err := command.CombinedOutput()
 	if err != nil {
