@@ -196,8 +196,7 @@ impl std::fmt::Display for StackTrace {
         write!(
             f,
             "{}",
-            &self
-                .frames
+            self.frames
                 .iter()
                 .rev()
                 .map(|frame| format!("{frame}"))

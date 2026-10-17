@@ -1,5 +1,4 @@
 use std::{
-    io::Write,
     sync::mpsc::{sync_channel, Receiver, SyncSender},
     thread::{self, JoinHandle},
     time::Duration,
@@ -9,16 +8,16 @@ use crate::encode::gen::push::{PushRequest, RawProfileSeries, RawSample};
 use crate::encode::gen::types::LabelPair;
 use crate::utils::rustc_version;
 use crate::{
-    backend::{Report, ReportBatch, ReportData},
-    encode::pprof,
+    backend::{ReportBatch, ReportData},
     pyroscope::PyroscopeConfig,
     utils::get_time_range,
     Result,
 };
-use libflate::gzip::Encoder;
 use prost::Message;
 use reqwest::Url;
 use uuid::Uuid;
+
+mod encoding;
 
 const LOG_TAG: &str = "Pyroscope::Session";
 const LABEL_SCOPE_NAME: &str = "otel.scope.name";
@@ -141,27 +140,17 @@ impl Session {
                 }
                 pprof_bytes
             }
-            ReportData::Reports(reports) => {
-                let transformed: Vec<Report>;
-                let encode_input = match self.config.func {
-                    None => &reports,
-                    Some(f) => {
-                        transformed = reports.iter().map(|r| f(r.to_owned())).collect();
-                        &transformed
-                    }
-                };
-                pprof::encode(
-                    encode_input,
-                    self.config.sample_rate,
-                    self.from * 1_000_000_000,
-                    (self.until - self.from) * 1_000_000_000,
-                )
-                .encode_to_vec()
-            }
+            ReportData::Reports(reports) => encoding::encode_reports(
+                reports,
+                self.config.func,
+                self.config.sample_rate,
+                self.from * 1_000_000_000,
+                (self.until - self.from) * 1_000_000_000,
+            ),
         };
 
         let labels = labels_for_profile(&self.config, profile_type);
-        let req = PushRequest {
+        let request = PushRequest {
             series: vec![RawProfileSeries {
                 labels,
                 samples: vec![RawSample {
@@ -171,7 +160,12 @@ impl Session {
             }],
         };
 
-        let req = Self::gzip(&req.encode_to_vec())?;
+        // Release both source buffers before waiting for the HTTP response.
+        let body = {
+            let protobuf = request.encode_to_vec();
+            drop(request);
+            encoding::gzip(&protobuf)?
+        };
 
         let mut url = Url::parse(&self.config.url)?;
         url.path_segments_mut()
@@ -205,7 +199,7 @@ impl Session {
         }
 
         let mut response = req_builder
-            .body(req)
+            .body(body)
             .timeout(Duration::from_secs(10))
             .send()?;
 
@@ -223,13 +217,6 @@ impl Session {
             log::error!(target: LOG_TAG, "Sending Session failed {} {}", status.as_u16(), resp);
         }
         Ok(())
-    }
-
-    fn gzip(report: &[u8]) -> Result<Vec<u8>> {
-        let mut encoder = Encoder::new(Vec::new())?;
-        encoder.write_all(report)?;
-        let compressed_data = encoder.finish().into_result()?;
-        Ok(compressed_data)
     }
 }
 

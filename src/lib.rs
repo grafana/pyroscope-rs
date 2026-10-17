@@ -12,10 +12,11 @@
 //! ## Configure a Pyroscope Agent
 //!
 //! ```no_run
+//! # #[cfg(feature = "backend-pprof-rs")]
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use pyroscope::pyroscope::PyroscopeAgentBuilder;
 //! use pyroscope::backend::{pprof_backend, PprofConfig, BackendConfig};
 //!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let agent = PyroscopeAgentBuilder::new(
 //!     "http://localhost:4040",
 //!     "myapp",
@@ -27,6 +28,8 @@
 //! .build()?;
 //! # Ok(())
 //! # }
+//! # #[cfg(not(feature = "backend-pprof-rs"))]
+//! # fn main() {}
 //! ```
 //!
 //! ## Start/Stop profiling
