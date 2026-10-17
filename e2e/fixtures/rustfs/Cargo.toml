@@ -1,0 +1,15 @@
+[package]
+name = "pyroscope-rustfs-mimalloc-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+pyroscope = { path = "../../..", default-features = false, features = ["backend-mimalloc"] }
+rustfs-mimalloc = "0.7.0"
+
+[[test]]
+name = "mimalloc_server"
+path = "mimalloc_server.rs"
