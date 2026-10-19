@@ -56,6 +56,29 @@ mod tests {
     }
 
     #[test]
+    fn adapter_resets_report_stats_when_restarted() {
+        let _guard = TEST_LOCK.lock().expect("lock stats test");
+        // Seed a prior session with more reports than the next one so both
+        // counter resets are checked without relying on test execution order.
+        for report_count in [2, 1] {
+            let mut backend = live_backend();
+            let initial_stats = mimalloc_stats();
+            assert_eq!(initial_stats.reports, 0);
+            assert_eq!(initial_stats.reported_samples, 0);
+
+            let retained = std::hint::black_box(vec![0_u8; 2 * 1024 * 1024]);
+            for _ in 0..report_count {
+                backend.report().expect("collect heap profile");
+            }
+            let report_stats = mimalloc_stats();
+            assert_eq!(report_stats.reports, report_count);
+            assert!(report_stats.reported_samples > 0);
+            backend.shutdown().expect("shut down profiling session");
+            std::hint::black_box(&retained);
+        }
+    }
+
+    #[test]
     fn adapter_uploads_the_profiler_payload_without_reencoding() {
         use pyroscope::{
             pyroscope::PyroscopeConfig,
@@ -66,6 +89,7 @@ mod tests {
         let retained = std::hint::black_box(vec![0_u8; 2 * 1024 * 1024]);
         let batch = backend.report().expect("collect live heap profile");
         let report_stats = mimalloc_stats();
+        // Counters are reset when the session starts, even after earlier tests.
         assert_eq!(report_stats.reports, 1);
         assert!(report_stats.reported_samples > 0);
         let ReportData::RawPprof(ref bytes) = batch.data else {
