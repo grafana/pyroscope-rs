@@ -367,7 +367,7 @@ impl Profiler {
 
     fn init(&mut self) -> Result<()> {
         self.sample_counter = 0;
-        self.data = Collector::new()?;
+        self.data.clear()?;
         self.running = false;
 
         Ok(())
@@ -493,6 +493,8 @@ pub mod tests {
     }
     impl AllocDetector {
         fn enable_count_alloc(&self) {
+            self.alloc_count
+                .store(0, std::sync::atomic::Ordering::SeqCst);
             self.should_count_alloc
                 .store(true, std::sync::atomic::Ordering::SeqCst);
         }
@@ -512,6 +514,36 @@ pub mod tests {
         should_count_alloc: std::sync::atomic::AtomicBool::new(false),
         alloc_count: std::sync::atomic::AtomicUsize::new(0),
     };
+
+    #[test]
+    fn test_stop_clears_samples_without_allocating() {
+        // Like the unwind test, run with --test-threads 1 for allocation counting.
+        let mut profiler = Profiler::new().unwrap();
+        profiler.start().unwrap();
+        profiler.sample(SmallVec::new(), b"old", 1, SystemTime::now());
+
+        ALLOC.enable_count_alloc();
+        let result = profiler.stop();
+        ALLOC.disable_count_alloc();
+
+        result.unwrap();
+        assert_eq!(ALLOC.alloc_count(), 0);
+        assert!(!profiler.running);
+        assert_eq!(profiler.sample_counter, 0);
+        assert_eq!(profiler.data.try_iter().unwrap().count(), 0);
+
+        profiler.start().unwrap();
+        profiler.sample(SmallVec::new(), b"new", 2, SystemTime::now());
+        assert_eq!(profiler.sample_counter, 1);
+        {
+            let mut samples = profiler.data.try_iter().unwrap();
+            let sample = samples.next().unwrap();
+            assert_eq!(sample.item.thread_id, 2);
+            assert_eq!(sample.count, 1);
+            assert!(samples.next().is_none());
+        }
+        profiler.stop().unwrap();
+    }
 
     #[test]
     fn test_no_alloc_during_unwind() {
