@@ -53,7 +53,7 @@ symbolic-demangle = { version = "13.1.0", default-features = false, features = [
 
 
 [dev-dependencies]
-libflate = "=2.3.1"
+libflate = "=2.3.2"
 httparse = "=1.10.1"
 criterion = { version = "=0.8.2", default-features = false, features = ["cargo_bench_support"] }
 assert_matches = "=1.5.0"
