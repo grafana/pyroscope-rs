@@ -76,7 +76,7 @@ impl Timer {
                         // Send event to attached Sender
                         match tx.send(from) {
                             Ok(_) => {
-                                log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", &tx)
+                                log::trace!(target: LOG_TAG, "Sent event to listener @ {:?}", tx)
                             }
                             Err(_e) => {} // There could be a less confusing message, or this
                                           // refactored to avoid a first sender
