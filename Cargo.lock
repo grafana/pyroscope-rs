@@ -1596,7 +1596,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "2.1.2"
+version = "2.1.3"
 dependencies = [
  "aligned-vec",
  "assert_matches",
