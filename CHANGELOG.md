@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.1.3](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.2...lib-2.1.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* **deps:** update rustls-webpki and webpki-root-certs (CVE-2026-111943) ([#613](https://github.com/grafana/pyroscope-rs/issues/613)) ([4727c86](https://github.com/grafana/pyroscope-rs/commit/4727c86a06cb4b7c196664457676f8319a1d1fa4))
+
+
+### Performance Improvements
+
+* **session:** reduce profile upload CPU and allocation overhead ([#603](https://github.com/grafana/pyroscope-rs/issues/603)) ([e8fe051](https://github.com/grafana/pyroscope-rs/commit/e8fe0513bcdbb09b28445b1e70e857e07146bf7b))
+
+
+### Miscellaneous Chores
+
+* **deps:** lock file maintenance ([#577](https://github.com/grafana/pyroscope-rs/issues/577)) ([9c25166](https://github.com/grafana/pyroscope-rs/commit/9c25166f9195a7076024bdbaf7b410a1c79788f7))
+* **deps:** pin dependencies ([#591](https://github.com/grafana/pyroscope-rs/issues/591)) ([0728485](https://github.com/grafana/pyroscope-rs/commit/0728485c295707eeea16abdb83449b04de39b120))
+* **deps:** update actions/checkout action to v6.1.0 ([#600](https://github.com/grafana/pyroscope-rs/issues/600)) ([381a98e](https://github.com/grafana/pyroscope-rs/commit/381a98e5648058c2a438a0dcbb1fbcb1d906f870))
+* **deps:** update actions/checkout action to v7 ([#611](https://github.com/grafana/pyroscope-rs/issues/611)) ([376e476](https://github.com/grafana/pyroscope-rs/commit/376e476ad0ce20d66bddeba5f5f07f0b58d65a57))
+* **deps:** update rust crate env_logger to v0.11.11 ([#592](https://github.com/grafana/pyroscope-rs/issues/592)) ([b5b7c21](https://github.com/grafana/pyroscope-rs/commit/b5b7c2113ced198ee4bd2acd6057a35daacc115e))
+* **deps:** update rust crate flate2 to v1.1.10 ([#604](https://github.com/grafana/pyroscope-rs/issues/604)) ([a243603](https://github.com/grafana/pyroscope-rs/commit/a243603013652a98947a6257210931c33e8f7f8f))
+* **deps:** update rust crate libc to v0.2.190 ([#593](https://github.com/grafana/pyroscope-rs/issues/593)) ([2346910](https://github.com/grafana/pyroscope-rs/commit/234691066c334d9a30aaaeb6253a8777284f637f))
+* **deps:** update rust crate libc to v0.2.191 ([#606](https://github.com/grafana/pyroscope-rs/issues/606)) ([5ce6c78](https://github.com/grafana/pyroscope-rs/commit/5ce6c789d6497107b170619d6c2460ea74f8212c))
+* **deps:** update rust crate libflate to v2.3.2 ([#607](https://github.com/grafana/pyroscope-rs/issues/607)) ([5707520](https://github.com/grafana/pyroscope-rs/commit/57075203a80272adcd7fa7f6f818dbd2b4454677))
+* **deps:** update rust crate log to v0.4.34 ([#595](https://github.com/grafana/pyroscope-rs/issues/595)) ([1aaa7c6](https://github.com/grafana/pyroscope-rs/commit/1aaa7c66101a69642695fba5de1227d9ff418e04))
+* **deps:** update rust crate reqwest to v0.13.5 ([#596](https://github.com/grafana/pyroscope-rs/issues/596)) ([b9662a2](https://github.com/grafana/pyroscope-rs/commit/b9662a2da787eaf49e7cc34e0d7ff2bd6cac885d))
+* **deps:** update rust crate serde_json to v1.0.154 ([#597](https://github.com/grafana/pyroscope-rs/issues/597)) ([25dc16e](https://github.com/grafana/pyroscope-rs/commit/25dc16e79597392ceaf1f77b35e7688cff37d968))
+* **deps:** update rust crate smallvec to v1.16.3 ([#609](https://github.com/grafana/pyroscope-rs/issues/609)) ([46c2f38](https://github.com/grafana/pyroscope-rs/commit/46c2f38adac6f43ab25f6680f448c2ab26c14753))
+* **deps:** update rust crate spin to v0.12.3 ([#598](https://github.com/grafana/pyroscope-rs/issues/598)) ([82ffa57](https://github.com/grafana/pyroscope-rs/commit/82ffa5743df2b1fdc73451e2eae33f77ffff487a))
+* **deps:** update rust crate thiserror to v2.0.21 ([#599](https://github.com/grafana/pyroscope-rs/issues/599)) ([6c34574](https://github.com/grafana/pyroscope-rs/commit/6c345749c5debbb9f95cda6325d74b7f5bbe7b93))
+* **deps:** update rust crate uuid to v1.28.0 ([#610](https://github.com/grafana/pyroscope-rs/issues/610)) ([b56da70](https://github.com/grafana/pyroscope-rs/commit/b56da70684fa204f5e6666afe89189b9d3c104ad))
+* **deps:** update rust-lang/crates-io-auth-action action to v1.0.5 ([#605](https://github.com/grafana/pyroscope-rs/issues/605)) ([433125c](https://github.com/grafana/pyroscope-rs/commit/433125c22ae20b44f0fe6c5b52c6e029509cae9a))
+
 ## [2.1.2](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.1...lib-2.1.2) (2026-10-14)
 
 
