@@ -55,13 +55,13 @@ symbolic-demangle = { version = "13.1.0", default-features = false, features = [
 
 [dev-dependencies]
 mimalloc = "0.1.52"
-libflate = "=2.3.1"
+libflate = "=2.3.2"
 httparse = "=1.10.1"
 criterion = { version = "=0.8.2", default-features = false, features = ["cargo_bench_support"] }
 assert_matches = "=1.5.0"
 claims = "=0.8.0"
 tikv-jemallocator = { version = "=0.7.0", features = ["profiling"] }
-env_logger = "=0.11.10"
+env_logger = "=0.11.11"
 
 [[example]]
 name = "jemalloc"
