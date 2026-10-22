@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.5](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.4...lib-2.1.5) (2026-10-22)
+
+
+### Bug Fixes
+
+* **deps:** bump quinn-proto and chacha20 for security advisories ([#617](https://github.com/grafana/pyroscope-rs/issues/617)) ([79a6f23](https://github.com/grafana/pyroscope-rs/commit/79a6f236e8c223be52ea6a5b6b8eda7a0b774523))
+
+
+### Miscellaneous Chores
+
+* add sdks-profiling-rust to CODEOWNERS ([#614](https://github.com/grafana/pyroscope-rs/issues/614)) ([342b78a](https://github.com/grafana/pyroscope-rs/commit/342b78acc6e72a4c6a2ac22a98ef304a9ce2ad48))
+
 ## [2.1.4](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.3...lib-2.1.4) (2026-10-22)
 
 
