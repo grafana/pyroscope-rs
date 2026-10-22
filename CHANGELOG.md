@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.4](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.3...lib-2.1.4) (2026-10-22)
+
+
+### Miscellaneous Chores
+
+* **deps:** bump rustls from 0.23.43 to 0.23.46 ([#615](https://github.com/grafana/pyroscope-rs/issues/615)) ([2465b1c](https://github.com/grafana/pyroscope-rs/commit/2465b1c62ef62317628493927c0840af94551ee0))
+
 ## [2.1.3](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.2...lib-2.1.3) (2026-10-21)
 
 
