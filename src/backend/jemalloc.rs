@@ -1,6 +1,4 @@
-use crate::backend::{
-    Backend, BackendImpl, BackendUninitialized, ReportBatch, ReportData, ThreadTag,
-};
+use crate::backend::{Backend, BackendImpl, BackendUninitialized, ReportBatch, ReportData};
 use crate::error::{PyroscopeError, Result};
 
 const LOG_TAG: &str = "Pyroscope::Jemalloc";
@@ -82,13 +80,5 @@ impl Backend for Jemalloc {
             profile_type: "memory".into(),
             data: ReportData::RawPprof(pprof_data),
         })
-    }
-
-    fn add_tag(&self, _tag: ThreadTag) -> Result<()> {
-        Ok(())
-    }
-
-    fn remove_tag(&self, _tag: ThreadTag) -> Result<()> {
-        Ok(())
     }
 }
