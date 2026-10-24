@@ -1844,9 +1844,9 @@ dependencies = [
 
 [[package]]
 name = "rustfs-mimalloc-profiling"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf2887ea2a9d4dccb4c1374d1ca7e3de1f0844aa86f7bf13b9c519783b00a643"
+checksum = "a1e7d8cbf9e0afb8eff0bd1f6023973148505102402b76c051f56e8c5c232172"
 dependencies = [
  "backtrace",
  "findshlibs",

@@ -578,7 +578,7 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "2.1.3"
+version = "2.1.5"
 dependencies = [
  "flate2",
  "libc",
@@ -656,9 +656,9 @@ checksum = "b74b56ffa8bb2830709a538c2cbcae9aa062db0d2a42563bfb09bdaae44020eb"
 
 [[package]]
 name = "rustfs-mimalloc-profiling"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf2887ea2a9d4dccb4c1374d1ca7e3de1f0844aa86f7bf13b9c519783b00a643"
+checksum = "a1e7d8cbf9e0afb8eff0bd1f6023973148505102402b76c051f56e8c5c232172"
 dependencies = [
  "backtrace",
  "findshlibs",
