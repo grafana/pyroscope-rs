@@ -36,7 +36,7 @@ rustfs-mimalloc-profiling = { version = "0.7.2", default-features = false, optio
 
 
 # pprofrs dependencies
-backtrace = { version = "0.3", optional = true }
+backtrace = { version = "0.3.77", optional = true }
 once_cell = { version = "1.9", optional = true }
 nix = { version = "0.31", default-features = false, features = ["signal", "fs"], optional = true }
 spin = { version = "0.12", optional = true }
