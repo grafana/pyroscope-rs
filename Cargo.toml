@@ -35,7 +35,7 @@ jemalloc_pprof = { version = "0.9", features = ["symbolize"], optional = true }
 
 
 # pprofrs dependencies
-backtrace = { version = "0.3", optional = true }
+backtrace = { version = "0.3.77", optional = true }
 once_cell = { version = "1.9", optional = true }
 nix = { version = "0.31", default-features = false, features = ["signal", "fs"], optional = true }
 spin = { version = "0.12", optional = true }
