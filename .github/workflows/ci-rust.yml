@@ -74,6 +74,60 @@ jobs:
           RUSTDOCFLAGS: --cfg docsrs -Dwarnings
         run: cargo doc --lib --no-deps --locked --all-features
 
+  mimalloc-server:
+    name: mimalloc server (v2, ${{ matrix.provider }})
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [upstream, rustfs]
+    runs-on: ${{ github.repository_owner == 'grafana' && 'ubuntu-x64-small' || 'ubuntu-latest' }}
+    # Allow cold toolchain/fixture builds, one 12-minute suite, and artifact upload.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: 1.95
+          components: clippy, rustfmt
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Check Go harness
+        working-directory: e2e
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test -count=1 -timeout=2m -skip '^TestMimallocServer$' ./...
+
+      - name: Check isolated Rust fixture
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+          PROVIDER: ${{ matrix.provider }}
+        run: |
+          manifest="e2e/fixtures/$PROVIDER/Cargo.toml"
+          cargo fmt --manifest-path "$manifest" --check
+          cargo clippy --locked --manifest-path "$manifest" --all-targets -- --deny warnings
+
+      - name: Verify memory profile ingestion and query round trip
+        env:
+          PROVIDER: ${{ matrix.provider }}
+        run: go -C e2e test -count=1 -v -timeout=12m -run "^TestMimallocServer$/^$PROVIDER$" ./...
+
+      - name: Upload server round-trip evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: mimalloc-server-v2-${{ matrix.provider }}
+          path: target/mimalloc-server-e2e
+          if-no-files-found: warn
+          retention-days: 7
+
   test:
     name: cargo test (${{ matrix.arch.name }}, ${{ matrix.libc.name }})
     runs-on: ${{ matrix.arch.runner }}

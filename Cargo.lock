@@ -1153,6 +1153,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "libmimalloc-sys"
+version = "0.1.49"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a45a52f43e1c16f667ccfe4dd8c85b7f7c204fd5e3bf46c5b0db9a5c3c0b8e9"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1222,6 +1231,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b0ca1155a9ecc25aa12e8313a119f32edf0255fea2f44839c4ac0a12b2ac157"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "mimalloc"
+version = "0.1.52"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d4139bb28d14ad1facf21d5eb8825051b326e172d216b39f6d31df53cc97862"
+dependencies = [
+ "libmimalloc-sys",
 ]
 
 [[package]]
@@ -1573,11 +1591,13 @@ dependencies = [
  "libflate",
  "log",
  "memmap2",
+ "mimalloc",
  "nix",
  "object",
  "once_cell",
  "prost",
  "reqwest",
+ "rustfs-mimalloc-profiling",
  "ruzstd",
  "serde_json",
  "smallvec",
@@ -1798,6 +1818,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
 dependencies = [
  "semver",
+]
+
+[[package]]
+name = "rustfs-mimalloc-profiling"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1e7d8cbf9e0afb8eff0bd1f6023973148505102402b76c051f56e8c5c232172"
+dependencies = [
+ "backtrace",
+ "findshlibs",
+ "libc",
+ "log",
+ "object 0.40.0",
+ "prost",
 ]
 
 [[package]]
