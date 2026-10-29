@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.6](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.5...lib-2.1.6) (2026-10-29)
+
+
+### Miscellaneous Chores
+
+* **deps:** lock file maintenance ([#621](https://github.com/grafana/pyroscope-rs/issues/621)) ([adb1a04](https://github.com/grafana/pyroscope-rs/commit/adb1a0458bbf45465bff5618a440af4de889cc70))
+* **deps:** update backtrace to 0.3.77 ([#623](https://github.com/grafana/pyroscope-rs/issues/623)) ([563abdf](https://github.com/grafana/pyroscope-rs/commit/563abdf508ff2cce10511e4212576ed2ed022886))
+* **deps:** update rust crate memmap2 to v0.9.12 ([#619](https://github.com/grafana/pyroscope-rs/issues/619)) ([f7a10aa](https://github.com/grafana/pyroscope-rs/commit/f7a10aac1d4d8b1941265b5c314e6fe68a2011cc))
+* **deps:** update rust-lang/crates-io-auth-action action to v1.0.6 ([#620](https://github.com/grafana/pyroscope-rs/issues/620)) ([9119e47](https://github.com/grafana/pyroscope-rs/commit/9119e47261bff34d3c312d392867bab897b5b1eb))
+
 ## [2.1.5](https://github.com/grafana/pyroscope-rs/compare/lib-2.1.4...lib-2.1.5) (2026-10-22)
 
 
