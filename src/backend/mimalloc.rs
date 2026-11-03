@@ -1,0 +1,93 @@
+//! Pyroscope adapter for the standalone `rustfs-mimalloc-profiling` crate.
+//!
+//! Install [`SamplingAllocator`] as the global allocator, then pass
+//! [`mimalloc_backend`] to the agent builder. Sampling, live heap tracking,
+//! symbolization and pprof generation are owned by the profiling crate.
+//!
+//! Applications select the provider, such as `mimalloc::MiMalloc` or
+//! `rustfs_mimalloc::MiMalloc`. Install the sampling wrapper to observe allocations.
+
+use rustfs_mimalloc_profiling::Profiler;
+pub use rustfs_mimalloc_profiling::{
+    mimalloc_stats, MimallocConfig, MimallocStackCapture, MimallocStats, SamplingAllocator,
+};
+
+use crate::{
+    backend::{Backend, BackendImpl, BackendUninitialized, ReportBatch, ReportData},
+    error::{PyroscopeError, Result},
+};
+
+/// Create a mimalloc allocation memory profiling backend.
+///
+/// The returned backend should be passed to `PyroscopeAgentBuilder::new`, and
+/// the process must install [`SamplingAllocator`] as its global allocator.
+///
+/// # Examples
+///
+/// ```no_run
+/// use pyroscope::backend::mimalloc::{
+///     mimalloc_backend, MimallocConfig, SamplingAllocator,
+/// };
+/// use pyroscope::pyroscope::PyroscopeAgentBuilder;
+///
+/// #[global_allocator]
+/// static ALLOC: SamplingAllocator<mimalloc::MiMalloc> =
+///     SamplingAllocator::with_allocator(mimalloc::MiMalloc);
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let agent = PyroscopeAgentBuilder::new(
+///     "http://localhost:4040",
+///     "example.mimalloc",
+///     100,
+///     "pyroscope-rs",
+///     env!("CARGO_PKG_VERSION"),
+///     mimalloc_backend(MimallocConfig::default()),
+/// )
+/// .build()?;
+/// # let _ = agent;
+/// # Ok(())
+/// # }
+/// ```
+pub fn mimalloc_backend(config: MimallocConfig) -> BackendImpl<BackendUninitialized> {
+    BackendImpl::new(Box::new(Mimalloc {
+        config,
+        profiler: None,
+    }))
+}
+
+#[derive(Debug)]
+struct Mimalloc {
+    config: MimallocConfig,
+    profiler: Option<Profiler>,
+}
+
+impl Backend for Mimalloc {
+    fn initialize(&mut self) -> Result<()> {
+        self.profiler = Some(Profiler::start(self.config).map_err(|error| {
+            PyroscopeError::new_with_source(
+                &format!("mimalloc: failed to start profiling: {error}"),
+                error,
+            )
+        })?);
+        Ok(())
+    }
+
+    fn shutdown(self: Box<Self>) -> Result<()> {
+        // Returning drops self and its Profiler, releasing recorder ownership.
+        Ok(())
+    }
+
+    fn report(&mut self) -> Result<ReportBatch> {
+        let profiler = self
+            .profiler
+            .as_mut()
+            .ok_or_else(|| PyroscopeError::new("mimalloc: profiling backend is not initialized"))?;
+        let bytes = profiler.report().map_err(|error| {
+            PyroscopeError::new_with_source("mimalloc: failed to collect profile", error)
+        })?;
+        Ok(ReportBatch {
+            profile_type: "memory".into(),
+            data: ReportData::RawPprof(bytes),
+        })
+    }
+}

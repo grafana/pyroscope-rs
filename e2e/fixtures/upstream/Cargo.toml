@@ -1,0 +1,15 @@
+[package]
+name = "pyroscope-upstream-mimalloc-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+pyroscope = { path = "../../..", default-features = false, features = ["backend-mimalloc"] }
+mimalloc = "0.1.52"
+
+[[test]]
+name = "mimalloc_server"
+path = "mimalloc_server.rs"

@@ -634,20 +634,16 @@ impl PyroscopeAgent<PyroscopeAgentRunning> {
     /// # let agent = PyroscopeAgentBuilder::new("http://localhost:4040", "my-app", 100, "pyroscope-rs", "0.1.0", pprof_backend(PprofConfig::default(), BackendConfig::default())).build()?;
     /// # let agent_running = agent.start()?;
     /// let (add_tag, remove_tag) = agent_running.tag_wrapper();
+    /// add_tag("key".to_string(), "value".to_string())?;
+    /// // Run the tagged computation.
+    /// remove_tag("key".to_string(), "value".to_string())?;
     /// # Ok(())
     /// # }
     /// # #[cfg(not(feature = "backend-pprof-rs"))]
     /// # fn main() {}
     /// ```
     ///
-    /// The functions can be later called from any thread.
-    ///
-    /// # Example
-    /// ```ignore
-    /// add_tag("key".to_string(), "value".to_string());
-    /// // some computation
-    /// remove_tag("key".to_string(), "value".to_string());
-    /// ```
+    /// The functions can be called from any thread.
     #[allow(clippy::type_complexity)]
     pub fn tag_wrapper(
         &self,
