@@ -14,5 +14,15 @@
       ],
       "enabled": true
     }
+  ],
+  "customManagers": [
+    {
+      "description": "Track the rust Docker images in the ci-rust.yml test matrix, so they are bumped together with the dtolnay/rust-toolchain pins.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["base_image: \"(?<depName>rust):(?<currentValue>[^\"@]+)\""],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
   ]
 }
