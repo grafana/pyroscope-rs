@@ -46,6 +46,7 @@ impl ThreadTagsSet {
     #[cfg(test)]
     pub fn thread_tags(&self, tid: crate::ThreadId) -> Vec<Tag> {
         let s = StackTrace {
+            observation: None,
             pid: None,
             thread_id: Some(tid.clone()),
             thread_name: None,
@@ -72,6 +73,7 @@ impl StackTrace {
         }
 
         Self {
+            observation: self.observation,
             pid: self.pid,
             thread_id: self.thread_id,
             thread_name: self.thread_name,

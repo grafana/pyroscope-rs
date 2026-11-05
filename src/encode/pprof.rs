@@ -152,6 +152,23 @@ pub fn encode(
                     num_unit: 0,
                 })
             }
+            if let Some(observation) = &stacktrace.observation {
+                for (key, value, unit) in [
+                    (
+                        "trace_timestamp_ns",
+                        observation.trace_timestamp_ns,
+                        "nanoseconds",
+                    ),
+                    ("os_thread_id", observation.os_thread_id, ""),
+                ] {
+                    sample.label.push(Label {
+                        key: b.add_string(&key.to_string()),
+                        str: 0,
+                        num: value as i64,
+                        num_unit: b.add_string(&unit.to_string()),
+                    });
+                }
+            }
             b.profile.sample.push(sample);
         }
     }
