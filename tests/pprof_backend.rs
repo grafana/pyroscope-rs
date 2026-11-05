@@ -45,5 +45,48 @@ mod tests {
 
         stop.store(true, Ordering::Relaxed);
         alloc_thread.join().expect("alloc thread panicked");
+        drop(backend);
+        check_individual_samples();
     }
+
+    // Run after the smoke test: pprof owns one process-wide profiler.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    fn check_individual_samples() {
+        use pyroscope::backend::ReportData;
+        for limit in [0, 2] {
+            let mut backend = pprof_backend(
+                PprofConfig::default()
+                    .retain_individual_samples()
+                    .sample_limit(limit),
+                BackendConfig::default(),
+            )
+            .initialize()
+            .unwrap();
+            for _ in 0..2 {
+                let start = std::time::Instant::now();
+                while start.elapsed() < std::time::Duration::from_millis(250) {
+                    std::hint::black_box((0..1000).sum::<u64>());
+                }
+                let batch = backend.report().unwrap();
+                let ReportData::Reports(reports) = batch.data else {
+                    panic!("expected reports")
+                };
+                let samples: Vec<_> = reports.iter().flat_map(|r| r.data.iter()).collect();
+                assert_eq!(samples.len(), limit);
+                for (stack, count) in samples {
+                    assert_eq!(*count, 1);
+                    let observation = stack.observation.as_ref().unwrap();
+                    assert!(observation.trace_timestamp_ns > 0);
+                    #[cfg(target_os = "linux")]
+                    assert_eq!(observation.os_thread_id, unsafe {
+                        libc::syscall(libc::SYS_gettid) as u64
+                    });
+                    #[cfg(target_os = "macos")]
+                    assert!(observation.os_thread_id > 0);
+                }
+            }
+        }
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    fn check_individual_samples() {}
 }
