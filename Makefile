@@ -14,9 +14,16 @@ lib/test:
 pprofrs/test:
 	cargo  test --manifest-path Cargo.toml --features backend-pprof-rs
 
+.PHONY: mimalloc/test
+mimalloc/test:
+	cargo  test --manifest-path Cargo.toml --features backend-mimalloc -- --test-threads 1
+
+.PHONY: mimalloc/test/server
+mimalloc/test/server:
+	go -C e2e test -count=1 -v -timeout=25m ./...
 
 .PHONY: test
-test: pprofrs/test  lib/test
+test: pprofrs/test mimalloc/test lib/test
 
 
 .PHONY: rust/fmt
