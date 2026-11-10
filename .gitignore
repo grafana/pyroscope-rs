@@ -13,3 +13,6 @@ dist/
 flamegraph.svg
 perf.data
 perf.data.*
+
+# Build output from isolated E2E Cargo workspaces.
+/e2e/fixtures/*/target/

@@ -24,8 +24,14 @@ pub trait Backend: Send {
     fn shutdown(self: Box<Self>) -> Result<()>;
     /// Generate profiling report
     fn report(&mut self) -> Result<ReportBatch>;
-    fn add_tag(&self, tag: ThreadTag) -> Result<()>;
-    fn remove_tag(&self, tag: ThreadTag) -> Result<()>;
+    /// Add a thread tag. Backends without thread-tag support ignore it.
+    fn add_tag(&self, _tag: ThreadTag) -> Result<()> {
+        Ok(())
+    }
+    /// Remove a thread tag. Backends without thread-tag support ignore it.
+    fn remove_tag(&self, _tag: ThreadTag) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// Marker struct for Empty BackendImpl

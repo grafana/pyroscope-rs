@@ -26,31 +26,19 @@
 //!     pprof_backend(PprofConfig::default(), BackendConfig::default()),
 //! )
 //! .build()?;
+//! let running = agent.start()?;
+//! // Run the application workload.
+//! let ready = running.stop()?;
+//! ready.shutdown();
 //! # Ok(())
 //! # }
 //! # #[cfg(not(feature = "backend-pprof-rs"))]
 //! # fn main() {}
 //! ```
 //!
-//! ## Start/Stop profiling
-//!
-//! To start profiling code and sending data.
-//!
-//! ```ignore
-//! let agent_running = agent.start()?;
-//! ```
-//!
-//! To stop profiling code. You can restart the profiling at a later point.
-//!
-//! ```ignore
-//! let agent_ready = agent_running.stop()?;
-//! ```
-//!
-//! Before you drop the variable, make sure to shutdown the agent.
-//!
-//! ```ignore
-//! agent_ready.shutdown();
-//! ```
+//! Start the agent before the workload, stop it to finish the current report,
+//! and shut it down after profiling is complete. The example above shows the
+//! complete lifecycle.
 
 extern crate core;
 
