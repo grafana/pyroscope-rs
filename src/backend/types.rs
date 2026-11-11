@@ -175,6 +175,18 @@ impl Report {
     }
 }
 
+/// Metadata for one CPU observation, kept separate from series tags.
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct Observation {
+    /// Nanoseconds on CLOCK_BOOTTIME (Linux) or CLOCK_UPTIME_RAW (macOS).
+    /// This is host/boot relative, not Unix time.
+    pub trace_timestamp_ns: u64,
+    /// Native OS thread ID, distinct from the pthread handle used by tag rules.
+    pub os_thread_id: u64,
+    /// Wall-clock capture time, also used to distinguish clock-tick collisions.
+    pub sample_timestamp: std::time::SystemTime,
+}
+
 /// StackTrace
 /// A representation of a stack trace.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
@@ -185,6 +197,8 @@ pub struct StackTrace {
     pub thread_id: Option<crate::utils::ThreadId>,
     /// Thread Name
     pub thread_name: Option<String>,
+    /// Per-observation metadata when individual collection is enabled.
+    pub observation: Option<Observation>,
     /// Stack Trace
     pub frames: Vec<StackFrame>,
     /// Metadata
@@ -236,6 +250,7 @@ impl StackTrace {
         }
 
         Self {
+            observation: None,
             pid,
             thread_id,
             thread_name,
