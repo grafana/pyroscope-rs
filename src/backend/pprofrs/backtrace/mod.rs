@@ -9,17 +9,17 @@ pub trait Symbol: Sized {
     fn filename(&self) -> Option<PathBuf>;
 }
 
-impl Symbol for backtrace::Symbol {
+impl Symbol for crate::backend::pprofrs::frames::Symbol {
     fn name(&self) -> Option<Vec<u8>> {
-        self.name().map(|name| name.as_bytes().to_vec())
+        self.name.clone()
     }
 
     fn lineno(&self) -> Option<u32> {
-        self.lineno()
+        self.lineno
     }
 
-    fn filename(&self) -> Option<std::path::PathBuf> {
-        self.filename().map(|filename| filename.to_owned())
+    fn filename(&self) -> Option<PathBuf> {
+        self.filename.clone()
     }
 }
 

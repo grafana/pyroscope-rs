@@ -37,6 +37,7 @@ rustfs-mimalloc-profiling = { version = "0.7.3", default-features = false, optio
 
 # pprofrs dependencies
 backtrace = { version = "0.3.77", optional = true }
+addr2line = { version = "0.27", default-features = false, features = ["loader"], optional = true }
 once_cell = { version = "1.9", optional = true }
 nix = { version = "0.31", default-features = false, features = ["signal", "fs"], optional = true }
 spin = { version = "0.12", optional = true }
@@ -83,7 +84,7 @@ native-tls-vendored = ["reqwest/native-tls-vendored"]
 rustls-no-provider = ["reqwest/rustls-no-provider"]
 backend-pprof-rs = [
     "dep:backtrace",
-    "dep:backtrace",
+    "dep:addr2line",
     "dep:once_cell",
     "dep:nix",
     "dep:spin",

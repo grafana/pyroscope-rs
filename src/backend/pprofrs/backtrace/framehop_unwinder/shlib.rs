@@ -1,6 +1,8 @@
-use std::path::PathBuf;
+use std::ffi::OsStr;
+use std::ops::Range;
+use std::path::{Path, PathBuf};
 
-use findshlibs::{SharedLibrary, TargetSharedLibrary};
+use findshlibs::{IterationControl, SharedLibrary, TargetSharedLibrary};
 use framehop::{Module, ModuleSectionInfo};
 use memmap2::Mmap;
 use object::{Object, ObjectSection};
@@ -10,6 +12,37 @@ static OBJECTS: Lazy<Vec<Module<Vec<u8>>>> = Lazy::new(find_objects);
 
 pub fn get_objects() -> &'static [Module<Vec<u8>>] {
     &OBJECTS
+}
+
+/// Where the running executable is mapped and a path that still opens it after
+/// the original file was unlinked or replaced.
+pub struct Executable {
+    pub path: PathBuf,
+    pub avma: Range<usize>,
+    pub bias: usize,
+}
+
+pub fn executable() -> Option<Executable> {
+    let mut executable = None;
+    TargetSharedLibrary::each(|shlib| {
+        let base = shlib.actual_load_addr().0;
+        executable = Some(Executable {
+            path: executable_path(shlib.name()),
+            avma: base..base + shlib.len(),
+            bias: shlib.virtual_memory_bias().0,
+        });
+        IterationControl::Break
+    });
+    executable
+}
+
+fn executable_path(name: &OsStr) -> PathBuf {
+    let proc_exe = Path::new("/proc/self/exe");
+    if cfg!(target_os = "linux") && proc_exe.exists() {
+        proc_exe.to_path_buf()
+    } else {
+        PathBuf::from(name)
+    }
 }
 
 pub struct ObjectInfo<'f>(object::File<'f>);
@@ -47,7 +80,7 @@ where
     }
 }
 
-fn open_mmap(path: &PathBuf) -> Option<Mmap> {
+fn open_mmap(path: &Path) -> Option<Mmap> {
     let file = std::fs::File::open(path).ok()?;
     let mmap = unsafe { Mmap::map(&file) }.ok()?;
     Some(mmap)
@@ -55,12 +88,19 @@ fn open_mmap(path: &PathBuf) -> Option<Mmap> {
 
 fn find_objects() -> Vec<Module<Vec<u8>>> {
     let mut objects = Vec::new();
+    let mut is_executable = true;
     // objects
     TargetSharedLibrary::each(|shlib| {
         let path = PathBuf::from(shlib.name());
         let base_avma = shlib.actual_load_addr().0 as u64;
         let avma_range = base_avma..base_avma + shlib.len() as u64;
-        if let Some(mmap) = open_mmap(&path) {
+        let mmap = if is_executable {
+            open_mmap(&executable_path(shlib.name()))
+        } else {
+            open_mmap(&path)
+        };
+        is_executable = false;
+        if let Some(mmap) = mmap {
             if let Ok(obj) = object::File::parse(&*mmap) {
                 let section_info = ObjectInfo(obj);
 

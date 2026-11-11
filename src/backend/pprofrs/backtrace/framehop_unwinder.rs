@@ -1,11 +1,14 @@
 use crate::backend::pprofrs::addr_validate::Pipes;
+use crate::backend::pprofrs::frames::Symbol;
 use framehop::{
     CacheNative, MustNotAllocateDuringUnwind, UnwindRegsNative, Unwinder, UnwinderNative,
 };
 use libc::{c_void, ucontext_t};
 use once_cell::sync::Lazy;
 use spin::RwLock;
+use std::path::Path;
 
+mod executable;
 mod shlib;
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
@@ -145,7 +148,7 @@ extern "C" {
 }
 
 impl super::Frame for Frame {
-    type S = backtrace::Symbol;
+    type S = Symbol;
     fn ip(&self) -> usize {
         self.ip
     }
@@ -158,8 +161,17 @@ impl super::Frame for Frame {
         }
     }
 
-    fn resolve_symbol<F: FnMut(&Self::S)>(&self, cb: F) {
-        backtrace::resolve(self.ip as *mut c_void, cb);
+    fn resolve_symbol<F: FnMut(&Self::S)>(&self, mut cb: F) {
+        if executable::resolve(self.ip, &mut cb) {
+            return;
+        }
+        backtrace::resolve(self.ip as *mut c_void, |symbol| {
+            cb(&Symbol {
+                name: symbol.name().map(|name| name.as_bytes().to_vec()),
+                lineno: symbol.lineno(),
+                filename: symbol.filename().map(Path::to_path_buf),
+            })
+        });
     }
 }
 
@@ -170,6 +182,7 @@ impl super::Trace for Trace {
 
     fn init() {
         let _ = UNWINDER.read();
+        executable::init();
     }
 
     fn trace<F: FnMut(&Self::Frame) -> bool>(ctx: *mut c_void, cb: F)
